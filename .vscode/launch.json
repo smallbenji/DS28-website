@@ -1,0 +1,17 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Launch HQ",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "prepare",
+            "program": "${workspaceFolder}/DS.HQ/bin/Debug/net10.0/DS.HQ.dll",
+            "args": [],
+            "cwd": "${workspaceFolder}/DS.HQ",
+            "console": "internalConsole",
+            "envFile": "${workspaceFolder}/.env",
+            "stopAtEntry": false
+        }
+    ]
+}

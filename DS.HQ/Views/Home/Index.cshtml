@@ -1,0 +1,22 @@
+@model HomeViewModel
+
+<div class="title">
+    <h1>DS28</h1>
+    <p>Velkommen tilbage @Model.Name</p>
+    @if(!string.IsNullOrEmpty(Model.GroupNumber))
+    {
+        <p>Gruppe nummer: @Model.GroupNumber</p>
+    }
+</div>
+
+<div class="grid">
+    @foreach (var obj in Model.Shortcuts)
+    {
+        <a href="@obj.URL" class="link-box">
+            <div>
+                <i class="@obj.Icon"></i>
+                <p>@obj.Title</p>
+            </div>
+        </a>
+    }
+</>

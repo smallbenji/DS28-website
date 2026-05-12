@@ -1,0 +1,102 @@
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using NETCore.Keycloak.Client.HttpClients.Implementation;
+using NETCore.Keycloak.Client.Models.Auth;
+using NETCore.Keycloak.Client.Models.Users;
+
+namespace DS.HQ.Controllers
+{
+    [Authorize]
+    public class HomeController : Controller
+    {
+        public HomeController() { }
+
+        public IActionResult Index()
+        {
+            var retval = new HomeViewModel();
+
+            retval.Name = HttpContext.User.Identity.Name;
+
+            var roles = HttpContext.User.FindAll("groups").Select(x => x.Value).ToList();
+
+            if (HttpContext.User.FindAll("groupnumber").Any())
+            {
+                retval.GroupNumber = HttpContext.User.FindFirst("groupnumber").Value;
+            }
+
+            retval.Shortcuts = new();
+
+            if (HttpContext.User.IsInRole("ds-admin"))
+            {
+                retval.Shortcuts.Add(new()
+                {
+                    Icon = "fa-solid fa-user",
+                    Title = "Brugerstyring",
+                    URL = "./User"
+                });
+            }
+
+            retval.Shortcuts.AddRange(new List<HQPanelEntry>()
+            {
+
+                new()
+                {
+                    Icon = "fa-solid fa-money-check-dollar",
+                    Title = "Økonomi",
+                    URL = "https://fisk.dk"
+                },
+                new()
+                {
+                    Icon = "fa-brands fa-wordpress",
+                    Title = "Wordpress",
+                    URL = "https://fisk.dk"
+                },
+                new()
+                {
+                    Icon = "fa-solid fa-cart-plus",
+                    Title = "Materialesystem",
+                    URL = "https://fisk.dk"
+                },
+                new()
+                {
+                    Icon = "fa-solid fa-plus-circle",
+                    Title = "Tilmeldingssystem",
+                    URL = "https://fisk.dk"
+                },
+                new()
+                {
+                    Icon = "fa-solid fa-arrow-trend-up",
+                    Title = "Grafana",
+                    URL = "https://fisk.dk"
+                },
+                new()
+                {
+                    Icon = "fa-solid fa-user-plus",
+                    Title = "Gruppestyring",
+                    URL = "https://fisk.dk"
+                },
+                new()
+                {
+                    Icon = "fa-solid fa-file-lines",
+                    Title = "Audit log",
+                    URL = "https://fisk.dk"
+                }
+            });
+
+            return View(retval);
+        }
+    }
+
+    public class HomeViewModel
+    {
+        public List<HQPanelEntry> Shortcuts { get; set; }
+        public string Name { get; set; }
+        public string GroupNumber { get; set; }
+    }
+    public class HQPanelEntry
+    {
+        public string Title { get; set; }
+        public string URL { get; set; }
+        public string Icon { get; set; }
+    }
+}

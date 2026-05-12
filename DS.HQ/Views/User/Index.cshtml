@@ -1,0 +1,39 @@
+@model UserIndexViewModel
+<div class="user-management">
+    <div class="user-list">
+        @foreach(var obj in Model.Users)
+        {
+            <div class="user-box selectable-user" data-userid="@obj.User.Id">
+                <p>@obj.User.FirstName @obj.User.LastName</p>
+                <p>@obj.GroupNumber</p>
+                @foreach (var role in obj.Roles)
+                {
+                    <p>@role.Name</p>
+                }
+            </div>
+        }
+    </div>
+    <div class="user-details"></div>
+</div>
+
+<script>
+    document.querySelectorAll('.selectable-user').forEach(box => {
+    box.addEventListener('click', function() {
+        const userId = this.getAttribute('data-userid');
+        const detailsDiv = document.querySelector('.user-details');
+
+        // Show a loading message
+        detailsDiv.innerHTML = "Loading...";
+
+        // Fetch the Edit Form from your Controller
+        fetch(`/User/GetUserDetails/${userId}`)
+            .then(response => response.text())
+            .then(html => {
+                detailsDiv.innerHTML = html;
+            })
+            .catch(err => {
+                detailsDiv.innerHTML = "Error loading user data.";
+            });
+        });
+    });
+</script>
