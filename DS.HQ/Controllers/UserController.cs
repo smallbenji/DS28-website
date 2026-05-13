@@ -1,10 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using NETCore.Keycloak.Client.HttpClients.Implementation;
-using NETCore.Keycloak.Client.Models.Auth;
 using NETCore.Keycloak.Client.Models.Groups;
 using NETCore.Keycloak.Client.Models.Users;
-using Newtonsoft.Json.Linq;
 
 namespace DS.HQ.Controllers
 {
