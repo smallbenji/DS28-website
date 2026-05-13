@@ -30,6 +30,14 @@ namespace DS.HQ.Controllers
             return Ok();
         }
 
+        [HttpPut]
+        public async Task<IActionResult> UpdateUser([FromBody] DSUser data)
+        {
+            await keycloakHelper.UpdateUser(data);
+
+            return Ok();
+        }
+
         [HttpPut("{id}/role/add")]
         public async Task<IActionResult> AddUserToRole([FromBody] string role, string id)
         {
