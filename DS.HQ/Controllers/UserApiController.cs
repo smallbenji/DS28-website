@@ -31,7 +31,7 @@ namespace DS.HQ.Controllers
             return Ok();
         }
 
-        [HttpPut("/{id}")]
+        [HttpPut("{id}")]
         public async Task<IActionResult> UpdateGroup([FromBody] Group data)
         {
             dataDb.Groups.Update(data);
@@ -41,7 +41,7 @@ namespace DS.HQ.Controllers
             return Ok();
         }
 
-        [HttpDelete("/{id}")]
+        [HttpDelete("{id}")]
         public async Task<IActionResult> Index(int id)
         {
             var group = await dataDb.Groups.FindAsync(id);
