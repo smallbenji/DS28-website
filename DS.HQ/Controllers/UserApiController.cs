@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace DS.HQ.Controllers
 {
+    [Route("/api/v1/group")]
     public class UserApiController : Controller
     {
         private readonly DataDbContext dataDb;
