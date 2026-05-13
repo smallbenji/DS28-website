@@ -7,11 +7,6 @@ using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 var builder = WebApplication.CreateBuilder(args);
 builder.Configuration.AddEnvironmentVariables();
 
-foreach (var c in builder.Configuration.AsEnumerable())
-{
-    Console.WriteLine($"{c.Key} = {c.Value}");
-}
-
 builder.Services.Configure<DSSettings>(builder.Configuration.GetSection("DS"));
 
 builder.Services
