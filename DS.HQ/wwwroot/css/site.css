@@ -31,7 +31,7 @@ body {
 }
 
 .title {
-  max-width: 48rem;
+  max-width: 51rem;
   margin: auto;
 
   h1 {
@@ -55,6 +55,11 @@ body {
     height: 100%;
     align-content: center;
     color: rgba(0, 0, 0, 0.4);
+    transition: ease-in 0.2s;
+  }
+
+  i:hover {
+    color: rgb(59,130,246);
   }
 
   p {
@@ -63,7 +68,18 @@ body {
     margin: 0;
     font-size: 18px;
     padding: 0.25rem 0;
+    color: rgba(0, 0, 0, 0.4);
+    transition: ease-in 0.2s;
   }
+
+}
+
+.link-box:hover p {
+  color: #000;
+}
+
+.link-box:hover i {
+  color: rgb(59,130,246);
 }
 
 .user-list {
