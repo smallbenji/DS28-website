@@ -37,7 +37,7 @@ namespace DS.HQ.Controllers
                     {
                         Icon = "fa-solid fa-user-plus",
                         Title = "Gruppestyring",
-                        URL = "https://fisk.dk"
+                        URL = "./Group"
                     },
                 });
             }
