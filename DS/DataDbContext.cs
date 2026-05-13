@@ -7,5 +7,5 @@ public class DataDbContext : DbContext
 {
     public DataDbContext(DbContextOptions options) : base(options) { }
 
-    public DbSet<Group> Groups { get; set; }
+    public DbSet<DS.Models.Group> Groups { get; set; }
 }
