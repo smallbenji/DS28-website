@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.EntityFrameworkCore;
 
 namespace DS
 {
@@ -55,6 +56,13 @@ namespace DS
                 });
 
             services.AddAuthorization();
+
+            services.AddDbContext<DataDbContext>(options =>
+            {
+                var dsSettings = configuration.GetSection("DS").Get<DSSettings>();
+
+                options.UseNpgsql(dsSettings.ConnectionString);
+            });
 
             return services;
         }
