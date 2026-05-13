@@ -1,8 +1,10 @@
 using DS.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace DS.HQ.Controllers
 {
+    [Authorize(Roles = Role.Admin)]
     [Route("/api/v1/group")]
     public class GroupApiController : Controller
     {
