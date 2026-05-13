@@ -5,7 +5,7 @@ using NETCore.Keycloak.Client.Models.Users;
 
 namespace DS.HQ.Controllers
 {
-    [Authorize(Roles = "ds-admin")]
+    [Authorize(Roles = Role.Admin)]
     public class UserController : Controller
     {
         private readonly KeycloakHelper keycloakHelper;
