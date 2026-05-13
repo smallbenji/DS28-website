@@ -83,6 +83,20 @@ namespace DS.HQ
             return usr;
         }
 
+        public async Task CreateUser(DSUser data)
+        {
+            var token = await GetToken();
+
+            await client.Users.CreateAsync(realm, token, data.User);
+        }
+
+        public async Task DeleteUser(string id)
+        {
+            var token = await GetToken();
+
+            await client.Users.DeleteAsync(realm, token, id);
+        }
+
         public async Task UpdateUser(DSUser user)
         {
             var token = await GetToken();

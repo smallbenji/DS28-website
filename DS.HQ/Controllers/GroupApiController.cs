@@ -4,11 +4,11 @@ using Microsoft.AspNetCore.Mvc;
 namespace DS.HQ.Controllers
 {
     [Route("/api/v1/group")]
-    public class UserApiController : Controller
+    public class GroupApiController : Controller
     {
         private readonly DataDbContext dataDb;
 
-        public UserApiController(DataDbContext dataDb)
+        public GroupApiController(DataDbContext dataDb)
         {
             this.dataDb = dataDb;
         }
