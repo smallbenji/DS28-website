@@ -4,11 +4,16 @@
         @foreach(var obj in Model.Users)
         {
             <div class="user-box selectable-user" data-userid="@obj.User.Id">
-                <p>@obj.User.FirstName @obj.User.LastName</p>
-                <p>@obj.GroupNumber</p>
-                @foreach (var role in obj.Roles)
+                <p class="name">@obj.User.FirstName @obj.User.LastName</p>
+                <div class="roles">
+                    @foreach (var role in obj.Roles)
+                    {
+                        <span>@role.Name</span>
+                    }
+                </div>
+                @if(!string.IsNullOrEmpty(obj.GroupNumber))
                 {
-                    <p>@role.Name</p>
+                    <p class="group-number">@obj.GroupNumber</p>
                 }
             </div>
         }

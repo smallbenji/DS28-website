@@ -82,6 +82,18 @@ body {
   border: 1px solid rgba(0, 0, 0, 0.1);
   border-radius: 10px;
   padding: 1rem;
+
+  .name {
+    font-weight: 600;
+  }
+
+  .roles {
+    span {
+      background-color: rgba(0, 0, 0, 0.1);
+      padding: 0.25rem 0.75rem;
+      border-radius: 25px;
+    }
+  }
 }
 
 .user-management {
@@ -94,9 +106,23 @@ body {
   background-color: white;
   border-radius: 10px;
   width: 100%;
+  padding: 1rem;
 }
 
 .user-details:empty {
   background-color: transparent;
   border: 3px dashed rgba(0, 0, 0, 0.1);
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 1rem;
+}
+
+.form-control {
+  border-radius: 10px;
+  border: 1px solid rgba(0, 0, 0, 0.5);
+  padding: 0.5rem 0.25rem;
+  box-shadow: 2px 2px 5px 0 rgba(0, 0, 0, 0.05);
 }

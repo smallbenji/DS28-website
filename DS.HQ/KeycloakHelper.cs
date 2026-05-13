@@ -2,6 +2,7 @@ using DS.HQ.Controllers;
 using Microsoft.Extensions.Options;
 using NETCore.Keycloak.Client.HttpClients.Implementation;
 using NETCore.Keycloak.Client.Models.Auth;
+using NETCore.Keycloak.Client.Models.Groups;
 using NETCore.Keycloak.Client.Models.Users;
 using Newtonsoft.Json.Linq;
 
@@ -12,10 +13,13 @@ namespace DS.HQ
         private readonly IOptions<DSSettings> options;
 
         private KeycloakClient client;
+        private string realm;
 
         public KeycloakHelper(IOptions<DSSettings> options)
         {
             this.options = options;
+
+            realm = options.Value.Realm;
 
             client = new KeycloakClient(options.Value.SSO_URL);
         }
@@ -27,7 +31,7 @@ namespace DS.HQ
 
         public async Task<string> GetToken()
         {
-            return (await client.Auth.GetClientCredentialsTokenAsync(options.Value.Realm, new KcClientCredentials
+            return (await client.Auth.GetClientCredentialsTokenAsync(realm, new KcClientCredentials
             {
                 ClientId = options.Value.ClientID,
                 Secret = options.Value.ClientSecret
@@ -38,7 +42,7 @@ namespace DS.HQ
         {
             var token = await GetToken();
 
-            var result = await client.Users.ListUserAsync(options.Value.Realm, token, new KcUserFilter { Max = 500 });
+            var result = await client.Users.ListUserAsync(realm, token, new KcUserFilter { Max = 500 });
 
             var retval = new List<DSUser>();
 
@@ -47,7 +51,7 @@ namespace DS.HQ
                 var usr = new DSUser()
                 {
                     User = obj,
-                    Roles = (await client.Users.UserGroupsAsync(options.Value.Realm, token, obj.Id)).Response.ToList()
+                    Roles = (await client.Users.UserGroupsAsync(realm, token, obj.Id)).Response.ToList()
                 };
 
                 if (obj.Attributes != null && obj.Attributes.TryGetValue("groupnumber", out var gtoken))
@@ -67,8 +71,8 @@ namespace DS.HQ
 
             var usr = new DSUser()
             {
-                User = (await client.Users.GetAsync(options.Value.Realm, token, id)).Response,
-                Roles = (await client.Users.UserGroupsAsync(options.Value.Realm, token, id)).Response.ToList()
+                User = (await client.Users.GetAsync(realm, token, id)).Response,
+                Roles = (await client.Users.UserGroupsAsync(realm, token, id)).Response.ToList()
             };
 
             if (usr.User.Attributes != null && usr.User.Attributes.TryGetValue("groupnumber", out var gtoken))
@@ -77,6 +81,34 @@ namespace DS.HQ
             }
 
             return usr;
+        }
+
+        public async Task UpdateUser(DSUser user)
+        {
+            var token = await GetToken();
+
+            await client.Users.UpdateAsync(realm, token, user.User.Id, user.User);
+        }
+
+        public async Task<List<KcGroup>> GetGroups()
+        {
+            var token = await GetToken();
+
+            return (await client.Groups.ListAsync(realm, token, new KcGroupFilter { Max = 500 })).Response.ToList();
+        }
+
+        public async Task AddUserToGroup(string userId, string groupId)
+        {
+            var token = await GetToken();
+
+            await client.Users.AddToGroupAsync(realm, token, userId, groupId);
+        }
+
+        public async Task RemoveUserFromGroup(string userId, string groupId)
+        {
+            var token = await GetToken();
+
+            await client.Users.DeleteFromGroupAsync(realm, token, userId, groupId);
         }
     }
 }
