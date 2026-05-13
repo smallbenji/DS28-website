@@ -13,9 +13,11 @@ namespace DS.HQ.Controllers
 
         public IActionResult Index()
         {
-            var retval = new HomeViewModel();
-
-            retval.Name = HttpContext.User.Identity.Name;
+            var retval = new HomeViewModel()
+            {
+                Name = HttpContext.User.Identity.Name,
+                Shortcuts = [],
+            };
 
             var roles = HttpContext.User.FindAll("groups").Select(x => x.Value).ToList();
 
@@ -24,15 +26,22 @@ namespace DS.HQ.Controllers
                 retval.GroupNumber = HttpContext.User.FindFirst("groupnumber").Value;
             }
 
-            retval.Shortcuts = new();
-
-            if (HttpContext.User.IsInRole("ds-admin"))
+            if (HttpContext.User.IsInRole(Role.Admin))
             {
-                retval.Shortcuts.Add(new()
+                retval.Shortcuts.AddRange(new List<HQPanelEntry>
                 {
-                    Icon = "fa-solid fa-user",
-                    Title = "Brugerstyring",
-                    URL = "./User"
+                    new()
+                    {
+                        Icon = "fa-solid fa-user",
+                        Title = "Brugerstyring",
+                        URL = "./User"
+                    },
+                    new()
+                    {
+                        Icon = "fa-solid fa-user-plus",
+                        Title = "Gruppestyring",
+                        URL = "https://fisk.dk"
+                    },
                 });
             }
 
@@ -67,12 +76,6 @@ namespace DS.HQ.Controllers
                 {
                     Icon = "fa-solid fa-arrow-trend-up",
                     Title = "Grafana",
-                    URL = "https://fisk.dk"
-                },
-                new()
-                {
-                    Icon = "fa-solid fa-user-plus",
-                    Title = "Gruppestyring",
                     URL = "https://fisk.dk"
                 },
                 new()
