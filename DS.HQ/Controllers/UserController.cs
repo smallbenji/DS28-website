@@ -77,6 +77,8 @@ namespace DS.HQ.Controllers
 
             await keycloakHelper.UpdateUser(currentUser);
 
+            KeycloakValidation.LastUpdate = DateTime.UtcNow.Ticks;
+
             return RedirectToAction(nameof(Index));
         }
     }
