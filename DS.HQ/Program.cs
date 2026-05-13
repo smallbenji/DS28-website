@@ -31,4 +31,6 @@ app.MapGet("/logout", async context =>
     await context.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
 });
 
+app.MapFallbackToFile("dist/index.html");
+
 app.Run();

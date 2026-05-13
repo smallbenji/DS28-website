@@ -295,4 +295,5 @@ pointMaster/js/dist
 pointMaster/wwwroot/js/dist
 .env
 
+dist
 node_modules
