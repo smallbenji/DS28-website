@@ -1,0 +1,62 @@
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.OpenIdConnect;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Configuration;
+using Microsoft.AspNetCore.Authentication;
+
+namespace DS
+{
+    public static class DSSetup
+    {
+        public static IServiceCollection AddDSAuth(this IServiceCollection services, IConfiguration configuration)
+        {
+            services.Configure<DSSettings>(configuration.GetSection("DS"));
+
+            services
+                .AddAuthentication(options =>
+                {
+                    options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+                    options.DefaultChallengeScheme = OpenIdConnectDefaults.AuthenticationScheme;
+                })
+                .AddCookie(options =>
+                {
+                    var dsSettings = configuration.GetSection("DS").Get<DSSettings>();
+
+                    options.Events.OnValidatePrincipal = async context => await KeycloakValidation.KeycloakValidator(context, dsSettings);
+                })
+                .AddOpenIdConnect(options =>
+                {
+                    var dsSettings = configuration.GetSection("DS").Get<DSSettings>();
+
+                    options.Authority = dsSettings.SSO_URL + "/realms/" + dsSettings.Realm;
+
+                    options.ClientId = dsSettings.ClientID;
+                    options.ClientSecret = dsSettings.ClientSecret;
+
+                    options.ResponseType = "code";
+
+                    options.SaveTokens = true;
+                    options.GetClaimsFromUserInfoEndpoint = true;
+
+                    options.RequireHttpsMetadata = true;
+
+                    options.Scope.Add("openid");
+                    options.Scope.Add("profile");
+                    options.Scope.Add("groupnumber");
+                    // options.Scope.Add("groups");
+
+                    options.ClaimActions.MapJsonKey("groups", "groups");
+                    options.ClaimActions.MapUniqueJsonKey("group_number", "group_number");
+
+                    options.MapInboundClaims = true;
+
+                    options.TokenValidationParameters.NameClaimType = "name";
+                    options.TokenValidationParameters.RoleClaimType = "groups";
+                });
+
+            services.AddAuthorization();
+
+            return services;
+        }
+    }
+}
