@@ -152,7 +152,9 @@ const createNewUser = () => {
     display: flex;
     flex-direction: column;
     background: #fff;
-    height: 100vh;
+    //height: 100vh;
+    margin: 1rem;
+    border-radius: 10px;
     position: sticky;
     top: 0;
 
@@ -210,7 +212,7 @@ const createNewUser = () => {
       flex-shrink: 0;
       padding: 1rem 1.5rem;
       border-top: 1px solid #f1f5f9;
-      background-color: #fff;
+      //background-color: #fff;
 
       .btn-add-user {
         width: 100%;
@@ -301,7 +303,7 @@ const createNewUser = () => {
   .workspace {
     flex: 1;
     display: flex;
-    padding: 2.5rem;
+    padding: 1rem;
     overflow-y: auto;
 
     .workspace-box {
