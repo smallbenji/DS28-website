@@ -93,6 +93,7 @@ namespace DS.HQ.Controllers
         public string Name { get; set; }
         public string GroupNumber { get; set; }
     }
+
     public class HQPanelEntry
     {
         public string Title { get; set; }

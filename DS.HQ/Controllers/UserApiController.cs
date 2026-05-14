@@ -57,9 +57,6 @@ namespace DS.HQ.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteUser(string id)
         {
-            // This is by design
-            return BadRequest("not yet...");
-
             await keycloakHelper.DeleteUser(id);
 
             return Ok();
