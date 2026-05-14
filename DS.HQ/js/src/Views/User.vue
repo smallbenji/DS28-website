@@ -1,52 +1,18 @@
 <script lang="ts" setup>
-interface KcUser {
-    id: string;
-    firstName: string;
-    lastName: string;
-}
- 
-interface DSUser {
-    user: KcUser;
-    groupNumber: string;
-    roles: any[];
-}
+import { ref, computed } from 'vue';
+import { useUserStore } from '@/Stores/UserStore';
+import { storeToRefs } from 'pinia';
 
-import { ref, onMounted, computed } from 'vue';
-import axios from 'axios';
+const userStore = useUserStore();
+const { Users: users } = storeToRefs(userStore);
 
-const users = ref<DSUser[]>([]);
 const selectedUser = ref<DSUser | null>(null);
-const accessDenied = ref(false);
-const isLoading = ref(true);
 
 const searchQuery = ref('');
 
-const api = axios.create({ baseURL: '/api' });
-
-api.interceptors.response.use(
-    (response) => response,
-    (error) => {
-        if (error.response && error.response.status === 401) {
-            accessDenied.value = true;
-        }
-        return Promise.reject(error);
-    }
-);
-
-const fetchUsers = async () => {
-    try {
-        const response = await api.get('/v1/user');
-        users.value = response.data;
-    } catch (error) {
-        console.error("Kunne ikke hente brugere", error);
-    } finally {
-        isLoading.value = false;
-    }
-};
-
 const filteredUsers = computed(() => {
   if (!searchQuery.value.trim()) return users.value;
-  
+
   const query = searchQuery.value.toLowerCase();
   return users.value.filter(u => {
     const fullName = `${u.user.firstName || ''} ${u.user.lastName || ''}`.toLowerCase();
@@ -66,8 +32,6 @@ const toggleUserSelection = (clickedUser: DSUser) => {
 const createNewUser = () => {
   // lige pt. ingen funktionalitet
 };
-
-onMounted(fetchUsers);
 </script>
 
 <template>
@@ -78,21 +42,21 @@ onMounted(fetchUsers);
           <h2>Brugere</h2>
           <span class="count">{{ filteredUsers.length }} totalt</span>
         </div>
-        
+
         <div class="search-container">
-          <input 
-            v-model="searchQuery" 
-            type="text" 
-            placeholder="Søg på navn eller gruppe..." 
+          <input
+            v-model="searchQuery"
+            type="text"
+            placeholder="Søg på navn eller gruppe..."
             class="search-input"
           />
         </div>
       </div>
-      
+
       <div class="scroll-area">
-        <div 
-          v-for="user in filteredUsers" 
-          :key="user.user.id" 
+        <div
+          v-for="user in filteredUsers"
+          :key="user.user.id"
           class="user-row"
           :class="{ active: selectedUser?.user.id === user.user.id }"
           @click="toggleUserSelection(user)"
@@ -100,7 +64,7 @@ onMounted(fetchUsers);
           <div class="user-main">
             <span class="full-name">{{ user.user.firstName }} {{ user.user.lastName }}</span>
           </div>
-          
+
           <div class="role-pills">
             <span v-for="role in user.roles" :key="role" class="pill">
               {{ role.name }}
@@ -123,7 +87,7 @@ onMounted(fetchUsers);
     <main class="workspace">
       <div class="workspace-box" :class="selectedUser ? 'filled' : 'dashed'">
         <Transition name="slide-fade" mode="out-in">
-          
+
           <div v-if="selectedUser" :key="selectedUser.user.id" class="editor-surface">
             <header class="editor-header">
               <div class="title-section">
@@ -196,7 +160,7 @@ onMounted(fetchUsers);
       flex-shrink: 0;
       padding: 1.5rem 1.5rem 1rem 1.5rem;
       border-bottom: 1px solid #f1f5f9;
-      
+
       .title-row {
         display: flex;
         justify-content: space-between;
@@ -235,7 +199,7 @@ onMounted(fetchUsers);
       &::-webkit-scrollbar {
         width: 6px;
       }
-      
+
       &::-webkit-scrollbar-thumb {
         background: #e2e8f0;
         border-radius: 10px;
@@ -293,8 +257,8 @@ onMounted(fetchUsers);
     transition: all 0.2s ease;
     background: #fff;
 
-    &:hover { 
-      background: #f8fafc; 
+    &:hover {
+      background: #f8fafc;
       border-color: #a5a5a5;
     }
 
@@ -302,7 +266,7 @@ onMounted(fetchUsers);
       background: #ececec;
       border: 1px solid #696969;
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
-      
+
       .full-name { color: #0f172a; }
     }
 
@@ -317,7 +281,7 @@ onMounted(fetchUsers);
       gap: 0.4rem;
       margin-bottom: 0.5rem;
       margin-left: 0;
-      
+
       .pill {
         background-color: rgb(206, 206, 206);
         color: #606060;
@@ -328,9 +292,9 @@ onMounted(fetchUsers);
       }
     }
 
-    .group-info { 
-      font-size: 0.8rem; 
-      color: #8f8f8f; 
+    .group-info {
+      font-size: 0.8rem;
+      color: #8f8f8f;
     }
   }
 
@@ -437,7 +401,7 @@ onMounted(fetchUsers);
     display: flex;
     align-items: center;
     gap: 1rem;
-    
+
     input { flex: 1; }
   }
 
@@ -468,7 +432,7 @@ onMounted(fetchUsers);
 }
 
 .slide-fade-enter-active {
-    transition: all 0.25s ease-out; 
+    transition: all 0.25s ease-out;
 }
 
 .slide-fade-leave-active {
