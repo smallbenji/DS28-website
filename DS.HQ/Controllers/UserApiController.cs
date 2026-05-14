@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace DS.HQ.Controllers
 {
-    [Authorize]
+    [Authorize(Roles = Role.Admin)]
     [Route("/api/v1/user")]
     public class UserApiController : Controller
     {
