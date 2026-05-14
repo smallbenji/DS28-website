@@ -30,16 +30,40 @@ body {
   background-color: #eee;
 }
 
-.title {
+.topbar {
   max-width: 51rem;
-  margin: auto;
 
-  h1 {
-    margin-bottom: 0.25rem;
+  margin: auto;
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+
+  .logout {
+    font-size: 32px;
+    text-decoration: none;
+    align-content: center;
+
+    i {
+      color: rgba(0, 0, 0, 0.4);
+      transition: ease-in 0.2s;
+    }
+
+    i:hover {
+      color: rgba(255, 0, 0, 0.6);
+    }
   }
 
-  p {
-    margin-top: 0;
+  .title {
+
+    h1 {
+      margin-top: 0;
+      margin-bottom: 0.25rem;
+    }
+
+    p {
+      margin-top: 0;
+      margin-bottom: 0;
+    }
   }
 }
 

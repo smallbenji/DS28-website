@@ -1,12 +1,18 @@
 @model HomeViewModel
-
-<div class="title">
-    <h1>DS28</h1>
-    <p>Velkommen tilbage @Model.Name</p>
-    @if(!string.IsNullOrEmpty(Model.GroupNumber))
-    {
-        <p>Gruppe nummer: @Model.GroupNumber</p>
-    }
+<div class="topbar">
+    <div class="title">
+        <h1>DS28</h1>
+        <p>Velkommen tilbage @Model.Name</p>
+        @* @if(!string.IsNullOrEmpty(Model.GroupNumber))
+        {
+            <p>Gruppe nummer: @Model.GroupNumber</p>
+        } *@
+    </div>
+    <div class="logout">
+        <a href="./logout">
+            <i class="fa-solid fa-right-from-bracket"></i>
+        </a>
+    </div>
 </div>
 
 <div class="grid">
