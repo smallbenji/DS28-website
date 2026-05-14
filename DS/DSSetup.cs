@@ -69,6 +69,11 @@ namespace DS
         }
         public static WebApplication AddDSEndpoints(this WebApplication webApplication)
         {
+            webApplication.MapGet("/refresh-users", async context =>
+            {
+                KeycloakValidation.LastUpdate = DateTime.UtcNow.Ticks;
+            });
+
             webApplication.MapGet("/logout", async context =>
             {
                 await context.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);

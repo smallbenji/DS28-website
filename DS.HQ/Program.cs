@@ -1,13 +1,13 @@
 using DS;
 using DS.HQ;
-using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc.Authorization;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Configuration.AddEnvironmentVariables();
+
+builder.Services.Configure<HQSettings>(builder.Configuration.GetSection("HQ"));
 
 builder.Services.AddDSAuth(builder.Configuration);
 

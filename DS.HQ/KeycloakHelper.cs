@@ -11,14 +11,14 @@ namespace DS.HQ
     public class KeycloakHelper
     {
         private readonly IOptions<DSSettings> options;
-
+        private readonly IOptions<HQSettings> hQOptions;
         private KeycloakClient client;
         private string realm;
 
-        public KeycloakHelper(IOptions<DSSettings> options)
+        public KeycloakHelper(IOptions<DSSettings> options, IOptions<HQSettings> HQOptions)
         {
             this.options = options;
-
+            hQOptions = HQOptions;
             realm = options.Value.Realm;
 
             client = new KeycloakClient(options.Value.SSO_URL);
@@ -88,6 +88,8 @@ namespace DS.HQ
             var token = await GetToken();
 
             await client.Users.CreateAsync(realm, token, data.User);
+
+            await RefreshUsers();
         }
 
         public async Task DeleteUser(string id)
@@ -95,6 +97,8 @@ namespace DS.HQ
             var token = await GetToken();
 
             await client.Users.DeleteAsync(realm, token, id);
+
+            await RefreshUsers();
         }
 
         public async Task UpdateUser(DSUser user)
@@ -102,6 +106,8 @@ namespace DS.HQ
             var token = await GetToken();
 
             await client.Users.UpdateAsync(realm, token, user.User.Id, user.User);
+
+            await RefreshUsers();
         }
 
         public async Task<List<KcGroup>> GetGroups()
@@ -116,6 +122,8 @@ namespace DS.HQ
             var token = await GetToken();
 
             await client.Users.AddToGroupAsync(realm, token, userId, groupId);
+
+            await RefreshUsers();
         }
 
         public async Task RemoveUserFromGroup(string userId, string groupId)
@@ -123,6 +131,19 @@ namespace DS.HQ
             var token = await GetToken();
 
             await client.Users.DeleteFromGroupAsync(realm, token, userId, groupId);
+
+            await RefreshUsers();
+        }
+
+        public async Task RefreshUsers()
+        {
+            KeycloakValidation.LastUpdate = DateTime.UtcNow.Ticks;
+
+            var httpClient = new HttpClient();
+            foreach (var site in hQOptions.Value.UserRefreshUrl)
+            {
+                await httpClient.GetAsync(site+"/refresh-users");
+            }
         }
     }
 }
