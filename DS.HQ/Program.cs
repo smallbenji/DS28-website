@@ -35,10 +35,12 @@ app.MapControllerRoute(
     pattern: "{controller=Home}/{action=Index}/{id?}"
 ).WithStaticAssets();
 
-app.MapGet("/logout", async context =>
-{
-    await context.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-});
+// app.MapGet("/logout", async context =>
+// {
+//     await context.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+// });
+
+app.AddDSEndpoints();
 
 app.MapFallbackToFile("dist/index.html");
 

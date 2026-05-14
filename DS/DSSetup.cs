@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Builder;
 
 namespace DS
 {
@@ -65,6 +66,16 @@ namespace DS
             });
 
             return services;
+        }
+        public static WebApplication AddDSEndpoints(this WebApplication webApplication)
+        {
+            webApplication.MapGet("/logout", async context =>
+            {
+                await context.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+                await context.SignOutAsync(OpenIdConnectDefaults.AuthenticationScheme);
+            });
+
+            return webApplication;
         }
     }
 }
