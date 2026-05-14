@@ -16,9 +16,9 @@ export default defineConfig({
     outDir: "../wwwroot/dist/",
     emptyOutDir: true,
     cssMinify: "esbuild",
-    rolldownOptions: {
+    rollupOptions: {
       output: {
-        codeSplitting: true
+        manualChunks: undefined 
       }
     }
   }
