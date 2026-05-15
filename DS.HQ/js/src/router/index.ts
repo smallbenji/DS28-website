@@ -1,3 +1,4 @@
+import { useGroupStore } from "@/Stores/GroupStore";
 import { useUserStore } from "@/Stores/UserStore";
 import Group from "@/Views/Group.vue";
 import User from "@/Views/User.vue";
@@ -16,7 +17,8 @@ const routes: RouteRecordRaw[] = [
         path: "/group",
         component: Group,
         beforeEnter: async () => {
-            // Get data
+            const groupStore = useGroupStore();
+            await groupStore.GET_GROUPS();
         }
     }
 ];

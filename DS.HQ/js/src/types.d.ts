@@ -9,3 +9,8 @@ interface DSUser {
     groupNumber: string;
     roles: any[];
 }
+
+interface DSGroup {
+    id: number;
+    name: string;
+}
