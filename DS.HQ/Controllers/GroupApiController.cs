@@ -34,8 +34,13 @@ namespace DS.HQ.Controllers
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateGroup([FromBody] Group data)
+        public async Task<IActionResult> UpdateGroup([FromBody] Group data, int id)
         {
+            if (data.Id != id)
+            {
+                return BadRequest("ID mismatch");
+            }
+
             dataDb.Groups.Update(data);
 
             await dataDb.SaveChangesAsync();
@@ -44,7 +49,7 @@ namespace DS.HQ.Controllers
         }
 
         [HttpDelete("{id}")]
-        public async Task<IActionResult> Index(int id)
+        public async Task<IActionResult> DeleteGroup(int id)
         {
             var group = await dataDb.Groups.FindAsync(id);
 
