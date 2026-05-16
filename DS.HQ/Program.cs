@@ -23,13 +23,6 @@ builder.Services.AddSingleton<KeycloakHelper>();
 
 var app = builder.Build();
 
-app.UseHttpsRedirection();
-app.UseRouting();
-
-app.UseAuthentication();
-app.UseAuthorization();
-
-app.MapStaticAssets();
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}"
@@ -41,8 +34,6 @@ app.MapControllerRoute(
 // });
 
 app.AddDSEndpoints();
-
-app.MapFallbackToFile("dist/index.html");
 
 using (var scope = app.Services.CreateScope())
 {

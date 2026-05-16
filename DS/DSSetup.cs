@@ -67,20 +67,31 @@ namespace DS
 
             return services;
         }
-        public static WebApplication AddDSEndpoints(this WebApplication webApplication)
+        public static WebApplication AddDSEndpoints(this WebApplication app)
         {
-            webApplication.MapGet("/refresh-users", async context =>
+
+            app.UseHttpsRedirection();
+            app.UseRouting();
+
+            app.UseAuthentication();
+            app.UseAuthorization();
+
+            app.MapStaticAssets();
+
+            app.MapFallbackToFile("dist/index.html");
+
+            app.MapGet("/refresh-users", async context =>
             {
                 KeycloakValidation.LastUpdate = DateTime.UtcNow.Ticks;
             });
 
-            webApplication.MapGet("/logout", async context =>
+            app.MapGet("/logout", async context =>
             {
                 await context.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
                 await context.SignOutAsync(OpenIdConnectDefaults.AuthenticationScheme);
             });
 
-            return webApplication;
+            return app;
         }
     }
 }
