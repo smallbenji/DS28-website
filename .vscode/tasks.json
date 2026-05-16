@@ -2,7 +2,7 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "build",
+            "label": "build HQ",
             "command": "dotnet",
             "type": "process",
             "args": [
@@ -14,11 +14,16 @@
             "problemMatcher": "$msCompile"
         },
         {
-            "label": "prepare",
-            "dependsOn": [
-                "build"
+            "label": "Build Template",
+            "command": "dotnet",
+            "type": "process",
+            "args": [
+                "build",
+                "${workspaceFolder}/DS.Template/DS.Template.csproj",
+                "/property:GenerateFullPaths=true",
+                "/consoleloggerparameters:NoSummary"
             ],
-            "dependsOrder": "parallel"
+            "problemMatcher": "$msCompile"
         }
     ]
 }

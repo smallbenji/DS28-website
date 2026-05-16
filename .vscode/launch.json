@@ -5,10 +5,22 @@
             "name": "Launch HQ",
             "type": "coreclr",
             "request": "launch",
-            "preLaunchTask": "prepare",
+            "preLaunchTask": "build HQ",
             "program": "${workspaceFolder}/DS.HQ/bin/Debug/net10.0/DS.HQ.dll",
             "args": [],
             "cwd": "${workspaceFolder}/DS.HQ",
+            "console": "internalConsole",
+            "envFile": "${workspaceFolder}/.env",
+            "stopAtEntry": false
+        },
+        {
+            "name": "Launch Template",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "Build Template",
+            "program": "${workspaceFolder}/DS.Template/bin/Debug/net10.0/DS.Template.dll",
+            "args": [],
+            "cwd": "${workspaceFolder}/DS.Template",
             "console": "internalConsole",
             "envFile": "${workspaceFolder}/.env",
             "stopAtEntry": false
