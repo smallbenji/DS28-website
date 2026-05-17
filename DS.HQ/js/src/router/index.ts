@@ -12,6 +12,14 @@ const routes: RouteRecordRaw[] = [
         }
     },
     {
+        path: "/userv2",
+        component: () => import("@/Views/UserV2.vue"),
+        beforeEnter: async () => {
+            const userStore = useUserStore();
+            await userStore.GET_USERS();
+        }
+    },
+    {
         path: "/group",
         component: () => import("@/Views/Group.vue"),
         beforeEnter: async () => {
