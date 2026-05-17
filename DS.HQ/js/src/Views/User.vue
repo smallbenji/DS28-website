@@ -154,6 +154,7 @@ const createNewUser = () => {
     background: #fff;
     //height: 100vh;
     margin: 1rem;
+    margin-right: 0;
     border-radius: 10px;
     position: sticky;
     top: 0;
@@ -308,7 +309,7 @@ const createNewUser = () => {
 
     .workspace-box {
       flex: 1;
-      border-radius: 20px;
+      border-radius: 10px;
       transition: border 0.3s ease, background-color 0.3s ease, all 0.3s;
       display: flex;
       flex-direction: column;

@@ -52,7 +52,7 @@ const saveChanges = async () => {
   } else if (selectedGroup.value) {
     const success = await groupStore.UPDATE_GROUP(selectedGroup.value);
     if (success) {
-      
+
     } else {
       alert('Der skete en fejl ved opdatering af gruppen');
     }
@@ -188,6 +188,7 @@ const saveChanges = async () => {
     flex-direction: column;
     background: #fff;
     margin: 1rem;
+    margin-right: 0;
     border-radius: 10px;
     position: sticky;
     top: 0;
@@ -324,7 +325,7 @@ const saveChanges = async () => {
 
     .workspace-box {
       flex: 1;
-      border-radius: 20px;
+      border-radius: 10px;
       transition: border 0.3s ease, background-color 0.3s ease, all 0.3s;
       display: flex;
       flex-direction: column;
