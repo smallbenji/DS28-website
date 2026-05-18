@@ -69,7 +69,7 @@ namespace DS
         }
         public static WebApplication AddDSEndpoints(this WebApplication app)
         {
-
+            app.UseStaticFiles();
             app.UseHttpsRedirection();
             app.UseRouting();
 
