@@ -21,30 +21,27 @@
                 <UserInviteUser />
             </SidebarFooter>
         </Sidebar>
-        <main class="workspace" :class="selectedUser ? 'filled' : 'dashed'">
-            <div class="workspace-box" v-if="selectedUser">
-                <section class="hero is-link">
-                    <div class="hero-body">
-                        <p class="title is-3">{{ selectedUser.user.firstName }} {{ selectedUser.user.lastName }}</p>
-                        <p class="subtitle is-6">{{ selectedUser.user.id }}</p>
+        <Workspace :filled="selectedUser != null">
+            <section class="hero is-link">
+                <div class="hero-body">
+                    <p class="title is-3">{{ selectedUser?.user.firstName }} {{ selectedUser?.user.lastName }}</p>
+                    <p class="subtitle is-6">{{ selectedUser?.user.id }}</p>
+                </div>
+            </section>
+            <WorkspaceContent>
+                <div class="columns is-desktop">
+                    <div class="column">
+                        <UserMetadata v-if="selectedUser" :selected-user="selectedUser" />
                     </div>
-                </section>
-                <div class="workspace-box-grid">
-                    <div class="columns is-desktop">
-                        <div class="column">
-                            <UserMetadata :selected-user="selectedUser" />
-                        </div>
-                        <div class="column">
-                            <UserRoles class="column is-half" :selected-user="selectedUser" />
-                        </div>
+                    <div class="column">
+                        <UserRoles class="column is-half" v-if="selectedUser" :selected-user="selectedUser" />
                     </div>
                 </div>
-                <div class="flex"></div>
-                <div class="workspace-box-footer">
-                    <BButton type="is-success" @click="saveUser">Gem</BButton>
-                </div>
-            </div>
-        </main>
+            </WorkspaceContent>
+            <WorkspaceFooter>
+                <BButton type="is-success" @click="saveUser">Gem</BButton>
+            </WorkspaceFooter>
+        </Workspace>
     </ManagementWrapper>
 </template>
 <script lang="ts" setup>
@@ -63,6 +60,9 @@ import SidebarContent from '@/Components/Sidebar/SidebarContent.vue';
 import SidebarFooter from '@/Components/Sidebar/SidebarFooter.vue';
 import UserSidebarBox from '@/Components/User/UserSidebarBox.vue';
 import ManagementWrapper from '@/Components/ManagementWrapper.vue';
+import Workspace from '@/Components/Workspace/Workspace.vue';
+import WorkspaceContent from '@/Components/Workspace/WorkspaceContent.vue';
+import WorkspaceFooter from '@/Components/Workspace/WorkspaceFooter.vue';
 
 const Toast = useToast();
 
@@ -115,137 +115,53 @@ const saveUser = async () => {
     box-sizing: border-box;
 }
 
-.management-wrapper {
-    display: flex;
+.workspace {
     height: 100%;
-    width: 100%;
-    padding: 1rem;
-    padding-top: 0;
-    gap: 1rem;
-    min-height: 0;
-    scrollbar-width: thin;
-
-    // .sidebar {
-
-    //     &-list {
-    //         width: 380px;
-    //         display: flex;
-    //         flex-direction: column;
-    //         background-color: #fff;
-    //         height: 100%;
-    //         flex-shrink: 0;
-    //         border-radius: 10px;
-    //         overflow: hidden;
-    //     }
-
-    //     &-header {
-    //         padding: 1rem;
-    //         border-bottom: 1px solid rgba(0, 0, 0, 0.1);
-    //         box-shadow: 5px 0 5px 0 rgba(0, 0, 0, 0.1);
-    //     }
-
-    //     &-footer {
-    //         padding: 1rem;
-    //         display: flex;
-    //         justify-content: space-between;
-    //         border-top: 1px solid rgba(0, 0, 0, 0.1);
-    //         box-shadow: -5px 0 5px 0 rgba(0, 0, 0, 0.1);
-    //     }
-
-    //     &-content {
-    //         flex: 1;
-    //         padding: 1rem;
-    //         overflow-y: auto;
-    //         min-height: 0;
-    //     }
-
-    //     &-user {
-    //         border: 1px solid rgba(0, 0, 0, 0.1);
-    //         padding: 1rem 1.2rem;
-    //         border-radius: 10px;
-    //         margin-bottom: 1rem;
-    //         cursor: pointer;
-
-    //         &-name {
-    //             font-weight: 600;
-    //             font-size: 1rem;
-    //             margin-bottom: 0.4rem;
-    //         }
-
-    //         &-role-pills {
-    //             display: flex;
-    //             gap: 0.4rem;
-    //             margin-bottom: 0.5rem;
-
-    //             &-pill {
-    //                 background-color: rgb(206, 206, 206);
-    //                 color: #606060;
-    //                 padding: 0.15rem 0.6rem;
-    //                 border-radius: 20px;
-    //                 font-size: 0.75rem;
-    //                 font-weight: 500;
-    //             }
-    //         }
-
-    //         &-group-info {
-    //             font-size: 0.8rem;
-    //         }
-
-    //         &.active {
-    //             background: #ececec;
-    //             border: 1px solid #696969;
-    //             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
-    //         }
-    //     }
-    // }
-
-    .workspace {
+    flex: 1;
+    border-radius: 10px;
+    overflow: hidden;
+    &-box {
+        display: flex;
+        flex-direction: column;
         height: 100%;
-        flex: 1;
-        border-radius: 10px;
-        overflow: hidden;
-        &-box {
+        overflow-x: auto;
+        &-footer {
             display: flex;
-            flex-direction: column;
-            height: 100%;
-            overflow-x: auto;
-            &-footer {
-                display: flex;
-                border-top: 1px solid rgba(0, 0, 0, 0.1);
-                padding: 0.5rem 1rem;
-                flex-direction: row-reverse;
-            }
-            &-grid {
-                padding: 1rem;
-            }
+            border-top: 1px solid rgba(0, 0, 0, 0.1);
+            padding: 0.5rem 1rem;
+            flex-direction: row-reverse;
         }
-
-        &.filled {
-            // border: 1px solid rgba(0, 0, 0, 0.1);
-            background-color: #fff;
-        }
-
-        &.dashed {
-            border: 3px dashed rgba(0, 0, 0, 0.1);
-        }
-
-        .panel-heading {
-            padding: 15px 25px;
-            min-height: 60px;
-            align-items: center;
-            display: flex;
-        }
-
-        .group-body {
+        &-grid {
             padding: 1rem;
         }
+    }
 
-        .role-line {
-            display: flex;
-        }
-        .flex {
-            flex: 1;
-        }
+    &.filled {
+        // border: 1px solid rgba(0, 0, 0, 0.1);
+        background-color: #fff;
+    }
+
+    &.dashed {
+        border: 3px dashed rgba(0, 0, 0, 0.1);
+    }
+
+    .panel-heading {
+        padding: 15px 25px;
+        min-height: 60px;
+        align-items: center;
+        display: flex;
+    }
+
+    .group-body {
+        padding: 1rem;
+    }
+
+    .role-line {
+        display: flex;
+    }
+    .flex {
+        flex: 1;
     }
 }
+
 </style>
