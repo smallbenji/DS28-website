@@ -257,6 +257,7 @@ html body {
             padding: 1rem 1.2rem;
             border-radius: 10px;
             margin-bottom: 1rem;
+            cursor: pointer;
 
             &-name {
                 font-weight: 600;
