@@ -52,7 +52,7 @@
 </template>
 <script lang="ts" setup>
 import { useUserStore } from '@/Stores/UserStore';
-import { BField, BModal, BSelect } from 'buefy';
+import { BButton, BField, BModal, BSelect } from 'buefy';
 import { storeToRefs } from 'pinia';
 import { computed, ref } from 'vue';
 

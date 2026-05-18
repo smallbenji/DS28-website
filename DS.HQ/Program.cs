@@ -23,6 +23,8 @@ builder.Services.AddScoped<KeycloakHelper>();
 
 var app = builder.Build();
 
+app.AddDSEndpoints();
+
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}"
@@ -33,7 +35,6 @@ app.MapControllerRoute(
 //     await context.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
 // });
 
-app.AddDSEndpoints();
 
 using (var scope = app.Services.CreateScope())
 {

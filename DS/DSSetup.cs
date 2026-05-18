@@ -5,6 +5,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Hosting;
 
 namespace DS
 {
@@ -69,16 +71,30 @@ namespace DS
         }
         public static WebApplication AddDSEndpoints(this WebApplication app)
         {
-            app.UseStaticFiles();
             app.UseHttpsRedirection();
             app.UseRouting();
 
             app.UseAuthentication();
             app.UseAuthorization();
 
+            app.UseStaticFiles();
             app.MapStaticAssets();
 
-            app.MapFallbackToFile("dist/index.html");
+            var env = app.Services.GetRequiredService<IWebHostEnvironment>();
+
+            app.MapFallback(async context =>
+            {
+                var filePath = Path.Combine(env.ContentRootPath, "wwwroot", "dist", "index.html");
+
+                if (context.User.Identity == null || !context.User.Identity.IsAuthenticated)
+                {
+                    await context.ChallengeAsync(OpenIdConnectDefaults.AuthenticationScheme);
+                    return;
+                }
+
+                context.Response.ContentType = "text/html";
+                await context.Response.SendFileAsync(filePath);
+            });
 
             app.MapGet("/refresh-users", async context =>
             {
