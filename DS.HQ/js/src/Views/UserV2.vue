@@ -25,9 +25,6 @@
                         <span>{{ user.user.firstName }} {{ user.user.lastName }}</span>
                     </div>
                     <div class="sidebar-user-role-pills">
-                        <!-- <span v-for="role in user.roles" :key="role" class="sidebar-user-role-pills-pill">
-                            {{ role.name }}
-                        </span> -->
                         <span v-for="role in user.roles" :key="role" class="tag is-dark">
                             {{ role.name }}
                         </span>
