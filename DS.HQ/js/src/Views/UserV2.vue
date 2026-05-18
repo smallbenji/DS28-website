@@ -120,9 +120,11 @@
 import { ref, computed, toRaw, watch } from 'vue';
 import { useUserStore } from '@/Stores/UserStore';
 import { storeToRefs } from 'pinia';
-import { BButton, BField, BInput, BModal, BSelect } from 'buefy';
+import { BButton, BField, BInput, BModal, BSelect, useToast } from 'buefy';
 import UserRoles from '@/Components/User/UserRoles.vue';
 import { useGroupStore } from '@/Stores/GroupStore';
+
+const Toast = useToast();
 
 
 const userStore = useUserStore();
@@ -187,7 +189,18 @@ const createUser = async () => {
 };
 
 const saveUser = async () => {
-    await userStore.UPDATE_USER(selectedUser.value as DSUser);
+    const result = await userStore.UPDATE_USER(selectedUser.value as DSUser);
+    if (result) {
+        Toast.open({
+            message: "Brugere er blevet opdateret!",
+            type: "is-success"
+        });
+    } else {
+        Toast.open({
+            message: "Der skete en fejl",
+            type: "is-danger"
+        });
+    }
 }
 
 watch(() => [newUser.value?.user.firstName, newUser.value?.user.lastName], ([newFirst, newLast]) => {
