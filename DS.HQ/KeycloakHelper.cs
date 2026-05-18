@@ -115,7 +115,20 @@ namespace DS.HQ
         {
             var token = await GetToken();
 
+            if (user.User.Attributes == null)
+                user.User.Attributes = new Dictionary<string, object>();
+
+            if (!string.IsNullOrEmpty(user.GroupNumber))
+            {
+                user.User.Attributes["groupnumber"] = new List<string> { user.GroupNumber };
+            }
+            else
+            {
+                user.User.Attributes.Remove("groupnumber");
+            }
+
             await client.Users.UpdateAsync(realm, token, user.User.Id, user.User);
+
 
             await RefreshUsers();
         }

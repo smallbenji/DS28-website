@@ -74,6 +74,10 @@
                         <UserRoles :selected-user="selectedUser" />
                     </div>
                 </div>
+                <div class="flex"></div>
+                <div class="workspace-box-footer">
+                    <BButton type="is-success" @click="saveUser">Gem</BButton>
+                </div>
             </div>
         </main>
     </div>
@@ -168,6 +172,10 @@ const createUser = async () => {
         newUser.value = null;
     }
 };
+
+const saveUser = async () => {
+    await userStore.UPDATE_USER(selectedUser.value as DSUser);
+}
 
 watch(() => [newUser.value?.user.firstName, newUser.value?.user.lastName], ([newFirst, newLast]) => {
     const first = (newFirst || '').toLowerCase();
@@ -275,8 +283,16 @@ html body {
         flex: 1;
         border-radius: 10px;
         overflow: hidden;
-
         &-box {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            &-footer {
+                display: flex;
+                border-top: 1px solid rgba(0, 0, 0, 0.1);
+                padding: 0.5rem 1rem;
+                flex-direction: row-reverse;
+            }
             &-grid {
                 padding: 1rem;
             }

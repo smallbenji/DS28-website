@@ -79,7 +79,7 @@ export default class UserService {
     public async AssignRoleToUser(user: DSUser, roleId: string) {
         try {
             const response: AxiosResponse = await axios({
-                url: `api/v1/user/${user.user.id}/role/add`,
+                url: `/api/v1/user/${user.user.id}/role/add`,
                 method: "PUT",
                 data: JSON.stringify(roleId),
                 headers: {
