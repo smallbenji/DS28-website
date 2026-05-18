@@ -4,7 +4,9 @@
         <Sidebar>
             <SidebarHeader>
                 <BInput
+                    ref="searchInput"
                     v-model="searchQuery"
+                    icon="magnifying-glass"
                     placeholder="Søg efter navn eller gruppenummer"
                     />
             </SidebarHeader>
@@ -45,7 +47,7 @@
     </ManagementWrapper>
 </template>
 <script lang="ts" setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useUserStore } from '@/Stores/UserStore';
 import { storeToRefs } from 'pinia';
 import { BButton, BInput, useToast } from 'buefy';
@@ -85,15 +87,38 @@ const filteredUsers = computed(() => {
 });
 
 const toggleUserSelection = (clickedUser: DSUser) => {
-  if (selectedUser.value?.user.id === clickedUser.user.id) {
-    selectedUser.value = null;
-  } else {
-    // Will maybe be used at a later time?
-    // const rawUser = toRaw(clickedUser);
-    // selectedUser.value = structuredClone(rawUser);
-    selectedUser.value = clickedUser;
-  }
+    if (selectedUser.value?.user.id === clickedUser.user.id) {
+        selectedUser.value = null;
+    } else {
+        // Will maybe be used at a later time?
+        // const rawUser = toRaw(clickedUser);
+        // selectedUser.value = structuredClone(rawUser);
+        selectedUser.value = clickedUser;
+    }
 };
+
+const searchInput = ref<any>(null);
+const handleGlobalKeyDown = (event: KeyboardEvent) => {
+    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault();
+
+        if (searchInput.value) {
+            if (typeof searchInput.value.focus === 'function') {
+                searchInput.value.focus();
+            } else if (searchInput.value.$el?.querySelector('input')) {
+                searchInput.value.$el.querySelector('input').focus();
+            }
+        }
+    }
+}
+
+onMounted(() => {
+    window.addEventListener('keydown', handleGlobalKeyDown);
+});
+
+onUnmounted(() => {
+    window.removeEventListener('keydown', handleGlobalKeyDown)
+});
 
 const saveUser = async () => {
     const result = await userStore.UPDATE_USER(selectedUser.value as DSUser);

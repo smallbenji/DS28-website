@@ -1,6 +1,6 @@
 <template>
-    <BButton type="is-primary" @click="createNewUser">
-        + Tilføj ny bruger
+    <BButton type="is-primary" @click="createNewUser" icon-left="plus">
+        Tilføj ny bruger
     </BButton>
     <BModal v-model="open" has-modal-card>
         <div class="modal-card">
