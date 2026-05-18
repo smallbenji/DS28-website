@@ -6,10 +6,15 @@ interface KcUser {
     email: string;
 }
 
+interface KcGroup {
+    id: string;
+    name: string;
+}
+
 interface DSUser {
     user: KcUser;
     groupNumber: string;
-    roles: any[];
+    roles: KcGroup[];
 }
 
 interface DSGroup {

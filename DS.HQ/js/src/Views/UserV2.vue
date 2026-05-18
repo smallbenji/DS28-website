@@ -25,7 +25,7 @@
                         <span>{{ user.user.firstName }} {{ user.user.lastName }}</span>
                     </div>
                     <div class="sidebar-user-role-pills">
-                        <span v-for="role in user.roles" :key="role" class="tag is-dark">
+                        <span v-for="role in user.roles" :key="role.id" class="tag is-dark">
                             {{ role.name }}
                         </span>
                     </div>
@@ -61,6 +61,7 @@
                                 <BInput v-model="selectedUser.groupNumber" />
                             </div>
                         </nav>
+                        <UserRoles :selected-user="selectedUser" />
                     </div>
                 </div>
             </div>
@@ -93,6 +94,7 @@ import { ref, computed, toRaw, watch } from 'vue';
 import { useUserStore } from '@/Stores/UserStore';
 import { storeToRefs } from 'pinia';
 import { BButton, BField, BInput, BModal } from 'buefy';
+import UserRoles from '@/Components/User/UserRoles.vue';
 
 
 const userStore = useUserStore();
@@ -264,12 +266,26 @@ html body {
         }
 
         &.filled {
-            border: 1px solid rgba(0, 0, 0, 0.1);
+            // border: 1px solid rgba(0, 0, 0, 0.1);
             background-color: #fff;
         }
 
         &.dashed {
             border: 3px dashed rgba(0, 0, 0, 0.1);
+        }
+
+        .panel-heading {
+            padding: 15px 25px;
+            min-height: 60px;
+            align-items: center;
+            display: flex;
+        }
+
+        .role-line {
+            display: flex;
+        }
+        .flex {
+            flex: 1;
         }
     }
 }

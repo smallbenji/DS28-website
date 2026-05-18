@@ -61,5 +61,13 @@ namespace DS.HQ.Controllers
 
             return Ok();
         }
+
+        [HttpGet("groups")]
+        public async Task<IActionResult> GetGroups()
+        {
+            var retval = await keycloakHelper.GetGroups();
+
+            return Ok(retval);
+        }
     }
 }

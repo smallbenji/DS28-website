@@ -17,6 +17,7 @@ const routes: RouteRecordRaw[] = [
         beforeEnter: async () => {
             const userStore = useUserStore();
             await userStore.GET_USERS();
+            await userStore.GET_GROUPS();
         }
     },
     {
