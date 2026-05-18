@@ -54,21 +54,57 @@
                         <p class="subtitle is-6">{{ selectedUser.user.id }}</p>
                     </div>
                 </section>
+                <div class="workspace-box-grid fixed-grid">
+                    <div class="grid">
+                        <nav class="panel cell">
+                            <p class="panel-heading">
+                                Gruppe nummer
+                            </p>
+                            <div class="panel-body">
+                                <BInput v-model="selectedUser.groupNumber" />
+                            </div>
+                        </nav>
+                    </div>
+                </div>
             </div>
         </main>
     </div>
+    <BModal v-model="open" has-modal-card>
+        <div class="modal-card">
+            <section class="modal-card-body" v-if="newUser">
+                <BField label="Brugernavn">
+                    <BInput v-model="newUser.user.userName" disabled />
+                </BField>
+                <BField label="Fornavn">
+                    <BInput v-model="newUser.user.firstName" />
+                </BField>
+                <BField label="Efternavn">
+                    <BInput v-model="newUser.user.lastName" />
+                </BField>
+                <BField label="Email">
+                    <BInput v-model="newUser.user.email" type="email" />
+                </BField>
+                <BButton type="is-primary" @click="createUser">
+                    Opret bruger
+                </BButton>
+            </section>
+        </div>
+    </BModal>
 </template>
 <script lang="ts" setup>
-import { ref, computed } from 'vue';
+import { ref, computed, toRaw, watch } from 'vue';
 import { useUserStore } from '@/Stores/UserStore';
 import { storeToRefs } from 'pinia';
-import { BButton, BInput } from 'buefy';
+import { BButton, BField, BInput, BModal } from 'buefy';
 
 
 const userStore = useUserStore();
 const { Users: users } = storeToRefs(userStore);
 
 const selectedUser = ref<DSUser | null>(null);
+
+const open = ref<boolean>(false);
+const newUser = ref<DSUser | null>();
 
 const searchQuery = ref('');
 
@@ -87,13 +123,44 @@ const toggleUserSelection = (clickedUser: DSUser) => {
   if (selectedUser.value?.user.id === clickedUser.user.id) {
     selectedUser.value = null;
   } else {
-    selectedUser.value = clickedUser;
+    const rawUser = toRaw(clickedUser);
+    selectedUser.value = structuredClone(rawUser);
   }
 };
 
 const createNewUser = () => {
-  // lige pt. ingen funktionalitet
+  open.value = true;
+  newUser.value = {
+    user: {
+        firstName: "",
+        id: "",
+        lastName: "",
+        email: "",
+        userName: ""
+    },
+    groupNumber: "",
+    roles: []
+  } as DSUser;
 };
+
+const createUser = async () => {
+    if (newUser.value) {
+        await userStore.CREATE_USER(toRaw(newUser.value));
+
+        // Clean up
+        open.value = false;
+        newUser.value = null;
+    }
+};
+
+watch(() => [newUser.value?.user.firstName, newUser.value?.user.lastName], ([newFirst, newLast]) => {
+    const first = (newFirst || '').toLowerCase();
+    const last = (newLast || '').toLowerCase();
+
+    if (newUser.value?.user) {
+        newUser.value.user.userName = first.toLowerCase() + last.toLowerCase();
+    }
+});
 </script>
 <style lang="scss">
 html body {
@@ -192,6 +259,12 @@ html body {
         flex: 1;
         border-radius: 10px;
         overflow: hidden;
+
+        &-box {
+            &-grid {
+                padding: 1rem;
+            }
+        }
 
         &.filled {
             border: 1px solid rgba(0, 0, 0, 0.1);

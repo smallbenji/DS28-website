@@ -14,4 +14,47 @@ export default class UserService {
             return [];
         }
     }
+
+    public async updateUser(user: DSUser) {
+        try {
+            const response: AxiosResponse = await axios({
+                url: "/api/v1/user",
+                method: "PUT",
+                data: JSON.stringify(user),
+                headers: {
+                    "Content-Type": "application/json"
+                }
+            });
+
+            if (response.status == 200){
+                return true;
+            } else {
+                return false;
+            }
+        } catch {
+            return false;
+        }
+    }
+
+    public async createUser(user: DSUser) {
+        try {
+            const response: AxiosResponse = await axios({
+                url: "/api/v1/user",
+                method: "POST",
+                data: JSON.stringify(user),
+                headers: {
+                    "Content-Type": "application/json"
+                }
+            });
+
+            if (response.status == 200){
+                return true;
+            } else
+            {
+                return false;
+            }
+        } catch {
+            return false;
+        }
+    }
 }

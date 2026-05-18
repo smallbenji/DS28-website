@@ -16,9 +16,27 @@ export const useUserStore = defineStore("user", () => {
         return data;
     }
 
+    async function CREATE_USER(user: DSUser) {
+        var data = await userService.createUser(user);
+
+        if (data)
+            GET_USERS();
+
+        return data;
+    }
+
+    async function UPDATE_USER(user: DSUser) {
+        var data = await userService.updateUser(user);
+
+        if (data)
+            GET_USERS();
+
+        return data;
+    }
+
     return {
         Users,
         USERS,
-        GET_USERS,
+        GET_USERS, UPDATE_USER, CREATE_USER
     }
 });
