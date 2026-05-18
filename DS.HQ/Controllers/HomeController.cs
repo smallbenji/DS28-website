@@ -80,6 +80,12 @@ namespace DS.HQ.Controllers
                     Icon = "fa-solid fa-file-lines",
                     Title = "Audit log",
                     URL = "https://fisk.dk"
+                },
+                new()
+                {
+                    Icon = "fa-solid fa-newspaper",
+                    Title = "Aktivitetsmodul",
+                    URL = "https://fisk.dk"
                 }
             });
 
