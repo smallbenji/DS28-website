@@ -5,8 +5,8 @@ import { useLoading } from "buefy";
 
 const routes: RouteRecordRaw[] = [
     {
-        path: "/user",
-        component: () => import("@/Views/User.vue"),
+        path: "/user-old",
+        component: () => import("@/Views/User-old.vue"),
         beforeEnter: async () => {
             const Loading = useLoading();
             const loading = Loading.open({});
@@ -24,8 +24,8 @@ const routes: RouteRecordRaw[] = [
         }
     },
     {
-        path: "/userv2",
-        component: () => import("@/Views/UserV2.vue"),
+        path: "/user",
+        component: () => import("@/Views/User.vue"),
         beforeEnter: async () => {
             const Loading = useLoading();
             const loading = Loading.open({});
