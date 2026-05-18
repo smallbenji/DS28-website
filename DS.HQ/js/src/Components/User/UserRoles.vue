@@ -23,7 +23,7 @@
             <div class="modal-card-body">
                 <BField label="Rolle">
                     <BSelect expanded v-model="selectedGroup">
-                        <option v-for="group in groups" :value="group.id">
+                        <option v-for="group in filteredGroups" :value="group.id">
                             {{ group.name }}
                         </option>
                     </BSelect>
@@ -54,7 +54,7 @@
 import { useUserStore } from '@/Stores/UserStore';
 import { BField, BModal, BSelect } from 'buefy';
 import { storeToRefs } from 'pinia';
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 
 const props = defineProps<{
     selectedUser: DSUser
@@ -68,6 +68,10 @@ const open = ref<boolean>(false);
 const confirmationOpen = ref<boolean>(false);
 
 const selectedGroupToRemove = ref<string>("");
+
+const filteredGroups = computed(() => {
+    return groups.value.filter(x => !props.selectedUser.roles.some(y => y.id === x.id)) as KcGroup[];
+})
 
 const Assign = async () => {
     await userStore.ADD_USER_TO_ROLE(props.selectedUser, selectedGroup.value ?? "");
