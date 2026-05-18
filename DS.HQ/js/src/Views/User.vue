@@ -1,12 +1,5 @@
 <template>
-    <div class="back">
-        <a href="/">
-            <font-awesome-icon icon="arrow-left" />
-        </a>
-        <h1 class="title is-5">
-            <font-awesome-icon icon="user" /> Brugeradministration
-        </h1>
-    </div>
+    <Back icon="user" title="Brugeradministration" />
     <div class="management-wrapper">
         <aside class="sidebar-list">
             <div class="sidebar-header">
@@ -38,12 +31,8 @@
                 </div>
             </div>
             <div class="sidebar-footer">
-                <BButton type="is-primary" @click="createNewUser">
-                    + Tilføj ny bruger
-                </BButton>
-                <BButton type="is-secondary">
-                    Inviter bruger
-                </BButton>
+                <UserCreateUser />
+                <UserInviteUser />
             </div>
         </aside>
         <main class="workspace" :class="selectedUser ? 'filled' : 'dashed'">
@@ -57,30 +46,7 @@
                 <div class="workspace-box-grid">
                     <div class="columns is-desktop">
                         <div class="column">
-                            <nav class="panel">
-                                <p class="panel-heading">
-                                    Bruger metadata
-                                </p>
-                                <div class="panel-body group-body">
-                                    <BField label="Fornavn">
-                                        <BInput v-model="selectedUser.user.firstName" />
-                                    </BField>
-                                    <BField label="Efternavn">
-                                        <BInput v-model="selectedUser.user.lastName" />
-                                    </BField>
-                                    <BField label="Email">
-                                        <BInput v-model="selectedUser.user.email" />
-                                    </BField>
-                                    <BField label="Gruppe">
-                                        <BSelect v-model="selectedUser.groupNumber" expanded>
-                                            <option value=""></option>
-                                            <option v-for="group in groups" :value="group.id">
-                                                {{ group.name }}
-                                            </option>
-                                        </BSelect>
-                                    </BField>
-                                </div>
-                            </nav>
+                            <UserMetadata :selected-user="selectedUser" />
                         </div>
                         <div class="column">
                             <UserRoles class="column is-half" :selected-user="selectedUser" />
@@ -94,49 +60,25 @@
             </div>
         </main>
     </div>
-    <BModal v-model="open" has-modal-card>
-        <div class="modal-card">
-            <section class="modal-card-body" v-if="newUser">
-                <BField label="Brugernavn">
-                    <BInput v-model="newUser.user.userName" disabled />
-                </BField>
-                <BField label="Fornavn">
-                    <BInput v-model="newUser.user.firstName" />
-                </BField>
-                <BField label="Efternavn">
-                    <BInput v-model="newUser.user.lastName" />
-                </BField>
-                <BField label="Email">
-                    <BInput v-model="newUser.user.email" type="email" />
-                </BField>
-                <BButton type="is-primary" @click="createUser">
-                    Opret bruger
-                </BButton>
-            </section>
-        </div>
-    </BModal>
+
 </template>
 <script lang="ts" setup>
-import { ref, computed, toRaw, watch } from 'vue';
+import { ref, computed } from 'vue';
 import { useUserStore } from '@/Stores/UserStore';
 import { storeToRefs } from 'pinia';
-import { BButton, BField, BInput, BModal, BSelect, useToast } from 'buefy';
+import { BButton, BInput, useToast } from 'buefy';
 import UserRoles from '@/Components/User/UserRoles.vue';
-import { useGroupStore } from '@/Stores/GroupStore';
+import UserCreateUser from '@/Components/User/UserCreateUser.vue';
+import UserInviteUser from '@/Components/User/UserInviteUser.vue';
+import Back from '@/Components/Back.vue';
+import UserMetadata from '@/Components/User/UserMetadata.vue';
 
 const Toast = useToast();
-
 
 const userStore = useUserStore();
 const { Users: users } = storeToRefs(userStore);
 
-const groupStore = useGroupStore();
-const { Groups: groups } = storeToRefs(groupStore);
-
 const selectedUser = ref<DSUser | null>(null);
-
-const open = ref<boolean>(false);
-const newUser = ref<DSUser | null>();
 
 const searchQuery = ref('');
 
@@ -162,32 +104,6 @@ const toggleUserSelection = (clickedUser: DSUser) => {
   }
 };
 
-const createNewUser = () => {
-  open.value = true;
-  newUser.value = {
-    user: {
-        firstName: "",
-        id: "",
-        lastName: "",
-        email: "",
-        userName: ""
-    },
-    groupNumber: "",
-    roles: [],
-    group: null
-  } as DSUser;
-};
-
-const createUser = async () => {
-    if (newUser.value) {
-        await userStore.CREATE_USER(toRaw(newUser.value));
-
-        // Clean up
-        open.value = false;
-        newUser.value = null;
-    }
-};
-
 const saveUser = async () => {
     const result = await userStore.UPDATE_USER(selectedUser.value as DSUser);
     if (result) {
@@ -202,15 +118,6 @@ const saveUser = async () => {
         });
     }
 }
-
-watch(() => [newUser.value?.user.firstName, newUser.value?.user.lastName], ([newFirst, newLast]) => {
-    const first = (newFirst || '').toLowerCase();
-    const last = (newLast || '').toLowerCase();
-
-    if (newUser.value?.user) {
-        newUser.value.user.userName = first.toLowerCase() + last.toLowerCase();
-    }
-});
 </script>
 <style lang="scss">
 html body {
@@ -353,14 +260,5 @@ html body {
             flex: 1;
         }
     }
-}
-
-.back {
-    background-color: #fff;
-    border-radius: 10px;
-    margin: 1rem;
-    display: flex;
-    gap: 0.25rem;
-    padding: 1rem;
 }
 </style>
