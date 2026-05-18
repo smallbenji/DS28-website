@@ -18,6 +18,9 @@ const routes: RouteRecordRaw[] = [
             const userStore = useUserStore();
             await userStore.GET_USERS();
             await userStore.GET_GROUPS();
+
+            const groupStore = useGroupStore();
+            await groupStore.GET_GROUPS();
         }
     },
     {

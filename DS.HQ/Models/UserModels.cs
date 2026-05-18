@@ -1,3 +1,4 @@
+using DS.Models;
 using NETCore.Keycloak.Client.Models.Groups;
 using NETCore.Keycloak.Client.Models.Users;
 
@@ -8,5 +9,6 @@ namespace DS.HQ.Controllers
         public KcUser User { get; set; }
         public string GroupNumber { get; set; }
         public List<KcGroup> Roles { get; set; }
+        public Group Group { get; set; }
     }
 }

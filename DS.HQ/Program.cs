@@ -19,7 +19,7 @@ builder.Services.AddControllersWithViews(options => {
     options.Filters.Add(new AuthorizeFilter(policy));
 });
 
-builder.Services.AddSingleton<KeycloakHelper>();
+builder.Services.AddScoped<KeycloakHelper>();
 
 var app = builder.Build();
 

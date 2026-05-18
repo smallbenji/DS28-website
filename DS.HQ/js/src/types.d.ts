@@ -15,6 +15,7 @@ interface DSUser {
     user: KcUser;
     groupNumber: string;
     roles: KcGroup[];
+    group: DSGroup | null;
 }
 
 interface DSGroup {

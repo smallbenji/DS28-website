@@ -32,8 +32,8 @@
                             {{ role.name }}
                         </span>
                     </div>
-                    <div class="sidebar-user-group-info" v-if="user.groupNumber">
-                        {{ user.groupNumber }}
+                    <div class="sidebar-user-group-info" v-if="user.group?.name">
+                        {{ user.group.name }}
                     </div>
                 </div>
             </div>
@@ -58,10 +58,17 @@
                     <div class="grid">
                         <nav class="panel cell">
                             <p class="panel-heading">
-                                Gruppe nummer
+                                Bruger metadata
                             </p>
-                            <div class="panel-body">
-                                <BInput v-model="selectedUser.groupNumber" />
+                            <div class="panel-body group-body">
+                                <BField label="Gruppe">
+                                    <BSelect v-model="selectedUser.groupNumber" expanded>
+                                        <option value=""></option>
+                                        <option v-for="group in groups" :value="group.id">
+                                            {{ group.name }}
+                                        </option>
+                                    </BSelect>
+                                </BField>
                             </div>
                         </nav>
                         <UserRoles :selected-user="selectedUser" />
@@ -96,12 +103,16 @@
 import { ref, computed, toRaw, watch } from 'vue';
 import { useUserStore } from '@/Stores/UserStore';
 import { storeToRefs } from 'pinia';
-import { BButton, BField, BInput, BModal } from 'buefy';
+import { BButton, BField, BInput, BModal, BSelect } from 'buefy';
 import UserRoles from '@/Components/User/UserRoles.vue';
+import { useGroupStore } from '@/Stores/GroupStore';
 
 
 const userStore = useUserStore();
 const { Users: users } = storeToRefs(userStore);
+
+const groupStore = useGroupStore();
+const { Groups: groups } = storeToRefs(groupStore);
 
 const selectedUser = ref<DSUser | null>(null);
 
@@ -143,7 +154,8 @@ const createNewUser = () => {
         userName: ""
     },
     groupNumber: "",
-    roles: []
+    roles: [],
+    group: null
   } as DSUser;
 };
 
@@ -284,6 +296,10 @@ html body {
             min-height: 60px;
             align-items: center;
             display: flex;
+        }
+
+        .group-body {
+            padding: 1rem;
         }
 
         .role-line {

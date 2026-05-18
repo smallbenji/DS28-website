@@ -12,13 +12,15 @@ namespace DS.HQ
     {
         private readonly IOptions<DSSettings> options;
         private readonly IOptions<HQSettings> hQOptions;
+        private readonly DataDbContext dataDB;
         private KeycloakClient client;
         private string realm;
 
-        public KeycloakHelper(IOptions<DSSettings> options, IOptions<HQSettings> HQOptions)
+        public KeycloakHelper(IOptions<DSSettings> options, IOptions<HQSettings> HQOptions, DataDbContext DataDB)
         {
             this.options = options;
             hQOptions = HQOptions;
+            dataDB = DataDB;
             realm = options.Value.Realm;
 
             client = new KeycloakClient(options.Value.SSO_URL);
@@ -57,6 +59,8 @@ namespace DS.HQ
                 if (obj.Attributes != null && obj.Attributes.TryGetValue("groupnumber", out var gtoken))
                 {
                     usr.GroupNumber = ((JArray)gtoken).ToObject<List<string>>().FirstOrDefault();
+
+                    usr.Group = dataDB.Groups.FirstOrDefault(x => x.Id.ToString().Equals(usr.GroupNumber));
                 }
 
                 retval.Add(usr);
@@ -78,6 +82,8 @@ namespace DS.HQ
             if (usr.User.Attributes != null && usr.User.Attributes.TryGetValue("groupnumber", out var gtoken))
             {
                 usr.GroupNumber = ((JArray)gtoken).ToObject<List<string>>().FirstOrDefault();
+
+                usr.Group = dataDB.Groups.FirstOrDefault(x => x.Id.Equals(usr.GroupNumber));
             }
 
             return usr;
