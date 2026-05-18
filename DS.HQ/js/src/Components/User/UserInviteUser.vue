@@ -1,5 +1,5 @@
 <template>
-    <BButton type="is-secondary">
+    <BButton type="is-secondary" icon-left="envelope" icon-pack="far">
         Inviter bruger
     </BButton>
 </template>
