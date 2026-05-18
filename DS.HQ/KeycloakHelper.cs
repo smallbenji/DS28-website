@@ -87,7 +87,11 @@ namespace DS.HQ
         {
             var token = await GetToken();
 
-            await client.Users.CreateAsync(realm, token, data.User);
+            data.User.EmailVerified = true;
+            data.User.Enabled = true;
+            data.User.CreatedTimestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+
+            var response = await client.Users.CreateAsync(realm, token, data.User);
 
             await RefreshUsers();
         }
@@ -139,10 +143,13 @@ namespace DS.HQ
         {
             KeycloakValidation.LastUpdate = DateTime.UtcNow.Ticks;
 
-            var httpClient = new HttpClient();
-            foreach (var site in hQOptions.Value.UserRefreshUrl)
+            if (hQOptions.Value.UserRefreshUrl != null)
             {
-                await httpClient.GetAsync(site+"/refresh-users");
+                var httpClient = new HttpClient();
+                foreach (var site in hQOptions.Value.UserRefreshUrl)
+                {
+                    await httpClient.GetAsync(site+"/refresh-users");
+                }
             }
         }
     }
