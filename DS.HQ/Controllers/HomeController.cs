@@ -39,12 +39,30 @@ namespace DS.HQ.Controllers
                         Title = "Gruppestyring",
                         URL = "./Group"
                     },
+                    new()
+                    {
+                        Icon = "fa-solid fa-file-lines",
+                        Title = "Audit log",
+                        URL = "https://fisk.dk"
+                    },
+                });
+            }
+
+            if (HttpContext.User.IsInRole(Role.Material))
+            {
+                retval.Shortcuts.AddRange(new List<HQPanelEntry>
+                {
+                    new()
+                    {
+                        Icon = "fa-solid fa-cart-plus",
+                        Title = "Materialesystem",
+                        URL = "https://fisk.dk"
+                    }
                 });
             }
 
             retval.Shortcuts.AddRange(new List<HQPanelEntry>()
             {
-
                 new()
                 {
                     Icon = "fa-solid fa-money-check-dollar",
@@ -59,12 +77,6 @@ namespace DS.HQ.Controllers
                 },
                 new()
                 {
-                    Icon = "fa-solid fa-cart-plus",
-                    Title = "Materialesystem",
-                    URL = "https://fisk.dk"
-                },
-                new()
-                {
                     Icon = "fa-solid fa-plus-circle",
                     Title = "Tilmeldingssystem",
                     URL = "https://fisk.dk"
@@ -73,12 +85,6 @@ namespace DS.HQ.Controllers
                 {
                     Icon = "fa-solid fa-arrow-trend-up",
                     Title = "Grafana",
-                    URL = "https://fisk.dk"
-                },
-                new()
-                {
-                    Icon = "fa-solid fa-file-lines",
-                    Title = "Audit log",
                     URL = "https://fisk.dk"
                 },
                 new()
