@@ -10,10 +10,11 @@ const routes: RouteRecordRaw[] = [
         beforeEnter: async () => {
             const Loading = useLoading();
             const loading = Loading.open({});
+            const userStore = useUserStore();
 
             try {
-                const userStore = useUserStore();
                 await userStore.GET_USERS();
+
                 return true;
             } catch {
                 return false;
@@ -50,9 +51,9 @@ const routes: RouteRecordRaw[] = [
         beforeEnter: async () => {
             const Loading = useLoading();
             const loading = Loading.open({});
+            const groupStore = useGroupStore();
 
             try {
-                const groupStore = useGroupStore();
                 await groupStore.GET_GROUPS();
 
                 return true;
