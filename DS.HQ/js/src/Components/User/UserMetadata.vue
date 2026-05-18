@@ -36,3 +36,9 @@ const props = defineProps<{
 const groupStore = useGroupStore();
 const { Groups: groups } = storeToRefs(groupStore);
 </script>
+<style lang="scss">
+.group-body {
+    padding: 1rem;
+}
+
+</style>

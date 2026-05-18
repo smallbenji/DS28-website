@@ -11,6 +11,10 @@ defineProps<{
 }>();
 </script>
 <style lang="scss">
+*, *::before, *::after {
+    box-sizing: border-box;
+}
+
 .workspace {
     height: 100%;
     flex: 1;
@@ -22,6 +26,14 @@ defineProps<{
         flex-direction: column;
         height: 100%;
         overflow-x: auto;
+    }
+
+    &.filled {
+        background-color: #fff;
+    }
+
+    &.dashed {
+        border: 3px dashed rgba(0, 0, 0, 0.1);
     }
 }
 </style>

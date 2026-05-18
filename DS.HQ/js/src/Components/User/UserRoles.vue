@@ -91,3 +91,19 @@ const ApprovedRemove = async () => {
 }
 
 </script>
+<style lang="scss">
+.panel-heading {
+    padding: 15px 25px;
+    min-height: 60px;
+    align-items: center;
+    display: flex;
+}
+
+.role-line {
+    display: flex;
+}
+
+.flex {
+    flex: 1;
+}
+</style>
