@@ -11,7 +11,10 @@
         <aside class="sidebar-list">
             <div class="sidebar-header">
                 <div class="search-container">
-                    <BInput v-model="searchQuery" />
+                    <BInput
+                        v-model="searchQuery"
+                        placeholder="Søg efter navn eller gruppenummer"
+                        />
                 </div>
             </div>
             <div class="sidebar-content compact-scroll">
@@ -122,8 +125,10 @@ const toggleUserSelection = (clickedUser: DSUser) => {
   if (selectedUser.value?.user.id === clickedUser.user.id) {
     selectedUser.value = null;
   } else {
-    const rawUser = toRaw(clickedUser);
-    selectedUser.value = structuredClone(rawUser);
+    // Will maybe be used at a later time?
+    // const rawUser = toRaw(clickedUser);
+    // selectedUser.value = structuredClone(rawUser);
+    selectedUser.value = clickedUser;
   }
 };
 
