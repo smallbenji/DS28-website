@@ -66,7 +66,7 @@ const createNewUser = () => {
           </div>
 
           <div class="role-pills">
-            <span v-for="role in user.roles" :key="role" class="pill">
+            <span v-for="role in user.roles" :key="role.id" class="pill">
               {{ role.name }}
             </span>
           </div>
