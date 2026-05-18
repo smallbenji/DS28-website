@@ -1,5 +1,5 @@
 <template>
-    <nav class="panel cell">
+    <nav class="panel">
         <div class="panel-heading">
             Roller
             <div class="flex"></div>

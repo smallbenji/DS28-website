@@ -54,24 +54,37 @@
                         <p class="subtitle is-6">{{ selectedUser.user.id }}</p>
                     </div>
                 </section>
-                <div class="workspace-box-grid fixed-grid">
-                    <div class="grid">
-                        <nav class="panel cell">
-                            <p class="panel-heading">
-                                Bruger metadata
-                            </p>
-                            <div class="panel-body group-body">
-                                <BField label="Gruppe">
-                                    <BSelect v-model="selectedUser.groupNumber" expanded>
-                                        <option value=""></option>
-                                        <option v-for="group in groups" :value="group.id">
-                                            {{ group.name }}
-                                        </option>
-                                    </BSelect>
-                                </BField>
-                            </div>
-                        </nav>
-                        <UserRoles :selected-user="selectedUser" />
+                <div class="workspace-box-grid">
+                    <div class="columns is-desktop">
+                        <div class="column">
+                            <nav class="panel">
+                                <p class="panel-heading">
+                                    Bruger metadata
+                                </p>
+                                <div class="panel-body group-body">
+                                    <BField label="Fornavn">
+                                        <BInput v-model="selectedUser.user.firstName" />
+                                    </BField>
+                                    <BField label="Efternavn">
+                                        <BInput v-model="selectedUser.user.lastName" />
+                                    </BField>
+                                    <BField label="Email">
+                                        <BInput v-model="selectedUser.user.email" />
+                                    </BField>
+                                    <BField label="Gruppe">
+                                        <BSelect v-model="selectedUser.groupNumber" expanded>
+                                            <option value=""></option>
+                                            <option v-for="group in groups" :value="group.id">
+                                                {{ group.name }}
+                                            </option>
+                                        </BSelect>
+                                    </BField>
+                                </div>
+                            </nav>
+                        </div>
+                        <div class="column">
+                            <UserRoles class="column is-half" :selected-user="selectedUser" />
+                        </div>
                     </div>
                 </div>
                 <div class="flex"></div>
