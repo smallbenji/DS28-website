@@ -35,7 +35,7 @@ namespace DS.HQ.Controllers
                     },
                     new()
                     {
-                        Icon = "fa-solid fa-user-plus",
+                        Icon = "fa-solid fa-users",
                         Title = "Gruppestyring",
                         URL = "./Group"
                     },
