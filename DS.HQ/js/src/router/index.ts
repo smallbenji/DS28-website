@@ -5,25 +5,6 @@ import { useLoading } from "buefy";
 
 const routes: RouteRecordRaw[] = [
     {
-        path: "/user-old",
-        component: () => import("@/Views/User-old.vue"),
-        beforeEnter: async () => {
-            const Loading = useLoading();
-            const loading = Loading.open({});
-            const userStore = useUserStore();
-
-            try {
-                await userStore.GET_USERS();
-
-                return true;
-            } catch {
-                return false;
-            } finally {
-                loading.close();
-            }
-        }
-    },
-    {
         path: "/user",
         component: () => import("@/Views/User.vue"),
         beforeEnter: async () => {

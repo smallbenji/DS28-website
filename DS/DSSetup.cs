@@ -71,13 +71,13 @@ namespace DS
         }
         public static WebApplication AddDSEndpoints(this WebApplication app)
         {
+            app.UseStaticFiles();
             app.UseHttpsRedirection();
             app.UseRouting();
 
             app.UseAuthentication();
             app.UseAuthorization();
 
-            app.UseStaticFiles();
             app.MapStaticAssets();
 
             var env = app.Services.GetRequiredService<IWebHostEnvironment>();
