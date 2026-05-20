@@ -3,6 +3,9 @@
         <div class="workspace-box" v-if="filled">
             <slot />
         </div>
+        <div v-else class="is-flex is-justify-content-center is-align-items-center" style="height: 100%;">
+            <p class="is-italic has-text-grey">Vælg en resource for at se detaljer</p>
+        </div>
     </main>
 </template>
 <script lang="ts" setup>
