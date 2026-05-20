@@ -117,4 +117,21 @@ export default class UserService {
             return false;
         }
     }
+
+    public async inviteUser(email: string, roles: string[]) {
+        try {
+            const response: AxiosResponse = await axios({
+                url: "/api/v1/user/invite",
+                method: "POST",
+                data: JSON.stringify({ email, roles }),
+                headers: {
+                    "Content-Type": "application/json"
+                }
+            });
+
+            return response.status == 200;
+        } catch {
+            return false;
+        }
+    }
 }
