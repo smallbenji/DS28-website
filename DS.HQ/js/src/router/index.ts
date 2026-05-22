@@ -44,6 +44,10 @@ const routes: RouteRecordRaw[] = [
                 loading.close();
             }
         }
+    },
+    {
+        path: "/invitation/:id",
+        component: () => import("@/Views/Invitation.vue")
     }
 ];
 

@@ -2,6 +2,7 @@ using DS.HQ.Controllers;
 using Microsoft.Extensions.Options;
 using NETCore.Keycloak.Client.HttpClients.Implementation;
 using NETCore.Keycloak.Client.Models.Auth;
+using NETCore.Keycloak.Client.Models.Common;
 using NETCore.Keycloak.Client.Models.Groups;
 using NETCore.Keycloak.Client.Models.Users;
 using Newtonsoft.Json.Linq;
@@ -97,9 +98,23 @@ namespace DS.HQ
             data.User.Enabled = true;
             data.User.CreatedTimestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
 
-            var response = await client.Users.CreateAsync(realm, token, data.User);
+            await client.Users.CreateAsync(realm, token, data.User);
 
             await RefreshUsers();
+        }
+
+        public async Task ResetUserPassword(string userId, string newPassword)
+        {
+            var token = await GetToken();
+
+            var credential = new KcCredentials
+            {
+                Type = "password",
+                Value = newPassword,
+                Temporary = false
+            };
+
+            await client.Users.ResetPasswordAsync(realm, token, userId, credential);
         }
 
         public async Task DeleteUser(string id)

@@ -26,7 +26,7 @@
                                 v-for="group in groups"
                                 :key="group.id"
                                 v-model="selectedRoles"
-                                :native-value="group.name"
+                                :native-value="group.path"
                             >
                                 {{ group.name }}
                             </BCheckbox>

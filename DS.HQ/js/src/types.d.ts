@@ -9,6 +9,7 @@ interface KcUser {
 interface KcGroup {
     id: string;
     name: string;
+    path: string;
 }
 
 interface DSUser {
@@ -21,4 +22,9 @@ interface DSUser {
 interface DSGroup {
     id: number;
     name: string;
+}
+
+interface InvitationDTO {
+    Roles: string[];
+    Email: string;
 }
