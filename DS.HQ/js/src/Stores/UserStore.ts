@@ -61,9 +61,13 @@ export const useUserStore = defineStore("user", () => {
         return data;
     }
 
+    async function INVITE_USER(email: string, roles: string[]) {
+        return await userService.inviteUser(email, roles);
+    }
+
     return {
         Users, Groups,
         USERS, GROUPS,
-        GET_USERS, GET_GROUPS, UPDATE_USER, CREATE_USER, REMOVE_USER_FROM_ROLE, ADD_USER_TO_ROLE
+        GET_USERS, GET_GROUPS, UPDATE_USER, CREATE_USER, REMOVE_USER_FROM_ROLE, ADD_USER_TO_ROLE, INVITE_USER
     }
 });

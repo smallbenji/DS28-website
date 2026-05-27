@@ -6,15 +6,8 @@ namespace DS.HQ.Controllers
 {
     [Authorize(Roles = Role.Admin)]
     [Route("/api/v1/group")]
-    public class GroupApiController : Controller
+    public class GroupApiController(DataDbContext dataDb) : Controller
     {
-        private readonly DataDbContext dataDb;
-
-        public GroupApiController(DataDbContext dataDb)
-        {
-            this.dataDb = dataDb;
-        }
-
         [HttpGet]
         public IActionResult Index()
         {

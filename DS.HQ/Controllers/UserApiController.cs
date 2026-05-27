@@ -1,3 +1,4 @@
+using DS.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -8,10 +9,12 @@ namespace DS.HQ.Controllers
     public class UserApiController : Controller
     {
         private readonly KeycloakHelper keycloakHelper;
+        private readonly DataDbContext dataDb;
 
-        public UserApiController(KeycloakHelper keycloakHelper)
+        public UserApiController(KeycloakHelper keycloakHelper, DataDbContext dataDb)
         {
             this.keycloakHelper = keycloakHelper;
+            this.dataDb = dataDb;
         }
 
         [HttpGet]
@@ -69,5 +72,27 @@ namespace DS.HQ.Controllers
 
             return Ok(retval);
         }
+
+        [HttpPost("invite")]
+        public async Task<IActionResult> InviteUser([FromBody] InvitationDTO data)
+        {
+            var invitation = new UserInvitation()
+            {
+                InvitationId = Guid.NewGuid(),
+                Roles = data.Roles,
+                Email = data.Email
+            };
+
+            await dataDb.Invitations.AddAsync(invitation);
+            await dataDb.SaveChangesAsync();
+
+            return Ok();
+        }
+    }
+
+    public class InvitationDTO
+    {
+        public List<string> Roles { get; set; }
+        public string Email { get; set; }
     }
 }
