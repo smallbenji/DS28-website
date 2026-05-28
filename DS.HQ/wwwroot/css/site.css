@@ -39,17 +39,29 @@ body {
   margin-bottom: 1rem;
 
   .logout {
-    font-size: 32px;
     text-decoration: none;
     align-content: center;
 
-    i {
+    a {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      text-decoration: none;
       color: rgba(0, 0, 0, 0.4);
+      font-size: 15px;
       transition: ease-in 0.2s;
     }
 
-    i:hover {
+    a:hover {
       color: rgba(255, 0, 0, 0.6);
+    }
+
+    i {
+      font-size: 20px;
+    }
+
+    .logout-label {
+      font-size: 15px;
     }
   }
 
@@ -70,14 +82,13 @@ body {
 .link-box div {
   display: flex;
   flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
   height: 100%;
 
   i {
-    flex: 1;
     font-size: 44px;
-    width: 100%;
-    height: 100%;
-    align-content: center;
     color: rgba(0, 0, 0, 0.4);
     transition: ease-in 0.2s;
   }
@@ -87,11 +98,10 @@ body {
   }
 
   p {
-    border-top: 1px solid rgba(0, 0, 0, 0.1);
     text-align: center;
     margin: 0;
     font-size: 18px;
-    padding: 0.25rem 0;
+    padding: 0;
     color: rgba(0, 0, 0, 0.4);
     transition: ease-in 0.2s;
   }
