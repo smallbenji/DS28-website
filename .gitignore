@@ -298,3 +298,5 @@ pointMaster/wwwroot/js/dist
 dist
 node_modules
 *.lscache
+
+docker-compose.test.yaml
