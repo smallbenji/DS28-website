@@ -67,6 +67,8 @@ namespace DS
                 options.UseNpgsql(dsSettings.ConnectionString);
             });
 
+            services.AddTransient<DSMailer>();
+
             return services;
         }
         public static WebApplication AddDSEndpoints(this WebApplication app)
