@@ -22,6 +22,12 @@ interface DSUser {
 interface DSGroup {
     id: number;
     name: string;
+
+}
+
+interface GroupDTO {
+    groups: DSGroup[];
+    users: Record<string, DSUser[]>;
 }
 
 interface InvitationDTO {

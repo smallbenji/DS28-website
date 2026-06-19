@@ -71,10 +71,12 @@ const selectedGroup = ref<DSGroup | null>(null);
 const searchQuery = ref('');
 
 const filteredGroups = computed(() => {
-    if (!searchQuery.value.trim()) return groups.value;
+    const allGroups = groups.value?.groups ?? [];
+
+    if (!searchQuery.value.trim()) return allGroups;
 
     const query = searchQuery.value.toLowerCase();
-    return groups.value.filter(g =>
+    return allGroups.filter(g =>
         g.name.toLowerCase().includes(query) ||
         g.id.toString().toLowerCase().includes(query)
     );

@@ -2,15 +2,15 @@ import type { AxiosResponse } from "axios";
 import axios from "axios";
 
 export default class GroupService {
-    public async getGroups(): Promise<DSGroup[]> {
+    public async getGroups(): Promise<GroupDTO> {
         try {
             const response: AxiosResponse = await axios({
                 url: "/api/v1/group",
                 method: "GET"
             });
-            return Array.isArray(response.data) ? response.data : [];
+            return response.data ? response.data : { groups: [], users: {}};
         } catch {
-            return [];
+            return { groups: [], users: {}};
         }
     }
 

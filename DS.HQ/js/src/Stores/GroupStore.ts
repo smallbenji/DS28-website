@@ -4,7 +4,7 @@ import { computed, ref } from "vue";
 
 export const useGroupStore = defineStore("group", () => {
     const groupService = new GroupService();
-    const Groups = ref<DSGroup[]>([]);
+    const Groups = ref<GroupDTO>({ groups: [], users: {}});
     const GROUPS = computed(() => Groups.value);
 
     async function GET_GROUPS() {

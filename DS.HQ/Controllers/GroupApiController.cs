@@ -6,12 +6,27 @@ namespace DS.HQ.Controllers
 {
     [Authorize(Roles = Role.Admin)]
     [Route("/api/v1/group")]
-    public class GroupApiController(DataDbContext dataDb) : Controller
+    public class GroupApiController(DataDbContext dataDb, IKeycloakHelper keycloakHelper) : Controller
     {
-        [HttpGet]
-        public IActionResult Index()
+        public class GroupDTO
         {
-            var retval = dataDb.Groups.ToList();
+            public GroupDTO(List<Group> groups)
+            {
+                Groups = groups;
+            }
+
+            public List<Group> Groups { get; set; }
+            public Dictionary<string, List<DSUser>> Users { get; set; }
+        }
+        [HttpGet]
+        public async Task<IActionResult> Index()
+        {
+            var data = dataDb.Groups.ToList();
+
+            var retval = new GroupDTO(data)
+            {
+                Users = (await keycloakHelper.GetUsers()).Where(x => !string.IsNullOrEmpty(x.GroupNumber)).GroupBy(x => x.GroupNumber).ToDictionary(x => x.Key, x => x.ToList())
+            };
 
             return Ok(retval);
         }
