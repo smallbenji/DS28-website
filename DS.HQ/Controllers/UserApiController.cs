@@ -101,7 +101,7 @@ namespace DS.HQ.Controllers
 
 // Hermed sendes invitations link til oprettelse i DS_OS.
 
-// {invitation.InvitationId}
+// https://{Request.Host.Value}/invitation/{invitation.InvitationId}
 //                 "
 //             }.ToMessageBody();
 
