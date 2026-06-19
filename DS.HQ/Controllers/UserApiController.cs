@@ -8,10 +8,10 @@ namespace DS.HQ.Controllers
     [Route("/api/v1/user")]
     public class UserApiController : Controller
     {
-        private readonly KeycloakHelper keycloakHelper;
+        private readonly IKeycloakHelper keycloakHelper;
         private readonly DataDbContext dataDb;
 
-        public UserApiController(KeycloakHelper keycloakHelper, DataDbContext dataDb)
+        public UserApiController(IKeycloakHelper keycloakHelper, DataDbContext dataDb)
         {
             this.keycloakHelper = keycloakHelper;
             this.dataDb = dataDb;

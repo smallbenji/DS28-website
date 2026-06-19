@@ -9,7 +9,23 @@ using Newtonsoft.Json.Linq;
 
 namespace DS.HQ
 {
-    public class KeycloakHelper
+    public interface IKeycloakHelper
+    {
+        Task AddUserToGroup(string userId, string groupId);
+        Task CreateUser(DSUser data);
+        Task DeleteUser(string id);
+        KeycloakClient GetClient();
+        Task<List<KcGroup>> GetGroups();
+        Task<string> GetToken();
+        Task<DSUser> GetUser(string id);
+        Task<List<DSUser>> GetUsers();
+        Task RefreshUsers();
+        Task RemoveUserFromGroup(string userId, string groupId);
+        Task ResetUserPassword(string userId, string newPassword);
+        Task UpdateUser(DSUser user);
+    }
+
+    public class KeycloakHelper : IKeycloakHelper
     {
         private readonly IOptions<DSSettings> options;
         private readonly IOptions<HQSettings> hQOptions;
@@ -182,7 +198,7 @@ namespace DS.HQ
                 var httpClient = new HttpClient();
                 foreach (var site in hQOptions.Value.UserRefreshUrl)
                 {
-                    await httpClient.GetAsync(site+"/refresh-users");
+                    await httpClient.GetAsync(site + "/refresh-users");
                 }
             }
         }

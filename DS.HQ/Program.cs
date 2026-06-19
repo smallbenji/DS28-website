@@ -19,7 +19,8 @@ builder.Services.AddControllersWithViews(options => {
     options.Filters.Add(new AuthorizeFilter(policy));
 }).AddNewtonsoftJson();
 
-builder.Services.AddScoped<KeycloakHelper>();
+builder.Services.AddScoped<IKeycloakHelper, KeycloakHelper>();
+builder.Services.Decorate<IKeycloakHelper, CachedKeycloakHelper>();
 
 var app = builder.Build();
 

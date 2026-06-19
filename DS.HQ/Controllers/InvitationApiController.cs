@@ -8,7 +8,7 @@ namespace DS.HQ.Controllers
 {
     [AllowAnonymous]
     [Route("api/v1/invitation")]
-    public class InvitationApiController(DataDbContext dataDb, KeycloakHelper keycloakHelper) : Controller
+    public class InvitationApiController(DataDbContext dataDb, IKeycloakHelper keycloakHelper) : Controller
     {
         [HttpGet("{id:guid}")]
         public async Task<IActionResult> GetInvitation(Guid id)
