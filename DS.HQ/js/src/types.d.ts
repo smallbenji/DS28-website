@@ -28,3 +28,17 @@ interface InvitationDTO {
     Roles: string[];
     Email: string;
 }
+
+interface Invitation {
+    id: number;
+    invitationId: string;
+    email: string;
+    roles: string[];
+    used: boolean;
+}
+
+interface UserInvitationCreationDTO {
+    FirstName: string;
+    LastName: string;
+    Password: string;
+}

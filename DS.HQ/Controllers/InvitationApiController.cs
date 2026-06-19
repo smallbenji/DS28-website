@@ -10,10 +10,11 @@ namespace DS.HQ.Controllers
     [Route("api/v1/invitation")]
     public class InvitationApiController(DataDbContext dataDb, IKeycloakHelper keycloakHelper) : Controller
     {
-        [HttpGet("{id:guid}")]
-        public async Task<IActionResult> GetInvitation(Guid id)
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetInvitation(string id)
         {
-            var result = await dataDb.Invitations.FirstOrDefaultAsync(x => x.InvitationId == id);
+            Guid.TryParse(id, out var guidId);
+            var result = await dataDb.Invitations.FirstOrDefaultAsync(x => x.InvitationId == guidId);
 
             if (result == null)
             {
