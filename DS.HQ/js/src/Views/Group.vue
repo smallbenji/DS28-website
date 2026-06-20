@@ -35,7 +35,9 @@
                     <div class="column">
                         <GroupMetadata v-if="selectedGroup" :selected-group="selectedGroup" />
                     </div>
-                    <div class="column"></div>
+                    <div class="column">
+                        <GroupUsers v-if="selectedGroup" :selected-group="selectedGroup" />
+                    </div>
                 </div>
             </WorkspaceContent>
             <WorkspaceFooter>
@@ -61,6 +63,7 @@ import WorkspaceFooter from '@/Components/Workspace/WorkspaceFooter.vue';
 import GroupSidebarBox from '@/Components/Group/GroupSidebarBox.vue';
 import GroupMetadata from '@/Components/Group/GroupMetadata.vue';
 import GroupCreateGroup from '@/Components/Group/GroupCreateGroup.vue';
+import GroupUsers from '@/Components/Group/GroupUsers.vue';
 
 const Toast = useToast();
 
