@@ -16,7 +16,7 @@
             <BField label="Gruppe">
                 <BSelect v-model="selectedUser.groupNumber" expanded>
                     <option value=""></option>
-                    <option v-for="group in groups" :value="group.id">
+                    <option v-for="group in groups.groups" :value="group.id">
                         {{ group.name }}
                     </option>
                 </BSelect>

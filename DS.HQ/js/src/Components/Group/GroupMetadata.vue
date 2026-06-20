@@ -12,8 +12,6 @@
             </BField>
         </div>
     </nav>
-
-
 </template>
 <script lang="ts" setup>
 import { BField, BInput } from 'buefy';

@@ -267,7 +267,7 @@ namespace DS.HQ
         {
             cache.Remove("users_all");
             cache.Remove($"users_{user.User.Id}");
-            return UpdateUser(user);
+            return keycloakHelper.UpdateUser(user);
         }
 
         public Task RefreshUsers()

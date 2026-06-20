@@ -1,6 +1,7 @@
 using DS.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace DS.HQ.Controllers
 {
@@ -21,7 +22,7 @@ namespace DS.HQ.Controllers
         [HttpGet]
         public async Task<IActionResult> Index()
         {
-            var data = dataDb.Groups.ToList();
+            var data = dataDb.Groups.Include(x => x.Patrols).ToList();
 
             var retval = new GroupDTO(data)
             {

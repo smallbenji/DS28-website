@@ -22,7 +22,12 @@ interface DSUser {
 interface DSGroup {
     id: number;
     name: string;
+    patrols: DSPatrol[];
+}
 
+interface DSPatrol {
+    id: number;
+    name: string;
 }
 
 interface GroupDTO {
