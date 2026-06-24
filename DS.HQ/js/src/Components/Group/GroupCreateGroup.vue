@@ -34,7 +34,7 @@ const open = ref<boolean>(false);
 
 const openCreate = () => {
     open.value = true;
-    newGroup.value = { id: 0, name: '' };
+    newGroup.value = { id: 0, name: '', patrols: [] };
 };
 
 const createGroup = async () => {

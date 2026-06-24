@@ -1,0 +1,18 @@
+FROM docker.io/library/node:22 AS assets
+RUN npm set progress=false && npm config set depth 0
+
+COPY ./DS.HQ/js/ /src/app
+WORKDIR /src/app
+RUN npm ci
+RUN npm run build
+
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+COPY . /src
+WORKDIR /src
+RUN dotnet restore DS.HQ && dotnet publish -c Release -o publish/ DS.HQ
+
+FROM mcr.microsoft.com/dotnet/aspnet:10.0
+WORKDIR /app
+ENTRYPOINT ["dotnet", "DS.HQ.dll"]
+COPY --from=build /src/publish .
+COPY --from=assets /src/wwwroot/dist wwwroot/dist/
