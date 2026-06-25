@@ -34,6 +34,13 @@
                 <div class="columns is-desktop">
                     <div class="column">
                         <GroupMetadata v-if="selectedGroup" :selected-group="selectedGroup" />
+                        <GroupScouts
+                            v-if="selectedGroup"
+                            :selected-group="selectedGroup"
+                            @scout-created="handleScoutCreated"
+                            @patrol-assigned="handlePatrolAssigned"
+                            @patrol-leader-toggled="handlePatrolLeaderToggled"
+                        />
                     </div>
                     <div class="column">
                         <GroupUsers v-if="selectedGroup" :selected-group="selectedGroup" />
@@ -70,6 +77,7 @@ import GroupMetadata from '@/Components/Group/GroupMetadata.vue';
 import GroupCreateGroup from '@/Components/Group/GroupCreateGroup.vue';
 import GroupUsers from '@/Components/Group/GroupUsers.vue';
 import GroupPatrols from '@/Components/Group/GroupPatrols.vue';
+import GroupScouts from '@/Components/Group/GroupScouts.vue';
 
 const Toast = useToast();
 
@@ -145,6 +153,55 @@ const handlePatrolCreated = (patrol: DSPatrol) => {
             selectedGroup.value.patrols = [];
         }
         selectedGroup.value.patrols.push(patrol);
+        selectedGroup.value = { ...selectedGroup.value };
+    }
+};
+
+const handleScoutCreated = (scout: DSScout) => {
+    if (selectedGroup.value) {
+        if (!selectedGroup.value.scouts) {
+            selectedGroup.value.scouts = [];
+        }
+        selectedGroup.value.scouts.push(scout);
+        selectedGroup.value = { ...selectedGroup.value };
+    }
+};
+
+const handlePatrolAssigned = (scoutId: number, patrolId: number, action: 'add' | 'remove') => {
+    if (selectedGroup.value && selectedGroup.value.scouts) {
+        const scout = selectedGroup.value.scouts.find(s => s.id === scoutId);
+        if (scout) {
+            if (!scout.memberships) {
+                scout.memberships = [];
+            }
+            if (action === 'add') {
+                if (!scout.memberships.some(m => m.patrolId === patrolId)) {
+                    scout.memberships.push({
+                        id: 0,
+                        scoutId,
+                        patrolId,
+                        joinedDate: new Date().toISOString(),
+                        isPatrolLeader: false
+                    });
+                }
+            } else if (action === 'remove') {
+                scout.memberships = scout.memberships.filter(m => m.patrolId !== patrolId);
+            }
+            selectedGroup.value = { ...selectedGroup.value };
+        }
+    }
+};
+
+const handlePatrolLeaderToggled = (scoutId: number, patrolId: number) => {
+    if (selectedGroup.value && selectedGroup.value.scouts) {
+        const scout = selectedGroup.value.scouts.find(s => s.id === scoutId);
+        if (scout && scout.memberships) {
+            const membership = scout.memberships.find(m => m.patrolId === patrolId);
+            if (membership) {
+                membership.isPatrolLeader = !membership.isPatrolLeader;
+                selectedGroup.value = { ...selectedGroup.value };
+            }
+        }
     }
 };
 </script>

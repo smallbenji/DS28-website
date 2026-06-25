@@ -22,7 +22,11 @@ namespace DS.HQ.Controllers
         [HttpGet]
         public async Task<IActionResult> Index()
         {
-            var data = dataDb.Groups.Include(x => x.Patrols).ToList();
+            var data = dataDb.Groups
+                .Include(x => x.Patrols)
+                .Include(x => x.Scouts)
+                    .ThenInclude(s => s.Memberships)
+                .ToList();
 
             var retval = new GroupDTO(data)
             {
@@ -67,6 +71,115 @@ namespace DS.HQ.Controllers
             await dataDb.SaveChangesAsync();
 
             return Ok(patrol);
+        }
+
+        public class CreateScoutDTO
+        {
+            public string Name { get; set; }
+            public DateTime Birthday { get; set; }
+            public Gender Gender { get; set; }
+            public int GroupId { get; set; }
+        }
+
+        [HttpPost("scout")]
+        public async Task<IActionResult> CreateScout([FromBody] CreateScoutDTO data)
+        {
+            var groupExists = await dataDb.Groups.AnyAsync(g => g.Id == data.GroupId);
+            if (!groupExists)
+            {
+                return BadRequest("Group does not exist.");
+            }
+
+            var scout = new Scout
+            {
+                Name = data.Name,
+                Birthday = DateTime.SpecifyKind(data.Birthday, DateTimeKind.Utc),
+                Gender = data.Gender,
+                GroupId = data.GroupId
+            };
+
+            dataDb.Scouts.Add(scout);
+            await dataDb.SaveChangesAsync();
+
+            return Ok(scout);
+        }
+
+        public class ScoutPatrolDTO
+        {
+            public int ScoutId { get; set; }
+            public int PatrolId { get; set; }
+        }
+
+        [HttpPost("scout/add-patrol")]
+        public async Task<IActionResult> AddPatrol([FromBody] ScoutPatrolDTO data)
+        {
+            var scoutExists = await dataDb.Scouts.AnyAsync(s => s.Id == data.ScoutId);
+            if (!scoutExists)
+            {
+                return NotFound("Scout not found.");
+            }
+
+            var patrolExists = await dataDb.Patrols.AnyAsync(p => p.Id == data.PatrolId);
+            if (!patrolExists)
+            {
+                return NotFound("Patrol not found.");
+            }
+
+            var alreadyMember = await dataDb.PatrolMemberships.AnyAsync(pm => pm.ScoutId == data.ScoutId && pm.PatrolId == data.PatrolId);
+            if (alreadyMember)
+            {
+                return Ok();
+            }
+
+            var membership = new PatrolMembership
+            {
+                ScoutId = data.ScoutId,
+                PatrolId = data.PatrolId,
+                JoinedDate = DateTime.UtcNow,
+                IsPatrolLeader = false
+            };
+
+            dataDb.PatrolMemberships.Add(membership);
+            await dataDb.SaveChangesAsync();
+            return Ok();
+        }
+
+        [HttpPost("scout/remove-patrol")]
+        public async Task<IActionResult> RemovePatrol([FromBody] ScoutPatrolDTO data)
+        {
+            var membership = await dataDb.PatrolMemberships
+                .FirstOrDefaultAsync(pm => pm.ScoutId == data.ScoutId && pm.PatrolId == data.PatrolId);
+
+            if (membership != null)
+            {
+                dataDb.PatrolMemberships.Remove(membership);
+                await dataDb.SaveChangesAsync();
+            }
+
+            return Ok();
+        }
+
+        public class ToggleLeaderDTO
+        {
+            public int ScoutId { get; set; }
+            public int PatrolId { get; set; }
+        }
+
+        [HttpPost("scout/toggle-leader")]
+        public async Task<IActionResult> ToggleLeader([FromBody] ToggleLeaderDTO data)
+        {
+            var membership = await dataDb.PatrolMemberships
+                .FirstOrDefaultAsync(pm => pm.ScoutId == data.ScoutId && pm.PatrolId == data.PatrolId);
+
+            if (membership == null)
+            {
+                return NotFound("Membership not found.");
+            }
+
+            membership.IsPatrolLeader = !membership.IsPatrolLeader;
+            await dataDb.SaveChangesAsync();
+
+            return Ok(membership);
         }
 
         [HttpPut("{id}")]

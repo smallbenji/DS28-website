@@ -52,4 +52,56 @@ export default class GroupService {
             return null;
         }
     }
+
+    public async createScout(groupId: number, name: string, birthday: string, gender: 'Male' | 'Female'): Promise<DSScout | null> {
+        try {
+            const response: AxiosResponse = await axios({
+                url: "/api/v1/group/scout",
+                method: "POST",
+                data: { groupId, name, birthday, gender }
+            });
+            return response.data ? response.data : null;
+        } catch {
+            return null;
+        }
+    }
+
+    public async addPatrol(scoutId: number, patrolId: number): Promise<boolean> {
+        try {
+            await axios({
+                url: "/api/v1/group/scout/add-patrol",
+                method: "POST",
+                data: { scoutId, patrolId }
+            });
+            return true;
+        } catch {
+            return false;
+        }
+    }
+
+    public async removePatrol(scoutId: number, patrolId: number): Promise<boolean> {
+        try {
+            await axios({
+                url: "/api/v1/group/scout/remove-patrol",
+                method: "POST",
+                data: { scoutId, patrolId }
+            });
+            return true;
+        } catch {
+            return false;
+        }
+    }
+
+    public async toggleLeader(scoutId: number, patrolId: number): Promise<boolean> {
+        try {
+            await axios({
+                url: "/api/v1/group/scout/toggle-leader",
+                method: "POST",
+                data: { scoutId, patrolId }
+            });
+            return true;
+        } catch {
+            return false;
+        }
+    }
 }
