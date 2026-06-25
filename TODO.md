@@ -1,7 +1,3 @@
-- Bruger oprettelse
-- Bruger editor
 - Gruppe opretter
-- Invitation system
-- Entity Framework opsætning
 - Template til andre apps
 - Access denied skærm
