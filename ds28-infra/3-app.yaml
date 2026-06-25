@@ -1,0 +1,15 @@
+- hosts: hostserver
+  vars:
+    ansible_python_interpreter: /usr/bin/python3.12
+    project_dir: /home/smallbenji/ds28-ansible/deploy
+
+  tasks:
+    - ansible.builtin.file:
+        path: "{{ project_dir }}"
+        state: directory
+        mode: '0755'
+
+    - ansible.builtin.template:
+        src: templates/env.j2
+        dest: "{{ project_dir }}/.env"
+        mode: '0600'
