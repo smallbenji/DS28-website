@@ -7,7 +7,7 @@
             <header class="modal-card-head">
                 <p class="modal-card-title">Opret ny gruppe</p>
             </header>
-            <section class="modal-card-body" v-if="newGroup">
+            <section class="modal-card-body" v-if="newGroup" style="border-bottom-left-radius: 6px; border-bottom-right-radius: 6px;">
                 <BField label="ID">
                     <BInput v-model.number="newGroup.id" type="number" placeholder="F.eks. 1" />
                 </BField>

@@ -17,7 +17,9 @@ builder.Services.AddControllersWithViews(options => {
                         .Build();
 
     options.Filters.Add(new AuthorizeFilter(policy));
-}).AddNewtonsoftJson();
+}).AddNewtonsoftJson(options => {
+    options.SerializerSettings.ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore;
+});
 
 builder.Services.AddScoped<IKeycloakHelper, KeycloakHelper>();
 builder.Services.Decorate<IKeycloakHelper, CachedKeycloakHelper>();
