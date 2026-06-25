@@ -1,6 +1,8 @@
 services:
   hq:
-    build: Containerfile.HQ
+    build:
+      context: .
+      dockerfile: Containerfile.HQ
     restart: unless-stopped
     env_file:
       - .env
