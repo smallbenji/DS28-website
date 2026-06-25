@@ -42,6 +42,33 @@ namespace DS.HQ.Controllers
             return Ok();
         }
 
+        public class CreatePatrolDTO
+        {
+            public string Name { get; set; }
+            public int GroupId { get; set; }
+        }
+
+        [HttpPost("patrol")]
+        public async Task<IActionResult> CreatePatrol([FromBody] CreatePatrolDTO data)
+        {
+            var groupExists = await dataDb.Groups.AnyAsync(g => g.Id == data.GroupId);
+            if (!groupExists)
+            {
+                return BadRequest("Group does not exist.");
+            }
+
+            var patrol = new Patrol
+            {
+                Name = data.Name,
+                GroupId = data.GroupId
+            };
+
+            dataDb.Patrols.Add(patrol);
+            await dataDb.SaveChangesAsync();
+
+            return Ok(patrol);
+        }
+
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateGroup([FromBody] Group data, int id)
         {

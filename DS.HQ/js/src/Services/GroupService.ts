@@ -39,4 +39,17 @@ export default class GroupService {
             return false;
         }
     }
+
+    public async createPatrol(groupId: number, name: string): Promise<DSPatrol | null> {
+        try {
+            const response: AxiosResponse = await axios({
+                url: "/api/v1/group/patrol",
+                method: "POST",
+                data: { groupId, name }
+            });
+            return response.data ? response.data : null;
+        } catch {
+            return null;
+        }
+    }
 }

@@ -37,7 +37,11 @@
                     </div>
                     <div class="column">
                         <GroupUsers v-if="selectedGroup" :selected-group="selectedGroup" />
-                        <GroupPatrols v-if="selectedGroup" :selected-group="selectedGroup" />
+                        <GroupPatrols 
+                            v-if="selectedGroup" 
+                            :selected-group="selectedGroup" 
+                            @patrol-created="handlePatrolCreated" 
+                        />
                     </div>
                 </div>
             </WorkspaceContent>
@@ -132,6 +136,15 @@ const saveGroup = async () => {
             message: 'Der skete en fejl',
             type: 'is-danger'
         });
+    }
+};
+
+const handlePatrolCreated = (patrol: DSPatrol) => {
+    if (selectedGroup.value) {
+        if (!selectedGroup.value.patrols) {
+            selectedGroup.value.patrols = [];
+        }
+        selectedGroup.value.patrols.push(patrol);
     }
 };
 </script>
