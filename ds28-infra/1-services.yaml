@@ -4,6 +4,8 @@
     project_dir: /home/smallbenji/ds28-ansible/services
 
     db_pass: "{{ lookup('ansible.builtin.passwordstore', 'secrets/db-creds') }}"
+    kc_db_pass: "{{ lookup('ansible.builtin.passwordstore', 'secrets/kc-db-creds') }}"
+    kc_admin_password: "{{ lookup('ansible.builtin.passwordstore', 'secrets/kc-admin-creds') }}"
 
   tasks:
     - ansible.builtin.file:

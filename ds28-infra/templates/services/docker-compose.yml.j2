@@ -2,7 +2,7 @@ services:
   db:
     image: docker.io/postgres:16
     ports:
-      - 5432:5432
+      - "5432:5432"
     environment:
       - POSTGRES_DB=postgres
       - POSTGRES_USER=postgres
@@ -14,3 +14,60 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+
+  kc-db:
+    image: docker.io/postgres:16
+    networks:
+      - internal-net
+    environment:
+      - POSTGRES_DB=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD={{ kc_db_pass }}
+    volumes:
+      - ./kc-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:latest
+    restart: unless-stopped
+    command: start
+    networks:
+      - coolify
+      - internal-net
+    environment:
+      - KC_DB=postgres
+      - KC_DB_URL=jdbc:postgresql://kc-db:5432/postgres
+      - KC_DB_USERNAME=postgres
+      - KC_DB_PASSWORD={{ kc_db_pass }}
+      - KC_BOOTSTRAP_ADMIN_USERNAME=admin
+      - KC_BOOTSTRAP_ADMIN_PASSWORD={{ kc_admin_password }}
+      - KC_HTTP_ENABLED=true
+      - KC_HOSTNAME=login.distriktssommerlejr.dk
+      - KC_PROXY_HEADERS=xforwarded
+    labels:
+      - traefik.enable=true
+      - traefik.http.middlewares.gzip.compress=true
+      - traefik.http.routers.http-ds-keycloak.entryPoints=http
+      - traefik.http.routers.http-ds-keycloak.middlewares=redirect-to-https
+      - 'traefik.http.routers.http-ds-keycloak.rule=Host(`login.distriktssommerlejr.dk`) && PathPrefix(`/`)'
+      - traefik.http.routers.http-ds-keycloak.service=http-ds-keycloak
+      - traefik.http.routers.https-ds-keycloak.entryPoints=https
+      - traefik.http.routers.https-ds-keycloak.middlewares=gzip
+      - 'traefik.http.routers.https-ds-keycloak.rule=Host(`login.distriktssommerlejr.dk`) && PathPrefix(`/`)'
+      - traefik.http.routers.https-ds-keycloak.service=https-ds-keycloak
+      - traefik.http.routers.https-ds-keycloak.tls.certresolver=letsencrypt
+      - traefik.http.routers.https-ds-keycloak.tls=true
+      - traefik.http.services.http-ds-keycloak.loadbalancer.server.port=8080
+      - traefik.http.services.https-ds-keycloak.loadbalancer.server.port=8080
+    depends_on:
+      kc-db:
+        condition: service_healthy
+networks:
+  coolify:
+    external: true
+  internal-net:
+    driver: bridge

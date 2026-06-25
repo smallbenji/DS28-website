@@ -2,6 +2,8 @@ services:
   db:
     image: mariadb:10.11
     restart: always
+    networks:
+      - internal-net
     environment:
       MYSQL_ROOT_PASSWORD: "{{ wp_db_root }}"
       MYSQL_DATABASE: wordpress
@@ -15,8 +17,24 @@ services:
       - db
     image: wordpress:latest
     restart: always
-    ports:
-      - "8087:80"
+    networks:
+      - coolify
+      - internal-net
+    labels:
+      - traefik.enable=true
+      - traefik.http.middlewares.gzip.compress=true
+      - traefik.http.routers.http-ds-wordpress.entryPoints=http
+      - traefik.http.routers.http-ds-wordpress.middlewares=redirect-to-https
+      - 'traefik.http.routers.http-ds-wordpress.rule=(Host(`distriktssommerlejr.dk`) || Host(`www.distriktssommerlejr.dk`)) && PathPrefix(`/`)'
+      - traefik.http.routers.http-ds-wordpress.service=http-ds-wordpress
+      - traefik.http.routers.https-ds-wordpress.entryPoints=https
+      - traefik.http.routers.https-ds-wordpress.middlewares=gzip
+      - 'traefik.http.routers.https-ds-wordpress.rule=(Host(`distriktssommerlejr.dk`) || Host(`www.distriktssommerlejr.dk`)) && PathPrefix(`/`)'
+      - traefik.http.routers.https-ds-wordpress.service=https-ds-wordpress
+      - traefik.http.routers.https-ds-wordpress.tls.certresolver=letsencrypt
+      - traefik.http.routers.https-ds-wordpress.tls=true
+      - traefik.http.services.http-ds-wordpress.loadbalancer.server.port=80
+      - traefik.http.services.https-ds-wordpress.loadbalancer.server.port=80
     environment:
       WORDPRESS_DB_HOST: db
       WORDPRESS_DB_USER: wordpress
@@ -24,3 +42,8 @@ services:
       WORDPRESS_DB_NAME: wordpress
     volumes:
       - ./wp:/var/www/html
+networks:
+  coolify:
+    external: true
+  internal-net:
+    driver: bridge
