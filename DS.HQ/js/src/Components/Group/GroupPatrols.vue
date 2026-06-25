@@ -4,8 +4,19 @@
             Gruppe patruljer
         </p>
         <div class="panel-body">
-            <div v-if="selectedGroup.patrols && selectedGroup.patrols.length > 0" v-for="patrol in selectedGroup.patrols" :key="patrol.id" class="panel-block">
-                {{ patrol.name }}
+            <div v-if="selectedGroup.patrols && selectedGroup.patrols.length > 0" v-for="patrol in selectedGroup.patrols" :key="patrol.id" class="panel-block" style="display: block;">
+                <strong>{{ patrol.name }}</strong>
+                <div class="is-size-7 has-text-grey" style="margin-left: 0.5rem; margin-top: 0.25rem;">
+                    <div v-for="scout in getScoutsInPatrol(patrol.id)" :key="scout.id">
+                        - {{ scout.name }}
+                        <span v-if="isScoutLeaderInPatrol(scout, patrol.id)" class="icon is-small has-text-warning" style="margin-left: 0.25rem;" title="Patruljeleder">
+                            <i class="fas fa-crown"></i>
+                        </span>
+                    </div>
+                    <div v-if="getScoutsInPatrol(patrol.id).length === 0" class="is-italic">
+                        Ingen spejdere
+                    </div>
+                </div>
             </div>
             <div v-else class="panel-block">
                 Ingen patruljer
@@ -41,6 +52,18 @@ import GroupService from '@/Services/GroupService';
 const props = defineProps<{
     selectedGroup: DSGroup
 }>();
+
+const getScoutsInPatrol = (patrolId: number) => {
+    const scouts = props.selectedGroup.scouts ?? [];
+    return scouts.filter(scout => 
+        scout.memberships && scout.memberships.some(m => m.patrolId === patrolId)
+    );
+};
+
+const isScoutLeaderInPatrol = (scout: DSScout, patrolId: number): boolean => {
+    const membership = scout.memberships?.find(m => m.patrolId === patrolId);
+    return membership ? membership.isPatrolLeader : false;
+};
 
 const emit = defineEmits<{
     (e: 'patrol-created', patrol: DSPatrol): void

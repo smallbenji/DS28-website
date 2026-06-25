@@ -23,11 +23,29 @@ interface DSGroup {
     id: number;
     name: string;
     patrols: DSPatrol[];
+    scouts?: DSScout[];
 }
 
 interface DSPatrol {
     id: number;
     name: string;
+}
+
+interface DSScout {
+    id: number;
+    name: string;
+    birthday: string;
+    gender: 'Male' | 'Female' | number;
+    groupId: number;
+    memberships: DSPatrolMembership[];
+}
+
+interface DSPatrolMembership {
+    id: number;
+    scoutId: number;
+    patrolId: number;
+    joinedDate: string;
+    isPatrolLeader: boolean;
 }
 
 interface GroupDTO {
