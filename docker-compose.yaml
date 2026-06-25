@@ -1,18 +1,6 @@
 services:
-  db:
-    image: docker.io/postgres:16
-    ports:
-      - 5432:5432
-    environment:
-      - POSTGRES_DB=postgres
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=mysecretpassword
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d pointmaster"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-volumes:
-  postgres_data:
+  hq:
+    build: Containerfile.HQ
+    restart: unless-stopped
+    env_file:
+      - .env
