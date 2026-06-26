@@ -3,9 +3,6 @@
     ansible_python_interpreter: /usr/bin/python3.12
     project_dir: /home/smallbenji/ds28-ansible/wordpress
 
-    wp_db_root: "{{ lookup('ansible.builtin.passwordstore', 'secrets/wp-db-root') }}"
-    wp_db_pass: "{{ lookup('ansible.builtin.passwordstore', 'secrets/wp-db-user-pass') }}"
-
   tasks:
     - ansible.builtin.file:
         path: "{{ project_dir }}"
