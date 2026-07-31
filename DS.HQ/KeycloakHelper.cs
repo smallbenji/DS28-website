@@ -26,7 +26,7 @@ namespace DS.HQ
         Task UpdateUser(DSUser user);
     }
 
-    public class KeycloakHelper(IOptions<DSSettings> options, IOptions<HQSettings> hQOptions, DataDbContext dataDB) : IKeycloakHelper
+    public class KeycloakHelper(IOptions<DSSettings> options, IOptions<HQSettings> hQOptions, DataDbContext dataDB, IHttpClientFactory httpClientFactory) : IKeycloakHelper
     {
         private KeycloakClient client = new KeycloakClient(options.Value.SSO_URL);
         private string realm = options.Value.Realm;
@@ -179,11 +179,12 @@ namespace DS.HQ
 
         public async Task RefreshUsers()
         {
-            KeycloakValidation.LastUpdate = DateTime.UtcNow.Ticks;
+            KeycloakValidation.SetLastUpdate(DateTimeOffset.UtcNow.ToUnixTimeSeconds());
 
             if (hQOptions.Value.UserRefreshUrl != null)
             {
-                var httpClient = new HttpClient();
+                using var httpClient = httpClientFactory.CreateClient();
+                httpClient.DefaultRequestHeaders.Add("X-Internal-Api-Key", options.Value.InternalApiKey);
                 foreach (var site in hQOptions.Value.UserRefreshUrl)
                 {
                     await httpClient.GetAsync(site + "/refresh-users");
