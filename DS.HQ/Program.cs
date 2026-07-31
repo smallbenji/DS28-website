@@ -21,6 +21,8 @@ builder.Services.AddControllersWithViews(options => {
     options.SerializerSettings.ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore;
 });
 
+builder.Services.AddHttpClient();
+
 builder.Services.AddScoped<IKeycloakHelper, KeycloakHelper>();
 builder.Services.Decorate<IKeycloakHelper, CachedKeycloakHelper>();
 
