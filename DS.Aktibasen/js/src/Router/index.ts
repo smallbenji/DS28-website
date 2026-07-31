@@ -1,3 +1,4 @@
+import { useActivityStore } from "@/Stores/ActivityStore";
 import { useMeStore } from "@/Stores/MeStore";
 import { createRouter, createWebHistory, type RouteRecordRaw } from "vue-router";
 // import { useLoading } from "buefy";
@@ -8,7 +9,9 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/Views/Home.vue'),
         beforeEnter: async () => {
             const meStore = useMeStore();
+            const activityStore = useActivityStore();
             await meStore.GET_ME();
+            await activityStore.GET_ACTIVITIES();
         }
     },
     {

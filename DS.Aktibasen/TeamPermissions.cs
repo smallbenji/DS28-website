@@ -13,7 +13,7 @@ public enum TeamRole
 
 public class TeamPermissions(DataDbContext dataDb)
 {
-    public static string? GetUserId(ClaimsPrincipal user)
+    public static string GetUserId(ClaimsPrincipal user)
     {
         return user.FindFirstValue(ClaimTypes.NameIdentifier);
     }

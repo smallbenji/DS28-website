@@ -39,3 +39,8 @@ interface MeDTO {
     isActivityAdmin: boolean;
     teams: MeTeamInfo[];
 }
+
+interface ActivityDTO {
+    id: number;
+    name: string;
+}
