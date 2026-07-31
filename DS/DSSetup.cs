@@ -100,7 +100,16 @@ namespace DS
 
             app.MapGet("/refresh-users", async context =>
             {
-                KeycloakValidation.LastUpdate = DateTime.UtcNow.Ticks;
+                var dsSettings = context.RequestServices.GetRequiredService<Microsoft.Extensions.Options.IOptions<DSSettings>>().Value;
+
+                if (!context.Request.Headers.TryGetValue("X-Internal-Api-Key", out var apiKey) || apiKey != dsSettings.InternalApiKey)
+                {
+                    context.Response.StatusCode = 401;
+                    await context.Response.WriteAsync("Unauthorized");
+                    return;
+                }
+
+                KeycloakValidation.SetLastUpdate(DateTimeOffset.UtcNow.ToUnixTimeSeconds());
             });
 
             app.MapGet("/logout", async context =>
