@@ -29,6 +29,26 @@ namespace DS.HQ.Controllers
         {
             var invitation = await dataDb.Invitations.FirstOrDefaultAsync(x => x.InvitationId == id);
 
+            if (invitation == null)
+            {
+                return NotFound("Invitation not found");
+            }
+
+            if (invitation.Used)
+            {
+                return BadRequest("Invitation has already been used");
+            }
+
+            if (string.IsNullOrWhiteSpace(data.Password) || data.Password.Length < 8)
+            {
+                return BadRequest("Password must be at least 8 characters long");
+            }
+
+            if (string.IsNullOrWhiteSpace(data.FirstName) || string.IsNullOrWhiteSpace(data.LastName))
+            {
+                return BadRequest("First name and last name are required");
+            }
+
             var user = new DSUser
             {
                 User = new KcUser
