@@ -104,4 +104,28 @@ export default class GroupService {
             return false;
         }
     }
+
+    public async deletePatrol(patrolId: number): Promise<boolean> {
+        try {
+            await axios({
+                url: `/api/v1/group/patrol/${patrolId}`,
+                method: "DELETE"
+            });
+            return true;
+        } catch {
+            return false;
+        }
+    }
+
+    public async deleteScout(scoutId: number): Promise<boolean> {
+        try {
+            await axios({
+                url: `/api/v1/group/scout/${scoutId}`,
+                method: "DELETE"
+            });
+            return true;
+        } catch {
+            return false;
+        }
+    }
 }

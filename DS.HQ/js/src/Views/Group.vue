@@ -48,6 +48,7 @@
                             v-if="selectedGroup" 
                             :selected-group="selectedGroup" 
                             @patrol-created="handlePatrolCreated" 
+                            @patrol-deleted="handlePatrolDeleted"
                         />
                     </div>
                 </div>
@@ -153,6 +154,20 @@ const handlePatrolCreated = (patrol: DSPatrol) => {
             selectedGroup.value.patrols = [];
         }
         selectedGroup.value.patrols.push(patrol);
+        selectedGroup.value = { ...selectedGroup.value };
+    }
+};
+
+const handlePatrolDeleted = (patrolId: number) => {
+    if (selectedGroup.value) {
+        selectedGroup.value.patrols = (selectedGroup.value.patrols ?? []).filter(p => p.id !== patrolId);
+        if (selectedGroup.value.scouts) {
+            for (const scout of selectedGroup.value.scouts) {
+                if (scout.memberships) {
+                    scout.memberships = scout.memberships.filter(m => m.patrolId !== patrolId);
+                }
+            }
+        }
         selectedGroup.value = { ...selectedGroup.value };
     }
 };

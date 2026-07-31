@@ -1,7 +1,7 @@
 <template>
         <nav class="panel">
         <p class="panel-heading">
-            Gruppe brugere
+            Brugere
         </p>
         <div class="panel-body">
             <div v-for="user in users">

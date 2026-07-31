@@ -1,7 +1,7 @@
 <template>
     <nav class="panel">
         <p class="panel-heading">
-            Gruppe spejdere
+            Spejdere
         </p>
         <div class="panel-body">
             <div v-if="selectedGroup.scouts && selectedGroup.scouts.length > 0" v-for="scout in selectedGroup.scouts" :key="scout.id" class="panel-block">

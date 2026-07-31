@@ -1,22 +1,27 @@
 <template>
     <nav class="panel">
         <p class="panel-heading">
-            Gruppe patruljer
+            Patruljer
         </p>
         <div class="panel-body">
-            <div v-if="selectedGroup.patrols && selectedGroup.patrols.length > 0" v-for="patrol in selectedGroup.patrols" :key="patrol.id" class="panel-block" style="display: block;">
-                <strong>{{ patrol.name }}</strong>
-                <div class="is-size-7 has-text-grey" style="margin-left: 0.5rem; margin-top: 0.25rem;">
-                    <div v-for="scout in getScoutsInPatrol(patrol.id)" :key="scout.id">
-                        - {{ scout.name }}
-                        <span v-if="isScoutLeaderInPatrol(scout, patrol.id)" class="icon is-small has-text-warning" style="margin-left: 0.25rem;" title="Patruljeleder">
-                            <i class="fas fa-crown"></i>
-                        </span>
-                    </div>
-                    <div v-if="getScoutsInPatrol(patrol.id).length === 0" class="is-italic">
-                        Ingen spejdere
+            <div v-if="selectedGroup.patrols && selectedGroup.patrols.length > 0" v-for="patrol in selectedGroup.patrols" :key="patrol.id" class="panel-block" style="">
+                <div class="panel-line">
+                    <strong>{{ patrol.name }}</strong>
+                    <div class="is-size-7 has-text-grey" style="margin-left: 0.5rem; margin-top: 0.25rem;">
+                        <div v-for="scout in getScoutsInPatrol(patrol.id)" :key="scout.id">
+                            - {{ scout.name }}
+                            <span v-if="isScoutLeaderInPatrol(scout, patrol.id)" class="icon is-small has-text-warning" style="margin-left: 0.25rem;" title="Patruljeleder">
+                                <i class="fas fa-crown"></i>
+                            </span>
+                        </div>
+                        <div v-if="getScoutsInPatrol(patrol.id).length === 0" class="is-italic">
+                            Ingen spejdere
+                        </div>
                     </div>
                 </div>
+                <BButton type="is-danger is-small" @click="openDeleteModal(patrol)">
+                    Slet
+                </BButton>
             </div>
             <div v-else class="panel-block">
                 Ingen patruljer
@@ -40,6 +45,25 @@
                     Opret patrulje
                 </BButton>
             </section>
+        </div>
+    </BModal>
+
+    <BModal v-model="isDeleteModalOpen" has-modal-card>
+        <div class="modal-card">
+            <div class="modal-card-head">
+                Slet patrulje
+            </div>
+            <div class="modal-card-body">
+                Er du sikker på, at du vil slette patruljen "{{ patrolToDelete?.name }}"? Alle tilknyttede medlemsskaber slettes også.
+            </div>
+            <div class="modal-card-foot">
+                <BButton type="is-danger" @click="deletePatrol">
+                    Slet patrulje
+                </BButton>
+                <BButton type="is-primary" @click="isDeleteModalOpen = false">
+                    Annuller
+                </BButton>
+            </div>
         </div>
     </BModal>
 </template>
@@ -66,7 +90,8 @@ const isScoutLeaderInPatrol = (scout: DSScout, patrolId: number): boolean => {
 };
 
 const emit = defineEmits<{
-    (e: 'patrol-created', patrol: DSPatrol): void
+    (e: 'patrol-created', patrol: DSPatrol): void;
+    (e: 'patrol-deleted', patrolId: number): void;
 }>();
 
 const Toast = useToast();
@@ -76,10 +101,39 @@ const groupService = new GroupService();
 const isCreateModalOpen = ref(false);
 const newPatrolName = ref('');
 
+const isDeleteModalOpen = ref(false);
+const patrolToDelete = ref<DSPatrol | null>(null);
+
 const openCreateModal = () => {
     newPatrolName.value = '';
     isCreateModalOpen.value = true;
 };
+
+const openDeleteModal = (patrol: DSPatrol) => {
+    patrolToDelete.value = patrol;
+    isDeleteModalOpen.value = true;
+};
+
+const deletePatrol = async () => {
+    if (!patrolToDelete.value) return;
+
+    const success = await groupService.deletePatrol(patrolToDelete.value.id);
+    if (success) {
+        Toast.open({
+            message: 'Patruljen er slettet',
+            type: 'is-success'
+        });
+        emit('patrol-deleted', patrolToDelete.value.id);
+        isDeleteModalOpen.value = false;
+        patrolToDelete.value = null;
+        await groupStore.GET_GROUPS();
+    } else {
+        Toast.open({
+            message: 'Der skete en fejl ved sletning af patruljen',
+            type: 'is-danger'
+        });
+    }
+}
 
 const createPatrol = async () => {
     if (!newPatrolName.value.trim()) {
@@ -109,4 +163,8 @@ const createPatrol = async () => {
 };
 </script>
 <style lang="scss">
+.panel-block {
+    display: flex;
+    justify-content: space-between;
+}
 </style>

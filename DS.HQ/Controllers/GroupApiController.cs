@@ -182,6 +182,38 @@ namespace DS.HQ.Controllers
             return Ok(membership);
         }
 
+        [HttpDelete("patrol/{id}")]
+        public async Task<IActionResult> DeletePatrol(int id)
+        {
+            var patrol = await dataDb.Patrols.FindAsync(id);
+
+            if (patrol == null)
+            {
+                return NotFound($"Patrol with ID {id} not found.");
+            }
+
+            dataDb.Patrols.Remove(patrol);
+            await dataDb.SaveChangesAsync();
+
+            return Ok();
+        }
+
+        [HttpDelete("scout/{id}")]
+        public async Task<IActionResult> DeleteScout(int id)
+        {
+            var scout = await dataDb.Scouts.FindAsync(id);
+
+            if (scout == null)
+            {
+                return NotFound($"Scout with ID {id} not found.");
+            }
+
+            dataDb.Scouts.Remove(scout);
+            await dataDb.SaveChangesAsync();
+
+            return Ok();
+        }
+
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateGroup([FromBody] Group data, int id)
         {
