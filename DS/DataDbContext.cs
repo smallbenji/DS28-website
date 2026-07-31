@@ -12,6 +12,10 @@ public class DataDbContext : DbContext
     public DbSet<Patrol> Patrols { get; set; }
     public DbSet<Scout> Scouts { get; set; }
     public DbSet<PatrolMembership> PatrolMemberships { get; set; }
+    public DbSet<Activity> Activities { get; set; }
+    public DbSet<ActivityCategory> ActivityCategories { get; set; }
+    public DbSet<Material> Materials { get; set; }
+    public DbSet<MaterialOrder> MaterialOrders { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -49,5 +53,31 @@ public class DataDbContext : DbContext
         modelBuilder.Entity<Scout>()
             .Property(s => s.Gender)
             .HasConversion<string>();
+
+        // Relation: MaterialOrder -> Activity
+        modelBuilder.Entity<MaterialOrder>()
+            .HasOne(mo => mo.Activity)
+            .WithMany()
+            .HasForeignKey("ActivityId")
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // Relation: MaterialOrder -> Material
+        modelBuilder.Entity<MaterialOrder>()
+            .HasOne(mo => mo.Material)
+            .WithMany()
+            .HasForeignKey("MaterialId")
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // Relation: Activity -> CatalogData
+        modelBuilder.Entity<Activity>()
+            .HasOne(a => a.Catalog)
+            .WithMany()
+            .HasForeignKey("CatalogId")
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // Relation: CatalogData -> ActivityCategory (many-to-many)
+        modelBuilder.Entity<CatalogData>()
+            .HasMany(cd => cd.Categories)
+            .WithMany();
     }
 }
