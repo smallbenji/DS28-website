@@ -9,8 +9,31 @@ public class Activity
     public int Id { get; set; }
     public string Name { get; set; }
 
+    public int ActivityTeamId { get; set; }
+    public ActivityTeam ActivityTeam { get; set; }
+
     public ActivityBudget Budget { get; set; }
     public CatalogData Catalog { get; set; }
+}
+
+public class ActivityTeam
+{
+    [Key]
+    public int Id { get; set; }
+    public string Name { get; set; }
+
+    public List<Activity> Activities { get; set; }
+    public List<ActivityTeamMembership> Memberships { get; set; }
+}
+
+public class ActivityTeamMembership
+{
+    [Key]
+    public int Id { get; set; }
+    public string UserID { get; set; }
+    public int ActivityTeamId { get; set; }
+    public ActivityTeam ActivityTeam { get; set; }
+    public bool IsAdmin { get; set; }
 }
 
 [Owned]

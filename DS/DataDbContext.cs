@@ -14,6 +14,8 @@ public class DataDbContext : DbContext
     public DbSet<PatrolMembership> PatrolMemberships { get; set; }
     public DbSet<Activity> Activities { get; set; }
     public DbSet<ActivityCategory> ActivityCategories { get; set; }
+    public DbSet<ActivityTeam> ActivityTeams { get; set; }
+    public DbSet<ActivityTeamMembership> ActivityTeamMemberships { get; set; }
     public DbSet<Material> Materials { get; set; }
     public DbSet<MaterialOrder> MaterialOrders { get; set; }
 
@@ -67,6 +69,25 @@ public class DataDbContext : DbContext
             .WithMany()
             .HasForeignKey("MaterialId")
             .OnDelete(DeleteBehavior.Cascade);
+
+        // Relation: ActivityTeam -> Activities
+        modelBuilder.Entity<ActivityTeam>()
+            .HasMany(t => t.Activities)
+            .WithOne(a => a.ActivityTeam)
+            .HasForeignKey(a => a.ActivityTeamId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // Relation: ActivityTeam -> Memberships
+        modelBuilder.Entity<ActivityTeam>()
+            .HasMany(t => t.Memberships)
+            .WithOne(m => m.ActivityTeam)
+            .HasForeignKey(m => m.ActivityTeamId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // Unique membership per (user, team)
+        modelBuilder.Entity<ActivityTeamMembership>()
+            .HasIndex(m => new { m.UserID, m.ActivityTeamId })
+            .IsUnique();
 
         // Relation: Activity -> CatalogData
         modelBuilder.Entity<Activity>()
