@@ -19,9 +19,10 @@ public class ActivityBudget
     public int Budget { get; set; }
 }
 
-[Owned]
 public class CatalogData
 {
+    [Key]
+    public int Id { get; set; }
     public string Name { get; set; }
     public string Summary { get; set; }
     public string Description { get; set; }
