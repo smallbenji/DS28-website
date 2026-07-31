@@ -12,36 +12,15 @@
                             {{ formatDate(scout.birthday) }}, {{ translateGender(scout.gender) }}
                         </div>
                     </div>
-                    <div class="column is-6" style="padding: 0.25rem 0.75rem;">
-                        <div class="tags" v-if="scout.memberships && scout.memberships.length > 0" style="margin-bottom: 0.5rem;">
-                            <span 
-                                v-for="membership in scout.memberships" 
-                                :key="membership.id" 
-                                class="tag"
-                                :class="membership.isPatrolLeader ? 'is-warning' : 'is-info'"
-                                style="cursor: pointer; user-select: none;"
-                                @click="toggleLeader(scout.id, membership.patrolId)"
-                                title="Klik for at markere som leder / ikke-leder"
-                            >
-                                <span v-if="membership.isPatrolLeader" class="icon is-small mr-1" style="margin-right: 0.25rem;">
-                                    <i class="fas fa-crown"></i>
-                                </span>
-                                {{ getPatrolName(membership.patrolId) }}
-                                <button class="delete is-small" @click.stop="removePatrol(scout, membership.patrolId)"></button>
-                            </span>
-                        </div>
-                        <BSelect 
-                            v-if="getAvailablePatrols(scout).length > 0"
-                            :model-value="null" 
-                            @update:model-value="(val: number | null) => addPatrol(scout, val)" 
-                            expanded
-                            size="is-small"
-                        >
-                            <option :value="null" disabled selected>Tilmeld patrulje...</option>
-                            <option v-for="patrol in getAvailablePatrols(scout)" :key="patrol.id" :value="patrol.id">
-                                {{ patrol.name }}
-                            </option>
-                        </BSelect>
+                    <div class="column is-4" style="padding: 0.25rem 0.75rem;">
+                        <BButton type="is-info is-small" @click="openPatrolsModal(scout)">
+                            Patruljer ({{ scout.memberships?.length ?? 0 }})
+                        </BButton>
+                    </div>
+                    <div class="column is-2" style="padding: 0.25rem 0.75rem;">
+                        <BButton type="is-danger is-small" @click="openDeleteModal(scout)">
+                            Slet
+                        </BButton>
                     </div>
                 </div>
             </div>
@@ -78,6 +57,84 @@
             </section>
         </div>
     </BModal>
+
+    <BModal v-model="isPatrolsModalOpen" has-modal-card>
+        <div class="modal-card">
+            <header class="modal-card-head">
+                <p class="modal-card-title">Patruljer for {{ scoutToEdit?.name }}</p>
+            </header>
+            <section class="modal-card-body">
+                <div v-if="scoutToEdit?.memberships && scoutToEdit.memberships.length > 0">
+                    <div v-for="membership in scoutToEdit.memberships" :key="membership.id" class="field is-grouped is-align-items-center" style="margin-bottom: 0.5rem;">
+                        <div class="control">
+                            <span
+                                class="tag is-medium"
+                                :class="membership.isPatrolLeader ? 'is-warning' : 'is-info'"
+                                style="cursor: pointer; user-select: none;"
+                                @click="toggleLeader(membership.patrolId)"
+                                title="Klik for at markere som leder / ikke-leder"
+                            >
+                                <span v-if="membership.isPatrolLeader" class="icon is-small mr-1" style="margin-right: 0.25rem;">
+                                    <i class="fas fa-crown"></i>
+                                </span>
+                                {{ getPatrolName(membership.patrolId) }}
+                            </span>
+                        </div>
+                        <div class="control">
+                            <BButton type="is-danger is-small" @click="removePatrol(membership.patrolId)">
+                                Fjern
+                            </BButton>
+                        </div>
+                    </div>
+                </div>
+                <div v-else class="is-italic has-text-grey">
+                    Ingen patruljer
+                </div>
+                <div v-if="getAvailablePatrols().length > 0" style="margin-top: 1rem;">
+                    <BField label="Tilføj til patrulje">
+                        <div class="field has-addons">
+                            <div class="control is-expanded">
+                                <BSelect v-model="selectedPatrolToAdd" expanded placeholder="Vælg patrulje...">
+                                    <option v-for="patrol in getAvailablePatrols()" :key="patrol.id" :value="patrol.id">
+                                        {{ patrol.name }}
+                                    </option>
+                                </BSelect>
+                            </div>
+                            <div class="control">
+                                <BButton type="is-success" :disabled="!selectedPatrolToAdd" @click="addPatrol">
+                                    Tilføj
+                                </BButton>
+                            </div>
+                        </div>
+                    </BField>
+                </div>
+            </section>
+            <footer class="modal-card-foot">
+                <BButton type="is-primary" @click="isPatrolsModalOpen = false">
+                    Luk
+                </BButton>
+            </footer>
+        </div>
+    </BModal>
+
+    <BModal v-model="isDeleteModalOpen" has-modal-card>
+        <div class="modal-card">
+            <div class="modal-card-head">
+                Slet spejder
+            </div>
+            <div class="modal-card-body">
+                Er du sikker på, at du vil slette spejderen "{{ scoutToDelete?.name }}"? Alle tilknyttede medlemsskaber slettes også.
+            </div>
+            <div class="modal-card-foot">
+                <BButton type="is-danger" @click="deleteScout">
+                    Slet spejder
+                </BButton>
+                <BButton type="is-primary" @click="isDeleteModalOpen = false">
+                    Annuller
+                </BButton>
+            </div>
+        </div>
+    </BModal>
 </template>
 <script lang="ts" setup>
 import { ref } from 'vue';
@@ -91,6 +148,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
     (e: 'scout-created', scout: DSScout): void;
+    (e: 'scout-deleted', scoutId: number): void;
     (e: 'patrol-assigned', scoutId: number, patrolId: number, action: 'add' | 'remove'): void;
     (e: 'patrol-leader-toggled', scoutId: number, patrolId: number): void;
 }>();
@@ -104,11 +162,50 @@ const newScoutName = ref('');
 const newScoutBirthday = ref('');
 const newScoutGender = ref<'Male' | 'Female'>('Male');
 
+const isPatrolsModalOpen = ref(false);
+const scoutToEdit = ref<DSScout | null>(null);
+const selectedPatrolToAdd = ref<number | null>(null);
+
+const isDeleteModalOpen = ref(false);
+const scoutToDelete = ref<DSScout | null>(null);
+
 const openCreateModal = () => {
     newScoutName.value = '';
     newScoutBirthday.value = '';
     newScoutGender.value = 'Male';
     isCreateModalOpen.value = true;
+};
+
+const openPatrolsModal = (scout: DSScout) => {
+    scoutToEdit.value = scout;
+    selectedPatrolToAdd.value = null;
+    isPatrolsModalOpen.value = true;
+};
+
+const openDeleteModal = (scout: DSScout) => {
+    scoutToDelete.value = scout;
+    isDeleteModalOpen.value = true;
+};
+
+const deleteScout = async () => {
+    if (!scoutToDelete.value) return;
+
+    const success = await groupService.deleteScout(scoutToDelete.value.id);
+    if (success) {
+        Toast.open({
+            message: 'Spejderen er slettet',
+            type: 'is-success'
+        });
+        emit('scout-deleted', scoutToDelete.value.id);
+        isDeleteModalOpen.value = false;
+        scoutToDelete.value = null;
+        await groupStore.GET_GROUPS();
+    } else {
+        Toast.open({
+            message: 'Der skete en fejl ved sletning af spejderen',
+            type: 'is-danger'
+        });
+    }
 };
 
 const formatDate = (dateStr: string) => {
@@ -126,13 +223,17 @@ const getPatrolName = (patrolId: number): string => {
     return patrol ? patrol.name : 'Ukendt patrulje';
 };
 
-const getAvailablePatrols = (scout: DSScout) => {
-    const currentPatrolIds = scout.memberships ? scout.memberships.map(m => m.patrolId) : [];
+const getAvailablePatrols = () => {
+    if (!scoutToEdit.value) return [];
+    const currentPatrolIds = scoutToEdit.value.memberships ? scoutToEdit.value.memberships.map(m => m.patrolId) : [];
     return props.selectedGroup.patrols.filter(p => !currentPatrolIds.includes(p.id));
 };
 
-const addPatrol = async (scout: DSScout, patrolId: number | null) => {
-    if (!patrolId) return;
+const addPatrol = async () => {
+    if (!scoutToEdit.value || !selectedPatrolToAdd.value) return;
+
+    const scout = scoutToEdit.value;
+    const patrolId = selectedPatrolToAdd.value;
 
     const success = await groupService.addPatrol(scout.id, patrolId);
     if (success) {
@@ -141,6 +242,7 @@ const addPatrol = async (scout: DSScout, patrolId: number | null) => {
             type: 'is-success'
         });
         emit('patrol-assigned', scout.id, patrolId, 'add');
+        selectedPatrolToAdd.value = null;
         await groupStore.GET_GROUPS();
     } else {
         Toast.open({
@@ -150,7 +252,11 @@ const addPatrol = async (scout: DSScout, patrolId: number | null) => {
     }
 };
 
-const removePatrol = async (scout: DSScout, patrolId: number) => {
+const removePatrol = async (patrolId: number) => {
+    if (!scoutToEdit.value) return;
+
+    const scout = scoutToEdit.value;
+
     const success = await groupService.removePatrol(scout.id, patrolId);
     if (success) {
         Toast.open({
@@ -167,14 +273,16 @@ const removePatrol = async (scout: DSScout, patrolId: number) => {
     }
 };
 
-const toggleLeader = async (scoutId: number, patrolId: number) => {
-    const success = await groupService.toggleLeader(scoutId, patrolId);
+const toggleLeader = async (patrolId: number) => {
+    if (!scoutToEdit.value) return;
+
+    const success = await groupService.toggleLeader(scoutToEdit.value.id, patrolId);
     if (success) {
         Toast.open({
             message: 'Leder-status opdateret',
             type: 'is-success'
         });
-        emit('patrol-leader-toggled', scoutId, patrolId);
+        emit('patrol-leader-toggled', scoutToEdit.value.id, patrolId);
         await groupStore.GET_GROUPS();
     } else {
         Toast.open({

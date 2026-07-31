@@ -38,6 +38,7 @@
                             v-if="selectedGroup"
                             :selected-group="selectedGroup"
                             @scout-created="handleScoutCreated"
+                            @scout-deleted="handleScoutDeleted"
                             @patrol-assigned="handlePatrolAssigned"
                             @patrol-leader-toggled="handlePatrolLeaderToggled"
                         />
@@ -178,6 +179,13 @@ const handleScoutCreated = (scout: DSScout) => {
             selectedGroup.value.scouts = [];
         }
         selectedGroup.value.scouts.push(scout);
+        selectedGroup.value = { ...selectedGroup.value };
+    }
+};
+
+const handleScoutDeleted = (scoutId: number) => {
+    if (selectedGroup.value) {
+        selectedGroup.value.scouts = (selectedGroup.value.scouts ?? []).filter(s => s.id !== scoutId);
         selectedGroup.value = { ...selectedGroup.value };
     }
 };
