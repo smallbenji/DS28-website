@@ -2,6 +2,18 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Launch Aktibasen",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build Aktibasen",
+            "program": "${workspaceFolder}/DS.Aktibasen/bin/Debug/net10.0/DS.Aktibasen.dll",
+            "args": [],
+            "cwd": "${workspaceFolder}/DS.Aktibasen",
+            "console": "internalConsole",
+            "envFile": "${workspaceFolder}/.env",
+            "stopAtEntry": false
+        },
+        {
             "name": "Launch HQ",
             "type": "coreclr",
             "request": "launch",
