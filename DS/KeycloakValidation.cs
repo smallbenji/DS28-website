@@ -8,12 +8,20 @@ namespace DS;
 
 public class KeycloakValidation
 {
-    public static long LastUpdate = DateTime.UtcNow.Ticks;
+    private static long _lastUpdate = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+    private static readonly HttpClient _httpClient = new();
+
+    public static long LastUpdate => Interlocked.Read(ref _lastUpdate);
+
+    public static void SetLastUpdate(long value)
+    {
+        Interlocked.Exchange(ref _lastUpdate, value);
+    }
 
     public static async Task KeycloakValidator(CookieValidatePrincipalContext context, DSSettings dsSettings)
     {
         var lastSync = context.Principal.FindFirst("last_group_sync")?.Value;
-        if (string.IsNullOrEmpty(lastSync) || DateTime.UtcNow.Ticks - long.Parse(lastSync) > TimeSpan.FromMinutes(1).Ticks || long.Parse(lastSync) < LastUpdate)
+        if (string.IsNullOrEmpty(lastSync) || DateTimeOffset.UtcNow.ToUnixTimeSeconds() - long.Parse(lastSync) > 60 || long.Parse(lastSync) < LastUpdate)
         {
             var accessToken = context.Properties.GetTokenValue("access_token");
             var expiresAtClaim = context.Properties.GetTokenValue("expires_at");
@@ -28,8 +36,7 @@ public class KeycloakValidation
             {
                 var tokenEndpoint = $"{dsSettings.SSO_URL}/realms/{dsSettings.Realm}/protocol/openid-connect/token";
 
-                using var client1 = new HttpClient();
-                var tokenResponse = await client1.PostAsync(tokenEndpoint, new FormUrlEncodedContent(new Dictionary<string, string>
+                var tokenResponse = await _httpClient.PostAsync(tokenEndpoint, new FormUrlEncodedContent(new Dictionary<string, string>
                 {
                     { "grant_type", "refresh_token" },
                     { "client_id", dsSettings.ClientID },
@@ -60,9 +67,9 @@ public class KeycloakValidation
                 }
             }
 
-            var client = new HttpClient();
-            client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
-            var response = await client.GetAsync($"{dsSettings.SSO_URL}/realms/{dsSettings.Realm}/protocol/openid-connect/userinfo");
+            var request = new HttpRequestMessage(HttpMethod.Get, $"{dsSettings.SSO_URL}/realms/{dsSettings.Realm}/protocol/openid-connect/userinfo");
+            request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+            var response = await _httpClient.SendAsync(request);
 
             if (response.IsSuccessStatusCode)
             {
@@ -90,7 +97,7 @@ public class KeycloakValidation
 
                 var oldSyncClaim = identity.FindFirst("last_group_sync");
                 if (oldSyncClaim != null) identity.RemoveClaim(oldSyncClaim);
-                identity.AddClaim(new Claim("last_group_sync", DateTime.UtcNow.Ticks.ToString()));
+                identity.AddClaim(new Claim("last_group_sync", DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString()));
 
                 context.ReplacePrincipal(context.Principal);
                 context.ShouldRenew = true;
