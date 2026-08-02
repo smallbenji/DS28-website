@@ -1,20 +1,54 @@
 @model LoginInputModel
 
-<h1>Login</h1>
-<form asp-action="Login" asp-controller="Account" method="post">
-    <div>
-        <label asp-for="Email"></label>
-        <input asp-for="Email" type="email" placeholder="email" />
-        <span asp-validation-for="Email" class="text-danger"></span>
-    </div>
-    
-    <div>
-        <label asp-for="Password"></label>
-        <input asp-for="Password" type="password" placeholder="password" />
-        <span asp-validation-for="Password" class="text-danger"></span>
-    </div>
+<section class="section">
+    <div class="columns is-centered">
+        <div class="column is-4-desktop is-6-tablet">
+            
+            <div class="box">
+                <h1 class="title has-text-centered">Login</h1>
+                
+                <form asp-action="Login" asp-controller="Account" method="post">
+                    
+                    @* Email felt med ikon til venstre *@
+                    <div class="field">
+                        <label asp-for="Email" class="label">Email</label>
+                        <div class="control has-icons-left">
+                            <input asp-for="Email" class="input" placeholder="navn@domæne.dk" />
+                            <span class="icon is-small is-left">
+                                <i class="fas fa-envelope"></i>
+                            </span>
+                        </div>
+                        <span asp-validation-for="Email" class="help is-danger"></span>
+                    </div>
+                    
+                    @* Password felt med ikon til venstre *@
+                    <div class="field">
+                        <label asp-for="Password" class="label">Adgangskode</label>
+                        <div class="control has-icons-left">
+                            <input asp-for="Password" class="input" placeholder="••••••••" />
+                            <span class="icon is-small is-left">
+                                <i class="fas fa-lock"></i>
+                            </span>
+                        </div>
+                        <span asp-validation-for="Password" class="help is-danger"></span>
+                    </div>
 
-    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+                    @* Overordnede fejlbeskeder (f.eks. "Ugyldigt loginforsøg") *@
+                    <div asp-validation-summary="ModelOnly" class="notification is-danger is-light py-2 px-4 my-3"></div>
 
-    <button type="submit">Login</button>
-</form>
+                    @* Login knap *@
+                    <div class="field mt-5">
+                        <button type="submit" class="button is-primary is-fullwidth">
+                            <span class="icon">
+                                <i class="fas fa-sign-in-alt"></i>
+                            </span>
+                            <span>Log ind</span>
+                        </button>
+                    </div>
+                    
+                </form>
+            </div>
+            
+        </div>
+    </div>
+</section>

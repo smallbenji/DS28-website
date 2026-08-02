@@ -1,12 +1,17 @@
 @model DS.Website.Components.UserProfileViewModel
 
-@if (Model.IsLoggedIn) {
-    <div>
-        <a asp-action="Index" asp-controller="Account">
+<div class="buttons">
+    @if (Model.IsLoggedIn) {
+        <a class="button" asp-action="Index" asp-controller="Account">
             @Model.Name
         </a>
-    </div>
-}
-else {
-    <a asp-action="Login" asp-controller="Account">Log ind</a>
-}
+        <a class="button is-danger" asp-action="Logout" asp-controller="Account">
+            <span class="icon">
+                <i class="fas fa-door-open"></i>
+            </span>
+        </a>
+    }
+    else {
+        <a asp-action="Login" asp-controller="Account" class="button is-primary">Log ind</a>
+    }
+</div>
