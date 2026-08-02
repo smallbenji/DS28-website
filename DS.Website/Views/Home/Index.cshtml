@@ -1,24 +1,30 @@
 ﻿@using DS.Website.Controllers
 @model HomeViewModel
-<!-- FORMULAR TIL AT OPRETTE -->
-<form hx-post="/activities/create-simple" 
-      hx-target="#activity-list" 
-      hx-swap="innerHTML"
-      hx-on::after-request="if(event.detail.successful) this.reset();">
-    
-    <div class="field">
-        <label class="label">Aktivitetsnavn</label>
-        <input class="input" type="text" name="name" placeholder="F.eks. Sommerlejr transport" required />
+<div class="topbar">
+    <div class="title">
+        <h1>DS28</h1>
+        <p>Velkommen tilbage @Model.Name</p>
+        @* @if(!string.IsNullOrEmpty(Model.GroupNumber))
+        {
+            <p>Gruppe nummer: @Model.GroupNumber</p>
+        } *@
     </div>
-    
-    <button type="submit" class="button is-primary">Opret og opdater liste</button>
-</form>
+    <div class="logout">
+        <a href="./logout" title="Log ud">
+            <i class="fa-solid fa-right-from-bracket"></i>
+            <span class="logout-label">Log ud</span>
+        </a>
+    </div>
+</div>
 
-<hr />
-
-<!-- CONTAINER TIL LISTEN -->
-<h3 class="title is-4">Aktiviteter</h3>
-<div id="activity-list">
-    <!-- Vi indlæser den eksisterende liste med det samme ved første besøg -->
-    @await Html.PartialAsync("_ActivityList", Model.Activities)
+<div class="grid">
+    @foreach (var obj in Model.Shortcuts)
+    {
+        <a href="@obj.URL" class="link-box">
+            <div>
+                <i class="@obj.Icon"></i>
+                <p>@obj.Title</p>
+            </div>
+        </a>
+    }
 </div>

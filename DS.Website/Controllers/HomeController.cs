@@ -1,64 +1,115 @@
-using System.Diagnostics;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using DS.Website.Models;
-using Microsoft.EntityFrameworkCore;
-using DS.Models;
 
-namespace DS.Website.Controllers;
-
-public class HomeViewModel
+namespace DS.Website.Controllers
 {
-    public List<DS.Models.Activity> Activities { get; set; }
-}
-
-public class HomeController(DataDbContext dataDb) : Controller
-{
-
-    public async Task<IActionResult> Index()
+    [Authorize]
+    public class HomeController : Controller
     {
-        var Activities = await dataDb.Activities.ToListAsync();
+        public HomeController() { }
 
-        var retval = new HomeViewModel
+        public IActionResult Index()
         {
-            Activities = Activities
-        };
+            var retval = new HomeViewModel()
+            {
+                Name = HttpContext.User.Identity.Name,
+                Shortcuts = [],
+            };
 
-        return View(retval);
-    }
+            var roles = HttpContext.User.FindAll("groups").Select(x => x.Value).ToList();
 
-    public IActionResult Privacy()
-    {
-        return View();
-    }
+            if (HttpContext.User.FindAll("groupnumber").Any())
+            {
+                retval.GroupNumber = HttpContext.User.FindFirst("groupnumber").Value;
+            }
 
-    [HttpPost("activities/create-simple")]
-    public async Task<IActionResult> CreateSimple([FromForm] string name)
-    {
-        if (string.IsNullOrEmpty(name))
-        {
-            return BadRequest("Navn må ikke være tomt");
+            if (HttpContext.User.IsInRole(Roles.Admin))
+            {
+                retval.Shortcuts.AddRange(new List<HQPanelEntry>
+                {
+                    new()
+                    {
+                        Icon = "fa-solid fa-user",
+                        Title = "Brugerstyring",
+                        URL = "./User"
+                    },
+                    new()
+                    {
+                        Icon = "fa-solid fa-users",
+                        Title = "Gruppestyring",
+                        URL = "./Group"
+                    },
+                    new()
+                    {
+                        Icon = "fa-solid fa-file-lines",
+                        Title = "Audit log",
+                        URL = "https://fisk.dk"
+                    },
+                });
+            }
+
+            if (HttpContext.User.IsInRole(Roles.Material))
+            {
+                retval.Shortcuts.AddRange(new List<HQPanelEntry>
+                {
+                    new()
+                    {
+                        Icon = "fa-solid fa-cart-plus",
+                        Title = "Materialesystem",
+                        URL = "https://fisk.dk"
+                    }
+                });
+            }
+
+            retval.Shortcuts.AddRange(new List<HQPanelEntry>()
+            {
+                new()
+                {
+                    Icon = "fa-solid fa-money-check-dollar",
+                    Title = "Økonomi",
+                    URL = "https://fisk.dk"
+                },
+                new()
+                {
+                    Icon = "fa-brands fa-wordpress",
+                    Title = "Wordpress",
+                    URL = "https://fisk.dk"
+                },
+                new()
+                {
+                    Icon = "fa-solid fa-plus-circle",
+                    Title = "Tilmeldingssystem",
+                    URL = "https://fisk.dk"
+                },
+                new()
+                {
+                    Icon = "fa-solid fa-arrow-trend-up",
+                    Title = "Grafana",
+                    URL = "https://fisk.dk"
+                },
+                new()
+                {
+                    Icon = "fa-solid fa-newspaper",
+                    Title = "Aktivitetsmodul",
+                    URL = "https://fisk.dk"
+                }
+            });
+
+            return View(retval);
         }
-
-        // 1. Opret og gem den nye aktivitet
-        var newActivity = new DS.Models.Activity
-        {
-            Name = name,
-        };
-
-        dataDb.Activities.Add(newActivity);
-        await dataDb.SaveChangesAsync();
-
-        // 2. Hent hele den opdaterede liste fra databasen
-        var allActivities = await dataDb.Activities
-            .ToListAsync();
-
-        // 3. Returner den nye liste som HTML
-        return PartialView("_ActivityList", allActivities);
     }
 
-    [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
-    public IActionResult Error()
+    public class HomeViewModel
     {
-        return View(new ErrorViewModel { RequestId = System.Diagnostics.Activity.Current?.Id ?? HttpContext.TraceIdentifier });
+        public List<HQPanelEntry> Shortcuts { get; set; }
+        public string Name { get; set; }
+        public string GroupNumber { get; set; }
+    }
+
+    public class HQPanelEntry
+    {
+        public string Title { get; set; }
+        public string URL { get; set; }
+        public string Icon { get; set; }
     }
 }
