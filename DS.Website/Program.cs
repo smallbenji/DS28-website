@@ -1,4 +1,6 @@
 using DS;
+using DS.Website;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -7,6 +9,8 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.Configure<DSSettings>(builder.Configuration.GetSection("DS"));
 
 builder.Services.AddControllersWithViews();
+
+builder.Services.AddScoped<IClaimsTransformation, GroupClaimsTransformation>();
 
 builder.Services.AddDbContext<DataDbContext>(options =>
 {
@@ -53,13 +57,39 @@ app.MapControllerRoute(
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
-    try {
+    var logger = services.GetRequiredService<ILogger<Program>>();
+
+    try
+    {
         var context = services.GetRequiredService<DataDbContext>();
         context.Database.Migrate();
-    } catch (Exception ex)
+
+        var roleManager = services.GetRequiredService<RoleManager<Role>>();
+        var groupNames = Enum.GetNames<AppGroups>();
+
+        foreach (var groupName in groupNames)
+        {
+            var groupExists = await roleManager.RoleExistsAsync(groupName);
+            if (!groupExists)
+            {
+                var newRole = new Role { Name = groupName };
+                var result = await roleManager.CreateAsync(newRole);
+
+                if (result.Succeeded)
+                {
+                    logger.LogInformation("Seedede rollen/gruppen: {GroupName}", groupName);
+                }
+                else
+                {
+                    logger.LogError("Fejl under seeding af rollen {GroupName}: {Errors}",
+                        groupName, string.Join(", ", result.Errors.Select(e => e.Description)));
+                }
+            }
+        }
+    }
+    catch (Exception ex)
     {
-        var logger = services.GetRequiredService<ILogger<Program>>();
-        logger.LogError(ex, "An error occurred while migrating the database.");
+        logger.LogError(ex, "Der opstod en fejl under migrering eller seeding af databasen.");
     }
 }
 
