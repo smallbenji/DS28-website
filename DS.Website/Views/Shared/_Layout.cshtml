@@ -7,7 +7,6 @@
     <script type="importmap"></script>
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/DS.Website.styles.css" asp-append-version="true" />
-    <script src="~/js/htmx.min.js"></script>
     <link
         rel="stylesheet"
         href="https://cdn.jsdelivr.net/npm/bulma@1.0.4/css/bulma.min.css"
@@ -29,13 +28,12 @@
             </div>
         </nav>
     </header>
-    <div class="container">
-        <main role="main" class="pb-3">
-            @RenderBody()
-        </main>
+    <div>
+        @RenderBody()
     </div>
 
     <script src="~/js/site.js" asp-append-version="true"></script>
+    <script src="~/js/htmx.min.js"></script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>
