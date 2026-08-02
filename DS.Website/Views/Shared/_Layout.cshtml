@@ -14,20 +14,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
 </head>
 <body>
-    <header>
-        <nav class="navbar" role="navigation">
-            <div class="navbar-brand">
-                <a class="navbar-item" asp-controller="Home" asp-action="Index">
-                    <strong class="title is-4">DS28</strong>
-                </a>
-            </div>
-            <div class="navbar-end">
-                <div class="navbar-item">
-                    @await Component.InvokeAsync("UserProfile")
-                </div>
-            </div>
-        </nav>
-    </header>
+    @await Component.InvokeAsync("NavBar")
+
     <div>
         @RenderBody()
     </div>
