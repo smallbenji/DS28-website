@@ -1,0 +1,9 @@
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+COPY . /src
+WORKDIR /src
+RUN dotnet restore DS.Website && dotnet publish -c Release -o publish/ DS.Website
+
+FROM mcr.microsoft.com/dotnet/aspnet:10.0
+WORKDIR /app
+ENTRYPOINT ["dotnet", "DS.Website.dll"]
+COPY --from=build /src/publish .
