@@ -14,6 +14,18 @@
             "stopAtEntry": false
         },
         {
+            "name": "Launch Website",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build Website",
+            "program": "${workspaceFolder}/DS.Website/bin/Debug/net10.0/DS.Website.dll",
+            "args": [],
+            "cwd": "${workspaceFolder}/DS.Website",
+            "console": "internalConsole",
+            "envFile": "${workspaceFolder}/.env",
+            "stopAtEntry": false
+        },
+        {
             "name": "Launch HQ",
             "type": "coreclr",
             "request": "launch",

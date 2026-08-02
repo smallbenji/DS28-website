@@ -14,6 +14,18 @@
             "problemMatcher": "$msCompile"
         },
         {
+            "label": "build Website",
+            "command": "dotnet",
+            "type": "process",
+            "args": [
+                "build",
+                "${workspaceFolder}/DS.Website/DS.Website.csproj",
+                "/property:GenerateFullPaths=true",
+                "/consoleloggerparameters:NoSummary"
+            ],
+            "problemMatcher": "$msCompile"
+        },
+        {
             "label": "build HQ",
             "command": "dotnet",
             "type": "process",

@@ -2,5 +2,6 @@
   <Project Path="DS.Aktibasen/DS.Aktibasen.csproj" />
   <Project Path="DS.HQ/DS.HQ.csproj" />
   <Project Path="DS.Template/DS.Template.csproj" />
+  <Project Path="DS.Website/DS.Website.csproj" />
   <Project Path="DS/DS.csproj" />
 </Solution>

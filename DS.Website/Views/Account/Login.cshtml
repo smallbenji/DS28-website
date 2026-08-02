@@ -1,0 +1,20 @@
+@model LoginInputModel
+
+<h1>Login</h1>
+<form asp-action="Login" asp-controller="Account" method="post">
+    <div>
+        <label asp-for="Email"></label>
+        <input asp-for="Email" type="email" placeholder="email" />
+        <span asp-validation-for="Email" class="text-danger"></span>
+    </div>
+    
+    <div>
+        <label asp-for="Password"></label>
+        <input asp-for="Password" type="password" placeholder="password" />
+        <span asp-validation-for="Password" class="text-danger"></span>
+    </div>
+
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+    <button type="submit">Login</button>
+</form>
