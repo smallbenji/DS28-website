@@ -9,7 +9,6 @@
                 
                 <form asp-action="Login" asp-controller="Account" method="post">
                     
-                    @* Email felt med ikon til venstre *@
                     <div class="field">
                         <label asp-for="Email" class="label">Email</label>
                         <div class="control has-icons-left">
@@ -21,7 +20,6 @@
                         <span asp-validation-for="Email" class="help is-danger"></span>
                     </div>
                     
-                    @* Password felt med ikon til venstre *@
                     <div class="field">
                         <label asp-for="Password" class="label">Adgangskode</label>
                         <div class="control has-icons-left">
@@ -33,10 +31,8 @@
                         <span asp-validation-for="Password" class="help is-danger"></span>
                     </div>
 
-                    @* Overordnede fejlbeskeder (f.eks. "Ugyldigt loginforsøg") *@
                     <div asp-validation-summary="ModelOnly" class="notification is-danger is-light py-2 px-4 my-3"></div>
 
-                    @* Login knap *@
                     <div class="field mt-5">
                         <button type="submit" class="button is-primary is-fullwidth">
                             <span class="icon">

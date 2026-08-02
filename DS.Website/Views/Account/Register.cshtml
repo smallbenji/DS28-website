@@ -9,7 +9,6 @@
                 
                 <form asp-action="Register" asp-controller="Account" method="post">
                     
-                    @* Fornavn & Efternavn på samme linje i desktop *@
                     <div class="columns">
                         <div class="column">
                             <div class="field">
@@ -32,7 +31,6 @@
                         </div>
                     </div>
 
-                    @* Email felt *@
                     <div class="field">
                         <label asp-for="Email" class="label">Email</label>
                         <div class="control has-icons-left">
@@ -44,7 +42,6 @@
                         <span asp-validation-for="Email" class="help is-danger"></span>
                     </div>
                     
-                    @* Password felt *@
                     <div class="field">
                         <label asp-for="Password" class="label">Adgangskode</label>
                         <div class="control has-icons-left">
@@ -56,7 +53,6 @@
                         <span asp-validation-for="Password" class="help is-danger"></span>
                     </div>
 
-                    @* Gentag Password felt *@
                     <div class="field">
                         <label asp-for="RepeatPassword" class="label">Gentag adgangskode</label>
                         <div class="control has-icons-left">
@@ -68,10 +64,8 @@
                         <span asp-validation-for="RepeatPassword" class="help is-danger"></span>
                     </div>
 
-                    @* Viser alle valideringsfejl (inkl. hvis Identity-adgangskodekravene ikke er opfyldt) *@
                     <div asp-validation-summary="ModelOnly" class="notification is-danger is-light py-2 px-4 my-3"></div>
 
-                    @* Indsend-knap *@
                     <div class="field mt-5">
                         <button type="submit" class="button is-primary is-fullwidth">
                             <span class="icon">
