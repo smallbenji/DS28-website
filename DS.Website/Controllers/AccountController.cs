@@ -6,13 +6,16 @@ namespace DS.Website.Controllers;
 
 public class AccountController(UserManager<User> userManager, SignInManager<User> signInManager) : Controller
 {
+    [HttpGet("/account")]
     public IActionResult Index() => View();
 
+    [HttpGet("/login")]
     public IActionResult Login() => View();
 
+    [HttpGet("/register")]
     public IActionResult Register() => View();
 
-    [HttpPost]
+    [HttpPost("/login")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Login([FromForm] LoginInputModel model)
     {
@@ -52,7 +55,7 @@ public class AccountController(UserManager<User> userManager, SignInManager<User
         return View(model);
     }
 
-    [HttpPost]
+    [HttpPost("/register")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Register([FromForm] RegisterInputModel model)
     {
@@ -83,5 +86,13 @@ public class AccountController(UserManager<User> userManager, SignInManager<User
         }
 
         return View(model);
+    }
+
+    [HttpGet("/logout")]
+    public async Task<IActionResult> Logout()
+    {
+        await signInManager.SignOutAsync();
+
+        return RedirectToAction(nameof(Login));
     }
 }
