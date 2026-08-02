@@ -30,6 +30,7 @@
                             <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
                         </li>
                     </ul>
+                    @await Component.InvokeAsync("UserProfile")
                 </div>
             </div>
         </nav>

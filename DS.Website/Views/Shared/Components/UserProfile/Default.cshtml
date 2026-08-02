@@ -1,0 +1,12 @@
+@model DS.Website.Components.UserProfileViewModel
+
+@if (Model.IsLoggedIn) {
+    <div>
+        <a asp-action="Index" asp-controller="Account">
+            @Model.Name
+        </a>
+    </div>
+}
+else {
+    <a asp-action="Login" asp-controller="Account">Log ind</a>
+}
