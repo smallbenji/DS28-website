@@ -14,6 +14,11 @@ public class ActivityApiController(DataDbContext dataDb) : Controller
         public string Name { get; set; }
     }
 
+    public class CreateActivityDTO
+    {
+        public string Name { get; set; }
+    }
+
     [HttpGet]
     public async Task<IActionResult> Index()
     {
@@ -26,5 +31,14 @@ public class ActivityApiController(DataDbContext dataDb) : Controller
         });
 
         return Ok(retval);
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> CreateActivity([FromBody] CreateActivityDTO data)
+    {
+        await dataDb.Activities.AddAsync(new Models.Activity { Name = data.Name });
+        await dataDb.SaveChangesAsync();
+
+        return Ok();
     }
 }

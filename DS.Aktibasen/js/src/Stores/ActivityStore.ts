@@ -13,9 +13,20 @@ export const useActivityStore = defineStore("activity", () => {
         return data;
     }
 
+    async function CREATE_ACTIVITY(data: createActivityDTO) {
+        var success = await activityService.createActivity(data);
+
+        if (success) {
+            await GET_ACTIVITIES();
+        }
+
+        return success;
+    }
+
     return {
         Activities,
         ACTIVITIES,
-        GET_ACTIVITIES
+        GET_ACTIVITIES,
+        CREATE_ACTIVITY
     };
 });

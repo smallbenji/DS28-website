@@ -51,7 +51,7 @@ public class MeApiController(DataDbContext dataDb, TeamPermissions teamPermissio
         return Ok(retval);
     }
 
-    private string? FindClaim(string type)
+    private string FindClaim(string type)
     {
         return User.FindFirstValue(type);
     }

@@ -44,3 +44,7 @@ interface ActivityDTO {
     id: number;
     name: string;
 }
+
+interface createActivityDTO {
+    name: string;
+}

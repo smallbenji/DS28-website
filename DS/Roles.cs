@@ -1,6 +1,6 @@
 ﻿namespace DS;
 
-public static class Role
+public static class Roles
 {
     public const string Admin = "ds-admin";
     public const string Group = "ds-gruppe";

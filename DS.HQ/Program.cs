@@ -8,6 +8,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Configuration.AddEnvironmentVariables();
 
 builder.Services.Configure<HQSettings>(builder.Configuration.GetSection("HQ"));
+builder.Services.Configure<ZitadelSettings>(builder.Configuration.GetSection("Zitadel"));
 
 builder.Services.AddDSAuth(builder.Configuration);
 
@@ -23,7 +24,7 @@ builder.Services.AddControllersWithViews(options => {
 
 builder.Services.AddHttpClient();
 
-builder.Services.AddScoped<IKeycloakHelper, KeycloakHelper>();
+builder.Services.AddScoped<IKeycloakHelper, ZitadelHelper>();
 builder.Services.Decorate<IKeycloakHelper, CachedKeycloakHelper>();
 
 var app = builder.Build();

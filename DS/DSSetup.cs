@@ -67,7 +67,7 @@ namespace DS
                 options.UseNpgsql(dsSettings.ConnectionString);
             });
 
-            services.AddTransient<DSMailer>();
+            // services.AddTransient<DSMailer>();
 
             return services;
         }

@@ -5,7 +5,7 @@ using MimeKit;
 
 namespace DS.HQ.Controllers
 {
-    [Authorize(Roles = Role.Admin)]
+    [Authorize(Roles = Roles.Admin)]
     [Route("/api/v1/user")]
     public class UserApiController : Controller
     {

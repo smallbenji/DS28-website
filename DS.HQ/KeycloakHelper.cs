@@ -165,7 +165,7 @@ namespace DS.HQ
 
             await client.Users.AddToGroupAsync(realm, token, userId, groupId);
 
-            await RefreshUsers();
+            await RefreshUsers();   
         }
 
         public async Task RemoveUserFromGroup(string userId, string groupId)

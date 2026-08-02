@@ -84,7 +84,7 @@ public class TeamApiController(DataDbContext dataDb, TeamPermissions teamPermiss
     }
 
     [HttpPost]
-    [Authorize(Roles = Role.Activity)]
+    [Authorize(Roles = Roles.Activity)]
     public async Task<IActionResult> CreateTeam([FromBody] CreateTeamDTO data)
     {
         dataDb.ActivityTeams.Add(new ActivityTeam { Name = data.Name });
@@ -94,7 +94,7 @@ public class TeamApiController(DataDbContext dataDb, TeamPermissions teamPermiss
     }
 
     [HttpDelete("{id}")]
-    [Authorize(Roles = Role.Activity)]
+    [Authorize(Roles = Roles.Activity)]
     public async Task<IActionResult> DeleteTeam(int id)
     {
         var team = await dataDb.ActivityTeams.FindAsync(id);

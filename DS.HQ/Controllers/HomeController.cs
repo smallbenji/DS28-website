@@ -23,7 +23,7 @@ namespace DS.HQ.Controllers
                 retval.GroupNumber = HttpContext.User.FindFirst("groupnumber").Value;
             }
 
-            if (HttpContext.User.IsInRole(Role.Admin))
+            if (HttpContext.User.IsInRole(Roles.Admin))
             {
                 retval.Shortcuts.AddRange(new List<HQPanelEntry>
                 {
@@ -48,7 +48,7 @@ namespace DS.HQ.Controllers
                 });
             }
 
-            if (HttpContext.User.IsInRole(Role.Material))
+            if (HttpContext.User.IsInRole(Roles.Material))
             {
                 retval.Shortcuts.AddRange(new List<HQPanelEntry>
                 {

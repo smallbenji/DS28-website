@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace DS.HQ.Controllers
 {
-    [Authorize(Roles = Role.Admin)]
+    [Authorize(Roles = Roles.Admin)]
     [Route("/api/v1/group")]
     public class GroupApiController(DataDbContext dataDb, IKeycloakHelper keycloakHelper) : Controller
     {

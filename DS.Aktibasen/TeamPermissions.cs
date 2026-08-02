@@ -20,7 +20,7 @@ public class TeamPermissions(DataDbContext dataDb)
 
     public static bool IsGlobalActivityAdmin(ClaimsPrincipal user)
     {
-        return user.IsInRole(Role.Activity);
+        return user.IsInRole(Roles.Activity);
     }
 
     public async Task<TeamRole> GetTeamRoleAsync(ClaimsPrincipal user, int teamId)

@@ -13,4 +13,18 @@ export default class ActivityService {
             return [];
         }
     }
+
+    public async createActivity(data: createActivityDTO): Promise<boolean> {
+        try {
+            await axios({
+                url: "/api/v1/activity",
+                method: "POST",
+                data: { data }
+            });
+
+            return true;
+        } catch {
+            return false;
+        }
+    }
 }

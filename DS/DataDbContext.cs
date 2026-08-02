@@ -1,9 +1,11 @@
 using DS.Models;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
 namespace DS;
 
-public class DataDbContext : DbContext
+public class DataDbContext : IdentityDbContext<User, Role, string>
 {
     public DataDbContext(DbContextOptions<DataDbContext> options) : base(options) { }
 
