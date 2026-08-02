@@ -1,6 +1,5 @@
 using DS;
 using DS.Website;
-using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -10,7 +9,7 @@ builder.Services.Configure<DSSettings>(builder.Configuration.GetSection("DS"));
 
 builder.Services.AddControllersWithViews();
 
-builder.Services.AddScoped<IClaimsTransformation, GroupClaimsTransformation>();
+builder.Services.AddScoped<IUserClaimsPrincipalFactory<User>, AppClaimsPrincipalFactory>();
 
 builder.Services.AddDbContext<DataDbContext>(options =>
 {
@@ -30,6 +29,12 @@ builder.Services
     })
     .AddEntityFrameworkStores<DataDbContext>()
     .AddDefaultTokenProviders();
+
+builder.Services.ConfigureApplicationCookie(options => {
+    options.LoginPath = "/login";
+    options.LogoutPath = "/logout";
+    options.LogoutPath = "/AccessDenied";
+});
 
 var app = builder.Build();
 
