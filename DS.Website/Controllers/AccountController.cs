@@ -10,10 +10,26 @@ public class AccountController(UserManager<User> userManager, SignInManager<User
     public IActionResult Index() => View();
 
     [HttpGet("/login")]
-    public IActionResult Login() => View();
+    public IActionResult Login()
+    {
+        if (HttpContext.User.Identity.IsAuthenticated)
+        {
+            return RedirectToAction(nameof(Index));
+        }
+
+        return View();
+    }
 
     [HttpGet("/register")]
-    public IActionResult Register() => View();
+    public IActionResult Register()
+    {
+        if (HttpContext.User.Identity.IsAuthenticated)
+        {
+            return RedirectToAction(nameof(Index));
+        }
+
+        return View();
+    }
 
     [HttpPost("/login")]
     [ValidateAntiForgeryToken]
