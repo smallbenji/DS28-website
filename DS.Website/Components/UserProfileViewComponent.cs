@@ -1,9 +1,9 @@
-using Microsoft.AspNetCore.Identity;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 
 namespace DS.Website.Components
 {
-    public class UserProfileViewComponent(UserManager<User> userManager) : ViewComponent
+    public class UserProfileViewComponent : ViewComponent
     {
         public async Task<IViewComponentResult> InvokeAsync()
         {
@@ -11,13 +11,18 @@ namespace DS.Website.Components
 
             if (User.Identity.IsAuthenticated == true)
             {
-                var user = await userManager.GetUserAsync(HttpContext.User);
+                model.IsLoggedIn = true;
+                model.Name = HttpContext.User.FindFirstValue("full_name")
+                    ?? HttpContext.User.Identity?.Name
+                    ?? string.Empty;
 
-                if (user != null)
-                {
-                    model.IsLoggedIn = true;
-                    model.Name = user.GetFullName();
-                }
+                model.Groups = HttpContext.User.Claims
+                    .Where(claim => claim.Type == ClaimTypes.Role)
+                    .Select(claim => claim.Value)
+                    .Where(groupName => Enum.TryParse<AppGroups>(groupName, out _))
+                    .Distinct()
+                    .OrderBy(groupName => groupName)
+                    .ToList();
             }
 
             return View(model);
@@ -28,5 +33,6 @@ namespace DS.Website.Components
     {
         public string Name { get; set; }
         public bool IsLoggedIn { get; set; }
+        public List<string> Groups { get; set; } = [];
     }
 }
