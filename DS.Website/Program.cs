@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using DS;
 using DS.Website;
 using Microsoft.AspNetCore.Authentication;
@@ -13,7 +14,15 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.Configure<DSSettings>(builder.Configuration.GetSection("DS"));
 
-builder.Services.AddControllersWithViews();
+builder.Services.AddControllersWithViews()
+.AddJsonOptions(options =>
+{
+    options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
+    options.JsonSerializerOptions.NumberHandling = 
+            JsonNumberHandling.AllowReadingFromString | 
+            JsonNumberHandling.WriteAsString;
+    options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
+});
 
 var dataProtectionKeysPath = builder.Configuration["DataProtection:KeysPath"];
 if (!string.IsNullOrWhiteSpace(dataProtectionKeysPath))

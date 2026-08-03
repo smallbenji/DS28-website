@@ -57,7 +57,7 @@ import { storeToRefs } from 'pinia';
 import { computed, ref } from 'vue';
 
 const props = defineProps<{
-    selectedUser: DSUser
+    selectedUser: UserSummaryDTO
 }>();
 
 const userStore = useUserStore();

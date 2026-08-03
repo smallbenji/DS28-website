@@ -17,6 +17,7 @@ public class UserApiController(DataDbContext dataDb, UserManager<User> userManag
         var users = await dataDb.Users
             .OrderBy(user => user.FirstName)
             .ThenBy(user => user.LastName)
+            .Include(x => x.Group)
             .ToListAsync();
 
         var retval = new List<UserSummaryDTO>();
@@ -29,7 +30,7 @@ public class UserApiController(DataDbContext dataDb, UserManager<User> userManag
                 Email = user.Email ?? string.Empty,
                 FirstName = user.FirstName ?? string.Empty,
                 LastName = user.LastName ?? string.Empty,
-                GroupNumber = user.GroupNumber ?? string.Empty,
+                Group = user.Group,
                 Roles = (await userManager.GetRolesAsync(user)).ToList()
             });
         }
@@ -38,7 +39,7 @@ public class UserApiController(DataDbContext dataDb, UserManager<User> userManag
     }
 
     [HttpPost]
-    public async Task<IActionResult> CreateUser([FromBody] UserEditorDTO data)
+    public async Task<IActionResult> CreateUser([FromBody] UserSummaryDTO data)
     {
         if (string.IsNullOrWhiteSpace(data.Email))
         {
@@ -50,8 +51,7 @@ public class UserApiController(DataDbContext dataDb, UserManager<User> userManag
             UserName = string.IsNullOrWhiteSpace(data.UserName) ? data.Email : data.UserName,
             Email = data.Email,
             FirstName = data.FirstName,
-            LastName = data.LastName,
-            GroupNumber = data.GroupNumber
+            LastName = data.LastName
         };
 
         var result = await userManager.CreateAsync(user);
@@ -64,7 +64,7 @@ public class UserApiController(DataDbContext dataDb, UserManager<User> userManag
     }
 
     [HttpPut]
-    public async Task<IActionResult> UpdateUser([FromBody] UserEditorDTO data)
+    public async Task<IActionResult> UpdateUser([FromBody] UserSummaryDTO data)
     {
         if (string.IsNullOrWhiteSpace(data.Id))
         {
@@ -81,7 +81,13 @@ public class UserApiController(DataDbContext dataDb, UserManager<User> userManag
         user.Email = data.Email;
         user.FirstName = data.FirstName;
         user.LastName = data.LastName;
-        user.GroupNumber = data.GroupNumber;
+
+        if (data.Group != null)
+        {
+            var group = dataDb.Groups.First(x => x.Id == data.Group.Id);
+            user.Group = group;
+        }
+        // user.GroupNumber = data.GroupNumber;
 
         var result = await userManager.UpdateAsync(user);
         if (!result.Succeeded)
@@ -203,7 +209,7 @@ public class UserSummaryDTO
     public string Email { get; set; }
     public string FirstName { get; set; }
     public string LastName { get; set; }
-    public string GroupNumber { get; set; }
+    public Group Group { get; set; }
     public List<string> Roles { get; set; } = new();
 }
 

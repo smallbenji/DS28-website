@@ -38,7 +38,7 @@ public class GroupApiController : Controller
         public string Email { get; set; }
         public string FirstName { get; set; }
         public string LastName { get; set; }
-        public string GroupNumber { get; set; }
+        // public string GroupNumber { get; set; }
         public List<string> Roles { get; set; } = new();
     }
 
@@ -119,15 +119,15 @@ public class GroupApiController : Controller
             .ToListAsync();
 
         var users = await userManager.Users
-            .Where(user => !string.IsNullOrWhiteSpace(user.GroupNumber))
+            .Where(user => user.Group.Id > 0)
             .ToListAsync();
 
         var retval = new GroupDTO(groups)
         {
             Users = users
-                .GroupBy(user => user.GroupNumber!)
+                .GroupBy(user => user.Group.Id!)
                 .ToDictionary(
-                    group => group.Key,
+                    group => group.Key.ToString(),
                     group => group.Select(user => new UserSummaryDTO
                     {
                         Id = user.Id,
@@ -135,8 +135,7 @@ public class GroupApiController : Controller
                         Email = user.Email ?? string.Empty,
                         FirstName = user.FirstName ?? string.Empty,
                         LastName = user.LastName ?? string.Empty,
-                        GroupNumber = user.GroupNumber ?? string.Empty,
-                        Roles = new List<string>()
+                        Roles = []
                     }).ToList())
         };
 

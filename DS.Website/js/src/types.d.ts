@@ -14,6 +14,16 @@ interface DSUser {
     group: DSGroup | null;
 }
 
+interface UserSummaryDTO {
+    id: string;
+    userName: string;
+    firstName: string;
+    lastName: string;
+    groupNumber: string;
+    email: string;
+    roles: string[];
+}
+
 interface KcGroup {
     id: string;
     name: string;
@@ -21,7 +31,7 @@ interface KcGroup {
 }
 
 interface DSGroup {
-    id: number;
+    id: string;
     name: string;
     patrols: DSPatrol[];
     scouts?: DSScout[];

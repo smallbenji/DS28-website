@@ -30,7 +30,7 @@ import { storeToRefs } from 'pinia';
 
 
 const props = defineProps<{
-    selectedUser: DSUser
+    selectedUser: UserSummaryDTO
 }>();
 
 const groupStore = useGroupStore();

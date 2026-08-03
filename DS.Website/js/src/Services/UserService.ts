@@ -2,7 +2,7 @@ import type { AxiosResponse } from "axios";
 import axios from "axios";
 
 export default class UserService {
-    public async getUsers(): Promise<DSUser[]> {
+    public async getUsers(): Promise<UserSummaryDTO[]> {
         try {
             const response: AxiosResponse = await axios({
                 url: "/api/v1/user",
@@ -15,16 +15,18 @@ export default class UserService {
         }
     }
 
-    public async updateUser(user: DSUser) {
+    public async updateUser(user: UserSummaryDTO) {
         try {
-            const response: AxiosResponse = await axios({
-                url: "/api/v1/user",
-                method: "PUT",
-                data: JSON.stringify(user),
-                headers: {
-                    "Content-Type": "application/json"
-                }
-            });
+            // const response: AxiosResponse = await axios({
+            //     url: "/api/v1/user",
+            //     method: "PUT",
+            //     data: user,
+            //     headers: {
+            //         "Content-Type": "application/json"
+            //     }
+            // });
+
+            const response: AxiosResponse = await axios.put("/api/v1/user", user);
 
             if (response.status == 200){
                 return true;
@@ -36,7 +38,7 @@ export default class UserService {
         }
     }
 
-    public async createUser(user: DSUser) {
+    public async createUser(user: UserSummaryDTO) {
         try {
             const response: AxiosResponse = await axios({
                 url: "/api/v1/user",
@@ -76,7 +78,7 @@ export default class UserService {
         }
     }
 
-    public async AssignRoleToUser(user: DSUser, roleName: string) {
+    public async AssignRoleToUser(user: UserSummaryDTO, roleName: string) {
         try {
             const response: AxiosResponse = await axios({
                 url: `/api/v1/user/${user.id}/role/add`,
@@ -97,7 +99,7 @@ export default class UserService {
         }
     }
 
-    public async RemoveRoleFromUser(user: DSUser, roleName: string) {
+    public async RemoveRoleFromUser(user: UserSummaryDTO, roleName: string) {
         try {
             const response: AxiosResponse = await axios({
                 url: `api/v1/user/${user.id}/role/remove`,

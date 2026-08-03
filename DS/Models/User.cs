@@ -1,10 +1,11 @@
+using DS.Models;
 using Microsoft.AspNetCore.Identity;
 
 namespace DS;
 
 public class User : IdentityUser
 {
-    public string GroupNumber { get; set; }
+    public Group Group { get; set; }
     public string FirstName { get; set; }
     public string LastName { get; set; }
 

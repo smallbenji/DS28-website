@@ -71,7 +71,7 @@ const Toast = useToast();
 const userStore = useUserStore();
 const { Users: users } = storeToRefs(userStore);
 
-const selectedUser = ref<DSUser | null>(null);
+const selectedUser = ref<UserSummaryDTO | null>(null);
 
 const searchQuery = ref('');
 
@@ -86,7 +86,7 @@ const filteredUsers = computed(() => {
   });
 });
 
-const toggleUserSelection = (clickedUser: DSUser) => {
+const toggleUserSelection = (clickedUser: UserSummaryDTO) => {
         if (selectedUser.value?.id === clickedUser.id) {
         selectedUser.value = null;
     } else {
@@ -121,7 +121,7 @@ onUnmounted(() => {
 });
 
 const saveUser = async () => {
-    const result = await userStore.UPDATE_USER(selectedUser.value as DSUser);
+    const result = await userStore.UPDATE_USER(selectedUser.value as UserSummaryDTO);
     if (result) {
         Toast.open({
             message: "Brugere er blevet opdateret!",

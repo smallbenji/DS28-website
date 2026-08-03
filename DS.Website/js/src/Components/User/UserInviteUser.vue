@@ -34,14 +34,16 @@
                     </BField>
                 </section>
                 <footer class="modal-card-foot">
-                    <BButton
-                        type="is-primary"
-                        :loading="isLoading"
-                        @click="sendInvitation"
-                    >
-                        Send invitation
-                    </BButton>
-                    <BButton @click="isModalActive = false">Annuller</BButton>
+                    <div class="buttons">
+                        <BButton
+                            type="is-primary"
+                            :loading="isLoading"
+                            @click="sendInvitation"
+                            >
+                            Send invitation
+                        </BButton>
+                        <BButton @click="isModalActive = false">Annuller</BButton>
+                    </div>
                 </footer>
             </div>
         </BModal>

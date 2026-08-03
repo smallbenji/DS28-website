@@ -15,7 +15,7 @@
 </template>
 <script lang="ts" setup>
 const props = defineProps<{
-    user: DSUser;
+    user: UserSummaryDTO;
     selected: boolean;
 }>();
 </script>

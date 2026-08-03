@@ -5,7 +5,7 @@ import { computed, ref } from "vue";
 export const useUserStore = defineStore("user", () => {
     const userService = new UserService();
 
-    const Users = ref<DSUser[]>([]);
+    const Users = ref<UserSummaryDTO[]>([]);
     const Groups = ref<AppRole[]>([]);
 
     const USERS = computed(() => Users.value);
@@ -25,7 +25,7 @@ export const useUserStore = defineStore("user", () => {
         return data;
     }
 
-    async function ADD_USER_TO_ROLE(user: DSUser, roleName: string) {
+    async function ADD_USER_TO_ROLE(user: UserSummaryDTO, roleName: string) {
         var data = await userService.AssignRoleToUser(user, roleName);
 
         if (data)
@@ -34,7 +34,7 @@ export const useUserStore = defineStore("user", () => {
         return data;
     }
 
-    async function REMOVE_USER_FROM_ROLE(user: DSUser, roleName: string) {
+    async function REMOVE_USER_FROM_ROLE(user: UserSummaryDTO, roleName: string) {
         var data = await userService.RemoveRoleFromUser(user, roleName);
 
         if (data)
@@ -43,7 +43,7 @@ export const useUserStore = defineStore("user", () => {
         return data;
     }
 
-    async function CREATE_USER(user: DSUser) {
+    async function CREATE_USER(user: UserSummaryDTO) {
         var data = await userService.createUser(user);
 
         if (data)
@@ -52,7 +52,7 @@ export const useUserStore = defineStore("user", () => {
         return data;
     }
 
-    async function UPDATE_USER(user: DSUser) {
+    async function UPDATE_USER(user: UserSummaryDTO) {
         var data = await userService.updateUser(user);
 
         if (data)
