@@ -54,6 +54,12 @@ builder.Services.AddOpenIddict()
         // OpenIddict afviser dette med ID2074, da scopes allerede er bundet til
         // authorization koden. Vi fjerner derfor valideringen, så parameteren ignoreres.
         options.RemoveEventHandler(OpenIddictServerHandlers.Exchange.ValidateScopeParameter.Descriptor);
+	options.RegisterScopes(
+            OpenIddictConstants.Scopes.OpenId,
+            OpenIddictConstants.Scopes.Profile,
+            OpenIddictConstants.Scopes.Email,
+            OpenIddictConstants.Scopes.Roles // (Hvis du også vil sende roller med over)
+        );
 
         options.AddDevelopmentEncryptionCertificate()
             .AddDevelopmentSigningCertificate();
@@ -145,12 +151,12 @@ using (var scope = app.Services.CreateScope())
 
     var manager = scope.ServiceProvider.GetRequiredService<IOpenIddictApplicationManager>();
 
-    if (await manager.FindByClientIdAsync("wordpress-app") is null)
+    if (await manager.FindByClientIdAsync("wordpress-app1") is null)
     {
         await manager.CreateAsync(new OpenIddictApplicationDescriptor
         {
-            ClientId = "wordpress-app",
-            ClientSecret = "",
+            ClientId = "wordpress-app1",
+            ClientSecret = "isoisoisoisoisoisoisoiso",
             DisplayName = "WordPress Hjemmeside",
             Permissions =
             {
@@ -162,7 +168,7 @@ using (var scope = app.Services.CreateScope())
                 OpenIddictConstants.Permissions.Scopes.Profile,
                 OpenIddictConstants.Permissions.Scopes.Roles
             },
-            RedirectUris = { new Uri(" https://www.distriktssommerlejr.dk/wp-admin/admin-ajax.php?action=openid-connect-authorize") }
+            RedirectUris = { new Uri("https://www.distriktssommerlejr.dk/wp-admin/admin-ajax.php?action=openid-connect-authorize") }
         });
     }
 }

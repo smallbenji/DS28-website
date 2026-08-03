@@ -2,7 +2,32 @@ services:
   hq:
     build:
       context: .
-      dockerfile: Containerfile.HQ
+      dockerfile: Containerfile.Website
     restart: unless-stopped
+    networks:
+      - internal-net
+      - coolify
     env_file:
       - .env
+    labels:
+      - traefik.enable=true
+      - traefik.http.middlewares.gzip.compress=true
+      - traefik.docker.network=coolify
+      - traefik.http.routers.http-hq.entryPoints=http
+      - traefik.http.routers.http-hq.middlewares=redirect-to-https
+      - 'traefik.http.routers.http-hq.rule=Host(`hq.distriktssommerlejr.dk`) && PathPrefix(`/`)'
+      - traefik.http.routers.http-hq.service=http-hq
+      - traefik.http.routers.https-hq.entryPoints=https
+      - traefik.http.routers.https-hq.middlewares=gzip
+      - 'traefik.http.routers.https-hq.rule=Host(`hq.distriktssommerlejr.dk`) && PathPrefix(`/`)'
+      - traefik.http.routers.https-hq.service=https-hq
+      - traefik.http.routers.https-hq.tls.certresolver=letsencrypt
+      - traefik.http.routers.https-hq.tls=true
+      - traefik.http.services.http-hq.loadbalancer.server.port=8080
+      - traefik.http.services.https-hq.loadbalancer.server.port=8080
+
+networks:
+  internal-net:
+    external: true
+  coolify:
+    external: true
