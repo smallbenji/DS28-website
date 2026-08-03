@@ -1,0 +1,23 @@
+@model DS.Website.Controllers.UserManagementIndexViewModel
+
+<section class="section">
+    <div class="container">
+        <table class="table">
+            @foreach (var user in Model.Users){
+                <tr>
+                    <td>
+                        @user.GetFullName()
+                    </td>
+                    <td>
+                        @user.Email
+                    </td>
+                    <td>
+                        <a asp-action="Details" asp-route-id="@user.Id" asp-controller="UserManagement" class="button is-primary is-small">
+                            Rediger
+                        </a>
+                    </td>
+                </tr>
+            }
+        </table>
+    </div>
+</section>
