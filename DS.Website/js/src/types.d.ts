@@ -72,3 +72,7 @@ interface UserInvitationCreationDTO {
     LastName: string;
     Password: string;
 }
+
+interface MeDTO {
+    name: string;
+}
