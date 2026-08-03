@@ -8,6 +8,8 @@ export const useMeStore = defineStore("me", () => {
         name: ""
     });
     const ME = computed(() => Me.value);
+    const Hq = ref<HomeViewModel>({shortcuts: []});
+    const HQ = computed(() => Hq.value);
 
     async function GET_ME() {
         var data = await meService.getMe();
@@ -15,9 +17,18 @@ export const useMeStore = defineStore("me", () => {
         return data;
     }
 
+    async function GET_HQ() {
+        var data = await meService.getHQ();
+        Hq.value = data;
+        return data;
+    }
+
     return {
         Me,
+        Hq,
         ME,
-        GET_ME
+        HQ,
+        GET_ME,
+        GET_HQ,
     }
 });

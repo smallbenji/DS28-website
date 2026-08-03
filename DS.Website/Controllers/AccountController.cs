@@ -6,9 +6,6 @@ namespace DS.Website.Controllers;
 
 public class AccountController(UserManager<User> userManager, SignInManager<User> signInManager) : Controller
 {
-    [HttpGet("/account")]
-    public IActionResult Index() => View();
-
     [HttpGet("/login")]
     public IActionResult Login()
     {

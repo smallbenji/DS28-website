@@ -14,4 +14,17 @@ export default class MeService {
             return {name:""};
         }
     }
+
+    public async getHQ(): Promise<HomeViewModel> {
+        try {
+            const response: AxiosResponse<HomeViewModel> = await axios({
+                url: "/api/v1/home",
+                method: "GET"
+            });
+
+            return response.data ? response.data : {shortcuts:[]}
+        } catch {
+            return {shortcuts:[]}
+        }
+    }
 }

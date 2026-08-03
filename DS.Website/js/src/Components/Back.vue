@@ -1,7 +1,7 @@
 <template>
     <div class="back">
         <div class="back-title">
-            <router-link to="/">
+            <router-link to="/" v-if="!props.hideBack">
                 <font-awesome-icon icon="arrow-left" />
             </router-link>
             <h1 class="title is-5">
@@ -43,6 +43,7 @@ import { storeToRefs } from 'pinia';
 const props = defineProps<{
     icon: string;
     title: string;
+    hideBack?: boolean;
 }>();
 
 const meStore = useMeStore();

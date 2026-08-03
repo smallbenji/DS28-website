@@ -7,7 +7,8 @@ import { useMeStore } from "@/Stores/MeStore";
 const routes: RouteRecordRaw[] = [
     {
         path: "/",
-        component: () => import("@/Views/Home.vue")
+        component: () => import("@/Views/Home.vue"),
+        meta: { requiresHomeData: true }
     },
     {
         path: "/user",
@@ -47,6 +48,10 @@ router.beforeEach(async (to) => {
             await userStore.GET_USERS();
             await userStore.GET_GROUPS();
             await groupStore.GET_GROUPS();
+        }
+
+        if (to.meta.requiresHomeData) {
+            await meStore.GET_HQ();
         }
 
         if (to.meta.requiresGroupData) {
