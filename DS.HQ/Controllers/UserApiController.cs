@@ -1,7 +1,6 @@
 using DS.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using MimeKit;
 
 namespace DS.HQ.Controllers
 {
@@ -11,13 +10,11 @@ namespace DS.HQ.Controllers
     {
         private readonly IKeycloakHelper keycloakHelper;
         private readonly DataDbContext dataDb;
-        private readonly DSMailer dSMailer;
 
-        public UserApiController(IKeycloakHelper keycloakHelper, DataDbContext dataDb, DSMailer dSMailer)
+        public UserApiController(IKeycloakHelper keycloakHelper, DataDbContext dataDb)
         {
             this.keycloakHelper = keycloakHelper;
             this.dataDb = dataDb;
-            this.dSMailer = dSMailer;
         }
 
         [HttpGet]
