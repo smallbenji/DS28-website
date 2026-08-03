@@ -103,6 +103,44 @@ public class AuthorizationController : Controller
         throw new InvalidOperationException("Grant-typen understøttes ikke.");
     }
 
+    [Authorize(AuthenticationSchemes = OpenIddictServerAspNetCoreDefaults.AuthenticationScheme)]
+    [HttpGet("~/connect/userinfo")]
+    [HttpPost("~/connect/userinfo")]
+    public async Task<IActionResult> Userinfo()
+    {
+        var user = await _userManager.GetUserAsync(User);
+        if (user is null)
+        {
+            return Challenge(new AuthenticationProperties
+            {
+                Parameters =
+                {
+                    [OpenIddictConstants.Parameters.Error] = OpenIddictConstants.Errors.InvalidToken,
+                    [OpenIddictConstants.Parameters.ErrorDescription] = "The specified access token is bound to an account that no longer exists."
+                }
+            }, OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
+        }
+
+        var claims = new Dictionary<string, object>(StringComparer.Ordinal)
+        {
+            [OpenIddictConstants.Claims.Subject] = await _userManager.GetUserIdAsync(user)
+        };
+
+        if (User.HasScope(OpenIddictConstants.Scopes.Email))
+        {
+            claims[OpenIddictConstants.Claims.Email] = await _userManager.GetEmailAsync(user);
+            claims[OpenIddictConstants.Claims.EmailVerified] = await _userManager.IsEmailConfirmedAsync(user);
+        }
+
+        if (User.HasScope(OpenIddictConstants.Scopes.Profile))
+        {
+            claims[OpenIddictConstants.Claims.Name] = user.GetFullName();
+            claims[OpenIddictConstants.Claims.PreferredUsername] = await _userManager.GetUserNameAsync(user);
+        }
+
+        return Ok(claims);
+    }
+
     // Hjælpemetode til at styre, hvilke data der sendes med i Access Tokens og ID Tokens
     private static IEnumerable<string> GetDestinations(Claim claim, OpenIddictRequest request)
     {

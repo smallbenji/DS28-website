@@ -45,7 +45,7 @@ builder.Services.AddOpenIddict()
     {
         options.SetAuthorizationEndpointUris("/connect/authorize")
             .SetTokenEndpointUris("/connect/token")
-            .SetUserInfoEndpointUris("/connect/userifno");
+            .SetUserInfoEndpointUris("/connect/userinfo");
         
         options.AllowAuthorizationCodeFlow();
             // .RequireProofKeyForCodeExchange();
