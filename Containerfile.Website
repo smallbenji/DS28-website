@@ -1,9 +1,22 @@
+FROM node:24 AS node-build
+
+WORKDIR /src/DS.Website/js
+COPY DS.Website/js/package*.json ./
+RUN npm ci
+COPY DS.Website/js/. .
+RUN npm run build
+
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
-COPY . /src
 WORKDIR /src
-RUN dotnet restore DS.Website && dotnet publish -c Release -o publish/ DS.Website
+COPY . .
+COPY --from=node-build /src/DS.Website/wwwroot/dist /src/DS.Website/wwwroot/dist
+RUN dotnet restore DS.Website/DS.Website.csproj
+RUN dotnet publish DS.Website/DS.Website.csproj -c Release -o /app/publish
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0
 WORKDIR /app
+ENV ASPNETCORE_URLS=http://+:8080
+ENV ASPNETCORE_ENVIRONMENT=Production
+EXPOSE 8080
 ENTRYPOINT ["dotnet", "DS.Website.dll"]
-COPY --from=build /src/publish .
+COPY --from=build /app/publish ./
