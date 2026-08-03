@@ -2,6 +2,7 @@ using DS;
 using DS.Website;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using OpenIddict.Abstractions;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -16,6 +17,8 @@ builder.Services.AddDbContext<DataDbContext>(options =>
     var dssettings = builder.Configuration.GetSection("DS").Get<DSSettings>();
 
     options.UseNpgsql(dssettings?.ConnectionString ?? "");
+
+    options.UseOpenIddict();
 });
 
 builder.Services
@@ -29,6 +32,35 @@ builder.Services
     })
     .AddEntityFrameworkStores<DataDbContext>()
     .AddDefaultTokenProviders();
+
+builder.Services.AddOpenIddict()
+    .AddCore(options =>
+    {
+        options.UseEntityFrameworkCore()
+            .UseDbContext<DataDbContext>();
+    })
+    .AddServer(options =>
+    {
+        options.SetAuthorizationEndpointUris("/connect/authorize")
+            .SetTokenEndpointUris("/connect/token")
+            .SetUserInfoEndpointUris("/connect/userifno");
+        
+        options.AllowAuthorizationCodeFlow()
+            .RequireProofKeyForCodeExchange();
+
+        options.AddDevelopmentEncryptionCertificate()
+            .AddDevelopmentSigningCertificate();
+
+        options.UseAspNetCore()
+            .EnableAuthorizationEndpointPassthrough()
+            .EnableTokenEndpointPassthrough()
+            .EnableUserInfoEndpointPassthrough();
+    })
+    .AddValidation(options =>
+    {
+        options.UseLocalServer();
+        options.UseAspNetCore();
+    });
 
 builder.Services.ConfigureApplicationCookie(options => {
     options.LoginPath = "/login";
@@ -97,6 +129,29 @@ using (var scope = app.Services.CreateScope())
     catch (Exception ex)
     {
         logger.LogError(ex, "Der opstod en fejl under migrering eller seeding af databasen.");
+    }
+
+    var manager = scope.ServiceProvider.GetRequiredService<IOpenIddictApplicationManager>();
+
+    if (await manager.FindByClientIdAsync("wordpress-app") is null)
+    {
+        await manager.CreateAsync(new OpenIddictApplicationDescriptor
+        {
+            ClientId = "wordpress-app",
+            ClientSecret = "",
+            DisplayName = "WordPress Hjemmeside",
+            Permissions =
+            {
+                OpenIddictConstants.Permissions.Endpoints.Authorization,
+                OpenIddictConstants.Permissions.Endpoints.Token,
+                OpenIddictConstants.Permissions.GrantTypes.AuthorizationCode,
+                OpenIddictConstants.Permissions.ResponseTypes.Code,
+                OpenIddictConstants.Permissions.Scopes.Email,
+                OpenIddictConstants.Permissions.Scopes.Profile,
+                OpenIddictConstants.Permissions.Scopes.Roles
+            },
+            RedirectUris = { new Uri(" https://www.distriktssommerlejr.dk/wp-admin/admin-ajax.php?action=openid-connect-authorize") }
+        });
     }
 }
 
