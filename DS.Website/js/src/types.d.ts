@@ -32,6 +32,7 @@ interface KcGroup {
 interface DSGroup {
     id: string;
     name: string;
+    district?: 'DANEHOF' | 'FIONIA';
     patrols: DSPatrol[];
     scouts?: DSScout[];
 }

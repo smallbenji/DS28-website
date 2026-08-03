@@ -10,11 +10,17 @@
             <BField label="Navn">
                 <BInput v-model="selectedGroup.name" />
             </BField>
+            <BField label="Distrikt">
+                <BSelect v-model="selectedGroup.district" expanded placeholder="Vælg distrikt...">
+                    <option value="DANEHOF">Danehof</option>
+                    <option value="FIONIA">Fionia</option>
+                </BSelect>
+            </BField>
         </div>
     </nav>
 </template>
 <script lang="ts" setup>
-import { BField, BInput } from 'buefy';
+import { BField, BInput, BSelect } from 'buefy';
 
 const props = defineProps<{
     selectedGroup: DSGroup

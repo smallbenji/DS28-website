@@ -9,6 +9,7 @@ public class Group
     [DatabaseGenerated(DatabaseGeneratedOption.None)]
     public int Id { get; set; }
     public string Name { get; set; }
+    public District District { get; set; }
     public ICollection<Patrol> Patrols { get; set; }
     public ICollection<Scout> Scouts { get; set; }
 }
@@ -52,4 +53,10 @@ public enum Gender
 {
     Male,
     Female
+}
+
+public enum District
+{
+    DANEHOF,
+    FIONIA
 }

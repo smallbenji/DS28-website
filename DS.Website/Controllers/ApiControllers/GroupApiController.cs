@@ -45,6 +45,7 @@ public class GroupApiController : Controller
     {
         public int Id { get; set; }
         public string Name { get; set; }
+        public District District { get; set; }
         public List<PatrolSummaryDTO> Patrols { get; set; } = new();
         public List<ScoutSummaryDTO> Scouts { get; set; } = new();
     }
@@ -84,6 +85,7 @@ public class GroupApiController : Controller
             {
                 Id = group.Id,
                 Name = group.Name,
+                District = group.District,
                 Patrols = group.Patrols.Select(patrol => new PatrolSummaryDTO
                 {
                     Id = patrol.Id,

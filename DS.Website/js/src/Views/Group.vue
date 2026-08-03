@@ -27,7 +27,7 @@
             <section class="hero is-link">
                 <div class="hero-body">
                     <p class="title is-3">{{ selectedGroup?.name }}</p>
-                    <p class="subtitle is-6">Gruppe-ID: {{ selectedGroup?.id }}</p>
+                    <p class="subtitle is-6">Gruppe-ID: {{ selectedGroup?.id }} · Distrikt: {{ selectedGroup?.district }}</p>
                 </div>
             </section>
             <WorkspaceContent>

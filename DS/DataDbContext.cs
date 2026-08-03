@@ -57,6 +57,10 @@ public class DataDbContext : IdentityDbContext<User, Role, string>
         modelBuilder.Entity<Scout>()
             .Property(s => s.Gender)
             .HasConversion<string>();
+        
+        modelBuilder.Entity<Group>()
+            .Property(s => s.District)
+            .HasConversion<string>();
 
         // Relation: MaterialOrder -> Activity
         modelBuilder.Entity<MaterialOrder>()

@@ -14,6 +14,12 @@
                 <BField label="Navn">
                     <BInput v-model="newGroup.name" placeholder="Gruppens navn" />
                 </BField>
+                <BField label="Distrikt">
+                    <BSelect v-model="newGroup.district" expanded placeholder="Vælg distrikt...">
+                        <option value="DANEHOF">Danehof</option>
+                        <option value="FIONIA">Fionia</option>
+                    </BSelect>
+                </BField>
                 <BButton type="is-primary" @click="createGroup">
                     Opret gruppe
                 </BButton>
@@ -23,7 +29,7 @@
 </template>
 <script setup lang="ts">
 import { useGroupStore } from '@/Stores/GroupStore';
-import { BModal, BField, BInput, BButton, useToast } from 'buefy';
+import { BModal, BField, BInput, BSelect, BButton, useToast } from 'buefy';
 import { ref, toRaw } from 'vue';
 
 const Toast = useToast();
