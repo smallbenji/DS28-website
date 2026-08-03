@@ -6,29 +6,6 @@ body {
   margin: 1rem;
 }
 
-.grid {
-  display: grid;
-  gap: 1rem;
-  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
-  max-width: 52rem;
-  margin: auto;
-}
-
-.link-box {
-  height: 8rem;
-  width: 100%;
-  background-color: #fff;
-  border-radius: 10px;
-  box-shadow: 5px 5px 5px 0 rgba(0, 0, 0, 0.05);
-  transition: 0.2s ease-in-out;
-  cursor: pointer;
-  text-decoration: none;
-  color: black;
-}
-
-.link-box:hover {
-  background-color: #eee;
-}
 
 .topbar {
   max-width: 51rem;
@@ -77,43 +54,6 @@ body {
       margin-bottom: 0;
     }
   }
-}
-
-.link-box div {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  height: 100%;
-
-  i {
-    font-size: 44px;
-    color: rgba(0, 0, 0, 0.4);
-    transition: ease-in 0.2s;
-  }
-
-  i:hover {
-    color: rgb(59,130,246);
-  }
-
-  p {
-    text-align: center;
-    margin: 0;
-    font-size: 18px;
-    padding: 0;
-    color: rgba(0, 0, 0, 0.4);
-    transition: ease-in 0.2s;
-  }
-
-}
-
-.link-box:hover p {
-  color: #000;
-}
-
-.link-box:hover i {
-  color: rgb(59,130,246);
 }
 
 .user-list {
