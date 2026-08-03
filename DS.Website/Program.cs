@@ -2,6 +2,7 @@ using DS;
 using DS.Website;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -13,6 +14,14 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.Configure<DSSettings>(builder.Configuration.GetSection("DS"));
 
 builder.Services.AddControllersWithViews();
+
+var dataProtectionKeysPath = builder.Configuration["DataProtection:KeysPath"];
+if (!string.IsNullOrWhiteSpace(dataProtectionKeysPath))
+{
+    builder.Services.AddDataProtection()
+        .SetApplicationName("ds28-website")
+        .PersistKeysToFileSystem(new DirectoryInfo(dataProtectionKeysPath));
+}
 
 builder.Services.AddScoped<IUserClaimsPrincipalFactory<User>, AppClaimsPrincipalFactory>();
 

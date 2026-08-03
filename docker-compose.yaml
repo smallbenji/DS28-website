@@ -9,6 +9,10 @@ services:
       - coolify
     env_file:
       - .env
+    environment:
+      DataProtection__KeysPath: /app/keys
+    volumes:
+      - dp-keys:/app/keys
     labels:
       - traefik.enable=true
       - traefik.http.middlewares.gzip.compress=true
@@ -31,3 +35,6 @@ networks:
     external: true
   coolify:
     external: true
+
+volumes:
+  dp-keys:
