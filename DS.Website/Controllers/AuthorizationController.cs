@@ -24,11 +24,9 @@ public class AuthorizationController : Controller
     [IgnoreAntiforgeryToken]
     public async Task<IActionResult> Authorize()
     {
-        // 1. Hent OIDC-anmodningen fra OpenIddict
         var request = HttpContext.GetOpenIddictServerRequest() ?? 
             throw new InvalidOperationException("OIDC anmodningen kunne ikke hentes.");
 
-        // 2. Hvis brugeren IKKE er logget ind i din management platform, send dem til dit login-skærm
         if (!User.Identity.IsAuthenticated)
         {
             return Challenge(new AuthenticationProperties
@@ -37,14 +35,39 @@ public class AuthorizationController : Controller
             });
         }
 
-        // 3. Hent brugeren og opret et "ClaimsPrincipal" som OpenIddict kan bruge til at lave et token
+        // 1. Hent brugeren ud fra din DS.User klasse
         var user = await _userManager.GetUserAsync(User);
+        if (user == null)
+        {
+            return Challenge(new AuthenticationProperties
+            {
+                RedirectUri = Request.Path + Request.QueryString
+            });
+        }
+
+        // 2. Opret det rå principal fra ASP.NET Core Identity
         var principal = await _signInManager.CreateUserPrincipalAsync(user);
 
-        // Sæt scopes (f.eks. openid, profile, email)
+        // 3. VIGTIGT: OpenIddict skal vide præcis, hvilket ID der er 'subject' (sub)
+        var userId = await _userManager.GetUserIdAsync(user);
+        
+        // Vi tilføjer eksplicit sub claimet, hvis det ikke sidder rigtigt i forvejen
+        var identity = (ClaimsIdentity)principal.Identity!;
+        if (!principal.HasClaim(OpenIddictConstants.Claims.Subject))
+        {
+            identity.AddClaim(new Claim(OpenIddictConstants.Claims.Subject, userId));
+        }
+
+        // 4. Fortæl OpenIddict hvor claims må sendes hen (Destinations)
+        // Uden dette vil WordPress ikke kunne læse e-mail eller navn fra tokens
+        foreach (var claim in identity.Claims)
+        {
+            claim.SetDestinations(GetDestinations(claim, request));
+        }
+
+        // 5. Sæt de tilladte scopes på dit principal
         principal.SetScopes(request.GetScopes());
 
-        // 4. Send brugeren tilbage til WordPress med en godkendelses-kode
         return SignIn(principal, OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
     }
 
@@ -52,7 +75,6 @@ public class AuthorizationController : Controller
     [IgnoreAntiforgeryToken]
     public async Task<IActionResult> Exchange()
     {
-        // Dette endpoint kalder WordPress i baggrunden for at bytte koden til et token
         var request = HttpContext.GetOpenIddictServerRequest() ??
             throw new InvalidOperationException("OIDC anmodningen kunne ikke hentes.");
 
@@ -63,5 +85,26 @@ public class AuthorizationController : Controller
         }
 
         throw new InvalidOperationException("Grant-typen understøttes ikke.");
+    }
+
+    // Hjælpemetode til at styre, hvilke data der sendes med i Access Tokens og ID Tokens
+    private static IEnumerable<string> GetDestinations(Claim claim, OpenIddictRequest request)
+    {
+        // Standard destination: Gem det altid i Access Token
+        yield return OpenIddictConstants.Destinations.AccessToken;
+
+        // Hvis det er følsomme/profiloplysninger, smider vi det også i ID Token, 
+        // så WordPress kan læse det direkte uden ekstra userinfo kald, hvis den vil det.
+        switch (claim.Type)
+        {
+            case OpenIddictConstants.Claims.Name:
+            case OpenIddictConstants.Claims.Email:
+            case OpenIddictConstants.Claims.Role:
+                if (request.HasScope(OpenIddictConstants.Scopes.Profile) || request.HasScope(OpenIddictConstants.Scopes.Email))
+                {
+                    yield return OpenIddictConstants.Destinations.IdentityToken;
+                }
+                break;
+        }
     }
 }
