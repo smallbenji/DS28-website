@@ -12,6 +12,7 @@ public class DesignTimeDbContextFactory : IDesignTimeDbContextFactory<DataDbCont
 
         var optionsBuilder = new DbContextOptionsBuilder<DataDbContext>();
         optionsBuilder.UseNpgsql(connectionString);
+        optionsBuilder.UseOpenIddict();
 
         return new DataDbContext(optionsBuilder.Options);
     }
