@@ -90,7 +90,7 @@ public class AccountController(UserManager<User> userManager, SignInManager<User
 
         if (result.Succeeded)
         {
-            return RedirectToAction(nameof(Login));
+            return Redirect("/");
         }
 
         foreach (var error in result.Errors)

@@ -29,6 +29,7 @@
                         size="is-fullwidth"
                         icon-left="door-open"
                         label="Log ud"
+                        @click="logout"
                     />
                 </b-dropdown-item>
             </b-dropdown>
@@ -39,6 +40,7 @@
 import { useMeStore } from '@/Stores/MeStore';
 import { BButton, BDropdown, BDropdownItem } from 'buefy';
 import { storeToRefs } from 'pinia';
+import AuthService from '@/Services/AuthService';
 
 const props = defineProps<{
     icon: string;
@@ -48,6 +50,13 @@ const props = defineProps<{
 
 const meStore = useMeStore();
 const { ME } = storeToRefs(meStore);
+
+const authService = new AuthService();
+
+async function logout() {
+    await authService.logout();
+    window.location.href = "/login";
+}
 
 </script>
 <style lang="scss">

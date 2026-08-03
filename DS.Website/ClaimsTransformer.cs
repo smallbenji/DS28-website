@@ -48,11 +48,11 @@ public class ClaimsTransformer(UserManager<User> userManager, IMemoryCache memor
         return new ClaimsPrincipal(newIdentity);
     }
 
-    private async Task<UserRolesCache?> GetRolesFromCache(string userId)
+    private async Task<UserRolesCache> GetRolesFromCache(string userId)
     {
         var cacheKey = $"{RoleCachePrefix}{userId}";
 
-        if (memoryCache.TryGetValue(cacheKey, out UserRolesCache? cached) && cached is not null)
+        if (memoryCache.TryGetValue(cacheKey, out UserRolesCache cached) && cached is not null)
         {
             return cached;
         }
