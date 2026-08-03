@@ -4,17 +4,18 @@ using Microsoft.AspNetCore.Mvc;
 namespace DS.Website.Controllers
 {
     [Authorize]
-    public class HomeController : Controller
+    [Route("/api/v1/home")]
+    public class HomeApiController : Controller
     {
-        public HomeController() { }
+        public HomeApiController() { }
 
         public static List<HQPanelEntry> GetShortcuts(IUrlHelper Url) => [
             // Need roles
-            new() { Title = "Brugerstyring", URL = Url.Action<UserManagementController>(c => c.Index()), Icon = "fa-solid fa-user", RequiredRole = nameof(AppRoles.UsersView) },
-            new() { Title = "Gruppestyring", URL = "#", Icon = "fa-solid fa-users", RequiredRole = nameof(AppRoles.GroupView) },
+            new() { Title = "Brugerstyring", Url = "/user", Icon = ["user"], RequiredRole = nameof(AppRoles.UsersView) },
+            new() { Title = "Gruppestyring", Url = "/group", Icon = ["users"], RequiredRole = nameof(AppRoles.GroupView) },
             
             // No roles needed
-            new() { Title = "Wordpress", URL = "https://distriktssommerlejr.dk", Icon = "fa-brands fa-wordpress" },
+            new() { Title = "Wordpress", Url = "https://distriktssommerlejr.dk", Icon = ["fab", "wordpress"] },
 
             // Not in use
             // new() { Title = "Audit log", URL = "#", Icon = "fa-solid fa-file-lines", RequiredRole = nameof(AppRoles.AuditLogView) },
@@ -25,6 +26,7 @@ namespace DS.Website.Controllers
             // new() { Title = "Aktivitetsmodul", URL = "#", Icon = "fa-solid fa-newspaper" },
         ];
 
+        [HttpGet]
         public IActionResult Index()
         {
             var retval = new HomeViewModel()
@@ -34,7 +36,7 @@ namespace DS.Website.Controllers
                     .ToList(),
             };
 
-            return View(retval);
+            return Ok(retval);
         }
     }
 
@@ -46,8 +48,8 @@ namespace DS.Website.Controllers
     public class HQPanelEntry
     {
         public string Title { get; set; }
-        public string URL { get; set; }
-        public string Icon { get; set; }
+        public string Url { get; set; }
+        public string[] Icon { get; set; }
         public string RequiredRole { get; set; }
     }
 }

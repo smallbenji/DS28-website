@@ -76,3 +76,14 @@ interface UserInvitationCreationDTO {
 interface MeDTO {
     name: string;
 }
+
+interface HomeViewModel {
+    shortcuts: HQPanelEntry[];
+}
+
+interface HQPanelEntry {
+    title: string;
+    url: string;
+    icon: string[];
+    requiredRole: string;
+}
