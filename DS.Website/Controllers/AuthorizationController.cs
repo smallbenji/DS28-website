@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using DS;
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
@@ -9,10 +10,10 @@ using OpenIddict.Server.AspNetCore;
 
 public class AuthorizationController : Controller
 {
-    private readonly SignInManager<IdentityUser> _signInManager;
-    private readonly UserManager<IdentityUser> _userManager;
+    private readonly SignInManager<User> _signInManager;
+    private readonly UserManager<User> _userManager;
 
-    public AuthorizationController(SignInManager<IdentityUser> signInManager, UserManager<IdentityUser> userManager)
+    public AuthorizationController(SignInManager<User> signInManager, UserManager<User> userManager)
     {
         _signInManager = signInManager;
         _userManager = userManager;
