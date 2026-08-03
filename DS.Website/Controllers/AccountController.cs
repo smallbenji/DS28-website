@@ -50,7 +50,7 @@ public class AccountController(UserManager<User> userManager, SignInManager<User
         var result = await signInManager.PasswordSignInAsync(
             user.UserName!,
             model.Password,
-            isPersistent: false,
+            isPersistent: true,
             lockoutOnFailure: false
         );
 

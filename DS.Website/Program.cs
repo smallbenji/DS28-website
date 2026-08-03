@@ -1,5 +1,7 @@
 using DS;
 using DS.Website;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -110,6 +112,16 @@ app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}")
     .WithStaticAssets();
+
+var env = app.Services.GetRequiredService<IWebHostEnvironment>();
+
+app.MapFallback(async context =>
+{
+    var filePath = Path.Combine(env.ContentRootPath, "wwwroot", "dist", "index.html");
+
+    context.Response.ContentType = "text/html";
+    await context.Response.SendFileAsync(filePath);
+}).RequireAuthorization();
 
 using (var scope = app.Services.CreateScope())
 {

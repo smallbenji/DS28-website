@@ -8,92 +8,31 @@ namespace DS.Website.Controllers
     {
         public HomeController() { }
 
+        public static List<HQPanelEntry> GetShortcuts(IUrlHelper Url) => [
+            // Need roles
+            new() { Title = "Brugerstyring", URL = Url.Action<UserManagementController>(c => c.Index()), Icon = "fa-solid fa-user", RequiredRole = nameof(AppRoles.UsersView) },
+            new() { Title = "Gruppestyring", URL = "#", Icon = "fa-solid fa-users", RequiredRole = nameof(AppRoles.GroupView) },
+            
+            // No roles needed
+            new() { Title = "Wordpress", URL = "https://distriktssommerlejr.dk", Icon = "fa-brands fa-wordpress" },
+
+            // Not in use
+            // new() { Title = "Audit log", URL = "#", Icon = "fa-solid fa-file-lines", RequiredRole = nameof(AppRoles.AuditLogView) },
+            // new() { Title = "Materialesystem", URL = "#", Icon = "fa-solid fa-cart-plus", RequiredRole = nameof(AppRoles.GroupDelete) },
+            // new() { Title = "Økonomi", URL = "#", Icon = "fa-solid fa-money-check-dollar", RequiredRole = nameof(AppRoles.GroupDelete) },
+            // new() { Title = "Tilmeldingssystem", URL = "#", Icon = "fa-solid fa-plus-circle" },
+            // new() { Title = "Grafana", URL = "#", Icon = "fa-solid fa-arrow-trend-up" },
+            // new() { Title = "Aktivitetsmodul", URL = "#", Icon = "fa-solid fa-newspaper" },
+        ];
+
         public IActionResult Index()
         {
             var retval = new HomeViewModel()
             {
-                Name = HttpContext.User.Identity.Name,
-                Shortcuts = [],
+                Shortcuts = GetShortcuts(Url)
+                    .Where(s => s.RequiredRole == null || User.IsInRole(s.RequiredRole))
+                    .ToList(),
             };
-
-            var roles = HttpContext.User.FindAll("groups").Select(x => x.Value).ToList();
-
-            if (HttpContext.User.FindAll("groupnumber").Any())
-            {
-                retval.GroupNumber = HttpContext.User.FindFirst("groupnumber").Value;
-            }
-
-            if (HttpContext.User.IsInRole(Roles.Admin))
-            {
-                retval.Shortcuts.AddRange(new List<HQPanelEntry>
-                {
-                    new()
-                    {
-                        Icon = "fa-solid fa-user",
-                        Title = "Brugerstyring",
-                        URL = "./User"
-                    },
-                    new()
-                    {
-                        Icon = "fa-solid fa-users",
-                        Title = "Gruppestyring",
-                        URL = "./Group"
-                    },
-                    new()
-                    {
-                        Icon = "fa-solid fa-file-lines",
-                        Title = "Audit log",
-                        URL = "https://fisk.dk"
-                    },
-                });
-            }
-
-            if (HttpContext.User.IsInRole(Roles.Material))
-            {
-                retval.Shortcuts.AddRange(new List<HQPanelEntry>
-                {
-                    new()
-                    {
-                        Icon = "fa-solid fa-cart-plus",
-                        Title = "Materialesystem",
-                        URL = "https://fisk.dk"
-                    }
-                });
-            }
-
-            retval.Shortcuts.AddRange(new List<HQPanelEntry>()
-            {
-                new()
-                {
-                    Icon = "fa-solid fa-money-check-dollar",
-                    Title = "Økonomi",
-                    URL = "https://fisk.dk"
-                },
-                new()
-                {
-                    Icon = "fa-brands fa-wordpress",
-                    Title = "Wordpress",
-                    URL = "https://fisk.dk"
-                },
-                new()
-                {
-                    Icon = "fa-solid fa-plus-circle",
-                    Title = "Tilmeldingssystem",
-                    URL = "https://fisk.dk"
-                },
-                new()
-                {
-                    Icon = "fa-solid fa-arrow-trend-up",
-                    Title = "Grafana",
-                    URL = "https://fisk.dk"
-                },
-                new()
-                {
-                    Icon = "fa-solid fa-newspaper",
-                    Title = "Aktivitetsmodul",
-                    URL = "https://fisk.dk"
-                }
-            });
 
             return View(retval);
         }
@@ -102,8 +41,6 @@ namespace DS.Website.Controllers
     public class HomeViewModel
     {
         public List<HQPanelEntry> Shortcuts { get; set; }
-        public string Name { get; set; }
-        public string GroupNumber { get; set; }
     }
 
     public class HQPanelEntry
@@ -111,5 +48,6 @@ namespace DS.Website.Controllers
         public string Title { get; set; }
         public string URL { get; set; }
         public string Icon { get; set; }
+        public string RequiredRole { get; set; }
     }
 }
