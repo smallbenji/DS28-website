@@ -11,6 +11,7 @@ interface DSUser {
     email: string;
     roles: string[];
     group: DSGroup | null;
+    lockoutEnd: string | null;
 }
 
 interface UserSummaryDTO {
@@ -21,6 +22,7 @@ interface UserSummaryDTO {
     email: string;
     roles: string[];
     group: DSGroup | null;
+    lockoutEnd: string | null;
 }
 
 interface KcGroup {
@@ -85,6 +87,8 @@ interface UserInvitationCreationDTO {
 
 interface MeDTO {
     name: string;
+    roles: string[];
+    appRoles: string[];
 }
 
 interface HomeViewModel {

@@ -40,9 +40,7 @@ router.beforeEach(async (to) => {
     const groupStore = useGroupStore();
 
     try {
-        if (!meStore.ME || !meStore.ME.name) {
-            await meStore.GET_ME(); 
-        }
+        await meStore.GET_ME();
 
         if (to.meta.requiresUserData) {
             await userStore.GET_USERS();

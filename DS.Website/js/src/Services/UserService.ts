@@ -120,8 +120,46 @@ export default class UserService {
         }
     }
 
-    public async inviteUser(email: string, roles: string[]) {
+    public async deleteUser(user: UserSummaryDTO) {
         try {
+            const response: AxiosResponse = await axios({
+                url: `/api/v1/user/${user.id}`,
+                method: "DELETE"
+            });
+
+            return response.status == 200;
+        } catch {
+            return false;
+        }
+    }
+
+    public async lockUser(user: UserSummaryDTO) {
+        try {
+            const response: AxiosResponse = await axios({
+                url: `/api/v1/user/${user.id}/lock`,
+                method: "PUT"
+            });
+
+            return response.status == 200;
+        } catch {
+            return false;
+        }
+    }
+
+    public async unlockUser(user: UserSummaryDTO) {
+        try {
+            const response: AxiosResponse = await axios({
+                url: `/api/v1/user/${user.id}/unlock`,
+                method: "PUT"
+            });
+
+            return response.status == 200;
+        } catch {
+            return false;
+        }
+    }
+
+    public async inviteUser(email: string, roles: string[]) {        try {
             const response: AxiosResponse = await axios({
                 url: "/api/v1/user/invite",
                 method: "POST",

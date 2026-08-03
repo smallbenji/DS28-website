@@ -25,9 +25,17 @@
         </Sidebar>
         <Workspace :filled="selectedUser != null">
             <section class="hero is-link">
-                <div class="hero-body">
-                    <p class="title is-3">{{ selectedUser?.firstName }} {{ selectedUser?.lastName }}</p>
-                    <p class="subtitle is-6">{{ selectedUser?.id }}</p>
+                <div class="hero-body is-flex is-justify-content-space-between is-align-items-center">
+                    <div>
+                        <p class="title is-3">{{ selectedUser?.firstName }} {{ selectedUser?.lastName }}</p>
+                        <p class="subtitle is-6">{{ selectedUser?.id }}</p>
+                    </div>
+                    <div>
+                        <div class="buttons">
+                            <UserLockButton v-if="selectedUser" :user="selectedUser" @changed="handleUserChanged" />
+                            <UserDeleteButton v-if="selectedUser" :user="selectedUser" @deleted="handleUserDeleted" />
+                        </div>
+                    </div>
                 </div>
             </section>
             <WorkspaceContent>
@@ -61,6 +69,8 @@ import SidebarHeader from '@/Components/Sidebar/SidebarHeader.vue';
 import SidebarContent from '@/Components/Sidebar/SidebarContent.vue';
 import SidebarFooter from '@/Components/Sidebar/SidebarFooter.vue';
 import UserSidebarBox from '@/Components/User/UserSidebarBox.vue';
+import UserDeleteButton from '@/Components/User/UserDeleteButton.vue';
+import UserLockButton from '@/Components/User/UserLockButton.vue';
 import ManagementWrapper from '@/Components/ManagementWrapper.vue';
 import Workspace from '@/Components/Workspace/Workspace.vue';
 import WorkspaceContent from '@/Components/Workspace/WorkspaceContent.vue';
@@ -133,5 +143,13 @@ const saveUser = async () => {
             type: "is-danger"
         });
     }
+}
+
+const handleUserDeleted = () => {
+    selectedUser.value = null;
+}
+
+const handleUserChanged = (userId: string) => {
+    selectedUser.value = users.value.find(user => user.id === userId) ?? null;
 }
 </script>

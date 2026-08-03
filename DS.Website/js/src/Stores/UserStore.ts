@@ -61,6 +61,33 @@ export const useUserStore = defineStore("user", () => {
         return data;
     }
 
+    async function DELETE_USER(user: UserSummaryDTO) {
+        var data = await userService.deleteUser(user);
+
+        if (data)
+            GET_USERS();
+
+        return data;
+    }
+
+    async function LOCK_USER(user: UserSummaryDTO) {
+        var data = await userService.lockUser(user);
+
+        if (data)
+            GET_USERS();
+
+        return data;
+    }
+
+    async function UNLOCK_USER(user: UserSummaryDTO) {
+        var data = await userService.unlockUser(user);
+
+        if (data)
+            GET_USERS();
+
+        return data;
+    }
+
     async function INVITE_USER(email: string, roles: string[]) {
         return await userService.inviteUser(email, roles);
     }
@@ -68,6 +95,6 @@ export const useUserStore = defineStore("user", () => {
     return {
         Users, Groups,
         USERS, GROUPS,
-        GET_USERS, GET_GROUPS, UPDATE_USER, CREATE_USER, REMOVE_USER_FROM_ROLE, ADD_USER_TO_ROLE, INVITE_USER
+        GET_USERS, GET_GROUPS, UPDATE_USER, DELETE_USER, LOCK_USER, UNLOCK_USER, CREATE_USER, REMOVE_USER_FROM_ROLE, ADD_USER_TO_ROLE, INVITE_USER
     }
 });

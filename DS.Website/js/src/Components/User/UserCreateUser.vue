@@ -64,7 +64,8 @@ const createNewUser = () => {
         lastName: "",
         email: "",
     roles: [],
-    group: null
+    group: null,
+    lockoutEnd: null
   } as DSUser;
 };
 

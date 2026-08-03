@@ -4,12 +4,13 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace DS.Website.Controllers;
 
 [Authorize(Roles = nameof(AppRoles.UsersView))]
 [Route("/api/v1/user")]
-public class UserApiController(DataDbContext dataDb, UserManager<User> userManager, RoleManager<Role> roleManager) : Controller
+public class UserApiController(DataDbContext dataDb, UserManager<User> userManager, RoleManager<Role> roleManager, IMemoryCache memoryCache) : Controller
 {
     [HttpGet]
     public async Task<IActionResult> Index()
@@ -31,6 +32,7 @@ public class UserApiController(DataDbContext dataDb, UserManager<User> userManag
                 FirstName = user.FirstName ?? string.Empty,
                 LastName = user.LastName ?? string.Empty,
                 Group = user.Group,
+                LockoutEnd = user.LockoutEnd,
                 Roles = (await userManager.GetRolesAsync(user)).ToList()
             });
         }
@@ -147,6 +149,8 @@ public class UserApiController(DataDbContext dataDb, UserManager<User> userManag
             return BadRequest(result.Errors);
         }
 
+        memoryCache.Remove($"{ClaimsTransformer.RoleCachePrefix}{id}");
+
         return Ok();
     }
 
@@ -170,10 +174,13 @@ public class UserApiController(DataDbContext dataDb, UserManager<User> userManag
             return BadRequest(result.Errors);
         }
 
+        memoryCache.Remove($"{ClaimsTransformer.RoleCachePrefix}{id}");
+
         return Ok();
     }
 
     [HttpDelete("{id}")]
+    [Authorize(Roles = nameof(AppRoles.UsersDelete))]
     public async Task<IActionResult> DeleteUser(string id)
     {
         var user = await userManager.FindByIdAsync(id);
@@ -183,6 +190,45 @@ public class UserApiController(DataDbContext dataDb, UserManager<User> userManag
         }
 
         var result = await userManager.DeleteAsync(user);
+        if (!result.Succeeded)
+        {
+            return BadRequest(result.Errors);
+        }
+
+        return Ok();
+    }
+
+    [HttpPut("{id}/lock")]
+    [Authorize(Roles = nameof(AppRoles.UsersLock))]
+    public async Task<IActionResult> LockUser(string id)
+    {
+        var user = await userManager.FindByIdAsync(id);
+        if (user == null)
+        {
+            return NotFound();
+        }
+
+        await userManager.SetLockoutEnabledAsync(user, true);
+        var result = await userManager.SetLockoutEndDateAsync(user, DateTimeOffset.MaxValue);
+        if (!result.Succeeded)
+        {
+            return BadRequest(result.Errors);
+        }
+
+        return Ok();
+    }
+
+    [HttpPut("{id}/unlock")]
+    [Authorize(Roles = nameof(AppRoles.UsersLock))]
+    public async Task<IActionResult> UnlockUser(string id)
+    {
+        var user = await userManager.FindByIdAsync(id);
+        if (user == null)
+        {
+            return NotFound();
+        }
+
+        var result = await userManager.SetLockoutEndDateAsync(user, null);
         if (!result.Succeeded)
         {
             return BadRequest(result.Errors);
@@ -254,6 +300,7 @@ public class UserSummaryDTO
     public string FirstName { get; set; }
     public string LastName { get; set; }
     public Group Group { get; set; }
+    public DateTimeOffset? LockoutEnd { get; set; }
     public List<string> Roles { get; set; } = new();
 }
 

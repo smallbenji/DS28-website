@@ -10,6 +10,7 @@ namespace DS.Website
     {
         UsersView,
         UsersCreate,
+        UsersLock,
         UsersDelete,
         
         GroupView,
@@ -29,6 +30,7 @@ namespace DS.Website
                 [
                     nameof(AppRoles.UsersView),
                     nameof(AppRoles.UsersCreate),
+                    nameof(AppRoles.UsersLock),
                     nameof(AppRoles.UsersDelete),
 
                     nameof(AppRoles.GroupView),

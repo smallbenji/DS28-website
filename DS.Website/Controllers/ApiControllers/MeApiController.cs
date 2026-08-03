@@ -10,9 +10,22 @@ namespace DS.Website.Controllers
         {
             var user = await userManager.GetUserAsync(HttpContext.User);
 
+            var roles = (await userManager.GetRolesAsync(user)).ToList();
+
+            var appRoles = roles
+                .SelectMany(roleName =>
+                    Enum.TryParse<AppGroups>(roleName, out var group) &&
+                    AppAccess.Matrix.TryGetValue(group, out var subRoles)
+                        ? subRoles
+                        : [])
+                .Distinct()
+                .ToList();
+
             var model = new MeDTO
             {
-                Name = user.GetFullName()
+                Name = user.GetFullName(),
+                Roles = roles,
+                AppRoles = appRoles
             };
 
             return Ok(model);
@@ -22,5 +35,7 @@ namespace DS.Website.Controllers
     public class MeDTO
     {
         public string Name { get; set; }
+        public List<string> Roles { get; set; } = [];
+        public List<string> AppRoles { get; set; } = [];
     }
 }

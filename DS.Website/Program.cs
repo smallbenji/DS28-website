@@ -99,8 +99,15 @@ builder.Services.AddOpenIddict()
 builder.Services.ConfigureApplicationCookie(options => {
     options.LoginPath = "/login";
     options.LogoutPath = "/logout";
-    options.LogoutPath = "/AccessDenied";
+    options.AccessDeniedPath = "/AccessDenied";
 });
+
+// Cacher brugerroller, så ClaimsTransformer ikke rammer databasen på hver request.
+builder.Services.AddMemoryCache();
+
+// Roller/approller hentes frisk fra databasen på hver request,
+// så rolleændringer slår igennem uden at brugeren skal logge ind igen.
+builder.Services.AddScoped<IClaimsTransformation, ClaimsTransformer>();
 
 var app = builder.Build();
 

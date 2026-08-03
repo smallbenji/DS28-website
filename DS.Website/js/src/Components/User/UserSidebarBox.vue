@@ -2,6 +2,9 @@
     <div class="user-sidebar-box" :class="{active: selected}">
         <div class="user-sidebar-box-name">
             <span>{{ user.firstName }} {{ user.lastName }}</span>
+            <span v-if="isLocked" class="tag is-warning user-sidebar-box-locked">
+                Låst
+            </span>
         </div>
         <div class="user-sidebar-box-role-pills">
             <span v-for="role in user.roles" :key="role" class="tag is-dark">
@@ -14,10 +17,17 @@
     </div>
 </template>
 <script lang="ts" setup>
+import { computed } from 'vue';
+
 const props = defineProps<{
     user: UserSummaryDTO;
     selected: boolean;
 }>();
+
+const isLocked = computed(() => {
+    if (!props.user.lockoutEnd) return false;
+    return new Date(props.user.lockoutEnd).getTime() > Date.now();
+});
 </script>
 <style lang="scss">
 .user-sidebar-box {
@@ -31,6 +41,13 @@ const props = defineProps<{
         font-weight: 600;
         font-size: 1rem;
         margin-bottom: 0.4rem;
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+    }
+
+    &-locked {
+        font-weight: 500;
     }
 
     &-role-pills {

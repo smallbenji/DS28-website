@@ -5,7 +5,9 @@ import { computed, ref } from "vue";
 export const useMeStore = defineStore("me", () => {
     const meService = new MeService();
     const Me = ref<MeDTO>({
-        name: ""
+        name: "",
+        roles: [],
+        appRoles: []
     });
     const ME = computed(() => Me.value);
     const Hq = ref<HomeViewModel>({shortcuts: []});
