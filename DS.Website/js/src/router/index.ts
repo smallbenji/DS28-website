@@ -7,67 +7,17 @@ import { useMeStore } from "@/Stores/MeStore";
 const routes: RouteRecordRaw[] = [
     {
         path: "/",
-        component: () => import("@/Views/Home.vue"),
-        beforeEnter: async () => {
-            const Loading = useLoading();
-            const loading = Loading.open({});
-            const meStore = useMeStore();
-
-            try {
-                await meStore.GET_ME();
-
-                return true;
-            } catch {
-                return false;
-            } finally {
-                loading.close();
-            }
-        }
+        component: () => import("@/Views/Home.vue")
     },
     {
         path: "/user",
         component: () => import("@/Views/User.vue"),
-        beforeEnter: async () => {
-            const Loading = useLoading();
-            const loading = Loading.open({});
-            const userStore = useUserStore();
-            const groupStore = useGroupStore();
-            const meStore = useMeStore();
-
-            try {
-                await userStore.GET_USERS();
-                await userStore.GET_GROUPS();
-                await groupStore.GET_GROUPS();
-                await meStore.GET_ME();
-
-                return true;
-            } catch {
-                return false;
-            } finally {
-                loading.close();
-            }
-        }
+        meta: { requiresUserData: true }
     },
     {
         path: "/group",
         component: () => import("@/Views/Group.vue"),
-        beforeEnter: async () => {
-            const Loading = useLoading();
-            const loading = Loading.open({});
-            const groupStore = useGroupStore();
-            const meStore = useMeStore();
-
-            try {
-                await groupStore.GET_GROUPS();
-                await meStore.GET_ME();
-
-                return true;
-            } catch {
-                return false;
-            } finally {
-                loading.close();
-            }
-        }
+        meta: { requiresGroupData: true }
     },
     {
         path: "/invitation/:id",
@@ -78,6 +28,38 @@ const routes: RouteRecordRaw[] = [
 const router = createRouter({
     history: createWebHistory(),
     routes
+});
+
+router.beforeEach(async (to) => {
+    const Loading = useLoading();
+    const loading = Loading.open({});
+    
+    const meStore = useMeStore();
+    const userStore = useUserStore();
+    const groupStore = useGroupStore();
+
+    try {
+        if (!meStore.ME || !meStore.ME.name) {
+            await meStore.GET_ME(); 
+        }
+
+        if (to.meta.requiresUserData) {
+            await userStore.GET_USERS();
+            await userStore.GET_GROUPS();
+            await groupStore.GET_GROUPS();
+        }
+
+        if (to.meta.requiresGroupData) {
+            await groupStore.GET_GROUPS();
+        }
+
+        return true;
+    } catch (error) {
+        console.error("Navigation data prefetch failed:", error);
+        return false;
+    } finally {
+        loading.close();
+    }
 });
 
 export default router;
