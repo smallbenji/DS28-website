@@ -22,6 +22,7 @@ builder.Services.AddControllersWithViews()
             JsonNumberHandling.AllowReadingFromString | 
             JsonNumberHandling.WriteAsString;
     options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
+    options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
 });
 
 var dataProtectionKeysPath = builder.Configuration["DataProtection:KeysPath"];

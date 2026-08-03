@@ -41,6 +41,11 @@ public class UserApiController(DataDbContext dataDb, UserManager<User> userManag
     [HttpPost]
     public async Task<IActionResult> CreateUser([FromBody] UserSummaryDTO data)
     {
+        if (data == null)
+        {
+            return BadRequest("Invalid request body.");
+        }
+
         if (string.IsNullOrWhiteSpace(data.Email))
         {
             return BadRequest("Email er påkrævet.");
@@ -77,6 +82,11 @@ public class UserApiController(DataDbContext dataDb, UserManager<User> userManag
     [HttpPut]
     public async Task<IActionResult> UpdateUser([FromBody] UserSummaryDTO data)
     {
+        if (data == null)
+        {
+            return BadRequest("Invalid request body.");
+        }
+
         if (string.IsNullOrWhiteSpace(data.Id))
         {
             return BadRequest("Bruger-id er påkrævet.");
@@ -120,6 +130,11 @@ public class UserApiController(DataDbContext dataDb, UserManager<User> userManag
     [HttpPut("{id}/role/add")]
     public async Task<IActionResult> AddUserToRole([FromBody] string role, string id)
     {
+        if (string.IsNullOrWhiteSpace(role))
+        {
+            return BadRequest("Role is required.");
+        }
+
         var user = await userManager.FindByIdAsync(id);
         if (user == null)
         {
@@ -138,6 +153,11 @@ public class UserApiController(DataDbContext dataDb, UserManager<User> userManag
     [HttpPut("{id}/role/remove")]
     public async Task<IActionResult> RemoveUserToRole([FromBody] string role, string id)
     {
+        if (string.IsNullOrWhiteSpace(role))
+        {
+            return BadRequest("Role is required.");
+        }
+
         var user = await userManager.FindByIdAsync(id);
         if (user == null)
         {
@@ -189,6 +209,11 @@ public class UserApiController(DataDbContext dataDb, UserManager<User> userManag
     [HttpPost("invite")]
     public async Task<IActionResult> InviteUser([FromBody] InvitationDTO data)
     {
+        if (data == null)
+        {
+            return BadRequest("Invalid request body.");
+        }
+
         var invitation = new UserInvitation()
         {
             InvitationId = Guid.NewGuid(),

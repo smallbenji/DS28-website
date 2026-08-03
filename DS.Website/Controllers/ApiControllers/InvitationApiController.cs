@@ -26,6 +26,11 @@ namespace DS.HQ.Controllers
         [HttpPost("{id:guid}")]
         public async Task<IActionResult> CreateUser([FromBody] UserInvitationCreationDTO data, Guid id)
         {
+            if (data == null)
+            {
+                return BadRequest("Invalid request body.");
+            }
+
             var invitation = await dataDb.Invitations.FirstOrDefaultAsync(x => x.InvitationId == id);
 
             if (invitation == null)

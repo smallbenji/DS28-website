@@ -145,6 +145,11 @@ public class GroupApiController : Controller
     [HttpPost]
     public async Task<IActionResult> CreateGroup([FromBody] Group data)
     {
+        if (data == null)
+        {
+            return BadRequest("Invalid request body.");
+        }
+
         dataDb.Groups.Add(data);
         await dataDb.SaveChangesAsync();
         return Ok();
@@ -159,6 +164,11 @@ public class GroupApiController : Controller
     [HttpPost("patrol")]
     public async Task<IActionResult> CreatePatrol([FromBody] CreatePatrolDTO data)
     {
+        if (data == null)
+        {
+            return BadRequest("Invalid request body.");
+        }
+
         var groupExists = await dataDb.Groups.AnyAsync(g => g.Id == data.GroupId);
         if (!groupExists)
         {
@@ -188,6 +198,11 @@ public class GroupApiController : Controller
     [HttpPost("scout")]
     public async Task<IActionResult> CreateScout([FromBody] CreateScoutDTO data)
     {
+        if (data == null)
+        {
+            return BadRequest("Invalid request body.");
+        }
+
         var groupExists = await dataDb.Groups.AnyAsync(g => g.Id == data.GroupId);
         if (!groupExists)
         {
@@ -217,6 +232,11 @@ public class GroupApiController : Controller
     [HttpPost("scout/add-patrol")]
     public async Task<IActionResult> AddPatrol([FromBody] ScoutPatrolDTO data)
     {
+        if (data == null)
+        {
+            return BadRequest("Invalid request body.");
+        }
+
         var scoutExists = await dataDb.Scouts.AnyAsync(s => s.Id == data.ScoutId);
         if (!scoutExists)
         {
@@ -251,6 +271,11 @@ public class GroupApiController : Controller
     [HttpPost("scout/remove-patrol")]
     public async Task<IActionResult> RemovePatrol([FromBody] ScoutPatrolDTO data)
     {
+        if (data == null)
+        {
+            return BadRequest("Invalid request body.");
+        }
+
         var membership = await dataDb.PatrolMemberships
             .FirstOrDefaultAsync(pm => pm.ScoutId == data.ScoutId && pm.PatrolId == data.PatrolId);
 
@@ -272,6 +297,11 @@ public class GroupApiController : Controller
     [HttpPost("scout/toggle-leader")]
     public async Task<IActionResult> ToggleLeader([FromBody] ToggleLeaderDTO data)
     {
+        if (data == null)
+        {
+            return BadRequest("Invalid request body.");
+        }
+
         var membership = await dataDb.PatrolMemberships
             .FirstOrDefaultAsync(pm => pm.ScoutId == data.ScoutId && pm.PatrolId == data.PatrolId);
 
@@ -318,6 +348,11 @@ public class GroupApiController : Controller
     [HttpPut("{id}")]
     public async Task<IActionResult> UpdateGroup([FromBody] Group data, int id)
     {
+        if (data == null)
+        {
+            return BadRequest("Invalid request body.");
+        }
+
         if (data.Id != id)
         {
             return BadRequest("ID mismatch");
