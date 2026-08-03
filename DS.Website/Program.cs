@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using OpenIddict.Abstractions;
+using OpenIddict.Server;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -48,6 +49,11 @@ builder.Services.AddOpenIddict()
         
         options.AllowAuthorizationCodeFlow();
             // .RequireProofKeyForCodeExchange();
+
+        // WordPress sender 'scope' med i token-anmodningen ved authorization code flow.
+        // OpenIddict afviser dette med ID2074, da scopes allerede er bundet til
+        // authorization koden. Vi fjerner derfor valideringen, så parameteren ignoreres.
+        options.RemoveEventHandler(OpenIddictServerHandlers.Exchange.ValidateScopeParameter.Descriptor);
 
         options.AddDevelopmentEncryptionCertificate()
             .AddDevelopmentSigningCertificate();

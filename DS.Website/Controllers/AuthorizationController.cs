@@ -75,19 +75,6 @@ public class AuthorizationController : Controller
     [IgnoreAntiforgeryToken]
     public async Task<IActionResult> Exchange()
     {
-        // Hvis WordPress har sendt en 'scope' parameter med i sin POST, 
-        // fjerner vi den fra anmodningen, så OpenIddict ikke kaster en fejl.
-        if (Request.HasFormContentType && Request.Form.ContainsKey("scope"))
-        {
-            // Vi laver en modificeret samling af form-parametre uden 'scope'
-            var formFields = Request.Form.ToDictionary(x => x.Key, x => x.Value);
-            formFields.Remove("scope");
-
-            // Overskriv anmodningens form-data
-            Request.Form = new FormCollection(formFields.ToDictionary(x => x.Key, x => x.Value));
-        }
-
-        // Nu kan OpenIddict udtrække anmodningen uden at fejle på ID2074
         var request = HttpContext.GetOpenIddictServerRequest() ??
             throw new InvalidOperationException("OIDC anmodningen kunne ikke hentes.");
 
