@@ -360,7 +360,14 @@ public class GroupApiController : Controller
             return BadRequest("ID mismatch");
         }
 
-        dataDb.Groups.Update(data);
+        var group = await dataDb.Groups.FindAsync(id);
+        if (group == null)
+        {
+            return NotFound($"Group with ID {id} not found.");
+        }
+
+        group.Name = data.Name;
+        group.District = data.District;
         await dataDb.SaveChangesAsync();
         return Ok();
     }
