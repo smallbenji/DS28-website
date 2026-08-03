@@ -54,6 +54,17 @@ public class UserApiController(DataDbContext dataDb, UserManager<User> userManag
             LastName = data.LastName
         };
 
+        if (data.Group != null)
+        {
+            var group = await dataDb.Groups.FindAsync(data.Group.Id);
+            if (group == null)
+            {
+                return BadRequest("Gruppen findes ikke.");
+            }
+
+            user.Group = group;
+        }
+
         var result = await userManager.CreateAsync(user);
         if (!result.Succeeded)
         {
@@ -84,10 +95,18 @@ public class UserApiController(DataDbContext dataDb, UserManager<User> userManag
 
         if (data.Group != null)
         {
-            var group = dataDb.Groups.First(x => x.Id == data.Group.Id);
+            var group = await dataDb.Groups.FindAsync(data.Group.Id);
+            if (group == null)
+            {
+                return BadRequest("Gruppen findes ikke.");
+            }
+
             user.Group = group;
         }
-        // user.GroupNumber = data.GroupNumber;
+        else
+        {
+            dataDb.Entry(user).Property("GroupId").CurrentValue = null;
+        }
 
         var result = await userManager.UpdateAsync(user);
         if (!result.Succeeded)
@@ -211,16 +230,6 @@ public class UserSummaryDTO
     public string LastName { get; set; }
     public Group Group { get; set; }
     public List<string> Roles { get; set; } = new();
-}
-
-public class UserEditorDTO
-{
-    public string Id { get; set; }
-    public string UserName { get; set; }
-    public string Email { get; set; }
-    public string FirstName { get; set; }
-    public string LastName { get; set; }
-    public string GroupNumber { get; set; }
 }
 
 public class RoleSummaryDTO

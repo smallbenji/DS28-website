@@ -17,6 +17,14 @@
                 <BField label="Email">
                     <BInput v-model="newUser.email" type="email" />
                 </BField>
+                <BField label="Gruppe">
+                    <BSelect v-model="newGroupId" expanded>
+                        <option value=""></option>
+                        <option v-for="group in groups.groups" :key="group.id" :value="group.id">
+                            {{ group.name }}
+                        </option>
+                    </BSelect>
+                </BField>
                 <BButton type="is-primary" @click="createUser">
                     Opret bruger
                 </BButton>
@@ -26,13 +34,26 @@
 </template>
 <script setup lang="ts">
 import { useUserStore } from '@/Stores/UserStore';
-import { BModal, BField, BInput, BButton } from 'buefy';
-import { ref, toRaw, watch } from 'vue';
+import { useGroupStore } from '@/Stores/GroupStore';
+import { BModal, BField, BInput, BSelect, BButton } from 'buefy';
+import { computed, ref, toRaw, watch } from 'vue';
+import { storeToRefs } from 'pinia';
 
 const newUser = ref<DSUser | null>();
 const open = ref<boolean>(false);
 
 const userStore = useUserStore();
+const groupStore = useGroupStore();
+const { Groups: groups } = storeToRefs(groupStore);
+
+const newGroupId = computed({
+    get: () => newUser.value?.group?.id ?? "",
+    set: (id: string) => {
+        if (newUser.value) {
+            newUser.value.group = groups.value.groups.find(g => g.id === id) ?? null;
+        }
+    }
+});
 
 const createNewUser = () => {
   open.value = true;
@@ -42,7 +63,6 @@ const createNewUser = () => {
         firstName: "",
         lastName: "",
         email: "",
-    groupNumber: "",
     roles: [],
     group: null
   } as DSUser;

@@ -14,9 +14,9 @@
                 <BInput v-model="selectedUser.email" />
             </BField>
             <BField label="Gruppe">
-                <BSelect v-model="selectedUser.groupNumber" expanded>
+                <BSelect v-model="selectedGroupId" expanded>
                     <option value=""></option>
-                    <option v-for="group in groups.groups" :value="group.id">
+                    <option v-for="group in groups.groups" :key="group.id" :value="group.id">
                         {{ group.name }}
                     </option>
                 </BSelect>
@@ -27,6 +27,7 @@
 <script lang="ts" setup>
 import { useGroupStore } from '@/Stores/GroupStore';
 import { storeToRefs } from 'pinia';
+import { computed } from 'vue';
 
 
 const props = defineProps<{
@@ -35,6 +36,13 @@ const props = defineProps<{
 
 const groupStore = useGroupStore();
 const { Groups: groups } = storeToRefs(groupStore);
+
+const selectedGroupId = computed({
+    get: () => props.selectedUser.group?.id ?? "",
+    set: (id: string) => {
+        props.selectedUser.group = groups.value.groups.find(g => g.id === id) ?? null;
+    }
+});
 </script>
 <style lang="scss">
 .group-body {

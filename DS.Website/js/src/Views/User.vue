@@ -7,7 +7,7 @@
                     ref="searchInput"
                     v-model="searchQuery"
                     icon="magnifying-glass"
-                    placeholder="Søg efter navn eller gruppenummer"
+                    placeholder="Søg efter navn eller gruppe"
                     />
             </SidebarHeader>
             <SidebarContent>
@@ -80,9 +80,9 @@ const filteredUsers = computed(() => {
 
   const query = searchQuery.value.toLowerCase();
   return users.value.filter(u => {
-        const fullName = `${u.firstName || ''} ${u.lastName || ''}`.toLowerCase();
-    const groupNum = u.groupNumber ? u.groupNumber.toLowerCase() : '';
-    return fullName.includes(query) || groupNum.includes(query);
+    const fullName = `${u.firstName || ''} ${u.lastName || ''}`.toLowerCase();
+    const groupName = u.group?.name ? u.group.name.toLowerCase() : '';
+    return fullName.includes(query) || groupName.includes(query);
   });
 });
 

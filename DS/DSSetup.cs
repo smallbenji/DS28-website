@@ -26,7 +26,6 @@ namespace DS
                 {
                     var dsSettings = configuration.GetSection("DS").Get<DSSettings>();
 
-                    options.Events.OnValidatePrincipal = async context => await KeycloakValidation.KeycloakValidator(context, dsSettings);
                 })
                 .AddOpenIdConnect(options =>
                 {
@@ -109,7 +108,6 @@ namespace DS
                     return;
                 }
 
-                KeycloakValidation.SetLastUpdate(DateTimeOffset.UtcNow.ToUnixTimeSeconds());
             });
 
             app.MapGet("/logout", async context =>

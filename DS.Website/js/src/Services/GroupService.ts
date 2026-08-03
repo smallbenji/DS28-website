@@ -40,7 +40,7 @@ export default class GroupService {
         }
     }
 
-    public async createPatrol(groupId: number, name: string): Promise<DSPatrol | null> {
+    public async createPatrol(groupId: number | string, name: string): Promise<DSPatrol | null> {
         try {
             const response: AxiosResponse = await axios({
                 url: "/api/v1/group/patrol",
@@ -53,7 +53,7 @@ export default class GroupService {
         }
     }
 
-    public async createScout(groupId: number, name: string, birthday: string, gender: 'Male' | 'Female'): Promise<DSScout | null> {
+    public async createScout(groupId: number | string, name: string, birthday: string, gender: 'Male' | 'Female'): Promise<DSScout | null> {
         try {
             const response: AxiosResponse = await axios({
                 url: "/api/v1/group/scout",

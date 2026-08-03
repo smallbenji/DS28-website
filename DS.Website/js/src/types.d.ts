@@ -9,7 +9,6 @@ interface DSUser {
     firstName: string;
     lastName: string;
     email: string;
-    groupNumber: string;
     roles: string[];
     group: DSGroup | null;
 }
@@ -19,9 +18,9 @@ interface UserSummaryDTO {
     userName: string;
     firstName: string;
     lastName: string;
-    groupNumber: string;
     email: string;
     roles: string[];
+    group: DSGroup | null;
 }
 
 interface KcGroup {

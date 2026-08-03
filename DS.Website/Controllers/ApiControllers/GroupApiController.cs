@@ -38,7 +38,6 @@ public class GroupApiController : Controller
         public string Email { get; set; }
         public string FirstName { get; set; }
         public string LastName { get; set; }
-        // public string GroupNumber { get; set; }
         public List<string> Roles { get; set; } = new();
     }
 
@@ -119,7 +118,8 @@ public class GroupApiController : Controller
             .ToListAsync();
 
         var users = await userManager.Users
-            .Where(user => user.Group.Id > 0)
+            .Include(user => user.Group)
+            .Where(user => user.Group != null)
             .ToListAsync();
 
         var retval = new GroupDTO(groups)
