@@ -30,6 +30,10 @@ namespace DS.Website
                     nameof(AppRoles.UsersView),
                     nameof(AppRoles.UsersCreate),
                     nameof(AppRoles.UsersDelete),
+
+                    nameof(AppRoles.GroupView),
+                    nameof(AppRoles.GroupCreate),
+                    nameof(AppRoles.GroupDelete),
                 ]
             },
             {
