@@ -75,12 +75,24 @@ public class AuthorizationController : Controller
     [IgnoreAntiforgeryToken]
     public async Task<IActionResult> Exchange()
     {
+        // Hvis WordPress har sendt en 'scope' parameter med i sin POST, 
+        // fjerner vi den fra anmodningen, så OpenIddict ikke kaster en fejl.
+        if (Request.HasFormContentType && Request.Form.ContainsKey("scope"))
+        {
+            // Vi laver en modificeret samling af form-parametre uden 'scope'
+            var formFields = Request.Form.ToDictionary(x => x.Key, x => x.Value);
+            formFields.Remove("scope");
+
+            // Overskriv anmodningens form-data
+            Request.Form = new FormCollection(formFields.ToDictionary(x => x.Key, x => x.Value));
+        }
+
+        // Nu kan OpenIddict udtrække anmodningen uden at fejle på ID2074
         var request = HttpContext.GetOpenIddictServerRequest() ??
             throw new InvalidOperationException("OIDC anmodningen kunne ikke hentes.");
 
         if (request.IsAuthorizationCodeGrantType())
         {
-            // 1. Hent det principal, som OpenIddict gemte i krypteret form i din 'code'
             var result = await HttpContext.AuthenticateAsync(OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
             var principal = result.Principal;
 
@@ -89,14 +101,15 @@ public class AuthorizationController : Controller
                 return Forbid(OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
             }
 
-            // 2. OpenIddict kræver, at destinationerne OGSÅ gen-sættes under token-ombytningen
+            // Sørg for at gensætte scopes og destinationer på tokens
+            principal.SetScopes(request.GetScopes());
+
             var identity = (ClaimsIdentity)principal.Identity!;
             foreach (var claim in identity.Claims)
             {
                 claim.SetDestinations(GetDestinations(claim, request));
             }
 
-            // 3. Send det endelige token tilbage til WordPress
             return SignIn(principal, OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
         }
 
