@@ -12,7 +12,7 @@ namespace DS.Website.Controllers
         public static List<HQPanelEntry> GetShortcuts(IUrlHelper Url) => [
             // Need roles
             new() { Title = "Brugerstyring", Url = "/user", Icon = ["user"], RequiredRole = nameof(AppRoles.UsersView) },
-            new() { Title = "Gruppestyring", Url = "/group", Icon = ["users"], RequiredRole = nameof(AppRoles.GroupView) },
+            new() { Title = "Gruppestyring", Url = "/groups", Icon = ["users"], RequiredRole = nameof(AppRoles.GroupView) },
             
             // No roles needed
             new() { Title = "Wordpress", Url = "https://distriktssommerlejr.dk", Icon = ["fab", "wordpress"] },
