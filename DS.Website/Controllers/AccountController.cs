@@ -11,7 +11,7 @@ public class AccountController(UserManager<User> userManager, SignInManager<User
     {
         if (HttpContext.User.Identity.IsAuthenticated)
         {
-            return RedirectToAction(nameof(Index));
+            return Redirect("/");
         }
 
         return View();
@@ -22,7 +22,7 @@ public class AccountController(UserManager<User> userManager, SignInManager<User
     {
         if (HttpContext.User.Identity.IsAuthenticated)
         {
-            return RedirectToAction(nameof(Index));
+            return Redirect("/");
         }
 
         return View();
@@ -53,7 +53,7 @@ public class AccountController(UserManager<User> userManager, SignInManager<User
 
         if (result.Succeeded)
         {
-            return RedirectToAction(nameof(Index));
+            return Redirect("/");
         }
 
         if (result.IsLockedOut)
@@ -90,7 +90,7 @@ public class AccountController(UserManager<User> userManager, SignInManager<User
 
         if (result.Succeeded)
         {
-            return Redirect("/");
+            return RedirectToAction(nameof(Login));
         }
 
         foreach (var error in result.Errors)
