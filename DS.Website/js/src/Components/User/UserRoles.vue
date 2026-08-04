@@ -20,6 +20,9 @@
     </nav>
     <BModal v-model="open" has-modal-card>
         <div class="modal-card">
+            <div class="modal-card-head">
+                <p class="modal-card-title">Tildel rolle</p>
+            </div>
             <div class="modal-card-body">
                 <BField label="Rolle">
                     <BSelect expanded v-model="selectedGroup">
@@ -28,9 +31,13 @@
                         </option>
                     </BSelect>
                 </BField>
-                <BButton @click="Assign">
-                    Tildel rolle
-                </BButton>
+            </div>
+            <div class="modal-card-foot">
+                <div class="buttons">
+                    <BButton type="is-primary" @click="Assign">
+                        Tildel rolle
+                    </BButton>
+                </div>
             </div>
         </div>
     </BModal>
