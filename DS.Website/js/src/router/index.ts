@@ -23,6 +23,10 @@ const routes: RouteRecordRaw[] = [
     {
         path: "/invitation/:id",
         component: () => import("@/Views/Invitation.vue")
+    },
+    {
+        path: "/group",
+        component: () => import("@/Views/Group.vue")
     }
 ];
 
