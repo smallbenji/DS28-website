@@ -1,5 +1,5 @@
 <template>
-    <Back :hide-back="true" icon="house" title="Distriktssommerlejr HQ" />
+    <Back :hide-back="true" icon="house" title="HQ" />
     <div class="grid">
         <component
             v-for="(link, index) in HQ.shortcuts"
