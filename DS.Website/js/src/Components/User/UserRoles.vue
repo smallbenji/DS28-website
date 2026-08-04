@@ -40,12 +40,14 @@
                 Er du sikker?
             </div>
             <div class="modal-card-foot">
-                <BButton type="is-danger" @click="ApprovedRemove">
-                    Fjern Rolle
-                </BButton>
-                <BButton type="is-primary" @click="confirmationOpen = false">
-                    Annuller
-                </BButton>
+                <div class="buttons">
+                    <BButton type="is-danger" @click="ApprovedRemove">
+                        Fjern Rolle
+                    </BButton>
+                    <BButton type="is-primary" @click="confirmationOpen = false">
+                        Annuller
+                    </BButton>
+                </div>
             </div>
         </div>
     </BModal>

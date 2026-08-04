@@ -1,11 +1,12 @@
 body, html {
-        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-        margin: 0;
-        padding: 0;
-        height: 100vh;
-        overflow: hidden;
-        background-color: #d4d4d4;
-      }
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  margin: 0;
+  padding: 0;
+  height: 100vh;
+  overflow: hidden;
+  background-color: #d4d4d4;
+}
+
 body {
   margin: 0;
   height: 100vh;
