@@ -17,9 +17,9 @@ namespace DS.Website
         UsersLock,
         UsersDelete,
         
-        GroupView,
-        GroupCreate,
-        GroupDelete,
+        GroupsView,
+        GroupsCreate,
+        GroupsDelete,
 
         AuditLogView,
     }
@@ -36,9 +36,9 @@ namespace DS.Website
                     nameof(AppRoles.UsersLock),
                     nameof(AppRoles.UsersDelete),
 
-                    nameof(AppRoles.GroupView),
-                    nameof(AppRoles.GroupCreate),
-                    nameof(AppRoles.GroupDelete),
+                    nameof(AppRoles.GroupsView),
+                    nameof(AppRoles.GroupsCreate),
+                    nameof(AppRoles.GroupsDelete),
                 ]
             },
             {
@@ -46,8 +46,8 @@ namespace DS.Website
                 [
                     nameof(AppRoles.UsersView),
 
-                    nameof(AppRoles.GroupView),
-                    nameof(AppRoles.GroupCreate),
+                    nameof(AppRoles.GroupsView),
+                    nameof(AppRoles.GroupsCreate),
                 ]
             },
             {

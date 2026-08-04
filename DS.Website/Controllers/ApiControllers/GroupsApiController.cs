@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace DS.HQ.Controllers;
 
-[Authorize(Roles = nameof(AppRoles.GroupView))]
+[Authorize(Roles = nameof(AppRoles.GroupsView))]
 [Route("/api/v1/groups")]
 public class GroupsApiController : Controller
 {
@@ -319,7 +319,7 @@ public class GroupsApiController : Controller
     }
 
     [HttpDelete("patrol/{id}")]
-    [Authorize(Roles = nameof(AppRoles.GroupDelete))]
+    [Authorize(Roles = nameof(AppRoles.GroupsDelete))]
     public async Task<IActionResult> DeletePatrol(int id)
     {
         var patrol = await dataDb.Patrols.FindAsync(id);
@@ -373,7 +373,7 @@ public class GroupsApiController : Controller
     }
 
     [HttpDelete("{id}")]
-    [Authorize(Roles = nameof(AppRoles.GroupDelete))]
+    [Authorize(Roles = nameof(AppRoles.GroupsDelete))]
     public async Task<IActionResult> DeleteGroup(int id)
     {
         var group = await dataDb.Groups.FindAsync(id);
