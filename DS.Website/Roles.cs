@@ -3,6 +3,10 @@ namespace DS.Website
     public enum AppGroups
     {
         SysAdmin,
+        CampAdmin,
+        EventAdmin,
+        ActivityAdmin,
+        FinanceAdmin,
         User,
     }
 
@@ -22,7 +26,6 @@ namespace DS.Website
 
     public static class AppAccess
     {
-        // Vi ændrer værdien til string[], så vi bruger lynhurtige kompiler-konstanter via nameof()
         public static readonly Dictionary<AppGroups, string[]> Matrix = new()
         {
             {
@@ -36,6 +39,33 @@ namespace DS.Website
                     nameof(AppRoles.GroupView),
                     nameof(AppRoles.GroupCreate),
                     nameof(AppRoles.GroupDelete),
+                ]
+            },
+            {
+                AppGroups.CampAdmin,
+                [
+                    nameof(AppRoles.UsersView),
+
+                    nameof(AppRoles.GroupView),
+                    nameof(AppRoles.GroupCreate),
+                ]
+            },
+            {
+                AppGroups.EventAdmin,
+                [
+                    
+                ]
+            },
+            {
+                AppGroups.ActivityAdmin,
+                [
+                    
+                ]
+            },
+            {
+                AppGroups.FinanceAdmin,
+                [
+                    
                 ]
             },
             {
