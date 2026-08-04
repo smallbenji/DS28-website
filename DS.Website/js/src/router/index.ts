@@ -17,7 +17,7 @@ const routes: RouteRecordRaw[] = [
     },
     {
         path: "/groups",
-        component: () => import("@/Views/Group.vue"),
+        component: () => import("@/Views/Groups.vue"),
         meta: { requiresGroupData: true }
     },
     {
