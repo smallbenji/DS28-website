@@ -28,12 +28,12 @@
     </BModal>
 </template>
 <script setup lang="ts">
-import { useGroupStore } from '@/Stores/GroupStore';
+import { useGroupsStore } from '@/Stores/GroupsStore';
 import { BModal, BField, BInput, BSelect, BButton, useToast } from 'buefy';
 import { ref, toRaw } from 'vue';
 
 const Toast = useToast();
-const groupStore = useGroupStore();
+const groupStore = useGroupsStore();
 
 const newGroup = ref<DSGroup | null>(null);
 const open = ref<boolean>(false);

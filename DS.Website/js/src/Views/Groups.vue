@@ -62,7 +62,7 @@
 </template>
 <script lang="ts" setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue';
-import { useGroupStore } from '@/Stores/GroupStore';
+import { useGroupsStore } from '@/Stores/GroupsStore';
 import { storeToRefs } from 'pinia';
 import { BButton, BInput, useToast } from 'buefy';
 import Back from '@/Components/Back.vue';
@@ -83,7 +83,7 @@ import GroupScouts from '@/Components/Groups/GroupsScouts.vue';
 
 const Toast = useToast();
 
-const groupStore = useGroupStore();
+const groupStore = useGroupsStore();
 const { Groups: groups } = storeToRefs(groupStore);
 
 const selectedGroup = ref<DSGroup | null>(null);

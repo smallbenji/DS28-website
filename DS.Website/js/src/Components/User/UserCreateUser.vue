@@ -34,7 +34,7 @@
 </template>
 <script setup lang="ts">
 import { useUserStore } from '@/Stores/UserStore';
-import { useGroupStore } from '@/Stores/GroupStore';
+import { useGroupsStore } from '@/Stores/GroupsStore';
 import { BModal, BField, BInput, BSelect, BButton } from 'buefy';
 import { computed, ref, toRaw, watch } from 'vue';
 import { storeToRefs } from 'pinia';
@@ -43,7 +43,7 @@ const newUser = ref<DSUser | null>();
 const open = ref<boolean>(false);
 
 const userStore = useUserStore();
-const groupStore = useGroupStore();
+const groupStore = useGroupsStore();
 const { Groups: groups } = storeToRefs(groupStore);
 
 const newGroupId = computed({

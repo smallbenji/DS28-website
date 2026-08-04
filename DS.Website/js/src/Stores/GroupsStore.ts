@@ -1,9 +1,9 @@
-import GroupService from "@/Services/GroupService";
+import GroupsService from "@/Services/GroupsService";
 import { defineStore } from "pinia";
 import { computed, ref } from "vue";
 
-export const useGroupStore = defineStore("group", () => {
-    const groupService = new GroupService();
+export const useGroupsStore = defineStore("groups", () => {
+    const groupService = new GroupsService();
     const Groups = ref<GroupDTO>({ groups: [], users: {}});
     const GROUPS = computed(() => Groups.value);
 

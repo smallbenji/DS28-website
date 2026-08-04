@@ -70,8 +70,8 @@
 <script lang="ts" setup>
 import { ref } from 'vue';
 import { BButton, BModal, BField, BInput, useToast } from 'buefy';
-import { useGroupStore } from '@/Stores/GroupStore';
-import GroupService from '@/Services/GroupService';
+import { useGroupsStore } from '@/Stores/GroupsStore';
+import GroupsService from '@/Services/GroupsService';
 
 const props = defineProps<{
     selectedGroup: DSGroup
@@ -95,8 +95,8 @@ const emit = defineEmits<{
 }>();
 
 const Toast = useToast();
-const groupStore = useGroupStore();
-const groupService = new GroupService();
+const groupStore = useGroupsStore();
+const groupService = new GroupsService();
 
 const isCreateModalOpen = ref(false);
 const newPatrolName = ref('');

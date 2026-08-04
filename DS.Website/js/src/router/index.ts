@@ -1,4 +1,4 @@
-import { useGroupStore } from "@/Stores/GroupStore";
+import { useGroupsStore } from "@/Stores/GroupsStore";
 import { useUserStore } from "@/Stores/UserStore";
 import { createRouter, createWebHistory, type RouteRecordRaw } from "vue-router";
 import { useLoading } from "buefy";
@@ -41,7 +41,7 @@ router.beforeEach(async (to) => {
     
     const meStore = useMeStore();
     const userStore = useUserStore();
-    const groupStore = useGroupStore();
+    const groupStore = useGroupsStore();
 
     try {
         await meStore.GET_ME();

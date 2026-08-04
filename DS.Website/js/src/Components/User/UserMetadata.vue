@@ -25,7 +25,7 @@
     </nav>
 </template>
 <script lang="ts" setup>
-import { useGroupStore } from '@/Stores/GroupStore';
+import { useGroupsStore } from '@/Stores/GroupsStore';
 import { storeToRefs } from 'pinia';
 import { computed } from 'vue';
 
@@ -34,7 +34,7 @@ const props = defineProps<{
     selectedUser: UserSummaryDTO
 }>();
 
-const groupStore = useGroupStore();
+const groupStore = useGroupsStore();
 const { Groups: groups } = storeToRefs(groupStore);
 
 const selectedGroupId = computed({

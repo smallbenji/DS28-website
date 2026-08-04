@@ -8,13 +8,13 @@ using Microsoft.EntityFrameworkCore;
 namespace DS.HQ.Controllers;
 
 [Authorize(Roles = nameof(AppRoles.GroupView))]
-[Route("/api/v1/group")]
-public class GroupApiController : Controller
+[Route("/api/v1/groups")]
+public class GroupsApiController : Controller
 {
     private readonly DataDbContext dataDb;
     private readonly UserManager<User> userManager;
 
-    public GroupApiController(DataDbContext dataDb, UserManager<User> userManager)
+    public GroupsApiController(DataDbContext dataDb, UserManager<User> userManager)
     {
         this.dataDb = dataDb;
         this.userManager = userManager;
