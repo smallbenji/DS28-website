@@ -74,12 +74,12 @@ import SidebarFooter from '@/Components/Sidebar/SidebarFooter.vue';
 import Workspace from '@/Components/Workspace/Workspace.vue';
 import WorkspaceContent from '@/Components/Workspace/WorkspaceContent.vue';
 import WorkspaceFooter from '@/Components/Workspace/WorkspaceFooter.vue';
-import GroupSidebarBox from '@/Components/Group/GroupSidebarBox.vue';
-import GroupMetadata from '@/Components/Group/GroupMetadata.vue';
-import GroupCreateGroup from '@/Components/Group/GroupCreateGroup.vue';
-import GroupUsers from '@/Components/Group/GroupUsers.vue';
-import GroupPatrols from '@/Components/Group/GroupPatrols.vue';
-import GroupScouts from '@/Components/Group/GroupScouts.vue';
+import GroupSidebarBox from '@/Components/Groups/GroupsSidebarBox.vue';
+import GroupMetadata from '@/Components/Groups/GroupsMetadata.vue';
+import GroupCreateGroup from '@/Components/Groups/GroupsCreateGroup.vue';
+import GroupUsers from '@/Components/Groups/GroupsUsers.vue';
+import GroupPatrols from '@/Components/Groups/GroupsPatrols.vue';
+import GroupScouts from '@/Components/Groups/GroupsScouts.vue';
 
 const Toast = useToast();
 
