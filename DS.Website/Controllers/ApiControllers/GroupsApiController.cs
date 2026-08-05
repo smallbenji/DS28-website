@@ -1,3 +1,4 @@
+using DS.DTOs;
 using DS.Models;
 using DS.Website;
 using Microsoft.AspNetCore.Authorization;
@@ -22,13 +23,13 @@ public class GroupsApiController : Controller
 
     public class GroupDTO
     {
-        public GroupDTO(List<GroupSummaryDTO> groups)
+        public GroupDTO(List<GroupDto> groups)
         {
             Groups = groups;
         }
 
-        public List<GroupSummaryDTO> Groups { get; set; }
-        public Dictionary<string, List<UserSummaryDTO>> Users { get; set; } = new();
+        public List<GroupDto> Groups { get; set; }
+        public Dictionary<string, List<UserDto>> Users { get; set; } = new();
     }
 
     public class UserSummaryDTO
@@ -41,82 +42,14 @@ public class GroupsApiController : Controller
         public List<string> Roles { get; set; } = new();
     }
 
-    public class GroupSummaryDTO
-    {
-        public int Id { get; set; }
-        public string Name { get; set; }
-        public District District { get; set; }
-        public List<PatrolSummaryDTO> Patrols { get; set; } = new();
-        public List<ScoutSummaryDTO> Scouts { get; set; } = new();
-    }
-
-    public class PatrolSummaryDTO
-    {
-        public int Id { get; set; }
-        public string Name { get; set; }
-        public int GroupId { get; set; }
-        public List<PatrolMembershipSummaryDTO> Memberships { get; set; } = new();
-    }
-
-    public class ScoutSummaryDTO
-    {
-        public int Id { get; set; }
-        public string Name { get; set; }
-        public DateTime Birthday { get; set; }
-        public Gender Gender { get; set; }
-        public int GroupId { get; set; }
-        public List<PatrolMembershipSummaryDTO> Memberships { get; set; } = new();
-    }
-
-    public class PatrolMembershipSummaryDTO
-    {
-        public int Id { get; set; }
-        public int ScoutId { get; set; }
-        public int PatrolId { get; set; }
-        public DateTime JoinedDate { get; set; }
-        public bool IsPatrolLeader { get; set; }
-    }
-
     [HttpGet]
     public async Task<IActionResult> Index()
     {
         var groups = await dataDb.Groups
-            .Select(group => new GroupSummaryDTO
-            {
-                Id = group.Id,
-                Name = group.Name,
-                District = group.District,
-                Patrols = group.Patrols.Select(patrol => new PatrolSummaryDTO
-                {
-                    Id = patrol.Id,
-                    Name = patrol.Name,
-                    GroupId = patrol.GroupId,
-                    Memberships = patrol.Memberships.Select(membership => new PatrolMembershipSummaryDTO
-                    {
-                        Id = membership.Id,
-                        ScoutId = membership.ScoutId,
-                        PatrolId = membership.PatrolId,
-                        JoinedDate = membership.JoinedDate,
-                        IsPatrolLeader = membership.IsPatrolLeader
-                    }).ToList()
-                }).ToList(),
-                Scouts = group.Scouts.Select(scout => new ScoutSummaryDTO
-                {
-                    Id = scout.Id,
-                    Name = scout.Name,
-                    Birthday = scout.Birthday,
-                    Gender = scout.Gender,
-                    GroupId = scout.GroupId,
-                    Memberships = scout.Memberships.Select(membership => new PatrolMembershipSummaryDTO
-                    {
-                        Id = membership.Id,
-                        ScoutId = membership.ScoutId,
-                        PatrolId = membership.PatrolId,
-                        JoinedDate = membership.JoinedDate,
-                        IsPatrolLeader = membership.IsPatrolLeader
-                    }).ToList()
-                }).ToList()
-            })
+            .Include(g => g.Patrols).ThenInclude(p => p.Memberships)
+            .Include(g => g.Scouts).ThenInclude(s => s.Memberships)
+            .Select(x => new GroupDto(x))
+            .AsNoTracking()
             .ToListAsync();
 
         var users = await userManager.Users
@@ -130,15 +63,8 @@ public class GroupsApiController : Controller
                 .GroupBy(user => user.Group.Id!)
                 .ToDictionary(
                     group => group.Key.ToString(),
-                    group => group.Select(user => new UserSummaryDTO
-                    {
-                        Id = user.Id,
-                        UserName = user.UserName ?? string.Empty,
-                        Email = user.Email ?? string.Empty,
-                        FirstName = user.FirstName ?? string.Empty,
-                        LastName = user.LastName ?? string.Empty,
-                        Roles = []
-                    }).ToList())
+                    group => group.Select(user => new UserDto(user)).ToList()
+                )
         };
 
         return Ok(retval);
