@@ -80,13 +80,14 @@ import GroupCreateGroup from '@/Components/Groups/GroupsCreateGroup.vue';
 import GroupUsers from '@/Components/Groups/GroupsUsers.vue';
 import GroupPatrols from '@/Components/Groups/GroupsPatrols.vue';
 import GroupScouts from '@/Components/Groups/GroupsScouts.vue';
+import type { GroupDto, PatrolDto, ScoutDto } from '@/types';
 
 const Toast = useToast();
 
 const groupStore = useGroupsStore();
 const { Groups: groups } = storeToRefs(groupStore);
 
-const selectedGroup = ref<DSGroup | null>(null);
+const selectedGroup = ref<GroupDto | null>(null);
 const searchQuery = ref('');
 
 const filteredGroups = computed(() => {
@@ -101,7 +102,7 @@ const filteredGroups = computed(() => {
     );
 });
 
-const toggleGroupSelection = (clickedGroup: DSGroup) => {
+const toggleGroupSelection = (clickedGroup: GroupDto) => {
     if (selectedGroup.value?.id === clickedGroup.id) {
         selectedGroup.value = null;
     } else {
@@ -149,7 +150,7 @@ const saveGroup = async () => {
     }
 };
 
-const handlePatrolCreated = (patrol: DSPatrol) => {
+const handlePatrolCreated = (patrol: PatrolDto) => {
     if (selectedGroup.value) {
         if (!selectedGroup.value.patrols) {
             selectedGroup.value.patrols = [];
@@ -173,7 +174,7 @@ const handlePatrolDeleted = (patrolId: number) => {
     }
 };
 
-const handleScoutCreated = (scout: DSScout) => {
+const handleScoutCreated = (scout: ScoutDto) => {
     if (selectedGroup.value) {
         if (!selectedGroup.value.scouts) {
             selectedGroup.value.scouts = [];

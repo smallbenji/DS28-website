@@ -64,9 +64,10 @@ import { useUserStore } from '@/Stores/UserStore';
 import { BButton, BField, BModal, BSelect } from 'buefy';
 import { storeToRefs } from 'pinia';
 import { computed, ref } from 'vue';
+import type { RoleDto, UserDto } from '@/types';
 
 const props = defineProps<{
-    selectedUser: UserSummaryDTO
+    selectedUser: UserDto
 }>();
 
 const userStore = useUserStore();
@@ -79,7 +80,7 @@ const confirmationOpen = ref<boolean>(false);
 const selectedGroupToRemove = ref<string>("");
 
 const filteredGroups = computed(() => {
-    return groups.value.filter(x => !props.selectedUser.roles.includes(x.name)) as AppRole[];
+    return groups.value.filter(x => !props.selectedUser.roles.includes(x.name)) as RoleDto[];
 })
 
 const Assign = async () => {

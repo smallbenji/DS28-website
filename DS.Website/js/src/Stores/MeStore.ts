@@ -1,16 +1,17 @@
 import MeService from "@/Services/MeService";
 import { defineStore } from "pinia";
 import { computed, ref } from "vue";
+import type { HomeViewModelDto, MeDto } from "@/types";
 
 export const useMeStore = defineStore("me", () => {
     const meService = new MeService();
-    const Me = ref<MeDTO>({
+    const Me = ref<MeDto>({
         name: "",
         roles: [],
         appRoles: []
     });
     const ME = computed(() => Me.value);
-    const Hq = ref<HomeViewModel>({shortcuts: []});
+    const Hq = ref<HomeViewModelDto>({shortcuts: []});
     const HQ = computed(() => Hq.value);
 
     async function GET_ME() {

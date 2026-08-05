@@ -38,8 +38,9 @@ import { useGroupsStore } from '@/Stores/GroupsStore';
 import { BModal, BField, BInput, BSelect, BButton } from 'buefy';
 import { computed, ref, toRaw, watch } from 'vue';
 import { storeToRefs } from 'pinia';
+import type { UserDto } from '@/types';
 
-const newUser = ref<DSUser | null>();
+const newUser = ref<UserDto | null>();
 const open = ref<boolean>(false);
 
 const userStore = useUserStore();
@@ -47,10 +48,10 @@ const groupStore = useGroupsStore();
 const { Groups: groups } = storeToRefs(groupStore);
 
 const newGroupId = computed({
-    get: () => newUser.value?.group?.id ?? "",
+    get: () => newUser.value?.group?.id != null ? String(newUser.value.group.id) : "",
     set: (id: string) => {
         if (newUser.value) {
-            newUser.value.group = groups.value.groups.find(g => g.id === id) ?? null;
+            newUser.value.group = groups.value.groups.find(g => String(g.id) === id) ?? null;
         }
     }
 });
@@ -66,7 +67,7 @@ const createNewUser = () => {
     roles: [],
     group: null,
     lockoutEnd: null
-  } as DSUser;
+  } as UserDto;
 };
 
 const createUser = async () => {

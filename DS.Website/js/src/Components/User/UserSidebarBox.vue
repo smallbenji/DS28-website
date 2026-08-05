@@ -18,9 +18,10 @@
 </template>
 <script lang="ts" setup>
 import { computed } from 'vue';
+import type { UserDto } from '@/types';
 
 const props = defineProps<{
-    user: UserSummaryDTO;
+    user: UserDto;
     selected: boolean;
 }>();
 

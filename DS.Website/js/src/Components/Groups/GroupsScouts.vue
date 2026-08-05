@@ -141,13 +141,14 @@ import { ref } from 'vue';
 import { BButton, BModal, BField, BInput, BSelect, useToast } from 'buefy';
 import { useGroupsStore } from '@/Stores/GroupsStore';
 import GroupsService from '@/Services/GroupsService';
+import type { GroupDto, ScoutDto } from '@/types';
 
 const props = defineProps<{
-    selectedGroup: DSGroup
+    selectedGroup: GroupDto
 }>();
 
 const emit = defineEmits<{
-    (e: 'scout-created', scout: DSScout): void;
+    (e: 'scout-created', scout: ScoutDto): void;
     (e: 'scout-deleted', scoutId: number): void;
     (e: 'patrol-assigned', scoutId: number, patrolId: number, action: 'add' | 'remove'): void;
     (e: 'patrol-leader-toggled', scoutId: number, patrolId: number): void;
@@ -163,11 +164,11 @@ const newScoutBirthday = ref('');
 const newScoutGender = ref<'Male' | 'Female'>('Male');
 
 const isPatrolsModalOpen = ref(false);
-const scoutToEdit = ref<DSScout | null>(null);
+const scoutToEdit = ref<ScoutDto | null>(null);
 const selectedPatrolToAdd = ref<number | null>(null);
 
 const isDeleteModalOpen = ref(false);
-const scoutToDelete = ref<DSScout | null>(null);
+const scoutToDelete = ref<ScoutDto | null>(null);
 
 const openCreateModal = () => {
     newScoutName.value = '';
@@ -176,13 +177,13 @@ const openCreateModal = () => {
     isCreateModalOpen.value = true;
 };
 
-const openPatrolsModal = (scout: DSScout) => {
+const openPatrolsModal = (scout: ScoutDto) => {
     scoutToEdit.value = scout;
     selectedPatrolToAdd.value = null;
     isPatrolsModalOpen.value = true;
 };
 
-const openDeleteModal = (scout: DSScout) => {
+const openDeleteModal = (scout: ScoutDto) => {
     scoutToDelete.value = scout;
     isDeleteModalOpen.value = true;
 };

@@ -33,9 +33,10 @@ import { useUserStore } from '@/Stores/UserStore';
 import { BButton, BModal, useToast } from 'buefy';
 import { computed, ref } from 'vue';
 import Can from '@/Components/Can.vue';
+import type { UserDto } from '@/types';
 
 const props = defineProps<{
-    user: UserSummaryDTO
+    user: UserDto
 }>();
 
 const emit = defineEmits<{

@@ -1,3 +1,4 @@
+using DS.DTOs;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 
@@ -21,7 +22,7 @@ namespace DS.Website.Controllers
                 .Distinct()
                 .ToList();
 
-            var model = new MeDTO
+            var model = new MeDto
             {
                 Name = user.GetFullName(),
                 Roles = roles,
@@ -30,12 +31,5 @@ namespace DS.Website.Controllers
 
             return Ok(model);
         }
-    }
-
-    public class MeDTO
-    {
-        public string Name { get; set; }
-        public List<string> Roles { get; set; } = [];
-        public List<string> AppRoles { get; set; } = [];
     }
 }

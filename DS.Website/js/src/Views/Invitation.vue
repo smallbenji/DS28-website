@@ -43,11 +43,12 @@ import InvitationService from '@/Services/InvitationService';
 import { BButton, BField, BInput } from 'buefy';
 import { computed, onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
+import type { UserInvitationCreationDto, UserInvitationDto } from '@/types';
 
 const router = useRoute();
 const invitationService = new InvitationService();
 
-const invitationData = ref<Invitation | null>(null);
+const invitationData = ref<UserInvitationDto | null>(null);
 const firstName = ref("");
 const lastName = ref("");
 const email = ref("");
@@ -84,10 +85,10 @@ const canComplete = computed(() => {
 });
 
 const useInvitation = async () => {
-    const data: UserInvitationCreationDTO = {
-        FirstName: firstName.value,
-        LastName: lastName.value,
-        Password: password.value
+    const data: UserInvitationCreationDto = {
+        firstName: firstName.value,
+        lastName: lastName.value,
+        password: password.value
     }
     const response = await invitationService.useInvitation(invitationId.value.toString(), data);
 

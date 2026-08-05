@@ -21,27 +21,6 @@ public class GroupsApiController : Controller
         this.userManager = userManager;
     }
 
-    public class GroupDTO
-    {
-        public GroupDTO(List<GroupDto> groups)
-        {
-            Groups = groups;
-        }
-
-        public List<GroupDto> Groups { get; set; }
-        public Dictionary<string, List<UserDto>> Users { get; set; } = new();
-    }
-
-    public class UserSummaryDTO
-    {
-        public string Id { get; set; }
-        public string UserName { get; set; }
-        public string Email { get; set; }
-        public string FirstName { get; set; }
-        public string LastName { get; set; }
-        public List<string> Roles { get; set; } = new();
-    }
-
     [HttpGet]
     public async Task<IActionResult> Index()
     {
@@ -57,10 +36,10 @@ public class GroupsApiController : Controller
             .Where(user => user.Group != null)
             .ToListAsync();
 
-        var retval = new GroupDTO(groups)
+        var retval = new GroupsDto(groups)
         {
             Users = users
-                .GroupBy(user => user.Group.Id!)
+                .GroupBy(user => user.Group.Id)
                 .ToDictionary(
                     group => group.Key.ToString(),
                     group => group.Select(user => new UserDto(user)).ToList()
@@ -71,26 +50,25 @@ public class GroupsApiController : Controller
     }
 
     [HttpPost]
-    public async Task<IActionResult> CreateGroup([FromBody] Group data)
+    public async Task<IActionResult> CreateGroup([FromBody] GroupDto data)
     {
         if (data == null)
         {
             return BadRequest("Invalid request body.");
         }
 
-        dataDb.Groups.Add(data);
+        dataDb.Groups.Add(new Group
+        {
+            Id = data.Id,
+            Name = data.Name,
+            District = data.District
+        });
         await dataDb.SaveChangesAsync();
         return Ok();
     }
 
-    public class CreatePatrolDTO
-    {
-        public string Name { get; set; }
-        public int GroupId { get; set; }
-    }
-
     [HttpPost("patrol")]
-    public async Task<IActionResult> CreatePatrol([FromBody] CreatePatrolDTO data)
+    public async Task<IActionResult> CreatePatrol([FromBody] CreatePatrolDto data)
     {
         if (data == null)
         {
@@ -112,19 +90,11 @@ public class GroupsApiController : Controller
         dataDb.Patrols.Add(patrol);
         await dataDb.SaveChangesAsync();
 
-        return Ok(patrol);
-    }
-
-    public class CreateScoutDTO
-    {
-        public string Name { get; set; }
-        public DateTime Birthday { get; set; }
-        public Gender Gender { get; set; }
-        public int GroupId { get; set; }
+        return Ok(new PatrolDto(patrol));
     }
 
     [HttpPost("scout")]
-    public async Task<IActionResult> CreateScout([FromBody] CreateScoutDTO data)
+    public async Task<IActionResult> CreateScout([FromBody] CreateScoutDto data)
     {
         if (data == null)
         {
@@ -148,17 +118,11 @@ public class GroupsApiController : Controller
         dataDb.Scouts.Add(scout);
         await dataDb.SaveChangesAsync();
 
-        return Ok(scout);
-    }
-
-    public class ScoutPatrolDTO
-    {
-        public int ScoutId { get; set; }
-        public int PatrolId { get; set; }
+        return Ok(new ScoutDto(scout));
     }
 
     [HttpPost("scout/add-patrol")]
-    public async Task<IActionResult> AddPatrol([FromBody] ScoutPatrolDTO data)
+    public async Task<IActionResult> AddPatrol([FromBody] ScoutPatrolDto data)
     {
         if (data == null)
         {
@@ -197,7 +161,7 @@ public class GroupsApiController : Controller
     }
 
     [HttpPost("scout/remove-patrol")]
-    public async Task<IActionResult> RemovePatrol([FromBody] ScoutPatrolDTO data)
+    public async Task<IActionResult> RemovePatrol([FromBody] ScoutPatrolDto data)
     {
         if (data == null)
         {
@@ -216,14 +180,8 @@ public class GroupsApiController : Controller
         return Ok();
     }
 
-    public class ToggleLeaderDTO
-    {
-        public int ScoutId { get; set; }
-        public int PatrolId { get; set; }
-    }
-
     [HttpPost("scout/toggle-leader")]
-    public async Task<IActionResult> ToggleLeader([FromBody] ToggleLeaderDTO data)
+    public async Task<IActionResult> ToggleLeader([FromBody] ScoutPatrolDto data)
     {
         if (data == null)
         {
@@ -241,7 +199,7 @@ public class GroupsApiController : Controller
         membership.IsPatrolLeader = !membership.IsPatrolLeader;
         await dataDb.SaveChangesAsync();
 
-        return Ok(membership);
+        return Ok(new PatrolMembershipDto(membership));
     }
 
     [HttpDelete("patrol/{id}")]
@@ -274,7 +232,7 @@ public class GroupsApiController : Controller
     }
 
     [HttpPut("{id}")]
-    public async Task<IActionResult> UpdateGroup([FromBody] Group data, int id)
+    public async Task<IActionResult> UpdateGroup([FromBody] GroupDto data, int id)
     {
         if (data == null)
         {

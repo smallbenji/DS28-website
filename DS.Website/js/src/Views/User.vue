@@ -75,13 +75,14 @@ import ManagementWrapper from '@/Components/ManagementWrapper.vue';
 import Workspace from '@/Components/Workspace/Workspace.vue';
 import WorkspaceContent from '@/Components/Workspace/WorkspaceContent.vue';
 import WorkspaceFooter from '@/Components/Workspace/WorkspaceFooter.vue';
+import type { UserDto } from '@/types';
 
 const Toast = useToast();
 
 const userStore = useUserStore();
 const { Users: users } = storeToRefs(userStore);
 
-const selectedUser = ref<UserSummaryDTO | null>(null);
+const selectedUser = ref<UserDto | null>(null);
 
 const searchQuery = ref('');
 
@@ -96,7 +97,7 @@ const filteredUsers = computed(() => {
   });
 });
 
-const toggleUserSelection = (clickedUser: UserSummaryDTO) => {
+const toggleUserSelection = (clickedUser: UserDto) => {
         if (selectedUser.value?.id === clickedUser.id) {
         selectedUser.value = null;
     } else {
@@ -131,7 +132,7 @@ onUnmounted(() => {
 });
 
 const saveUser = async () => {
-    const result = await userStore.UPDATE_USER(selectedUser.value as UserSummaryDTO);
+    const result = await userStore.UPDATE_USER(selectedUser.value as UserDto);
     if (result) {
         Toast.open({
             message: "Brugere er blevet opdateret!",

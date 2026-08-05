@@ -31,16 +31,18 @@
 import { useGroupsStore } from '@/Stores/GroupsStore';
 import { BModal, BField, BInput, BSelect, BButton, useToast } from 'buefy';
 import { ref, toRaw } from 'vue';
+import type { GroupDto } from '@/types';
+import { District } from '@/types';
 
 const Toast = useToast();
 const groupStore = useGroupsStore();
 
-const newGroup = ref<DSGroup | null>(null);
+const newGroup = ref<GroupDto | null>(null);
 const open = ref<boolean>(false);
 
 const openCreate = () => {
     open.value = true;
-    newGroup.value = { id: '', name: '', patrols: [] };
+    newGroup.value = { id: 0, name: '', district: District.DANEHOF, patrols: [], scouts: [] };
 };
 
 const createGroup = async () => {

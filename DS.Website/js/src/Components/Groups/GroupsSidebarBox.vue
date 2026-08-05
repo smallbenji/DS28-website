@@ -9,8 +9,10 @@
     </div>
 </template>
 <script lang="ts" setup>
+import type { GroupDto } from '@/types';
+
 defineProps<{
-    group: DSGroup;
+    group: GroupDto;
     selected: boolean;
 }>();
 </script>

@@ -23,15 +23,16 @@
 import { useGroupsStore } from '@/Stores/GroupsStore';
 import { storeToRefs } from 'pinia';
 import { computed } from 'vue';
+import type { GroupDto } from '@/types';
 
 const props = defineProps<{
-    selectedGroup: DSGroup
+    selectedGroup: GroupDto
 }>();
 
 const groupStore = useGroupsStore();
 const { Groups: groups } = storeToRefs(groupStore);
 
 const users = computed(() => {
-    return groups.value.users[props.selectedGroup.id] ?? [];
+    return groups.value.users[String(props.selectedGroup.id)] ?? [];
 })
 </script>

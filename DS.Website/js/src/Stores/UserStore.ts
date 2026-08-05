@@ -1,12 +1,13 @@
 import UserService from "@/Services/UserService";
 import { defineStore } from "pinia";
 import { computed, ref } from "vue";
+import type { RoleDto, UserDto } from "@/types";
 
 export const useUserStore = defineStore("user", () => {
     const userService = new UserService();
 
-    const Users = ref<UserSummaryDTO[]>([]);
-    const Groups = ref<AppRole[]>([]);
+    const Users = ref<UserDto[]>([]);
+    const Groups = ref<RoleDto[]>([]);
 
     const USERS = computed(() => Users.value);
     const GROUPS = computed(() => Groups.value);
@@ -25,7 +26,7 @@ export const useUserStore = defineStore("user", () => {
         return data;
     }
 
-    async function ADD_USER_TO_ROLE(user: UserSummaryDTO, roleName: string) {
+    async function ADD_USER_TO_ROLE(user: UserDto, roleName: string) {
         var data = await userService.AssignRoleToUser(user, roleName);
 
         if (data)
@@ -34,7 +35,7 @@ export const useUserStore = defineStore("user", () => {
         return data;
     }
 
-    async function REMOVE_USER_FROM_ROLE(user: UserSummaryDTO, roleName: string) {
+    async function REMOVE_USER_FROM_ROLE(user: UserDto, roleName: string) {
         var data = await userService.RemoveRoleFromUser(user, roleName);
 
         if (data)
@@ -43,7 +44,7 @@ export const useUserStore = defineStore("user", () => {
         return data;
     }
 
-    async function CREATE_USER(user: UserSummaryDTO) {
+    async function CREATE_USER(user: UserDto) {
         var data = await userService.createUser(user);
 
         if (data)
@@ -52,7 +53,7 @@ export const useUserStore = defineStore("user", () => {
         return data;
     }
 
-    async function UPDATE_USER(user: UserSummaryDTO) {
+    async function UPDATE_USER(user: UserDto) {
         var data = await userService.updateUser(user);
 
         if (data)
@@ -61,7 +62,7 @@ export const useUserStore = defineStore("user", () => {
         return data;
     }
 
-    async function DELETE_USER(user: UserSummaryDTO) {
+    async function DELETE_USER(user: UserDto) {
         var data = await userService.deleteUser(user);
 
         if (data)
@@ -70,7 +71,7 @@ export const useUserStore = defineStore("user", () => {
         return data;
     }
 
-    async function LOCK_USER(user: UserSummaryDTO) {
+    async function LOCK_USER(user: UserDto) {
         var data = await userService.lockUser(user);
 
         if (data)
@@ -79,7 +80,7 @@ export const useUserStore = defineStore("user", () => {
         return data;
     }
 
-    async function UNLOCK_USER(user: UserSummaryDTO) {
+    async function UNLOCK_USER(user: UserDto) {
         var data = await userService.unlockUser(user);
 
         if (data)

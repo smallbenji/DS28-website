@@ -1,3 +1,4 @@
+using DS.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -20,11 +21,11 @@ namespace DS.HQ.Controllers
                 return NotFound("Invitation not found");
             }
 
-            return Ok(result);
+            return Ok(new UserInvitationDto(result));
         }
 
         [HttpPost("{id:guid}")]
-        public async Task<IActionResult> CreateUser([FromBody] UserInvitationCreationDTO data, Guid id)
+        public async Task<IActionResult> CreateUser([FromBody] UserInvitationCreationDto data, Guid id)
         {
             if (data == null)
             {
@@ -81,13 +82,6 @@ namespace DS.HQ.Controllers
             await dataDb.SaveChangesAsync();
 
             return Ok();
-        }
-
-        public class UserInvitationCreationDTO
-        {
-            public string FirstName { get; set; }
-            public string LastName { get; set; }
-            public string Password { get; set; }
         }
     }
 }

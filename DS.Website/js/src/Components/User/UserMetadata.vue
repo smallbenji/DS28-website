@@ -28,19 +28,20 @@
 import { useGroupsStore } from '@/Stores/GroupsStore';
 import { storeToRefs } from 'pinia';
 import { computed } from 'vue';
+import type { UserDto } from '@/types';
 
 
 const props = defineProps<{
-    selectedUser: UserSummaryDTO
+    selectedUser: UserDto
 }>();
 
 const groupStore = useGroupsStore();
 const { Groups: groups } = storeToRefs(groupStore);
 
 const selectedGroupId = computed({
-    get: () => props.selectedUser.group?.id ?? "",
+    get: () => props.selectedUser.group?.id != null ? String(props.selectedUser.group.id) : "",
     set: (id: string) => {
-        props.selectedUser.group = groups.value.groups.find(g => g.id === id) ?? null;
+        props.selectedUser.group = groups.value.groups.find(g => String(g.id) === id) ?? null;
     }
 });
 </script>

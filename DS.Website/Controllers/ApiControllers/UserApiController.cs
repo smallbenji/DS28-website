@@ -1,3 +1,4 @@
+using DS.DTOs;
 using DS.Models;
 using DS.Website;
 using Microsoft.AspNetCore.Authorization;
@@ -21,27 +22,19 @@ public class UserApiController(DataDbContext dataDb, UserManager<User> userManag
             .Include(x => x.Group)
             .ToListAsync();
 
-        var retval = new List<UserSummaryDTO>();
+        var retval = new List<UserDto>();
         foreach (var user in users)
         {
-            retval.Add(new UserSummaryDTO
-            {
-                Id = user.Id,
-                UserName = user.UserName ?? string.Empty,
-                Email = user.Email ?? string.Empty,
-                FirstName = user.FirstName ?? string.Empty,
-                LastName = user.LastName ?? string.Empty,
-                Group = user.Group,
-                LockoutEnd = user.LockoutEnd,
-                Roles = (await userManager.GetRolesAsync(user)).ToList()
-            });
+            var dto = new UserDto(user);
+            dto.Roles = (await userManager.GetRolesAsync(user)).ToList();
+            retval.Add(dto);
         }
 
         return Ok(retval);
     }
 
     [HttpPost]
-    public async Task<IActionResult> CreateUser([FromBody] UserSummaryDTO data)
+    public async Task<IActionResult> CreateUser([FromBody] UserDto data)
     {
         if (data == null)
         {
@@ -82,7 +75,7 @@ public class UserApiController(DataDbContext dataDb, UserManager<User> userManag
     }
 
     [HttpPut]
-    public async Task<IActionResult> UpdateUser([FromBody] UserSummaryDTO data)
+    public async Task<IActionResult> UpdateUser([FromBody] UserDto data)
     {
         if (data == null)
         {
@@ -242,7 +235,7 @@ public class UserApiController(DataDbContext dataDb, UserManager<User> userManag
     {
         var retval = await roleManager.Roles
             .OrderBy(role => role.Name)
-            .Select(role => new RoleSummaryDTO
+            .Select(role => new RoleDto
             {
                 Id = role.Id,
                 Name = role.Name ?? string.Empty
@@ -253,7 +246,7 @@ public class UserApiController(DataDbContext dataDb, UserManager<User> userManag
     }
 
     [HttpPost("invite")]
-    public async Task<IActionResult> InviteUser([FromBody] InvitationDTO data)
+    public async Task<IActionResult> InviteUser([FromBody] UserInvitationDto data)
     {
         if (data == null)
         {
@@ -290,28 +283,4 @@ public class UserApiController(DataDbContext dataDb, UserManager<User> userManag
 
         return Ok();
     }
-}
-
-public class UserSummaryDTO
-{
-    public string Id { get; set; }
-    public string UserName { get; set; }
-    public string Email { get; set; }
-    public string FirstName { get; set; }
-    public string LastName { get; set; }
-    public Group Group { get; set; }
-    public DateTimeOffset? LockoutEnd { get; set; }
-    public List<string> Roles { get; set; } = new();
-}
-
-public class RoleSummaryDTO
-{
-    public string Id { get; set; }
-    public string Name { get; set; }
-}
-
-public class InvitationDTO
-{
-    public List<string> Roles { get; set; }
-    public string Email { get; set; }
 }

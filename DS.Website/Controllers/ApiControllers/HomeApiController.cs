@@ -1,3 +1,4 @@
+using DS.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -9,7 +10,7 @@ namespace DS.Website.Controllers
     {
         public HomeApiController() { }
 
-        public static List<HQPanelEntry> GetShortcuts(IUrlHelper Url) => [
+        public static List<HQPanelEntryDto> GetShortcuts(IUrlHelper Url) => [
             // Need roles
             new() { Title = "Brugerstyring", Url = "/user", Icon = ["user"], RequiredRole = nameof(AppRoles.UsersView) },
             new() { Title = "Gruppestyring", Url = "/groups", Icon = ["users"], RequiredRole = nameof(AppRoles.GroupsView) },
@@ -29,7 +30,7 @@ namespace DS.Website.Controllers
         [HttpGet]
         public IActionResult Index()
         {
-            var retval = new HomeViewModel()
+            var retval = new HomeViewModelDto()
             {
                 Shortcuts = GetShortcuts(Url)
                     .Where(s => s.RequiredRole == null || User.IsInRole(s.RequiredRole))
@@ -38,18 +39,5 @@ namespace DS.Website.Controllers
 
             return Ok(retval);
         }
-    }
-
-    public class HomeViewModel
-    {
-        public List<HQPanelEntry> Shortcuts { get; set; }
-    }
-
-    public class HQPanelEntry
-    {
-        public string Title { get; set; }
-        public string Url { get; set; }
-        public string[] Icon { get; set; }
-        public string RequiredRole { get; set; }
     }
 }

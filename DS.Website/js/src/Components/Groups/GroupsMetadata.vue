@@ -21,11 +21,11 @@
 </template>
 <script lang="ts" setup>
 import { BField, BInput, BSelect } from 'buefy';
+import type { GroupDto } from '@/types';
 
 const props = defineProps<{
-    selectedGroup: DSGroup
+    selectedGroup: GroupDto
 }>();
-
 </script>
 <style lang="scss">
 .group-body {

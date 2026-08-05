@@ -1,10 +1,11 @@
 import type { AxiosResponse } from "axios";
 import axios from "axios";
+import type { HomeViewModelDto, MeDto } from "@/types";
 
 export default class MeService {
-    public async getMe(): Promise<MeDTO> {
+    public async getMe(): Promise<MeDto> {
         try {
-            const response: AxiosResponse<MeDTO> = await axios({
+            const response: AxiosResponse<MeDto> = await axios({
                 url: "/api/v1/me",
                 method: "GET"
             });
@@ -15,9 +16,9 @@ export default class MeService {
         }
     }
 
-    public async getHQ(): Promise<HomeViewModel> {
+    public async getHQ(): Promise<HomeViewModelDto> {
         try {
-            const response: AxiosResponse<HomeViewModel> = await axios({
+            const response: AxiosResponse<HomeViewModelDto> = await axios({
                 url: "/api/v1/home",
                 method: "GET"
             });

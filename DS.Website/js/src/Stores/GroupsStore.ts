@@ -1,10 +1,11 @@
 import GroupsService from "@/Services/GroupsService";
 import { defineStore } from "pinia";
 import { computed, ref } from "vue";
+import type { GroupDto, GroupsDto } from "@/types";
 
 export const useGroupsStore = defineStore("groups", () => {
     const groupService = new GroupsService();
-    const Groups = ref<GroupDTO>({ groups: [], users: {}});
+    const Groups = ref<GroupsDto>({ groups: [], users: {}});
     const GROUPS = computed(() => Groups.value);
 
     async function GET_GROUPS() {
@@ -13,7 +14,7 @@ export const useGroupsStore = defineStore("groups", () => {
         return data;
     }
 
-    async function CREATE_GROUP(group: DSGroup) {
+    async function CREATE_GROUP(group: GroupDto) {
         const success = await groupService.createGroup(group);
         if (success) {
             await GET_GROUPS();
@@ -21,7 +22,7 @@ export const useGroupsStore = defineStore("groups", () => {
         return success;
     }
 
-    async function UPDATE_GROUP(group: DSGroup) {
+    async function UPDATE_GROUP(group: GroupDto) {
         const success = await groupService.updateGroup(group);
         if (success) {
             await GET_GROUPS();

@@ -1,10 +1,11 @@
 import type { AxiosResponse } from "axios";
 import axios from "axios";
+import type { RoleDto, UserDto } from "@/types";
 
 export default class UserService {
-    public async getUsers(): Promise<UserSummaryDTO[]> {
+    public async getUsers(): Promise<UserDto[]> {
         try {
-            const response: AxiosResponse = await axios({
+            const response: AxiosResponse<UserDto[]> = await axios({
                 url: "/api/v1/user",
                 method: "GET"
             });
@@ -15,7 +16,7 @@ export default class UserService {
         }
     }
 
-    public async updateUser(user: UserSummaryDTO) {
+    public async updateUser(user: UserDto) {
         try {
             // const response: AxiosResponse = await axios({
             //     url: "/api/v1/user",
@@ -38,7 +39,7 @@ export default class UserService {
         }
     }
 
-    public async createUser(user: UserSummaryDTO) {
+    public async createUser(user: UserDto) {
         try {
             const response: AxiosResponse = await axios({
                 url: "/api/v1/user",
@@ -60,9 +61,9 @@ export default class UserService {
         }
     }
 
-    public async getGroups() {
+    public async getGroups(): Promise<RoleDto[]> {
         try {
-            const response: AxiosResponse<AppRole[]> = await axios({
+            const response: AxiosResponse<RoleDto[]> = await axios({
                 url: "/api/v1/user/groups",
                 method: "GET"
             });
@@ -78,7 +79,7 @@ export default class UserService {
         }
     }
 
-    public async AssignRoleToUser(user: UserSummaryDTO, roleName: string) {
+    public async AssignRoleToUser(user: UserDto, roleName: string) {
         try {
             const response: AxiosResponse = await axios({
                 url: `/api/v1/user/${user.id}/role/add`,
@@ -99,7 +100,7 @@ export default class UserService {
         }
     }
 
-    public async RemoveRoleFromUser(user: UserSummaryDTO, roleName: string) {
+    public async RemoveRoleFromUser(user: UserDto, roleName: string) {
         try {
             const response: AxiosResponse = await axios({
                 url: `api/v1/user/${user.id}/role/remove`,
@@ -120,7 +121,7 @@ export default class UserService {
         }
     }
 
-    public async deleteUser(user: UserSummaryDTO) {
+    public async deleteUser(user: UserDto) {
         try {
             const response: AxiosResponse = await axios({
                 url: `/api/v1/user/${user.id}`,
@@ -133,7 +134,7 @@ export default class UserService {
         }
     }
 
-    public async lockUser(user: UserSummaryDTO) {
+    public async lockUser(user: UserDto) {
         try {
             const response: AxiosResponse = await axios({
                 url: `/api/v1/user/${user.id}/lock`,
@@ -146,7 +147,7 @@ export default class UserService {
         }
     }
 
-    public async unlockUser(user: UserSummaryDTO) {
+    public async unlockUser(user: UserDto) {
         try {
             const response: AxiosResponse = await axios({
                 url: `/api/v1/user/${user.id}/unlock`,

@@ -1,11 +1,12 @@
 import type { AxiosResponse } from "axios";
 import axios from "axios";
+import type { UserInvitationCreationDto, UserInvitationDto } from "@/types";
 
 
 export default class InvitationService {
-    public async getInvitation(id: string): Promise<Invitation | null> {
+    public async getInvitation(id: string): Promise<UserInvitationDto | null> {
         try {
-            const response: AxiosResponse<Invitation> = await axios({
+            const response: AxiosResponse<UserInvitationDto> = await axios({
                 url: `/api/v1/invitation/${id}`,
                 method: "GET"
             });
@@ -17,7 +18,7 @@ export default class InvitationService {
         }
     }
 
-    public async useInvitation(id: string, data: UserInvitationCreationDTO) {
+    public async useInvitation(id: string, data: UserInvitationCreationDto) {
         try {
             const response: AxiosResponse = await axios({
                 url: `/api/v1/invitation/${id}`,
