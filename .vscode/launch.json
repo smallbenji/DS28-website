@@ -2,18 +2,6 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Launch Aktibasen",
-            "type": "coreclr",
-            "request": "launch",
-            "preLaunchTask": "build Aktibasen",
-            "program": "${workspaceFolder}/DS.Aktibasen/bin/Debug/net10.0/DS.Aktibasen.dll",
-            "args": [],
-            "cwd": "${workspaceFolder}/DS.Aktibasen",
-            "console": "internalConsole",
-            "envFile": "${workspaceFolder}/.env",
-            "stopAtEntry": false
-        },
-        {
             "name": "Launch Website",
             "type": "coreclr",
             "request": "launch",
@@ -21,30 +9,6 @@
             "program": "${workspaceFolder}/DS.Website/bin/Debug/net10.0/DS.Website.dll",
             "args": [],
             "cwd": "${workspaceFolder}/DS.Website",
-            "console": "internalConsole",
-            "envFile": "${workspaceFolder}/.env",
-            "stopAtEntry": false
-        },
-        {
-            "name": "Launch HQ",
-            "type": "coreclr",
-            "request": "launch",
-            "preLaunchTask": "build HQ",
-            "program": "${workspaceFolder}/DS.HQ/bin/Debug/net10.0/DS.HQ.dll",
-            "args": [],
-            "cwd": "${workspaceFolder}/DS.HQ",
-            "console": "internalConsole",
-            "envFile": "${workspaceFolder}/.env",
-            "stopAtEntry": false
-        },
-        {
-            "name": "Launch Template",
-            "type": "coreclr",
-            "request": "launch",
-            "preLaunchTask": "Build Template",
-            "program": "${workspaceFolder}/DS.Template/bin/Debug/net10.0/DS.Template.dll",
-            "args": [],
-            "cwd": "${workspaceFolder}/DS.Template",
             "console": "internalConsole",
             "envFile": "${workspaceFolder}/.env",
             "stopAtEntry": false
