@@ -2,7 +2,6 @@ using System.Text.Json.Serialization;
 using DS;
 using DS.Website;
 using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
@@ -11,6 +10,8 @@ using OpenIddict.Abstractions;
 using OpenIddict.Server;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.WebHost.UseStaticWebAssets();
 
 builder.Services.Configure<DSSettings>(builder.Configuration.GetSection("DS"));
 
