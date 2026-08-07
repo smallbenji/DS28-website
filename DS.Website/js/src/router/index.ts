@@ -3,6 +3,7 @@ import { useUserStore } from "@/Stores/UserStore";
 import { createRouter, createWebHistory, type RouteRecordRaw } from "vue-router";
 import { useLoading } from "buefy";
 import { useMeStore } from "@/Stores/MeStore";
+import { useGroupStore } from "@/Stores/GroupStore";
 
 const routes: RouteRecordRaw[] = [
     {
@@ -18,7 +19,7 @@ const routes: RouteRecordRaw[] = [
     {
         path: "/groups",
         component: () => import("@/Views/Groups.vue"),
-        meta: { requiresGroupData: true }
+        meta: { requiresGroupsData: true }
     },
     {
         path: "/invitation/:id",
@@ -26,7 +27,8 @@ const routes: RouteRecordRaw[] = [
     },
     {
         path: "/group",
-        component: () => import("@/Views/Group.vue")
+        component: () => import("@/Views/Group.vue"),
+        meta: { requiresGroupData: true }
     }
 ];
 
@@ -43,7 +45,8 @@ router.beforeEach(async (to) => {
     
     const meStore = useMeStore();
     const userStore = useUserStore();
-    const groupStore = useGroupsStore();
+    const groupsStore = useGroupsStore();
+    const groupStore = useGroupStore();
 
     const promises = [];
 
@@ -57,15 +60,19 @@ router.beforeEach(async (to) => {
         if (to.meta.requiresUserData) {
             promises.push(userStore.GET_USERS());
             promises.push(userStore.GET_GROUPS());
-            promises.push(groupStore.GET_GROUPS());
+            promises.push(groupsStore.GET_GROUPS());
         }
 
         if (to.meta.requiresHomeData) {
             promises.push(meStore.GET_HQ());
         }
 
-        if (to.meta.requiresGroupData && !to.meta.requiresUserData) {
-            promises.push(groupStore.GET_GROUPS());
+        if (to.meta.requiresGroupsData && !to.meta.requiresUserData) {
+            promises.push(groupsStore.GET_GROUPS());
+        }
+
+        if (to.meta.requiresGroupData) {
+            promises.push(groupStore.GET_GROUP());
         }
 
         if (promises.length > 0) {

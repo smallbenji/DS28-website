@@ -1,5 +1,5 @@
 <template>
-    <Back icon="user" title="Brugeradministration" />
+    <Back icon="user-pen" title="Brugeradministration" />
     <ManagementWrapper>
         <Sidebar>
             <SidebarHeader>

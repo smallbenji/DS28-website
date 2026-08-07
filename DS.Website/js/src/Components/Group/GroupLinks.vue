@@ -18,6 +18,14 @@
         </div>
         <div class="link-line link-line--disabled">
             <span>
+                Ønskerunde aktiviteter
+            </span>
+            <span class="date">
+                Åbner d. 1/7/2026
+            </span>
+        </div>
+        <div class="link-line link-line--disabled">
+            <span>
                 Aktivitets Tilmelding
             </span>
             <span class="date">
@@ -57,6 +65,7 @@
         .date {
             font-size: 0.75rem;
             color: rgba(0, 0, 0, 0.4);
+            padding-left: 1rem;
         }
 
         &--disabled {

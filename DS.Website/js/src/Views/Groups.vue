@@ -1,5 +1,5 @@
 <template>
-    <Back icon="users" title="Gruppeadministration" />
+    <Back icon="users-gear" title="Gruppeadministration" />
     <ManagementWrapper>
         <Sidebar>
             <SidebarHeader>
