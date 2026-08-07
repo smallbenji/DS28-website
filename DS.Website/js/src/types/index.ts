@@ -1,3 +1,5 @@
+export * from './account.types';
+export * from './auth.types';
 export * from './group.types';
 export * from './groups.types';
 export * from './home.types';

@@ -54,6 +54,7 @@ builder.Services
         options.Password.RequireUppercase = false;
         options.Password.RequireLowercase = false;
         options.User.RequireUniqueEmail = true;
+        options.Tokens.AuthenticatorIssuer = "DS HQ";
     })
     .AddEntityFrameworkStores<DataDbContext>()
     .AddDefaultTokenProviders();

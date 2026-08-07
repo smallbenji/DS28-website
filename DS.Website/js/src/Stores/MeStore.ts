@@ -7,6 +7,8 @@ export const useMeStore = defineStore("me", () => {
     const meService = new MeService();
     const Me = ref<MeDto>({
         name: "",
+        firstName: "",
+        lastName: "",
         roles: [],
         appRoles: [],
         isAuthenticated: false

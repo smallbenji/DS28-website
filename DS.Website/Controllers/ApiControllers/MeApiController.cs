@@ -34,6 +34,8 @@ namespace DS.Website.Controllers
             {
                 IsAuthenticated = HttpContext.User.Identity.IsAuthenticated,
                 Name = user.GetFullName(),
+                FirstName = user.FirstName ?? string.Empty,
+                LastName = user.LastName ?? string.Empty,
                 Roles = roles,
                 AppRoles = appRoles
             };

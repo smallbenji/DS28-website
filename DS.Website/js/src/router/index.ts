@@ -17,6 +17,10 @@ const routes: RouteRecordRaw[] = [
         meta: { requiresUserData: true }
     },
     {
+        path: "/profile",
+        component: () => import("@/Views/Profile.vue")
+    },
+    {
         path: "/groups",
         component: () => import("@/Views/Groups.vue"),
         meta: { requiresGroupsData: true }
@@ -28,6 +32,16 @@ const routes: RouteRecordRaw[] = [
     {
         path: "/reset-password/:id",
         component: () => import("@/Views/ResetPassword.vue")
+    },
+    {
+        path: "/login",
+        component: () => import("@/Views/Login.vue"),
+        meta: { guestOnly: true }
+    },
+    {
+        path: "/register",
+        component: () => import("@/Views/Register.vue"),
+        meta: { guestOnly: true }
     },
     {
         path: "/group",
@@ -81,6 +95,10 @@ router.beforeEach(async (to) => {
 
         if (promises.length > 0) {
             await Promise.all(promises);
+        }
+
+        if (to.meta.guestOnly && meStore.ME.isAuthenticated) {
+            return "/";
         }
 
         return true;

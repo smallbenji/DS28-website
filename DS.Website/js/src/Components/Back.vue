@@ -23,14 +23,13 @@
                     {{ ME.name }}
                 </b-dropdown-item>
                 <hr class="dropdown-divider" />
-                <b-dropdown-item custom>
-                    <b-button
-                        type="is-warning is-light"
-                        size="is-fullwidth"
-                        label="Skift adgangskode"
-                        @click="updatePassword"
-                    />
+                <b-dropdown-item>
+                    <router-link to="/profile" class="has-text-dark">
+                        <b-icon pack="fas" icon="user" size="is-small" />
+                        Min profil
+                    </router-link>
                 </b-dropdown-item>
+                <hr class="dropdown-divider" />
                 <b-dropdown-item custom>
                     <b-button
                         type="is-danger is-light"
@@ -61,9 +60,6 @@ const { ME } = storeToRefs(meStore);
 
 const authService = new AuthService();
 
-async function updatePassword() {
-    window.location.href = "/update-password";
-}
 
 async function logout() {
     await authService.logout();
