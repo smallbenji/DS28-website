@@ -8,7 +8,8 @@ export const useMeStore = defineStore("me", () => {
     const Me = ref<MeDto>({
         name: "",
         roles: [],
-        appRoles: []
+        appRoles: [],
+        isAuthenticated: false
     });
     const ME = computed(() => Me.value);
     const Hq = ref<HomeViewModelDto>({shortcuts: []});

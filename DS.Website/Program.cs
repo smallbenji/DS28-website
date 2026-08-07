@@ -3,6 +3,7 @@ using DS;
 using DS.Website;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -101,6 +102,11 @@ builder.Services.ConfigureApplicationCookie(options => {
     options.LoginPath = "/login";
     options.LogoutPath = "/logout";
     options.AccessDeniedPath = "/AccessDenied";
+
+    if (builder.Environment.IsDevelopment())
+    {
+        options.Cookie.SecurePolicy = CookieSecurePolicy.None;
+    }
 });
 
 // Cacher brugerroller, så ClaimsTransformer ikke rammer databasen på hver request.

@@ -9,6 +9,14 @@ namespace DS.Website.Controllers
     {
         public async Task<IActionResult> Index()
         {
+            if (!HttpContext.User.Identity.IsAuthenticated)
+            {
+                return Ok(new MeDto
+                {
+                    IsAuthenticated = HttpContext.User.Identity.IsAuthenticated
+                });
+            }
+
             var user = await userManager.GetUserAsync(HttpContext.User);
 
             var roles = (await userManager.GetRolesAsync(user)).ToList();
@@ -24,6 +32,7 @@ namespace DS.Website.Controllers
 
             var model = new MeDto
             {
+                IsAuthenticated = HttpContext.User.Identity.IsAuthenticated,
                 Name = user.GetFullName(),
                 Roles = roles,
                 AppRoles = appRoles
