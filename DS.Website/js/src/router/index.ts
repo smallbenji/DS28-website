@@ -37,13 +37,19 @@ const router = createRouter({
 
 router.beforeEach(async (to) => {
     const Loading = useLoading();
-    const loading = Loading.open({});
+    // const loading = Loading.open({});
+    let loadingInstance: any = null;
+    let loadingTimeout: ReturnType<typeof setTimeout> | null = null;
     
     const meStore = useMeStore();
     const userStore = useUserStore();
     const groupStore = useGroupsStore();
 
     const promises = [];
+
+    loadingTimeout = setTimeout(() => {
+        loadingInstance = Loading.open({});
+    }, 100);
 
     try {
         promises.push(meStore.GET_ME());
@@ -71,7 +77,13 @@ router.beforeEach(async (to) => {
         console.error("Navigation data prefetch failed:", error);
         return false;
     } finally {
-        loading.close();
+        // loading.close();
+        if (loadingTimeout) {
+            clearTimeout(loadingTimeout);
+        }
+        if (loadingInstance) {
+            loadingInstance.close();
+        }
     }
 });
 
