@@ -27,6 +27,7 @@
   },
   "devDependencies": {
     "@types/node": "^25.7.0",
+    "@vitejs/plugin-basic-ssl": "^2.3.0",
     "@vitejs/plugin-vue": "^6.0.6",
     "@vue/tsconfig": "^0.9.1",
     "typescript": "^6.0.3",
