@@ -23,6 +23,9 @@ namespace DS.Website
         GroupsDelete,
 
         AuditLogView,
+
+        WordPressEditor,
+        WordPressAdmin,
     }
 
     public static class AppAccess
@@ -41,6 +44,8 @@ namespace DS.Website
                     nameof(AppRoles.GroupsView),
                     nameof(AppRoles.GroupsCreate),
                     nameof(AppRoles.GroupsDelete),
+
+                    nameof(AppRoles.WordPressAdmin),
                 ]
             },
             {
@@ -50,24 +55,26 @@ namespace DS.Website
 
                     nameof(AppRoles.GroupsView),
                     nameof(AppRoles.GroupsCreate),
+
+                    nameof(AppRoles.WordPressEditor),
                 ]
             },
             {
                 AppGroups.EventAdmin,
                 [
-                    
+                    nameof(AppRoles.WordPressEditor),
                 ]
             },
             {
                 AppGroups.ActivityAdmin,
                 [
-                    
+                    nameof(AppRoles.WordPressEditor),
                 ]
             },
             {
                 AppGroups.FinanceAdmin,
                 [
-                    
+                    nameof(AppRoles.WordPressEditor),
                 ]
             },
             {

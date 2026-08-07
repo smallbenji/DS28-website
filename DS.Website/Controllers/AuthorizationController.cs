@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using DS;
+using DS.Website;
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
@@ -43,6 +44,12 @@ public class AuthorizationController : Controller
             {
                 RedirectUri = Request.Path + Request.QueryString
             });
+        }
+
+        // Kun brugere med en WordPress-rolle (WordPressEditor/WordPressAdmin) må logge ind i WordPress
+        if (!User.IsInRole(nameof(AppRoles.WordPressEditor)) && !User.IsInRole(nameof(AppRoles.WordPressAdmin)))
+        {
+            return Forbid(OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
         }
 
         // 2. Opret det rå principal fra ASP.NET Core Identity
@@ -136,6 +143,26 @@ public class AuthorizationController : Controller
         {
             claims[OpenIddictConstants.Claims.Name] = user.GetFullName();
             claims[OpenIddictConstants.Claims.PreferredUsername] = await _userManager.GetUserNameAsync(user);
+        }
+
+        if (User.HasScope(OpenIddictConstants.Scopes.Roles))
+        {
+            var userRoles = await _userManager.GetRolesAsync(user);
+
+            var wordpressRoles = userRoles
+                .SelectMany(roleName =>
+                    Enum.TryParse<AppGroups>(roleName, out var group) &&
+                    AppAccess.Matrix.TryGetValue(group, out var subRoles)
+                        ? subRoles
+                        : [])
+                .Where(role => role is nameof(AppRoles.WordPressEditor) or nameof(AppRoles.WordPressAdmin))
+                .Distinct()
+                .ToList();
+
+            if (wordpressRoles.Count > 0)
+            {
+                claims["roles"] = wordpressRoles;
+            }
         }
 
         return Ok(claims);
