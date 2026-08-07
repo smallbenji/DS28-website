@@ -300,3 +300,4 @@ node_modules
 *.lscache
 
 docker-compose.test.yaml
+.DS_STORE
