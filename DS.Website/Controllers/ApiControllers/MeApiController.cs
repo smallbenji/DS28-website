@@ -36,6 +36,7 @@ namespace DS.Website.Controllers
                 Name = user.GetFullName(),
                 FirstName = user.FirstName ?? string.Empty,
                 LastName = user.LastName ?? string.Empty,
+                MustEnableTwoFactor = await userManager.IsInRoleAsync(user, nameof(AppGroups.SysAdmin)) && !user.TwoFactorEnabled,
                 Roles = roles,
                 AppRoles = appRoles
             };

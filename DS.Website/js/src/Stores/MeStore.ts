@@ -9,6 +9,7 @@ export const useMeStore = defineStore("me", () => {
         name: "",
         firstName: "",
         lastName: "",
+        mustEnableTwoFactor: false,
         roles: [],
         appRoles: [],
         isAuthenticated: false

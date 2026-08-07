@@ -44,6 +44,10 @@ const routes: RouteRecordRaw[] = [
         meta: { guestOnly: true }
     },
     {
+        path: "/twofactor-setup",
+        component: () => import("@/Views/TwoFactorSetup.vue")
+    },
+    {
         path: "/group",
         component: () => import("@/Views/Group.vue"),
         meta: { requiresGroupData: true }
@@ -98,6 +102,14 @@ router.beforeEach(async (to) => {
         }
 
         if (to.meta.guestOnly && meStore.ME.isAuthenticated) {
+            return "/";
+        }
+
+        const mustSetupTwoFactor = meStore.ME.mustEnableTwoFactor;
+        if (mustSetupTwoFactor && to.path !== "/twofactor-setup") {
+            return "/twofactor-setup";
+        }
+        if (!mustSetupTwoFactor && to.path === "/twofactor-setup") {
             return "/";
         }
 

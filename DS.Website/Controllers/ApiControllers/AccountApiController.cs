@@ -163,6 +163,11 @@ namespace DS.Website.Controllers
                 return BadRequest("Adgangskode skal udfyldes.");
             }
 
+            if (await userManager.IsInRoleAsync(user, nameof(AppGroups.SysAdmin)))
+            {
+                return BadRequest("SysAdmin-kontoen kan ikke deaktivere tofaktorautentificering.");
+            }
+
             var isCorrectPassword = await userManager.CheckPasswordAsync(user, data.Password);
             if (!isCorrectPassword)
             {

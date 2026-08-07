@@ -44,12 +44,12 @@ export const useAccountStore = defineStore("account", () => {
         return success;
     }
 
-    async function DISABLE_2FA(password: string) {
-        var success = await accountService.disableTwoFactor(password);
-        if (success) {
+    async function DISABLE_2FA(password: string): Promise<string | null> {
+        var error = await accountService.disableTwoFactor(password);
+        if (error == null) {
             await GET_STATUS();
         }
-        return success;
+        return error;
     }
 
     async function UPDATE_NAME(firstName: string, lastName: string) {

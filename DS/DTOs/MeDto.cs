@@ -8,5 +8,6 @@ namespace DS.DTOs
         public string LastName { get; set; } = string.Empty;
         public List<string> Roles { get; set; } = [];
         public List<string> AppRoles { get; set; } = [];
+        public bool MustEnableTwoFactor { get; set; }
     }
 }

@@ -281,8 +281,8 @@ const disable = async () => {
     isDisabling.value = true;
 
     try {
-        const ok = await accountStore.DISABLE_2FA(disablePassword.value);
-        if (ok) {
+        const errorMessage = await accountStore.DISABLE_2FA(disablePassword.value);
+        if (errorMessage == null) {
             Toast.open({
                 message: 'Tofaktorautentificering er deaktiveret',
                 type: 'is-success'
@@ -290,7 +290,7 @@ const disable = async () => {
             showDisable.value = false;
         } else {
             Toast.open({
-                message: 'Forkert adgangskode',
+                message: errorMessage,
                 type: 'is-danger'
             });
         }

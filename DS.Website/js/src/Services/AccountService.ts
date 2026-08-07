@@ -80,7 +80,7 @@ export default class AccountService {
         }
     }
 
-    public async disableTwoFactor(password: string) {
+    public async disableTwoFactor(password: string): Promise<string | null> {
         try {
             const response: AxiosResponse = await axios({
                 url: "/api/v1/account/2fa/disable",
@@ -91,9 +91,16 @@ export default class AccountService {
                 }
             });
 
-            return response.status == 200;
-        } catch {
-            return false;
+            return response.status == 200 ? null : "Der skete en fejl.";
+        } catch (error) {
+            if (axios.isAxiosError(error)) {
+                const data = error.response?.data;
+                if (typeof data === "string" && data.length > 0) {
+                    return data;
+                }
+            }
+
+            return "Der skete en fejl.";
         }
     }
 
