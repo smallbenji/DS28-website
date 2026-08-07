@@ -43,21 +43,27 @@ router.beforeEach(async (to) => {
     const userStore = useUserStore();
     const groupStore = useGroupsStore();
 
+    const promises = [];
+
     try {
-        await meStore.GET_ME();
+        promises.push(meStore.GET_ME());
 
         if (to.meta.requiresUserData) {
-            await userStore.GET_USERS();
-            await userStore.GET_GROUPS();
-            await groupStore.GET_GROUPS();
+            promises.push(userStore.GET_USERS());
+            promises.push(userStore.GET_GROUPS());
+            promises.push(groupStore.GET_GROUPS());
         }
 
         if (to.meta.requiresHomeData) {
-            await meStore.GET_HQ();
+            promises.push(meStore.GET_HQ());
         }
 
-        if (to.meta.requiresGroupData) {
-            await groupStore.GET_GROUPS();
+        if (to.meta.requiresGroupData && !to.meta.requiresUserData) {
+            promises.push(groupStore.GET_GROUPS());
+        }
+
+        if (promises.length > 0) {
+            await Promise.all(promises);
         }
 
         return true;
