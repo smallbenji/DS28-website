@@ -33,6 +33,7 @@
                     <div>
                         <div class="buttons">
                             <UserLockButton v-if="selectedUser" :user="selectedUser" @changed="handleUserChanged" />
+                            <UserResetPasswordButton v-if="selectedUser" :user="selectedUser" />
                             <UserDeleteButton v-if="selectedUser" :user="selectedUser" @deleted="handleUserDeleted" />
                         </div>
                     </div>
@@ -64,6 +65,7 @@ import UserCreateUser from '@/Components/User/UserCreateUser.vue';
 import UserInviteUser from '@/Components/User/UserInviteUser.vue';
 import Back from '@/Components/Back.vue';
 import UserMetadata from '@/Components/User/UserMetadata.vue';
+import UserResetPasswordButton from '@/Components/User/UserResetPasswordButton.vue';
 import Sidebar from '@/Components/Sidebar/Sidebar.vue';
 import SidebarHeader from '@/Components/Sidebar/SidebarHeader.vue';
 import SidebarContent from '@/Components/Sidebar/SidebarContent.vue';

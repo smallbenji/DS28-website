@@ -26,6 +26,10 @@ const routes: RouteRecordRaw[] = [
         component: () => import("@/Views/Invitation.vue")
     },
     {
+        path: "/reset-password/:id",
+        component: () => import("@/Views/ResetPassword.vue")
+    },
+    {
         path: "/group",
         component: () => import("@/Views/Group.vue"),
         meta: { requiresGroupData: true }

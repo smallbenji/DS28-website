@@ -1,10 +1,12 @@
 import UserService from "@/Services/UserService";
+import PasswordResetService from "@/Services/PasswordResetService";
 import { defineStore } from "pinia";
 import { computed, ref } from "vue";
-import type { RoleDto, UserDto } from "@/types";
+import type { ResetPasswordLinkDto, RoleDto, UserDto } from "@/types";
 
 export const useUserStore = defineStore("user", () => {
     const userService = new UserService();
+    const passwordResetService = new PasswordResetService();
 
     const Users = ref<UserDto[]>([]);
     const Groups = ref<RoleDto[]>([]);
@@ -93,9 +95,13 @@ export const useUserStore = defineStore("user", () => {
         return await userService.inviteUser(email, roles);
     }
 
+    async function CREATE_RESET_PASSWORD_LINK(user: UserDto): Promise<ResetPasswordLinkDto | null> {
+        return await passwordResetService.createResetPasswordLink(user.id);
+    }
+
     return {
         Users, Groups,
         USERS, GROUPS,
-        GET_USERS, GET_GROUPS, UPDATE_USER, DELETE_USER, LOCK_USER, UNLOCK_USER, CREATE_USER, REMOVE_USER_FROM_ROLE, ADD_USER_TO_ROLE, INVITE_USER
+        GET_USERS, GET_GROUPS, UPDATE_USER, DELETE_USER, LOCK_USER, UNLOCK_USER, CREATE_USER, REMOVE_USER_FROM_ROLE, ADD_USER_TO_ROLE, INVITE_USER, CREATE_RESET_PASSWORD_LINK
     }
 });

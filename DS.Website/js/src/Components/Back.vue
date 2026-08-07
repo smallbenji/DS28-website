@@ -25,6 +25,14 @@
                 <hr class="dropdown-divider" />
                 <b-dropdown-item custom>
                     <b-button
+                        type="is-warning is-light"
+                        size="is-fullwidth"
+                        label="Skift adgangskode"
+                        @click="updatePassword"
+                    />
+                </b-dropdown-item>
+                <b-dropdown-item custom>
+                    <b-button
                         type="is-danger is-light"
                         size="is-fullwidth"
                         icon-left="door-open"
@@ -52,6 +60,10 @@ const meStore = useMeStore();
 const { ME } = storeToRefs(meStore);
 
 const authService = new AuthService();
+
+async function updatePassword() {
+    window.location.href = "/update-password";
+}
 
 async function logout() {
     await authService.logout();

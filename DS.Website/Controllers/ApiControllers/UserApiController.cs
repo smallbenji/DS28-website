@@ -245,6 +245,27 @@ public class UserApiController(DataDbContext dataDb, UserManager<User> userManag
         return Ok(retval);
     }
 
+    [HttpPost("{id}/reset-password-link")]
+    [Authorize(Roles = nameof(AppRoles.UsersResetPassword))]
+    public async Task<IActionResult> CreateResetPasswordLink(string id)
+    {
+        var user = await userManager.FindByIdAsync(id);
+        if (user == null)
+        {
+            return NotFound();
+        }
+
+        var token = await userManager.GeneratePasswordResetTokenAsync(user);
+
+        var link = $"{Request.Scheme}://{Request.Host}/reset-password/{user.Id}?token={Uri.EscapeDataString(token)}";
+
+        return Ok(new ResetPasswordLinkDto
+        {
+            Link = link,
+            Email = user.Email
+        });
+    }
+
     [HttpPost("invite")]
     public async Task<IActionResult> InviteUser([FromBody] UserInvitationDto data)
     {

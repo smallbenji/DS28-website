@@ -13,6 +13,22 @@ public class LoginInputModel
     public string Password { get; set; } = string.Empty;
 }
 
+public class ChangePasswordInputModel
+{
+    [Required(ErrorMessage = "Nuværende adgangskode skal udfyldes")]
+    [DataType(DataType.Password)]
+    public string OldPassword { get; set; } = string.Empty;
+
+    [Required(ErrorMessage = "Ny adgangskode skal udfyldes")]
+    [DataType(DataType.Password)]
+    public string NewPassword { get; set; } = string.Empty;
+
+    [Required(ErrorMessage = "Gentag ny adgangskode skal udfyldes")]
+    [DataType(DataType.Password)]
+    [Compare(nameof(NewPassword), ErrorMessage = "Adgangskoderne er ikke ens")]
+    public string RepeatNewPassword { get; set; } = string.Empty;
+}
+
 public class RegisterInputModel
 {
     [Required(ErrorMessage = "Fornavn skal udfyldes")]

@@ -4,6 +4,7 @@ export * from './home.types';
 export * from './invitation.types';
 export * from './me.types';
 export * from './patrol.types';
+export * from './password-reset.types';
 export * from './role.types';
 export * from './scout.types';
 export * from './user.types';
