@@ -1,19 +1,20 @@
 using DS.DTOs;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.VisualBasic;
 
 namespace DS.Website.Controllers
 {
     [Authorize]
     [Route("/api/v1/home")]
-    public class HomeApiController : Controller
+    public class HomeApiController(UserManager<User> userManager) : Controller
     {
-        public HomeApiController() { }
-
         public static List<HQPanelEntryDto> GetShortcuts(IUrlHelper Url) => [
             // Need roles
-            new() { Title = "Brugerstyring", Url = "/user", Icon = ["user"], RequiredRole = nameof(AppRoles.UsersView) },
-            new() { Title = "Gruppestyring", Url = "/groups", Icon = ["users"], RequiredRole = nameof(AppRoles.GroupsView) },
+            new() { Title = "Brugerstyring", Url = "/user", Icon = ["user-pen"], RequiredRole = nameof(AppRoles.UsersView) },
+            new() { Title = "Gruppestyring", Url = "/groups", Icon = ["users-gear"], RequiredRole = nameof(AppRoles.GroupsView) },
             
             // No roles needed
             new() { Title = "Wordpress", Url = "https://distriktssommerlejr.dk", Icon = ["fab", "wordpress"] },
@@ -28,7 +29,7 @@ namespace DS.Website.Controllers
         ];
 
         [HttpGet]
-        public IActionResult Index()
+        public async Task<IActionResult> Index()
         {
             var retval = new HomeViewModelDto()
             {
@@ -36,6 +37,21 @@ namespace DS.Website.Controllers
                     .Where(s => s.RequiredRole == null || User.IsInRole(s.RequiredRole))
                     .ToList(),
             };
+
+            var userId = userManager.GetUserId(HttpContext.User);
+            var user = await userManager.Users
+                .Include(x => x.Group)
+                .FirstOrDefaultAsync(x => x.Id == userId);
+
+            if (user != null && user.Group != null)
+            {
+                retval.Shortcuts.Add(new HQPanelEntryDto
+                {
+                    Title = "Gruppe",
+                    Url = "/group",
+                    Icon = ["users"]
+                });
+            }
 
             return Ok(retval);
         }
