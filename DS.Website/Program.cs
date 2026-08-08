@@ -55,6 +55,9 @@ builder.Services
         options.Password.RequireLowercase = false;
         options.User.RequireUniqueEmail = true;
         options.Tokens.AuthenticatorIssuer = "DS HQ";
+        
+        // Enable version 3 for passkey support
+        options.Stores.SchemaVersion = IdentitySchemaVersions.Version3;
     })
     .AddEntityFrameworkStores<DataDbContext>()
     .AddDefaultTokenProviders();
