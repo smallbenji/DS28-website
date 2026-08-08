@@ -2,4 +2,4 @@
 dotnet = "10"
 
 [env]
-_.env = ".env"
+_.file = '.env'
