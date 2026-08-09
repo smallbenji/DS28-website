@@ -13,6 +13,7 @@ services:
       DataProtection__KeysPath: /app/keys
     volumes:
       - dp-keys:/app/keys
+      - ../certs:/app/certs:ro
     labels:
       - traefik.enable=true
       - traefik.http.middlewares.gzip.compress=true

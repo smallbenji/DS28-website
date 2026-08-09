@@ -7,6 +7,8 @@ namespace DS.Website
         EventAdmin,
         ActivityAdmin,
         FinanceAdmin,
+        PRAdmin,
+        FoodAdmin,
         User,
     }
 
@@ -46,6 +48,12 @@ namespace DS.Website
                     nameof(AppRoles.GroupsDelete),
 
                     nameof(AppRoles.WordPressAdmin),
+                ]
+            },
+            {
+                AppGroups.PRAdmin,
+                [
+                    nameof(AppRoles.WordPressAdmin)
                 ]
             },
             {

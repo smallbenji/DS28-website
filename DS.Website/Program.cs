@@ -1,9 +1,9 @@
+using System.Security.Cryptography.X509Certificates;
 using System.Text.Json.Serialization;
 using DS;
 using DS.Website;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.DataProtection;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -78,15 +78,32 @@ builder.Services.AddOpenIddict()
         // OpenIddict afviser dette med ID2074, da scopes allerede er bundet til
         // authorization koden. Vi fjerner derfor valideringen, så parameteren ignoreres.
         options.RemoveEventHandler(OpenIddictServerHandlers.Exchange.ValidateScopeParameter.Descriptor);
-	options.RegisterScopes(
+	    options.RegisterScopes(
             OpenIddictConstants.Scopes.OpenId,
             OpenIddictConstants.Scopes.Profile,
             OpenIddictConstants.Scopes.Email,
             OpenIddictConstants.Scopes.Roles // (Hvis du også vil sende roller med over)
         );
 
-        options.AddDevelopmentEncryptionCertificate()
-            .AddDevelopmentSigningCertificate();
+        string certPath = builder.Configuration["OpenIddict:CertificatePath"];
+        string certPass = builder.Configuration["OpenIddict:CertificatePassword"];
+
+        if (File.Exists(certPath))
+        {
+            var certificate = X509CertificateLoader.LoadPkcs12FromFile(
+                certPath,
+                certPass,
+                keyStorageFlags: X509KeyStorageFlags.MachineKeySet
+            );
+
+            options.AddSigningCertificate(certificate);
+            options.AddEncryptionCertificate(certificate);
+        }
+        else
+        {
+            options.AddDevelopmentEncryptionCertificate();
+            options.AddDevelopmentSigningCertificate();
+        }
 
         options.UseAspNetCore()
             .EnableAuthorizationEndpointPassthrough()

@@ -16,7 +16,15 @@ namespace DS.Website.Controllers
             new() { Title = "Gruppestyring", Url = "/groups", Icon = ["users-gear"], RequiredRole = nameof(AppRoles.GroupsView) },
             
             // No roles needed
-            new() { Title = "Wordpress", Url = "https://distriktssommerlejr.dk", Icon = ["fab", "wordpress"] },
+            new() { Title = "Hjemmeside", Url = "https://distriktssommerlejr.dk", Icon = ["fab", "wordpress"] },
+
+            new()
+            {
+                Title = "Wordpress login",
+                Url = "https://www.distriktssommerlejr.dk/wp-login.php?force_redirect=1",
+                Icon = ["fab", "wordpress"],
+                RequiredRoles = [nameof(AppRoles.WordPressEditor), nameof(AppRoles.WordPressAdmin)]
+            },
 
             // Not in use
             // new() { Title = "Audit log", Url = "#", Icon = ["fa-solid fa-file-lines"], RequiredRole = nameof(AppRoles.AuditLogView) },
@@ -33,7 +41,8 @@ namespace DS.Website.Controllers
             var retval = new HomeViewModelDto()
             {
                 Shortcuts = GetShortcuts(Url)
-                    .Where(s => s.RequiredRole == null || User.IsInRole(s.RequiredRole))
+                    .Where(s => (s.RequiredRole == null || User.IsInRole(s.RequiredRole))
+                        && (s.RequiredRoles == null || s.RequiredRoles.Length == 0 || s.RequiredRoles.Any(User.IsInRole)))
                     .ToList(),
             };
 

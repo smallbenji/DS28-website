@@ -7,4 +7,5 @@ export interface HQPanelEntryDto {
     url: string;
     icon: string[];
     requiredRole: string;
+    requiredRoles: string[];
 }
