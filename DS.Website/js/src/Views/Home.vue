@@ -39,6 +39,16 @@ const isExternal = (url: string) => {
   max-width: 52rem;
   margin: auto;
   margin-top: 1rem;
+
+  @media (max-width: 640px) {
+    margin-left: 1rem;
+    margin-right: 1rem;
+    display: flex;
+    flex-direction: column;
+    // width: 100%;
+    height: 100%;
+    overflow-y: auto;
+  }
 }
 
 .link-box {
@@ -51,6 +61,12 @@ const isExternal = (url: string) => {
   cursor: pointer;
   text-decoration: none;
   color: black;
+  width: 100%;
+  
+  @media (max-width: 640px) {
+    height: auto;
+    padding: 1rem;
+  }
 }
 
 .link-box:hover {
@@ -63,6 +79,13 @@ const isExternal = (url: string) => {
   justify-content: center;
   gap: 0.5rem;
   height: 100%;
+
+
+  @media (max-width: 640px) {
+    flex-direction: row;
+    width: 100%;
+    justify-content: space-between;
+  }
 
   svg {
     font-size: 44px;
