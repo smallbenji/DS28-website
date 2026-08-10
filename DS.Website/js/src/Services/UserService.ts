@@ -103,7 +103,7 @@ export default class UserService {
     public async RemoveRoleFromUser(user: UserDto, roleName: string) {
         try {
             const response: AxiosResponse = await axios({
-                url: `api/v1/user/${user.id}/role/remove`,
+                url: `/api/v1/user/${user.id}/role/remove`,
                 method: "PUT",
                 data: JSON.stringify(roleName),
                 headers: {

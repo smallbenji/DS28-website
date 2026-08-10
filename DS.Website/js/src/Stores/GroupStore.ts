@@ -5,7 +5,7 @@ import { computed, ref } from "vue";
 
 export const useGroupStore = defineStore("group", () => {
     const groupStore = new GroupService();
-    const Group = ref<GroupDto>({ name: "", id: 0, district: District.DANEHOF, patrols: [], scouts: [] });
+    const Group = ref<GroupDto>({ name: "", id: "", district: District.DANEHOF, patrols: [], scouts: [] });
     const GROUP = computed(() => Group.value);
 
     async function GET_GROUP() {

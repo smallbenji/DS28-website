@@ -7,7 +7,7 @@ export enum District {
 }
 
 export interface GroupDto {
-    id: number;
+    id: string;
     name: string;
     district: District;
     patrols: PatrolDto[];

@@ -40,7 +40,7 @@ const isExternal = (url: string) => {
   margin: auto;
   margin-top: 1rem;
 
-  @media (max-width: 640px) {
+  @media (max-width: 768px) {
     margin-left: 1rem;
     margin-right: 1rem;
     display: flex;
@@ -63,7 +63,7 @@ const isExternal = (url: string) => {
   color: black;
   width: 100%;
   
-  @media (max-width: 640px) {
+  @media (max-width: 768px) {
     height: auto;
     padding: 1rem;
   }
@@ -81,7 +81,7 @@ const isExternal = (url: string) => {
   height: 100%;
 
 
-  @media (max-width: 640px) {
+  @media (max-width: 768px) {
     flex-direction: row;
     width: 100%;
     justify-content: space-between;

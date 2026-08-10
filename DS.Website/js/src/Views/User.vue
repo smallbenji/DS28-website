@@ -1,6 +1,6 @@
 <template>
-    <Back icon="user-pen" title="Brugeradministration" />
-    <ManagementWrapper>
+    <Back icon="user-pen" title="Brugerstyring" />
+    <ManagementWrapper :class="{ 'has-selection': selectedUser != null }">
         <Sidebar>
             <SidebarHeader>
                 <BInput
@@ -24,6 +24,10 @@
             </SidebarFooter>
         </Sidebar>
         <Workspace :filled="selectedUser != null">
+            <button class="mobile-back" @click="clearSelection">
+                <font-awesome-icon icon="arrow-left" />
+                <span>Tilbage</span>
+            </button>
             <section class="hero is-link">
                 <div class="hero-body is-flex is-justify-content-space-between is-align-items-center">
                     <div>
@@ -32,7 +36,7 @@
                     </div>
                     <div>
                         <div class="buttons">
-                            <UserLockButton v-if="selectedUser" :user="selectedUser" @changed="handleUserChanged" />
+                            <UserLockButton v-if="selectedUser" :user="selectedUser" />
                             <UserResetPasswordButton v-if="selectedUser" :user="selectedUser" />
                             <UserDeleteButton v-if="selectedUser" :user="selectedUser" @deleted="handleUserDeleted" />
                         </div>
@@ -57,6 +61,7 @@
 </template>
 <script lang="ts" setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import { useUserStore } from '@/Stores/UserStore';
 import { storeToRefs } from 'pinia';
 import { BButton, BInput, useToast } from 'buefy';
@@ -81,10 +86,18 @@ import type { UserDto } from '@/types';
 
 const Toast = useToast();
 
+const route = useRoute();
+const router = useRouter();
+
 const userStore = useUserStore();
 const { Users: users } = storeToRefs(userStore);
 
-const selectedUser = ref<UserDto | null>(null);
+const selectedUser = computed<UserDto | null>(() => {
+    const id = route.params.id;
+    if (!id) return null;
+    const idStr = Array.isArray(id) ? id[0] : id;
+    return users.value.find(u => u.id === idStr) ?? null;
+});
 
 const searchQuery = ref('');
 
@@ -99,14 +112,15 @@ const filteredUsers = computed(() => {
   });
 });
 
+const clearSelection = () => {
+    router.replace('/user');
+};
+
 const toggleUserSelection = (clickedUser: UserDto) => {
-        if (selectedUser.value?.id === clickedUser.id) {
-        selectedUser.value = null;
+    if (selectedUser.value?.id === clickedUser.id) {
+        clearSelection();
     } else {
-        // Will maybe be used at a later time?
-        // const rawUser = toRaw(clickedUser);
-        // selectedUser.value = structuredClone(rawUser);
-        selectedUser.value = clickedUser;
+        router.replace(`/user/${clickedUser.id}`);
     }
 };
 
@@ -149,10 +163,6 @@ const saveUser = async () => {
 }
 
 const handleUserDeleted = () => {
-    selectedUser.value = null;
-}
-
-const handleUserChanged = (userId: string) => {
-    selectedUser.value = users.value.find(user => user.id === userId) ?? null;
+    clearSelection();
 }
 </script>

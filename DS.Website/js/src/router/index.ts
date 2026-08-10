@@ -12,7 +12,7 @@ const routes: RouteRecordRaw[] = [
         meta: { requiresHomeData: true }
     },
     {
-        path: "/user",
+        path: "/user/:id?",
         component: () => import("@/Views/User.vue"),
         meta: { requiresUserData: true }
     },
@@ -21,7 +21,7 @@ const routes: RouteRecordRaw[] = [
         component: () => import("@/Views/Profile.vue")
     },
     {
-        path: "/groups",
+        path: "/groups/:id?",
         component: () => import("@/Views/Groups.vue"),
         meta: { requiresGroupsData: true }
     },

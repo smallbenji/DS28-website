@@ -42,7 +42,7 @@ const open = ref<boolean>(false);
 
 const openCreate = () => {
     open.value = true;
-    newGroup.value = { id: 0, name: '', district: District.DANEHOF, patrols: [], scouts: [] };
+    newGroup.value = { id: "0", name: '', district: District.DANEHOF, patrols: [], scouts: [] };
 };
 
 const createGroup = async () => {

@@ -1,6 +1,6 @@
 <template>
-    <Back icon="users-gear" title="Gruppeadministration" />
-    <ManagementWrapper>
+    <Back icon="users-gear" title="Gruppestyring" />
+    <ManagementWrapper :class="{ 'has-selection': selectedGroup != null }">
         <Sidebar>
             <SidebarHeader>
                 <BInput
@@ -24,6 +24,10 @@
             </SidebarFooter>
         </Sidebar>
         <Workspace :filled="selectedGroup != null">
+            <button class="mobile-back" @click="clearSelection">
+                <font-awesome-icon icon="arrow-left" />
+                <span>Tilbage</span>
+            </button>
             <section class="hero is-link">
                 <div class="hero-body">
                     <p class="title is-3">{{ selectedGroup?.name }}</p>
@@ -61,7 +65,8 @@
     </ManagementWrapper>
 </template>
 <script lang="ts" setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import { useGroupsStore } from '@/Stores/GroupsStore';
 import { storeToRefs } from 'pinia';
 import { BButton, BInput, useToast } from 'buefy';
@@ -84,11 +89,30 @@ import type { GroupDto, PatrolDto, ScoutDto } from '@/types';
 
 const Toast = useToast();
 
+const route = useRoute();
+const router = useRouter();
+
 const groupStore = useGroupsStore();
 const { Groups: groups } = storeToRefs(groupStore);
 
 const selectedGroup = ref<GroupDto | null>(null);
 const searchQuery = ref('');
+
+const groupIdFromRoute = computed(() => {
+    const id = route.params.id;
+    if (!id) return null;
+    const idStr = Array.isArray(id) ? id[0] : id;
+    return idStr;
+});
+
+watch(groupIdFromRoute, (id) => {
+    if (id == null) {
+        selectedGroup.value = null;
+        return;
+    }
+    const found = groups.value?.groups?.find(g => g.id === id);
+    selectedGroup.value = found ? JSON.parse(JSON.stringify(found)) : null;
+}, { immediate: true });
 
 const filteredGroups = computed(() => {
     const allGroups = groups.value?.groups ?? [];
@@ -102,11 +126,15 @@ const filteredGroups = computed(() => {
     );
 });
 
+const clearSelection = () => {
+    router.replace('/groups');
+};
+
 const toggleGroupSelection = (clickedGroup: GroupDto) => {
     if (selectedGroup.value?.id === clickedGroup.id) {
-        selectedGroup.value = null;
+        clearSelection();
     } else {
-        selectedGroup.value = JSON.parse(JSON.stringify(clickedGroup));
+        router.replace(`/groups/${clickedGroup.id}`);
     }
 };
 
