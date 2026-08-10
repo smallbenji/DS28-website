@@ -88,7 +88,7 @@ namespace DS.Website
             {
                 AppGroups.User,
                 [
-                    nameof(AppRoles.UsersView)
+                    // nameof(AppRoles.UsersView)
                 ]
             }
         };
