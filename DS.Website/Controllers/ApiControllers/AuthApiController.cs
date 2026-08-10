@@ -1,4 +1,7 @@
+using System.Security.Claims;
 using DS.DTOs;
+using DS.Website.Services;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -7,7 +10,7 @@ namespace DS.Website.Controllers
 {
     [AllowAnonymous]
     [Route("/api/v1/auth")]
-    public class AuthApiController(UserManager<User> userManager, SignInManager<User> signInManager) : Controller
+    public class AuthApiController(UserManager<User> userManager, SignInManager<User> signInManager, PasskeyHandler<User> passkeyHandler) : Controller
     {
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginDto data)
@@ -158,6 +161,53 @@ namespace DS.Website.Controllers
             }
 
             return "/";
+        }
+
+        [HttpPost("2fa/passkeys/options")]
+        public async Task<IActionResult> PostPasskeyOptions(PasskeyChallengeStore challengeStore)
+        {
+            var user = await signInManager.GetTwoFactorAuthenticationUserAsync();
+
+            if(user == null) return BadRequest("ugyldigt loginforsøg");
+            
+            var passkeys = await userManager.GetPasskeysAsync(user);
+            if(passkeys.Count == 0) return NotFound("ingen passkeys fundet");
+
+            var result = await passkeyHandler.MakeRequestOptionsAsync(user, this.HttpContext);
+            var token = challengeStore.store(result.AssertionState);
+
+            return Ok(new PasskeyOptionsDto{StateToken = token, OptionsJson = result.RequestOptionsJson});
+        }
+        
+        [HttpPost("2fa/passkeys/verify")]
+        public async Task<IActionResult> PostPasskeyVerify([FromBody] PasskeyAssertionRequestDto data, PasskeyChallengeStore challengeStore)
+        {
+            var user = await signInManager.GetTwoFactorAuthenticationUserAsync();
+            if(user == null) return BadRequest("ugyldigt loginforsøg");
+
+            var state = challengeStore.take(data.StateToken);
+            if(state == null) return BadRequest("session udløbet");
+
+            var result = await passkeyHandler.PerformAssertionAsync(new PasskeyAssertionContext
+            {
+                CredentialJson = data.CredentialJson,
+                AssertionState = state,
+                HttpContext = this.HttpContext
+            });
+
+            if(!result.Succeeded  || result.User.Id != user.Id) return BadRequest("ugyldigt loginforsøg");
+
+            await userManager.AddOrUpdatePasskeyAsync(result.User, result.Passkey);
+            await this.HttpContext.SignOutAsync(IdentityConstants.TwoFactorUserIdScheme);
+
+            if(data.RememberMachine)
+            {
+                await signInManager.RememberTwoFactorClientAsync(result.User);
+            }  
+
+            await signInManager.SignInWithClaimsAsync(result.User, isPersistent: true, [new Claim("amr", "mfa")]);
+
+            return Ok(new AuthResultDto {ReturnUrl = ResolveReturnUrl(data.ReturnUrl)});
         }
     }
 }

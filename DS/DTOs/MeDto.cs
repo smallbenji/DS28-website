@@ -1,3 +1,5 @@
+using Microsoft.AspNetCore.Identity;
+
 namespace DS.DTOs
 {
     public class MeDto
@@ -9,5 +11,7 @@ namespace DS.DTOs
         public List<string> Roles { get; set; } = [];
         public List<string> AppRoles { get; set; } = [];
         public bool MustEnableTwoFactor { get; set; }
+
+        public List<PasskeyDto> Passkeys { get; set;} = [];
     }
 }

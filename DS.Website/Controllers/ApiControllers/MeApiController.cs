@@ -1,4 +1,5 @@
 using DS.DTOs;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 
@@ -30,6 +31,15 @@ namespace DS.Website.Controllers
                 .Distinct()
                 .ToList();
 
+            var passkeys = (await userManager.GetPasskeysAsync(user)).Select(p => new PasskeyDto
+            {
+                Id = Base64UrlTextEncoder.Encode(p.CredentialId),
+                Name = p.Name,
+                CreatedAt = p.CreatedAt,
+                Transports = p.Transports ?? [],
+                IsBackedUp = p.IsBackedUp
+            });
+
             var model = new MeDto
             {
                 IsAuthenticated = HttpContext.User.Identity.IsAuthenticated,
@@ -38,7 +48,8 @@ namespace DS.Website.Controllers
                 LastName = user.LastName ?? string.Empty,
                 MustEnableTwoFactor = await userManager.IsInRoleAsync(user, nameof(AppGroups.SysAdmin)) && !user.TwoFactorEnabled,
                 Roles = roles,
-                AppRoles = appRoles
+                AppRoles = appRoles,
+                Passkeys = passkeys.ToList()
             };
 
             return Ok(model);

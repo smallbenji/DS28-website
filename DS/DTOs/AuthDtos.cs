@@ -32,5 +32,8 @@ namespace DS.DTOs
     {
         public bool RequiresTwoFactor { get; set; }
         public string ReturnUrl { get; set; } = string.Empty;
+        public bool PasskeysAvailable { get; set; }
+        public bool HasAuthenticator { get; set; }
+
     }
 }

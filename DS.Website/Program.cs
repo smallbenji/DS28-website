@@ -2,6 +2,7 @@ using System.Security.Cryptography.X509Certificates;
 using System.Text.Json.Serialization;
 using DS;
 using DS.Website;
+using DS.Website.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.HttpOverrides;
@@ -20,8 +21,8 @@ builder.Services.AddControllersWithViews()
 .AddJsonOptions(options =>
 {
     options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
-    options.JsonSerializerOptions.NumberHandling = 
-            JsonNumberHandling.AllowReadingFromString | 
+    options.JsonSerializerOptions.NumberHandling =
+            JsonNumberHandling.AllowReadingFromString |
             JsonNumberHandling.WriteAsString;
     options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
     options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
@@ -47,7 +48,8 @@ builder.Services.AddDbContext<DataDbContext>(options =>
 });
 
 builder.Services
-    .AddIdentity<User, Role>(options => {
+    .AddIdentity<User, Role>(options =>
+    {
         options.Password.RequiredLength = 4;
         options.Password.RequireNonAlphanumeric = false;
         options.Password.RequireDigit = false;
@@ -55,7 +57,7 @@ builder.Services
         options.Password.RequireLowercase = false;
         options.User.RequireUniqueEmail = true;
         options.Tokens.AuthenticatorIssuer = "DS HQ";
-        
+
         // Enable version 3 for passkey support
         options.Stores.SchemaVersion = IdentitySchemaVersions.Version3;
     })
@@ -73,20 +75,20 @@ builder.Services.AddOpenIddict()
         options.SetAuthorizationEndpointUris("/connect/authorize")
             .SetTokenEndpointUris("/connect/token")
             .SetUserInfoEndpointUris("/connect/userinfo");
-        
+
         options.AllowAuthorizationCodeFlow();
-            // .RequireProofKeyForCodeExchange();
+        // .RequireProofKeyForCodeExchange();
 
         // WordPress sender 'scope' med i token-anmodningen ved authorization code flow.
         // OpenIddict afviser dette med ID2074, da scopes allerede er bundet til
         // authorization koden. Vi fjerner derfor valideringen, så parameteren ignoreres.
         options.RemoveEventHandler(OpenIddictServerHandlers.Exchange.ValidateScopeParameter.Descriptor);
-	    options.RegisterScopes(
-            OpenIddictConstants.Scopes.OpenId,
-            OpenIddictConstants.Scopes.Profile,
-            OpenIddictConstants.Scopes.Email,
-            OpenIddictConstants.Scopes.Roles // (Hvis du også vil sende roller med over)
-        );
+	options.RegisterScopes(
+                OpenIddictConstants.Scopes.OpenId,
+                OpenIddictConstants.Scopes.Profile,
+                OpenIddictConstants.Scopes.Email,
+                OpenIddictConstants.Scopes.Roles // (Hvis du også vil sende roller med over)
+            );
 
         string certPath = builder.Configuration["OpenIddict:CertificatePath"];
         string certPass = builder.Configuration["OpenIddict:CertificatePassword"];
@@ -119,7 +121,8 @@ builder.Services.AddOpenIddict()
         options.UseAspNetCore();
     });
 
-builder.Services.ConfigureApplicationCookie(options => {
+builder.Services.ConfigureApplicationCookie(options =>
+{
     options.LoginPath = "/login";
     options.LogoutPath = "/logout";
     options.AccessDeniedPath = "/AccessDenied";
@@ -136,6 +139,14 @@ builder.Services.AddMemoryCache();
 // Roller/approller hentes frisk fra databasen på hver request,
 // så rolleændringer slår igennem uden at brugeren skal logge ind igen.
 builder.Services.AddScoped<IClaimsTransformation, ClaimsTransformer>();
+
+// Configure passkey auth flow
+builder.Services.Configure<IdentityPasskeyOptions>(o =>
+{
+    o.AuthenticatorTimeout = TimeSpan.FromMinutes(2);
+});
+
+builder.Services.AddSingleton<PasskeyChallengeStore>();
 
 var app = builder.Build();
 
