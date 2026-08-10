@@ -30,7 +30,7 @@ public class ActivityTeamMembership
 {
     [Key]
     public int Id { get; set; }
-    public string UserID { get; set; }
+    public User User { get; set; }
     public int ActivityTeamId { get; set; }
     public ActivityTeam ActivityTeam { get; set; }
     public bool IsAdmin { get; set; }

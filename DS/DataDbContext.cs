@@ -91,9 +91,9 @@ public class DataDbContext : IdentityDbContext<User, Role, string>
             .OnDelete(DeleteBehavior.Cascade);
 
         // Unique membership per (user, team)
-        modelBuilder.Entity<ActivityTeamMembership>()
-            .HasIndex(m => new { m.UserID, m.ActivityTeamId })
-            .IsUnique();
+        // modelBuilder.Entity<ActivityTeamMembership>()
+        //     .HasIndex(m => new { m.UserID, m.ActivityTeamId })
+        //     .IsUnique();
 
         // Relation: Activity -> CatalogData
         modelBuilder.Entity<Activity>()
