@@ -1,9 +1,9 @@
 <template>
     <div class="back">
         <div class="back-title">
-            <router-link to="/" v-if="!props.hideBack">
+            <button v-if="!props.hideBack" class="back-button" @click="goBack" aria-label="Tilbage">
                 <font-awesome-icon icon="arrow-left" />
-            </router-link>
+            </button>
             <h1 class="title is-5">
                 <font-awesome-icon :icon="props.icon" /> {{props.title}}
             </h1>
@@ -47,6 +47,7 @@
 import { useMeStore } from '@/Stores/MeStore';
 import { BButton, BDropdown, BDropdownItem } from 'buefy';
 import { storeToRefs } from 'pinia';
+import { useRouter } from 'vue-router';
 import AuthService from '@/Services/AuthService';
 
 const props = defineProps<{
@@ -59,6 +60,17 @@ const meStore = useMeStore();
 const { ME } = storeToRefs(meStore);
 
 const authService = new AuthService();
+
+const router = useRouter();
+
+function goBack() {
+    const back = router.options.history.state.back as string | null;
+    if (back) {
+        router.back();
+    } else {
+        router.push('/');
+    }
+}
 
 
 async function logout() {
@@ -82,5 +94,14 @@ async function logout() {
         gap: 0.25rem;
         align-items: center;
     }
+}
+
+.back-button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1rem;
+    color: inherit;
+    padding: 0 0.25rem;
 }
 </style>

@@ -3,6 +3,7 @@ namespace DS.DTOs
     public class MeDto
     {
         public bool IsAuthenticated { get; set; }
+        public string Id { get; set; }
         public string Name { get; set; }
         public string FirstName { get; set; } = string.Empty;
         public string LastName { get; set; } = string.Empty;

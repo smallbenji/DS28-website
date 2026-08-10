@@ -57,6 +57,16 @@ const routes: RouteRecordRaw[] = [
         path: "/activity",
         component: () => import("@/Views/Activity.vue"),
         meta: { requiresActivityTeamData: true }
+    },
+    {
+        path: "/activity/teams/:id?",
+        component: () => import("@/Views/TeamManagement.vue"),
+        meta: { requiresActivityTeamData: true, requiresActivityAdmin: true }
+    },
+    {
+        path: "/activity/:id",
+        component: () => import("@/Views/ActivityDetail.vue"),
+        meta: { requiresActivityData: true }
     }
 ];
 
@@ -106,6 +116,17 @@ router.beforeEach(async (to) => {
 
         if (to.meta.requiresActivityTeamData) {
             promises.push(activityStore.GET_TEAMS());
+        }
+
+        if (to.meta.requiresActivityData) {
+            const id = Array.isArray(to.params.id) ? to.params.id[0] : to.params.id;
+            if (id) {
+                promises.push(activityStore.GET_ACTIVITY(Number(id)));
+            }
+        }
+
+        if (to.meta.requiresActivityAdmin && !meStore.ME.appRoles.includes("ActivityAdmin")) {
+            return "/activity";
         }
 
         if (promises.length > 0) {

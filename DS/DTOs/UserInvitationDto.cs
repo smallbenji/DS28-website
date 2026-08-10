@@ -13,6 +13,8 @@ namespace DS.DTOs
             Email = invitation.Email;
             Roles = invitation.Roles;
             Used = invitation.Used;
+            ActivityTeamId = invitation.ActivityTeamId;
+            IsAdmin = invitation.IsAdmin;
         }
 
         public int Id { get; set; }
@@ -20,5 +22,7 @@ namespace DS.DTOs
         public string Email { get; set; }
         public List<string> Roles { get; set; }
         public bool Used { get; set; }
+        public int? ActivityTeamId { get; set; }
+        public bool IsAdmin { get; set; }
     }
 }

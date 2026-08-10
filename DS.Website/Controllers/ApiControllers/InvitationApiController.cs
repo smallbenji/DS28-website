@@ -1,4 +1,5 @@
 using DS.DTOs;
+using DS.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -74,6 +75,16 @@ namespace DS.HQ.Controllers
             if (user != null)
             {
                 await userManager.AddToRolesAsync(user, invitation.Roles);
+            }
+
+            if (invitation.ActivityTeamId != null && user != null)
+            {
+                dataDb.ActivityTeamMemberships.Add(new ActivityTeamMembership
+                {
+                    ActivityTeamId = invitation.ActivityTeamId.Value,
+                    User = user,
+                    IsAdmin = invitation.IsAdmin
+                });
             }
 
             invitation.Used = true;

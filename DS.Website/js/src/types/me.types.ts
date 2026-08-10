@@ -1,5 +1,6 @@
 export interface MeDto {
     isAuthenticated: boolean;
+    id: string;
     name: string;
     firstName: string;
     lastName: string;
