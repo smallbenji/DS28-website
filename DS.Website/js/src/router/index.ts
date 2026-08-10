@@ -4,6 +4,7 @@ import { createRouter, createWebHistory, type RouteRecordRaw } from "vue-router"
 import { useLoading } from "buefy";
 import { useMeStore } from "@/Stores/MeStore";
 import { useGroupStore } from "@/Stores/GroupStore";
+import { useActivityStore } from "@/Stores/ActivityStore";
 
 const routes: RouteRecordRaw[] = [
     {
@@ -51,6 +52,11 @@ const routes: RouteRecordRaw[] = [
         path: "/group",
         component: () => import("@/Views/Group.vue"),
         meta: { requiresGroupData: true }
+    },
+    {
+        path: "/activity",
+        component: () => import("@/Views/Activity.vue"),
+        meta: { requiresActivityTeamData: true }
     }
 ];
 
@@ -69,6 +75,7 @@ router.beforeEach(async (to) => {
     const userStore = useUserStore();
     const groupsStore = useGroupsStore();
     const groupStore = useGroupStore();
+    const activityStore = useActivityStore();
 
     const promises = [];
 
@@ -95,6 +102,10 @@ router.beforeEach(async (to) => {
 
         if (to.meta.requiresGroupData) {
             promises.push(groupStore.GET_GROUP());
+        }
+
+        if (to.meta.requiresActivityTeamData) {
+            promises.push(activityStore.GET_TEAMS());
         }
 
         if (promises.length > 0) {

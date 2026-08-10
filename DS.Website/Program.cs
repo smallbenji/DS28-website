@@ -2,6 +2,7 @@ using System.Security.Cryptography.X509Certificates;
 using System.Text.Json.Serialization;
 using DS;
 using DS.Website;
+using DS.Website.Repositories;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.HttpOverrides;
@@ -133,6 +134,8 @@ builder.Services.AddMemoryCache();
 // Roller/approller hentes frisk fra databasen på hver request,
 // så rolleændringer slår igennem uden at brugeren skal logge ind igen.
 builder.Services.AddScoped<IClaimsTransformation, ClaimsTransformer>();
+
+builder.Services.AddTransient<ActivityRepository>();
 
 var app = builder.Build();
 

@@ -1,4 +1,5 @@
 export * from './account.types';
+export * from './activity.types';
 export * from './auth.types';
 export * from './group.types';
 export * from './groups.types';

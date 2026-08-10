@@ -24,6 +24,8 @@ namespace DS.Website
         GroupsCreate,
         GroupsDelete,
 
+        ActivityView,
+
         AuditLogView,
 
         WordPressEditor,
@@ -48,6 +50,8 @@ namespace DS.Website
                     nameof(AppRoles.GroupsDelete),
 
                     nameof(AppRoles.WordPressAdmin),
+
+                    nameof(AppRoles.ActivityView),
                 ]
             },
             {
