@@ -1,5 +1,4 @@
 <template>
-    <Back title="Aktivitetsmodul" icon="fa-newspaper" />
     <template v-if="isActivityAdmin">
         <div class="activity-sections">
             <div class="activity-admin-header">
@@ -83,7 +82,6 @@ import TeamMembers from '@/Components/Activity/TeamMembers.vue';
 import TeamActivities from '@/Components/Activity/TeamActivities.vue';
 import { useMeStore } from '@/Stores/MeStore';
 import { useActivityStore } from '@/Stores/ActivityStore';
-import Back from '@/Components/Back.vue';
 import ManagementWrapper from '@/Components/ManagementWrapper.vue';
 import Sidebar from '@/Components/Sidebar/Sidebar.vue';
 import SidebarHeader from '@/Components/Sidebar/SidebarHeader.vue';

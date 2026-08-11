@@ -1,8 +1,18 @@
 <script setup lang="ts">
+import { computed } from 'vue';
+import { useRoute } from 'vue-router';
+import Back from '@/Components/Back.vue';
+
+const route = useRoute();
+const showBack = computed(() => !!route.meta.pageTitle);
 </script>
 
 <template>
-    <router-view />
+    <template v-if="showBack">
+        <Back />
+        <router-view />
+    </template>
+    <router-view v-else />
 </template>
 
 <style lang="scss">
@@ -42,7 +52,7 @@
     th,
     td {
         text-align: left;
-        padding: 0.75rem 1rem;
+        padding: 0.5rem 1rem;
         border-bottom: 1px solid rgba(0, 0, 0, 0.08);
     }
 

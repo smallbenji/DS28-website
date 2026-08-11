@@ -55,7 +55,7 @@ const openActivity = (id: number) => {
         align-items: center;
         justify-content: space-between;
         gap: 1rem;
-        padding: 0.25rem 0.5rem 1rem;
+        padding: 0.25rem 0.5rem 0.75rem;
     }
 
     &-table-wrapper {

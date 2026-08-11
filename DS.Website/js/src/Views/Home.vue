@@ -1,5 +1,4 @@
 <template>
-    <Back :hide-back="true" icon="house" title="HQ" />
     <div class="grid">
         <component
             v-for="(link, index) in HQ.shortcuts"
@@ -19,7 +18,6 @@
 </template>
 
 <script lang="ts" setup>
-import Back from '@/Components/Back.vue';
 import { useMeStore } from '@/Stores/MeStore';
 import { storeToRefs } from 'pinia';
 

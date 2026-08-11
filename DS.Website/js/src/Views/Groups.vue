@@ -1,5 +1,4 @@
 <template>
-    <Back icon="users-gear" title="Gruppestyring" />
     <ManagementWrapper :class="{ 'has-selection': selectedGroup != null }">
         <Sidebar>
             <SidebarHeader>
@@ -70,7 +69,6 @@ import { useRoute, useRouter } from 'vue-router';
 import { useGroupsStore } from '@/Stores/GroupsStore';
 import { storeToRefs } from 'pinia';
 import { BButton, BInput, useToast } from 'buefy';
-import Back from '@/Components/Back.vue';
 import ManagementWrapper from '@/Components/ManagementWrapper.vue';
 import Sidebar from '@/Components/Sidebar/Sidebar.vue';
 import SidebarHeader from '@/Components/Sidebar/SidebarHeader.vue';

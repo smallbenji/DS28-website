@@ -10,21 +10,22 @@ const routes: RouteRecordRaw[] = [
     {
         path: "/",
         component: () => import("@/Views/Home.vue"),
-        meta: { requiresHomeData: true }
+        meta: { requiresHomeData: true, pageTitle: "HQ", pageIcon: "house", hideBack: true }
     },
     {
         path: "/user/:id?",
         component: () => import("@/Views/User.vue"),
-        meta: { requiresUserData: true }
+        meta: { requiresUserData: true, pageTitle: "Brugerstyring", pageIcon: "user-pen" }
     },
     {
         path: "/profile",
-        component: () => import("@/Views/Profile.vue")
+        component: () => import("@/Views/Profile.vue"),
+        meta: { pageTitle: "Min profil", pageIcon: "user" }
     },
     {
         path: "/groups/:id?",
         component: () => import("@/Views/Groups.vue"),
-        meta: { requiresGroupsData: true }
+        meta: { requiresGroupsData: true, pageTitle: "Gruppestyring", pageIcon: "users-gear" }
     },
     {
         path: "/invitation/:id",
@@ -51,22 +52,22 @@ const routes: RouteRecordRaw[] = [
     {
         path: "/group",
         component: () => import("@/Views/Group.vue"),
-        meta: { requiresGroupData: true }
+        meta: { requiresGroupData: true, pageTitle: "Gruppe", pageIcon: "users" }
     },
     {
         path: "/activity",
         component: () => import("@/Views/Activity.vue"),
-        meta: { requiresActivityTeamData: true }
+        meta: { requiresActivityTeamData: true, pageTitle: "Aktivitetsmodul", pageIcon: "fa-newspaper" }
     },
     {
         path: "/activity/teams/:id?",
         component: () => import("@/Views/TeamManagement.vue"),
-        meta: { requiresActivityTeamData: true, requiresActivityAdmin: true }
+        meta: { requiresActivityTeamData: true, requiresActivityAdmin: true, pageTitle: "Teamstyring", pageIcon: "users-gear" }
     },
     {
         path: "/activity/:id",
         component: () => import("@/Views/ActivityDetail.vue"),
-        meta: { requiresActivityData: true }
+        meta: { requiresActivityData: true, pageTitle: "Aktivitetsmodul", pageIcon: "fa-newspaper" }
     }
 ];
 

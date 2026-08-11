@@ -1,5 +1,4 @@
 <template>
-    <Back title="Aktivitetsmodul" icon="fa-newspaper" />
     <div class="activity-detail ui-card" v-if="activity">
         <div class="activity-detail-header">
             <h1 class="title is-4 mb-0">{{ form.name || 'Aktivitet' }}</h1>
@@ -61,7 +60,6 @@ import { BButton, BField, BInput, BTabs, BTabItem, useToast } from 'buefy';
 import { storeToRefs } from 'pinia';
 import { reactive, ref, computed, watch } from 'vue';
 import type { CatalogDataDto } from '@/types';
-import Back from '@/Components/Back.vue';
 
 interface ActivityFormDto {
     id: number;

@@ -1,5 +1,4 @@
 <template>
-    <Back title="Teamstyring" icon="users-gear" />
     <ManagementWrapper :class="{ 'has-selection': selectedTeam != null }">
         <Sidebar>
             <SidebarHeader>
@@ -63,7 +62,6 @@ import { useRoute, useRouter } from 'vue-router';
 import { useActivityStore } from '@/Stores/ActivityStore';
 import { storeToRefs } from 'pinia';
 import { BInput } from 'buefy';
-import Back from '@/Components/Back.vue';
 import ManagementWrapper from '@/Components/ManagementWrapper.vue';
 import Sidebar from '@/Components/Sidebar/Sidebar.vue';
 import SidebarHeader from '@/Components/Sidebar/SidebarHeader.vue';
