@@ -3,87 +3,116 @@
 
     <div class="profile-scroll compact-scroll">
         <section class="section">
-        <div class="columns is-centered">
-            <div class="column is-6">
+            <div class="columns is-centered">
+                <div class="column is-6">
 
-                <div class="card">
-                    <header class="card-header">
-                        <p class="card-header-title">Navn</p>
-                    </header>
-                    <div class="card-content">
-                        <div class="columns">
-                            <div class="column">
-                                <BField label="Fornavn">
-                                    <BInput v-model="firstName" />
-                                </BField>
+                    <div class="card">
+                        <header class="card-header">
+                            <p class="card-header-title">Navn</p>
+                        </header>
+                        <div class="card-content">
+                            <div class="columns">
+                                <div class="column">
+                                    <BField label="Fornavn">
+                                        <BInput v-model="firstName" />
+                                    </BField>
+                                </div>
+                                <div class="column">
+                                    <BField label="Efternavn">
+                                        <BInput v-model="lastName" />
+                                    </BField>
+                                </div>
                             </div>
-                            <div class="column">
-                                <BField label="Efternavn">
-                                    <BInput v-model="lastName" />
-                                </BField>
-                            </div>
-                        </div>
-                        <BButton type="is-primary" :loading="isUpdatingName" @click="updateName">
-                            Opdater navn
-                        </BButton>
-                    </div>
-                </div>
-
-                <div class="card">
-                    <header class="card-header">
-                        <p class="card-header-title">Skift adgangskode</p>
-                    </header>
-                    <div class="card-content">
-                        <BField label="Nuværende adgangskode">
-                            <BInput v-model="oldPassword" type="password" password-reveal />
-                        </BField>
-                        <BField label="Ny adgangskode">
-                            <BInput v-model="newPassword" type="password" password-reveal />
-                        </BField>
-                        <BField label="Gentag ny adgangskode">
-                            <BInput v-model="repeatPassword" type="password" password-reveal />
-                        </BField>
-                        <BButton type="is-primary" :loading="isChangingPassword" @click="changePassword">
-                            Opdater adgangskode
-                        </BButton>
-                    </div>
-                </div>
-
-                <div class="card">
-                    <header class="card-header">
-                        <p class="card-header-title">Tofaktorautentificering</p>
-                    </header>
-                    <div class="card-content">
-                        <div v-if="Status.twoFactorEnabled" class="notification is-success is-light">
-                            Tofaktorautentificering er <strong>aktiv</strong>.
-                            Du har <strong>{{ Status.recoveryCodesLeft }}</strong> recovery codes tilbage.
-                        </div>
-                        <div v-else class="notification is-info is-light">
-                            Tofaktorautentificering er <strong>deaktiveret</strong>.
-                            Ved at aktivere det, tilføjes et ekstra sikkerhedslag ved login med din autentificeringsapp.
-                        </div>
-
-                        <div class="buttons">
-                            <BButton v-if="!Status.twoFactorEnabled" type="is-primary" icon-left="shield-halved" @click="openSetup">
-                                Aktivér 2FA
+                            <BButton type="is-primary" :loading="isUpdatingName" @click="updateName">
+                                Opdater navn
                             </BButton>
-                            <template v-else>
-                                <BButton icon-left="rotate" @click="regenerate">
-                                    Generér nye recovery codes
-                                </BButton>
-                                <BButton type="is-warning" icon-left="mobile-screen" @click="openReset">
-                                    Nulstil autentificeringsnøgle
-                                </BButton>
-                                <BButton type="is-danger is-light" icon-left="shield-halved" @click="openDisable">
-                                    Deaktiver 2FA
-                                </BButton>
-                            </template>
                         </div>
                     </div>
-                </div>
 
+                    <div class="card">
+                        <header class="card-header">
+                            <p class="card-header-title">Skift adgangskode</p>
+                        </header>
+                        <div class="card-content">
+                            <BField label="Nuværende adgangskode">
+                                <BInput v-model="oldPassword" type="password" password-reveal />
+                            </BField>
+                            <BField label="Ny adgangskode">
+                                <BInput v-model="newPassword" type="password" password-reveal />
+                            </BField>
+                            <BField label="Gentag ny adgangskode">
+                                <BInput v-model="repeatPassword" type="password" password-reveal />
+                            </BField>
+                            <BButton type="is-primary" :loading="isChangingPassword" @click="changePassword">
+                                Opdater adgangskode
+                            </BButton>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <header class="card-header">
+                            <p class="card-header-title">Tofaktorautentificering</p>
+                        </header>
+                        <div class="card-content">
+                            <template v-if="Status.twoFactorEnabled">
+                                <div class="notification is-success is-light">
+                                    Tofaktorautentificering er <strong>aktiv</strong>.
+                                    Du har <strong>{{ Status.recoveryCodesLeft }}</strong> recovery codes tilbage.
+                                </div>
+
+                                <div v-if="passkeys != null && Status.twoFactorEnabled">
+                                    <h3 class="title is-medium">Dine passkeys</h3>
+                                    <BTable :data="passkeys">
+                                        <BTableColumn field="name" label="Navn" width="fit" v-slot="props">
+                                            {{ props.row.name }}
+                                        </BTableColumn>
+                                        <BTableColumn field="createdAt" label="Tilføjet" v-slot="props">
+                                            {{ formatDate(props.row.createdAt) }}
+                                        </BTableColumn>
+                                        <BTableColumn field="actions" label="Actions" width="fit" v-slot="props">
+                                            <BButton type="is-danger"
+                                                rounded
+                                                icon-left="trash"
+                                                @click="deletePasskey(props.row.id)"
+                                            >
+                                                Fjern
+                                            </BButton>
+                                        </BTableColumn>
+                                        <template #empty>
+                                            <div class="has-text-centered">Du har ingen passkeys registeret</div>
+                                            <BButton type="is-primary" rounded @click="addPasskey">Tilføj passkey</BButton>
+                                        </template>
+                                    </BTable>
+                                </div>
+                            </template>
+                            <div v-else class="notification is-info is-light">
+                                Tofaktorautentificering er <strong>deaktiveret</strong>.
+                                Ved at aktivere det, tilføjes et ekstra sikkerhedslag ved login med din
+                                autentificeringsapp.
+                            </div>
+
+                            <div class="buttons">
+                                <BButton v-if="!Status.twoFactorEnabled" type="is-primary" icon-left="shield-halved"
+                                    @click="openSetup">
+                                    Aktivér 2FA
+                                </BButton>
+                                <template v-else>
+                                    <BButton icon-left="rotate" @click="regenerate">
+                                        Generér nye recovery codes
+                                    </BButton>
+                                    <BButton type="is-warning" icon-left="mobile-screen" @click="openReset">
+                                        Nulstil autentificeringsnøgle
+                                    </BButton>
+                                    <BButton type="is-danger is-light" icon-left="shield-halved" @click="openDisable">
+                                        Deaktiver 2FA
+                                    </BButton>
+                                </template>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
             </div>
-        </div>
         </section>
     </div>
 
@@ -139,12 +168,14 @@
 <script lang="ts" setup>
 import { useAccountStore } from '@/Stores/AccountStore';
 import { useMeStore } from '@/Stores/MeStore';
-import { BButton, BField, BInput, BModal, useToast } from 'buefy';
+import { BButton, BField, BInput, BModal, useToast, BTable, BTableColumn } from 'buefy';
 import { onMounted, ref } from 'vue';
 import { storeToRefs } from 'pinia';
 import Back from '@/Components/Back.vue';
 import TwoFactorSetupModal from '@/Components/Account/TwoFactorSetupModal.vue';
 import RecoveryCodesModal from '@/Components/Account/RecoveryCodesModal.vue';
+import type { PasskeyDto } from '@/types';
+import { formatDate } from '@/lib/util';
 
 const Toast = useToast();
 const accountStore = useAccountStore();
@@ -155,6 +186,7 @@ const { Me } = storeToRefs(meStore);
 const firstName = ref('');
 const lastName = ref('');
 const isUpdatingName = ref(false);
+const passkeys = ref<PasskeyDto[] | null>(null);
 
 const oldPassword = ref('');
 const newPassword = ref('');
@@ -176,6 +208,7 @@ onMounted(() => {
     accountStore.GET_STATUS();
     firstName.value = Me.value.firstName ?? '';
     lastName.value = Me.value.lastName ?? '';
+    passkeys.value = Me.value.passkeys;
 });
 
 const updateName = async () => {
@@ -207,6 +240,57 @@ const updateName = async () => {
         isUpdatingName.value = false;
     }
 };
+
+const addPasskey = async () => {
+    try {
+        const result = await accountStore.CREATE_PASSKEY(meStore.Me.name);
+        if (result) {
+            recoveryCodes.value = result.recoveryCodes;
+        } else {
+        }
+    } catch (e) {
+        return Toast.open({
+            message: (e as DOMException)?.name === "NotAllowedError"
+            ? "Aktivering blev afbrudt af brugeren."
+            : 'Der skete en uventet fejl under aktiveringen af din passkey.',
+            type: "is-warning"
+        })
+    }
+}
+
+const deletePasskey = async (passkey: string) => {
+    if(!passkeys.value) return;
+    if(passkeys.value?.length <= 1 && !Status.value.hasEnabledAuthenticator) {
+        return Toast.open({
+            message: "Du kan ikke slette din sidste passkey.",
+            type: "is-danger"
+        })
+    }
+
+    const passkeyIndex = passkeys.value.findIndex((p) => p.id == passkey);
+    if(passkeyIndex == -1) {
+        return Toast.open({
+            message: "Kunne ikke finde passkey",
+            type: "is-warning"
+        })
+    }
+
+    const error = await accountStore.REMOVE_PASSKEY(passkey);
+    if(error) {
+        return Toast.open({
+            message: "Der skete en fejl ved fjenelsen af din passkey",
+            type: "is-warning"
+        })
+    }
+
+    const newPasskeyList = passkeys.value.splice(passkeyIndex, 1);
+    
+    meStore.$patch({
+        Me: {
+            passkeys: newPasskeyList
+        }
+    })
+}
 
 const changePassword = async () => {
     if (newPassword.value !== repeatPassword.value) {

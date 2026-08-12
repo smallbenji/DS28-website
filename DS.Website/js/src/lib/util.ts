@@ -35,3 +35,12 @@ export function base64UrlEncodeBytes(bytes: Uint8Array) {
     }
     return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
+export function formatDate(dateString: string) {
+  const date = new Date(dateString);
+
+  const day = date.getDate();
+  const month = date.getMonth();
+  const year = date.getFullYear();
+  
+  return `${day}/${month}/${year}`
+}

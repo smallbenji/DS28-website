@@ -7,7 +7,7 @@ import { startCreation } from "@/lib/passkeys";
 export const useAccountStore = defineStore("account", () => {
   const accountService = new AccountService();
 
-  const Status = ref<TwoFactorStatusDto>({ twoFactorEnabled: false, recoveryCodesLeft: 0 });
+  const Status = ref<TwoFactorStatusDto>({ twoFactorEnabled: false, recoveryCodesLeft: 0, hasEnabledAuthenticator: false});
   const Passkeys = ref<PasskeyDto[]>([])
 
   async function GET_STATUS() {
