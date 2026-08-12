@@ -21,7 +21,7 @@ public sealed class PasskeyChallengeStore(IMemoryCache cache)
         return token;
     }
 
-    public string? take(string token)
+    public string take(string token)
     {
         if (string.IsNullOrEmpty(token)) return null;
 
