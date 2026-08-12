@@ -59,7 +59,7 @@ namespace DS.HQ.Controllers
             {
                 FirstName = data.FirstName,
                 LastName = data.LastName,
-                UserName = data.FirstName.ToLower() + data.LastName.ToLower(),
+                UserName = (data.FirstName + data.LastName).Replace(" ", "").ToLower(),
                 Email = invitation.Email,
             };
 

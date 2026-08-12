@@ -36,6 +36,11 @@ export interface ActivityTeamInviteDto {
     isAdmin: boolean;
 }
 
+export interface ActivityTeamInviteLinkDto {
+    link: string;
+    email: string;
+}
+
 export interface ActivityWithTeamDto extends ActivityDto {
     teamName: string;
 }

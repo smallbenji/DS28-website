@@ -1,6 +1,6 @@
 import type { AxiosResponse } from "axios";
 import axios from "axios";
-import type { ActivityDto, ActivityTeamDto, ActivityTeamInviteDto, ActivityTeamMembershipDto, UserDto } from "@/types";
+import type { ActivityDto, ActivityTeamDto, ActivityTeamInviteDto, ActivityTeamInviteLinkDto, ActivityTeamMembershipDto, UserDto } from "@/types";
 
 export default class ActivityService {
     public async getTeams(): Promise<ActivityTeamDto[]> {
@@ -54,16 +54,16 @@ export default class ActivityService {
         }
     }
 
-    public async inviteUser(teamId: number, data: ActivityTeamInviteDto): Promise<boolean> {
+    public async inviteUser(teamId: number, data: ActivityTeamInviteDto): Promise<ActivityTeamInviteLinkDto | null> {
         try {
-            await axios({
+            const response: AxiosResponse<ActivityTeamInviteLinkDto> = await axios({
                 url: `/api/v1/activity/team/${teamId}/invite`,
                 method: "POST",
                 data
             });
-            return true;
+            return response.data ? response.data : null;
         } catch {
-            return false;
+            return null;
         }
     }
 

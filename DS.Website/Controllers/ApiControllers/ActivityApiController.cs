@@ -179,13 +179,19 @@ namespace DS.Website.Controllers
                 return BadRequest("Invalid request body.");
             }
 
-            var success = await activityRepository.CreateInvitationAsync(teamId, data.Email.Trim(), data.IsAdmin);
-            if (!success)
+            var invitationId = await activityRepository.CreateInvitationAsync(teamId, data.Email.Trim(), data.IsAdmin);
+            if (invitationId == null)
             {
                 return NotFound("Team not found.");
             }
 
-            return Ok();
+            var link = $"{Request.Scheme}://{Request.Host}/invitation/{invitationId}";
+
+            return Ok(new ActivityTeamInviteLinkDto
+            {
+                Link = link,
+                Email = data.Email.Trim()
+            });
         }
     }
 }

@@ -173,25 +173,26 @@ namespace DS.Website.Repositories
             return true;
         }
 
-        public async Task<bool> CreateInvitationAsync(int teamId, string email, bool isAdmin)
+        public async Task<Guid?> CreateInvitationAsync(int teamId, string email, bool isAdmin)
         {
             var teamExists = await dataDb.ActivityTeams.AnyAsync(t => t.Id == teamId);
             if (!teamExists)
             {
-                return false;
+                return null;
             }
 
-            dataDb.Invitations.Add(new UserInvitation
+            var invitation = new UserInvitation
             {
                 InvitationId = Guid.NewGuid(),
                 Email = email,
-                Roles = [],
+                Roles = [nameof(AppGroups.ActivityUser)],
                 ActivityTeamId = teamId,
                 IsAdmin = isAdmin
-            });
+            };
 
+            dataDb.Invitations.Add(invitation);
             await dataDb.SaveChangesAsync();
-            return true;
+            return invitation.InvitationId;
         }
     }
 }

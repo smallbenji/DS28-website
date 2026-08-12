@@ -1,7 +1,7 @@
 import ActivityService from "@/Services/ActivityService";
 import { defineStore } from "pinia";
 import { computed, ref } from "vue";
-import type { ActivityDto, ActivityTeamDto, ActivityWithTeamDto, UserDto } from "@/types";
+import type { ActivityDto, ActivityTeamDto, ActivityTeamInviteLinkDto, ActivityWithTeamDto, UserDto } from "@/types";
 
 export const useActivityStore = defineStore("activity", () => {
     const activityService = new ActivityService();
@@ -65,12 +65,12 @@ export const useActivityStore = defineStore("activity", () => {
         return success;
     }
 
-    async function INVITE_USER(teamId: number, email: string, isAdmin = false) {
-        const success = await activityService.inviteUser(teamId, { email, isAdmin });
-        if (success) {
+    async function INVITE_USER(teamId: number, email: string, isAdmin = false): Promise<ActivityTeamInviteLinkDto | null> {
+        const data = await activityService.inviteUser(teamId, { email, isAdmin });
+        if (data) {
             await GET_TEAMS();
         }
-        return success;
+        return data;
     }
 
     async function ADD_ACTIVITY(teamId: number, name: string) {

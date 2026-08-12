@@ -79,19 +79,40 @@
                 <p class="modal-card-title">Inviter bruger til team</p>
             </header>
             <section class="modal-card-body">
-                <BField label="Email">
-                    <BInput v-model="inviteEmail" type="email" placeholder="eksempel@mail.dk" @keyup.enter="sendInvitation" />
-                </BField>
-                <BCheckbox v-model="inviteIsAdmin">
-                    Admin
-                </BCheckbox>
+                <template v-if="inviteLink">
+                    <p class="mb-2">
+                        Send nedenstående link til
+                        <strong>{{ inviteLink.email }}</strong>. Linket er gyldigt ét brug, indtil det er brugt.
+                    </p>
+                    <div class="field has-addons">
+                        <div class="control is-expanded">
+                            <input class="input" :value="inviteLink.link" readonly />
+                        </div>
+                        <div class="control">
+                            <BButton type="is-primary" icon-left="copy" @click="copyInviteLink">
+                                Kopiér
+                            </BButton>
+                        </div>
+                    </div>
+                </template>
+                <template v-else>
+                    <BField label="Email">
+                        <BInput v-model="inviteEmail" type="email" placeholder="eksempel@mail.dk" @keyup.enter="sendInvitation" />
+                    </BField>
+                    <BCheckbox v-model="inviteIsAdmin">
+                        Admin
+                    </BCheckbox>
+                </template>
             </section>
             <footer class="modal-card-foot">
                 <div class="buttons">
-                    <BButton type="is-primary" :loading="inviteLoading" @click="sendInvitation">
-                        Send invitation
+                    <BButton v-if="inviteLink" type="is-primary" icon-left="copy" @click="copyInviteLink">
+                        Kopiér
                     </BButton>
-                    <BButton @click="inviteOpen = false">Annuller</BButton>
+                    <BButton v-else type="is-primary" :loading="inviteLoading" @click="sendInvitation">
+                        Opret invitationslink
+                    </BButton>
+                    <BButton @click="closeInvite">Luk</BButton>
                 </div>
             </footer>
         </div>
@@ -123,7 +144,7 @@ import { useMeStore } from '@/Stores/MeStore';
 import { BButton, BCheckbox, BField, BInput, BModal, useToast } from 'buefy';
 import { storeToRefs } from 'pinia';
 import { computed, ref, watch } from 'vue';
-import type { ActivityTeamDto, ActivityTeamMemberDto, UserDto } from '@/types';
+import type { ActivityTeamDto, ActivityTeamInviteLinkDto, ActivityTeamMemberDto, UserDto } from '@/types';
 
 const Toast = useToast();
 const activityStore = useActivityStore();
@@ -135,6 +156,7 @@ const inviteOpen = ref(false);
 const inviteEmail = ref('');
 const inviteIsAdmin = ref(false);
 const inviteLoading = ref(false);
+const inviteLink = ref<ActivityTeamInviteLinkDto | null>(null);
 const searching = ref(false);
 const removeConfirmOpen = ref(false);
 const removing = ref(false);
@@ -223,7 +245,13 @@ const confirmRemoveMember = async () => {
 const openInvite = () => {
     inviteEmail.value = '';
     inviteIsAdmin.value = false;
+    inviteLink.value = null;
     inviteOpen.value = true;
+};
+
+const closeInvite = () => {
+    inviteOpen.value = false;
+    inviteLink.value = null;
 };
 
 const sendInvitation = async () => {
@@ -239,21 +267,34 @@ const sendInvitation = async () => {
 
     inviteLoading.value = true;
     try {
-        const success = await activityStore.INVITE_USER(SelectedTeamId.value, inviteEmail.value, inviteIsAdmin.value);
-        if (success) {
-            Toast.open({
-                message: `Invitation sendt til ${inviteEmail.value}`,
-                type: 'is-success'
-            });
-            inviteOpen.value = false;
+        const data = await activityStore.INVITE_USER(SelectedTeamId.value, inviteEmail.value, inviteIsAdmin.value);
+        if (data) {
+            inviteLink.value = data;
         } else {
             Toast.open({
-                message: 'Der skete en fejl ved afsendelse af invitationen',
+                message: 'Der skete en fejl ved oprettelse af invitationslinket',
                 type: 'is-danger'
             });
         }
     } finally {
         inviteLoading.value = false;
+    }
+};
+
+const copyInviteLink = async () => {
+    if (!inviteLink.value) return;
+
+    try {
+        await navigator.clipboard.writeText(inviteLink.value.link);
+        Toast.open({
+            message: 'Linket er kopieret!',
+            type: 'is-success'
+        });
+    } catch {
+        Toast.open({
+            message: 'Kunne ikke kopiere linket',
+            type: 'is-danger'
+        });
     }
 };
 </script>
