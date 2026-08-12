@@ -163,24 +163,18 @@ const enableWithPasskey = async () => {
 
     try {
         const result = await accountStore.CREATE_PASSKEY(meStore.Me.name);
-        console.log("we got the result CHECKING")
         if (result) {
             enabled.value = true;
             recoveryCodes.value = result.recoveryCodes;
-            console.log("WE ARE DOING THINGS YAY")
         } else {
             passkeyError.value = "Der skete en fejl under aktiveringen af din passkey."
-            console.log("WHY IS IT NULL, debugging really sucks huh")
         }
     } catch (e) {
-        console.log(e)
         passkeyError.value = (e as DOMException)?.name === "NotAllowedError"
             ? "Aktivering blev afbrudt af brugeren."
             : 'Der skete en uventet fejl under aktiveringen af din passkey.'
-        console.log("interesting IT FUCKING THREW, GOD WE LOVE JAVASCRIPT")
     } finally {
         isPasskeyVerifying.value = false;
-        console.log("fucking finally, GET IT HEHE")
     }
 }
 </script>

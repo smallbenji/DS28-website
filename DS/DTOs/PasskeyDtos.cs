@@ -16,6 +16,7 @@ namespace DS.DTOs
         public string CredentialJson { get; set; }
         public bool RememberMachine { get; set; }
         public string ReturnUrl { get; set; }
+        public string UserId { get; set; }
     }
 
     public class PasskeyDto

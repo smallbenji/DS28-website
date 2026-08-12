@@ -127,6 +127,7 @@ const twoFactorInput = ref<InstanceType<typeof BInput> | null>(null);
 const recoveryInput = ref<InstanceType<typeof BInput> | null>(null);
 
 const email = ref('');
+const userId = ref('');
 const password = ref('');
 const twoFactorCode = ref('');
 const recoveryCode = ref('');
@@ -183,12 +184,13 @@ const login = async () => {
             return;
         }
 
-        if (result.requiresTwoFactor) {
-            hasPasskeys.value = result.passkeysAvailable ?? false
-            authenticatorAvailable.value = result.hasAuthenticator ?? true
-            step.value = 'twofactor';
-            return;
-        }
+            if (result.requiresTwoFactor) {
+                hasPasskeys.value = result.passkeysAvailable ?? false
+                authenticatorAvailable.value = result.hasAuthenticator ?? true
+                userId.value = result.userId ?? '';
+                step.value = 'twofactor';
+                return;
+            }
 
         window.location.assign(result.returnUrl || '/');
     } finally {
@@ -227,13 +229,13 @@ const verifyWithPasskey = async () => {
 
     try {
         const options = await authService.passkeyOptions();
-        console.log("got the options: ", options)
         const credentialJson = await startAssertion(options.optionsJson);
         
         const result = await authService.passkeyVerify({
             credentialJson,
             rememberMachine: rememberMachine.value,
             returnUrl: returnUrl.value,
+            userId: userId.value
         });
 
         if (result.error) {
@@ -243,7 +245,6 @@ const verifyWithPasskey = async () => {
 
         window.location.assign(result.returnUrl || "/");
     } catch (err) {
-        console.log(err)
         error.value = (err as DOMException)?.name === "NotAllowedError"
             ? "Login med passkey blev afbrudt"
             : "Der skete en uvented fejl ved login"

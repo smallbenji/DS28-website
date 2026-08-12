@@ -68,21 +68,16 @@ export const useAccountStore = defineStore("account", () => {
 
   async function CREATE_PASSKEY(displayName: string) {
     const options = await accountService.passkeyCreationOptions(displayName);
-    console.log("we got the options:", options)
     if (!options) return null;
     
-    console.log("before we start creating")
     const credentialJson = await startCreation(options.optionsJson);
-    console.log("we have started the creation")
+    if (!credentialJson) return null;
 
-    if (!credentialJson) return null
-    console.log("we register the passkey??")
     const result = await accountService.registerPasskey({
       credentialJson: credentialJson,
       name: displayName ?? ''
     });
 
-    console.log("we try and get with it ya know")
     await GET_PASSKEYS();
     await GET_STATUS();
     return result;

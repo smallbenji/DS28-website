@@ -12,6 +12,7 @@ export type PasskeyAssertionRequestDto = {
   credentialJson: string
   rememberMachine: boolean
   returnUrl: string
+  userId: string
 }
 
 export type PasskeyDto = {

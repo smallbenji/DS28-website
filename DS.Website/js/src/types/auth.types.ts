@@ -28,4 +28,5 @@ export interface AuthResultDto {
   error?: string;
   hasAuthenticator: boolean;
   passkeysAvailable: boolean;
+  userId?: string;
 }

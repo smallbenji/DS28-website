@@ -3,18 +3,13 @@ import { base64UrlEncodeBytes } from "./util";
 
 export async function startAssertion(optionsJson: string): Promise<string> {
     const options = PublicKeyCredential.parseRequestOptionsFromJSON(JSON.parse(optionsJson));
-    console.log("we parsed the credentials")
     const credential = await navigator.credentials.get({publicKey: options})
-    console.log("we got the credential")
     return credential ? JSON.stringify(serializeCredential(credential as PublicKeyCredential)) : "";
 }
 
 export async function startCreation(optionsJson: string): Promise<string> {
-    console.log("buisness insider: how is a passkey created on the client")
     const options = PublicKeyCredential.parseCreationOptionsFromJSON(JSON.parse(optionsJson))
-    console.log(options)
     const credential = await navigator.credentials.create({publicKey: options});
-    console.log("we do the stuff mhmmm and then yeah that too. right and we return")
     return credential ? JSON.stringify(serializeCredential(credential as PublicKeyCredential)) : "";
 }
 

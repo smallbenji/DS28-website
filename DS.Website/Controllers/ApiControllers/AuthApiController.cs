@@ -44,7 +44,8 @@ namespace DS.Website.Controllers
                 {
                     RequiresTwoFactor = true,
                     PasskeysAvailable = (await userManager.GetPasskeysAsync(user)).Count > 0,
-                    HasAuthenticator = await userManager.GetAuthenticatorKeyAsync(user) != null
+                    HasAuthenticator = await userManager.GetAuthenticatorKeyAsync(user) != null,
+                    UserId = user.Id
                 });
             }
 
@@ -186,8 +187,16 @@ namespace DS.Website.Controllers
         [HttpPost("2fa/passkeys/verify")]
         public async Task<IActionResult> PostPasskeyVerify([FromBody] PasskeyAssertionRequestDto data)
         {
-            var user = await signInManager.GetTwoFactorAuthenticationUserAsync();
-            if (user == null) return BadRequest("ugyldigt loginforsøg");
+            if (string.IsNullOrWhiteSpace(data.UserId))
+            {
+                return BadRequest("Ugyldigt loginforsøg. Bruger ID mangler.");
+            }
+
+            var user = await userManager.FindByIdAsync(data.UserId);
+            if (user == null)
+            {
+                return BadRequest("Ugyldigt loginforsøg. Bruger ikke fundet.");
+            }
             var result = await signInManager.PerformPasskeyAssertionAsync(data.CredentialJson);
 
             if (!result.Succeeded || result.User.Id != user.Id) return BadRequest("ugyldigt loginforsøg");
