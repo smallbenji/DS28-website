@@ -261,18 +261,21 @@ namespace DS.Website.Controllers
             var user = await userManager.GetUserAsync(HttpContext.User);
             if (user == null) return NotFound();
 
-
             var result  = await signInManager.PerformPasskeyAttestationAsync(data.CredentialJson);
 
-            if (!result.Succeeded || result.UserEntity.Id != user.Id)
+            if (!result.Succeeded || result.UserEntity.Id != user.Id) {
                 return BadRequest("Ugyldig loginforsøg");
+            }
 
             var passkey = result.Passkey;
 
             if (!string.IsNullOrEmpty(data.Name)) passkey.Name = data.Name;
 
             var addPasskeyResult = await userManager.AddOrUpdatePasskeyAsync(user, passkey);
-            if (!addPasskeyResult.Succeeded) return BadRequest("kunne ikke gemme passkey");
+            if (!addPasskeyResult.Succeeded)
+            {
+                return BadRequest("kunne ikke gemme passkey");
+            }
 
             // Hvis brugeren ikke har nogen 2fa sat op endu, slå 2fa til og generer "recovery codes"
             if (!user.TwoFactorEnabled)

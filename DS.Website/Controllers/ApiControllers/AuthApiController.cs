@@ -40,7 +40,8 @@ namespace DS.Website.Controllers
 
             if (result.RequiresTwoFactor)
             {
-                return Ok(new AuthResultDto { 
+                return Ok(new AuthResultDto
+                {
                     RequiresTwoFactor = true,
                     PasskeysAvailable = (await userManager.GetPasskeysAsync(user)).Count > 0,
                     HasAuthenticator = await userManager.GetAuthenticatorKeyAsync(user) != null
@@ -168,42 +169,39 @@ namespace DS.Website.Controllers
         }
 
         [HttpPost("2fa/passkeys/options")]
-        public async Task<IActionResult> PostPasskeyOptions(PasskeyChallengeStore challengeStore)
+        public async Task<IActionResult> PostPasskeyOptions()
         {
             var user = await signInManager.GetTwoFactorAuthenticationUserAsync();
 
-            if(user == null) return BadRequest("ugyldigt loginforsøg");
-            
+            if (user == null) return BadRequest("ugyldigt loginforsøg");
+
             var passkeys = await userManager.GetPasskeysAsync(user);
-            if(passkeys.Count == 0) return NotFound("ingen passkeys fundet");
+            if (passkeys.Count == 0) return NotFound("ingen passkeys fundet");
 
             var result = await signInManager.MakePasskeyRequestOptionsAsync(user);
-            var token = challengeStore.store(result);
 
-            return Ok(new PasskeyOptionsDto{OptionsJson = result});
+            return Ok(new PasskeyOptionsDto { OptionsJson = result });
         }
-        
+
         [HttpPost("2fa/passkeys/verify")]
-        public async Task<IActionResult> PostPasskeyVerify([FromBody] PasskeyAssertionRequestDto data, PasskeyChallengeStore challengeStore)
+        public async Task<IActionResult> PostPasskeyVerify([FromBody] PasskeyAssertionRequestDto data)
         {
             var user = await signInManager.GetTwoFactorAuthenticationUserAsync();
-            if(user == null) return BadRequest("ugyldigt loginforsøg");
-
+            if (user == null) return BadRequest("ugyldigt loginforsøg");
             var result = await signInManager.PerformPasskeyAssertionAsync(data.CredentialJson);
 
-            if(!result.Succeeded  || result.User.Id != user.Id) return BadRequest("ugyldigt loginforsøg");
+            if (!result.Succeeded || result.User.Id != user.Id) return BadRequest("ugyldigt loginforsøg");
 
             await userManager.AddOrUpdatePasskeyAsync(result.User, result.Passkey);
-            await this.HttpContext.SignOutAsync(IdentityConstants.TwoFactorUserIdScheme);
 
-            if(data.RememberMachine)
+            if (data.RememberMachine)
             {
                 await signInManager.RememberTwoFactorClientAsync(result.User);
-            }  
+            }
 
-            await signInManager.SignInWithClaimsAsync(result.User, isPersistent: true, [new Claim("amr", "mfa")]);
+            await signInManager.SignInWithClaimsAsync(result.User, isPersistent: true, [new Claim("amr", "mfa"), new Claim("amr", "phr")]);
 
-            return Ok(new AuthResultDto {ReturnUrl = ResolveReturnUrl(data.ReturnUrl)});
+            return Ok(new AuthResultDto { ReturnUrl = ResolveReturnUrl(data.ReturnUrl) });
         }
     }
 }
