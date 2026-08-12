@@ -2,20 +2,17 @@ namespace DS.DTOs
 {
     public class PasskeyOptionsDto
     {
-        public string StateToken { get; set; }
         public string OptionsJson { get; set; }
     }
 
     public class PasskeyAttestationRequestDto
     {
-        public string StateToken { get; set; }
         public string CredentialJson { get; set; }
         public string Name { get; set; }
     }
 
     public class PasskeyAssertionRequestDto
     {
-        public string StateToken { get; set; }
         public string CredentialJson { get; set; }
         public bool RememberMachine { get; set; }
         public string ReturnUrl { get; set; }

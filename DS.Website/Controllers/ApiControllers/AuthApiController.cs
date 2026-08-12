@@ -10,7 +10,7 @@ namespace DS.Website.Controllers
 {
     [AllowAnonymous]
     [Route("/api/v1/auth")]
-    public class AuthApiController(UserManager<User> userManager, SignInManager<User> signInManager, PasskeyHandler<User> passkeyHandler) : Controller
+    public class AuthApiController(UserManager<User> userManager, SignInManager<User> signInManager) : Controller
     {
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginDto data)
@@ -40,7 +40,11 @@ namespace DS.Website.Controllers
 
             if (result.RequiresTwoFactor)
             {
-                return Ok(new AuthResultDto { RequiresTwoFactor = true });
+                return Ok(new AuthResultDto { 
+                    RequiresTwoFactor = true,
+                    PasskeysAvailable = (await userManager.GetPasskeysAsync(user)).Count > 0,
+                    HasAuthenticator = await userManager.GetAuthenticatorKeyAsync(user) != null
+                });
             }
 
             if (result.IsLockedOut)
@@ -173,10 +177,10 @@ namespace DS.Website.Controllers
             var passkeys = await userManager.GetPasskeysAsync(user);
             if(passkeys.Count == 0) return NotFound("ingen passkeys fundet");
 
-            var result = await passkeyHandler.MakeRequestOptionsAsync(user, this.HttpContext);
-            var token = challengeStore.store(result.AssertionState);
+            var result = await signInManager.MakePasskeyRequestOptionsAsync(user);
+            var token = challengeStore.store(result);
 
-            return Ok(new PasskeyOptionsDto{StateToken = token, OptionsJson = result.RequestOptionsJson});
+            return Ok(new PasskeyOptionsDto{OptionsJson = result});
         }
         
         [HttpPost("2fa/passkeys/verify")]
@@ -185,15 +189,7 @@ namespace DS.Website.Controllers
             var user = await signInManager.GetTwoFactorAuthenticationUserAsync();
             if(user == null) return BadRequest("ugyldigt loginforsøg");
 
-            var state = challengeStore.take(data.StateToken);
-            if(state == null) return BadRequest("session udløbet");
-
-            var result = await passkeyHandler.PerformAssertionAsync(new PasskeyAssertionContext
-            {
-                CredentialJson = data.CredentialJson,
-                AssertionState = state,
-                HttpContext = this.HttpContext
-            });
+            var result = await signInManager.PerformPasskeyAssertionAsync(data.CredentialJson);
 
             if(!result.Succeeded  || result.User.Id != user.Id) return BadRequest("ugyldigt loginforsøg");
 

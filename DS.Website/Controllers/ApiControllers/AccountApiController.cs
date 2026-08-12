@@ -256,20 +256,13 @@ namespace DS.Website.Controllers
         }
 
         [HttpPost("2fa/passkeys")]
-        public async Task<IActionResult> RegisterPasskey([FromBody] PasskeyAttestationRequestDto data, PasskeyHandler<User> passkeyHandler, PasskeyChallengeStore challengeStore)
+        public async Task<IActionResult> RegisterPasskey([FromBody] PasskeyAttestationRequestDto data)
         {
             var user = await userManager.GetUserAsync(HttpContext.User);
             if (user == null) return NotFound();
 
-            var state = challengeStore.take(data.StateToken);
-            if (state == null) return BadRequest("session udløbet");
 
-            var result = await passkeyHandler.PerformAttestationAsync(new PasskeyAttestationContext
-            {
-                CredentialJson = data.CredentialJson,
-                AttestationState = state,
-                HttpContext = HttpContext
-            });
+            var result  = await signInManager.PerformPasskeyAttestationAsync(data.CredentialJson);
 
             if (!result.Succeeded || result.UserEntity.Id != user.Id)
                 return BadRequest("Ugyldig loginforsøg");
@@ -327,24 +320,23 @@ namespace DS.Website.Controllers
         }
 
         [HttpPost("2fa/passkeys/options")]
-        public async Task<IActionResult> PasskeyCreationOptions([FromBody] PasskeyCreateOptionsDto options, PasskeyHandler<User> passkeyHandler, PasskeyChallengeStore challengeStore)
+        public async Task<IActionResult> PasskeyCreationOptions([FromBody] PasskeyCreateOptionsDto options)
         {
             var user = await userManager.GetUserAsync(HttpContext.User);
             if (user == null) return NotFound();
             var passkeys = await userManager.GetPasskeysAsync(user);
             if (passkeys.Count >= MAX_PASSKEY_COUNT) return BadRequest("Max antal passkeys er nået.");
-            var result = await passkeyHandler.MakeCreationOptionsAsync(new PasskeyUserEntity
+
+            var result = await signInManager.MakePasskeyCreationOptionsAsync(new()
             {
                 Id = user.Id,
                 Name = user.UserName,
                 DisplayName = options.DisplayName
-            }, HttpContext);
+            });
 
-            var token = challengeStore.store(result.AttestationState);
             return Ok(new PasskeyOptionsDto
             {
-                StateToken = token,
-                OptionsJson = result.CreationOptionsJson
+                OptionsJson = result
             });
         }
 

@@ -146,7 +146,6 @@ builder.Services.Configure<IdentityPasskeyOptions>(o =>
     o.AuthenticatorTimeout = TimeSpan.FromMinutes(2);
 });
 
-builder.Services.AddSingleton<PasskeyChallengeStore>();
 
 var app = builder.Build();
 
