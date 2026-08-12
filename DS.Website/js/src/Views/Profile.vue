@@ -71,7 +71,7 @@
                                         </BTableColumn>
                                         <BTableColumn field="actions" label="Actions" width="fit" v-slot="props">
                                             <BButton type="is-danger"
-                                                rounded
+                                                size="is-small"
                                                 icon-left="trash"
                                                 @click="deletePasskey(props.row.id)"
                                             >
@@ -80,7 +80,7 @@
                                         </BTableColumn>
                                         <template #empty>
                                             <div class="has-text-centered">Du har ingen passkeys registeret</div>
-                                            <BButton type="is-primary" rounded @click="addPasskey">Tilføj passkey</BButton>
+                                            <BButton type="is-primary" @click="addPasskey">Tilføj passkey</BButton>
                                         </template>
                                     </BTable>
                                 </div>
