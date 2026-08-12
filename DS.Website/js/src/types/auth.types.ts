@@ -1,29 +1,31 @@
 export interface LoginDto {
-    email: string;
-    password: string;
-    returnUrl: string;
+  email: string;
+  password: string;
+  returnUrl: string;
 }
 
 export interface RegisterDto {
-    firstName: string;
-    lastName: string;
-    email: string;
-    password: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  password: string;
 }
 
 export interface TwoFactorLoginDto {
-    twoFactorCode: string;
-    rememberMachine: boolean;
-    returnUrl: string;
+  twoFactorCode: string;
+  rememberMachine: boolean;
+  returnUrl: string;
 }
 
 export interface RecoveryCodeLoginDto {
-    recoveryCode: string;
-    returnUrl: string;
+  recoveryCode: string;
+  returnUrl: string;
 }
 
 export interface AuthResultDto {
-    requiresTwoFactor: boolean;
-    returnUrl?: string;
-    error?: string;
+  requiresTwoFactor: boolean;
+  returnUrl?: string;
+  error?: string;
+  hasAuthenticator: boolean;
+  passkeysAvailable: boolean;
 }

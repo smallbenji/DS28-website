@@ -10,3 +10,4 @@ export * from './password-reset.types';
 export * from './role.types';
 export * from './scout.types';
 export * from './user.types';
+export * from './passkeys.types'
