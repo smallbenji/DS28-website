@@ -9,6 +9,8 @@ public class User : IdentityUser
     public string FirstName { get; set; }
     public string LastName { get; set; }
 
+    public Boolean HasEnabledAuthenticator { get; set; }
+
     public string GetFullName()
     {
         return string.Join(" ", FirstName, LastName);

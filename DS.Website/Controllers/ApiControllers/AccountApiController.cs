@@ -22,11 +22,11 @@ namespace DS.Website.Controllers
             {
                 return NotFound();
             }
-
             return Ok(new TwoFactorStatusDto
             {
                 TwoFactorEnabled = user.TwoFactorEnabled,
-                RecoveryCodesLeft = user.TwoFactorEnabled ? await userManager.CountRecoveryCodesAsync(user) : 0
+                RecoveryCodesLeft = user.TwoFactorEnabled ? await userManager.CountRecoveryCodesAsync(user) : 0,
+                HasEnabledAuthenticator = user.HasEnabledAuthenticator
             });
         }
 
@@ -109,6 +109,13 @@ namespace DS.Website.Controllers
             await userManager.SetTwoFactorEnabledAsync(user, true);
 
             var recoveryCodes = await userManager.GenerateNewTwoFactorRecoveryCodesAsync(user, 10);
+            user.HasEnabledAuthenticator = true;
+            var updateResult = await userManager.UpdateAsync(user);
+
+            if (!updateResult.Succeeded)
+            {
+                // Throw a warning in some kind of logging system
+            }
 
             return Ok(new EnableTwoFactorResultDto
             {
@@ -149,6 +156,8 @@ namespace DS.Website.Controllers
 
             await userManager.ResetAuthenticatorKeyAsync(user);
             await userManager.SetTwoFactorEnabledAsync(user, false);
+            user.HasEnabledAuthenticator = false;
+            await userManager.UpdateAsync(user);
 
             return Ok();
         }
@@ -180,6 +189,14 @@ namespace DS.Website.Controllers
 
             await userManager.SetTwoFactorEnabledAsync(user, false);
             await userManager.ResetAuthenticatorKeyAsync(user);
+
+            var passkeys = await userManager.GetPasskeysAsync(user);
+            foreach(var passkey in passkeys)
+            {
+                await userManager.RemovePasskeyAsync(user, passkey.CredentialId);
+            }
+            user.HasEnabledAuthenticator = false;
+            await userManager.UpdateAsync(user);
 
             return Ok();
         }
@@ -261,9 +278,10 @@ namespace DS.Website.Controllers
             var user = await userManager.GetUserAsync(HttpContext.User);
             if (user == null) return NotFound();
 
-            var result  = await signInManager.PerformPasskeyAttestationAsync(data.CredentialJson);
+            var result = await signInManager.PerformPasskeyAttestationAsync(data.CredentialJson);
 
-            if (!result.Succeeded || result.UserEntity.Id != user.Id) {
+            if (!result.Succeeded || result.UserEntity.Id != user.Id)
+            {
                 return BadRequest("Ugyldig loginforsøg");
             }
 
