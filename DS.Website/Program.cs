@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using OpenIddict.Abstractions;
 using OpenIddict.Server;
 
@@ -141,9 +142,16 @@ builder.Services.AddMemoryCache();
 builder.Services.AddScoped<IClaimsTransformation, ClaimsTransformer>();
 
 // Configure passkey auth flow
-builder.Services.Configure<IdentityPasskeyOptions>(o =>
+builder.Services.Configure<IdentityPasskeyOptions>(options =>
 {
-    o.AuthenticatorTimeout = TimeSpan.FromMinutes(2);
+    options.AuthenticatorTimeout = TimeSpan.FromMinutes(2);
+
+    var serverOrigin = builder.Configuration.GetValue<string>("ORIGIN", null);
+    if(serverOrigin == null && builder.Environment.IsProduction())
+    {
+        throw new Exception("MISSING SERVER ORIGIN ENV");
+    }
+    options.ServerDomain = serverOrigin;
 });
 
 
