@@ -4,7 +4,7 @@
             <span>Medlemmer</span>
             <div class="flex"></div>
             <BButton
-                v-if="selectedTeam"
+                v-if="selectedTeam && canManageMembers"
                 type="is-primary"
                 size="is-small"
                 icon-left="envelope"

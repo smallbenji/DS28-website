@@ -223,6 +223,11 @@ const saveActivity = async () => {
         padding: 0.25rem 0.25rem 0.5rem;
         max-width: 36rem;
 
+        box-shadow: 5px 5px 5px 0 rgba(0, 0, 0, 0.1);
+        border: 1px solid rgba(0, 0, 0, 0.1);
+        padding: 1rem;
+        border-radius: 10px;
+
         .label {
             font-size: 1.05rem;
         }
