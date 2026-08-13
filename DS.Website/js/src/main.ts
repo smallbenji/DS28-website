@@ -12,7 +12,7 @@ import '@fortawesome/fontawesome-free/css/all.css'
 import { library } from "@fortawesome/fontawesome-svg-core";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 
-import { faArrowLeft, faUser, faUsers, faHouse, faDiceD6, faUserPlus, faSearch, faMagnifyingGlass, faPlus, faUserPen, faUsersGear, faNewspaper } from "@fortawesome/free-solid-svg-icons";
+import { faArrowLeft, faUser, faUsers, faHouse, faDiceD6, faUserPlus, faSearch, faMagnifyingGlass, faPlus, faUserPen, faUsersGear, faNewspaper, faGlobe } from "@fortawesome/free-solid-svg-icons";
 import { faWordpress } from "@fortawesome/free-brands-svg-icons";
 
 library.add(
@@ -28,7 +28,8 @@ library.add(
     faWordpress,
     faUserPen,
     faUsersGear,
-    faNewspaper
+    faNewspaper,
+    faGlobe
 );
 
 app.component("font-awesome-icon", FontAwesomeIcon);

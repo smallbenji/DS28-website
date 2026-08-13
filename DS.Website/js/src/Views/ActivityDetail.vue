@@ -129,7 +129,7 @@ const saveActivity = async () => {
 <style lang="scss">
 .activity-detail {
     width: calc(100vw - 4rem);
-    min-height: calc(100vh - 7rem);
+    // min-height: calc(100vh - 7rem);
     padding: 1.5rem 2rem;
     margin: 1rem 2rem;
 
