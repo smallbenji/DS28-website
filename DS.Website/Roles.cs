@@ -6,6 +6,7 @@ namespace DS.Website
         CampAdmin,
         EventAdmin,
         ActivityAdmin,
+        ActivityUser,
         FinanceAdmin,
         PRAdmin,
         FoodAdmin,
@@ -23,6 +24,9 @@ namespace DS.Website
         GroupsView,
         GroupsCreate,
         GroupsDelete,
+
+        ActivityView,
+        ActivityAdmin,
 
         AuditLogView,
 
@@ -48,6 +52,9 @@ namespace DS.Website
                     nameof(AppRoles.GroupsDelete),
 
                     nameof(AppRoles.WordPressAdmin),
+
+                    nameof(AppRoles.ActivityView),
+                    nameof(AppRoles.ActivityAdmin),
                 ]
             },
             {
@@ -65,6 +72,8 @@ namespace DS.Website
                     nameof(AppRoles.GroupsCreate),
 
                     nameof(AppRoles.WordPressEditor),
+                    nameof(AppRoles.ActivityAdmin),
+                    nameof(AppRoles.ActivityView),
                 ]
             },
             {
@@ -76,6 +85,8 @@ namespace DS.Website
             {
                 AppGroups.ActivityAdmin,
                 [
+                    nameof(AppRoles.ActivityView),
+                    nameof(AppRoles.ActivityAdmin),
                     nameof(AppRoles.WordPressEditor),
                 ]
             },
@@ -83,6 +94,12 @@ namespace DS.Website
                 AppGroups.FinanceAdmin,
                 [
                     nameof(AppRoles.WordPressEditor),
+                ]
+            },
+            {
+                AppGroups.ActivityUser,
+                [
+                    nameof(AppRoles.ActivityView),
                 ]
             },
             {

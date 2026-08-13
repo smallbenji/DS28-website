@@ -2,6 +2,7 @@ using System.Security.Cryptography.X509Certificates;
 using System.Text.Json.Serialization;
 using DS;
 using DS.Website;
+using DS.Website.Repositories;
 using DS.Website.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.DataProtection;
@@ -155,6 +156,7 @@ builder.Services.Configure<IdentityPasskeyOptions>(options =>
     options.ServerDomain = serverOrigin;
 });
 
+builder.Services.AddTransient<ActivityRepository>();
 
 var app = builder.Build();
 

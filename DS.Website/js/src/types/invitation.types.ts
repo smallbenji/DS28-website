@@ -4,6 +4,8 @@ export interface UserInvitationDto {
     email: string;
     roles: string[];
     used: boolean;
+    activityTeamId: number | null;
+    isAdmin: boolean;
 }
 
 export interface UserInvitationCreationDto {

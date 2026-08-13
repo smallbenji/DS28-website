@@ -12,7 +12,7 @@ export default class MeService {
 
             return response.data ? response.data : {name: "", firstName: "", lastName: "", mustEnableTwoFactor: false, roles: [], appRoles: [], isAuthenticated: false, passkeys: []};
         } catch {
-            return {name:"", firstName: "", lastName: "", mustEnableTwoFactor: false, roles: [], appRoles: [], isAuthenticated: false, passkeys: []};
+            return { name: "", firstName: "", lastName: "", mustEnableTwoFactor: false, roles: [], appRoles: [], isAuthenticated: false, passkeys: [] };
         }
     }
 

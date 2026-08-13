@@ -14,9 +14,10 @@ namespace DS.Website.Controllers
             // Need roles
             new() { Title = "Brugerstyring", Url = "/user", Icon = ["user-pen"], RequiredRole = nameof(AppRoles.UsersView) },
             new() { Title = "Gruppestyring", Url = "/groups", Icon = ["users-gear"], RequiredRole = nameof(AppRoles.GroupsView) },
+            // new() { Title = "Aktivitetsmodul", Url = "/activity", Icon = ["fa-solid fa-newspaper"], RequiredRoles = [nameof(AppRoles.ActivityAdmin), nameof(AppRoles.ActivityView)] },
             
             // No roles needed
-            new() { Title = "Hjemmeside", Url = "https://distriktssommerlejr.dk", Icon = ["fab", "wordpress"] },
+            new() { Title = "Hjemmeside", Url = "https://distriktssommerlejr.dk", Icon = ["globe"] },
 
             new()
             {
@@ -32,7 +33,6 @@ namespace DS.Website.Controllers
             // new() { Title = "Økonomi", Url = "#", Icon = ["fa-solid fa-money-check-dollar"], RequiredRole = nameof(AppRoles.GroupsDelete) },
             // new() { Title = "Tilmeldingssystem", Url = "#", Icon = ["fa-solid fa-plus-circle"] },
             // new() { Title = "Grafana", Url = "#", Icon = ["fa-solid fa-arrow-trend-up"] },
-            // new() { Title = "Aktivitetsmodul", Url = "#", Icon = ["fa-solid fa-newspaper"] },
         ];
 
         [HttpGet]

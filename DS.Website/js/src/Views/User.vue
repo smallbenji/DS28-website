@@ -1,5 +1,4 @@
 <template>
-    <Back icon="user-pen" title="Brugerstyring" />
     <ManagementWrapper :class="{ 'has-selection': selectedUser != null }">
         <Sidebar>
             <SidebarHeader>
@@ -68,7 +67,6 @@ import { BButton, BInput, useToast } from 'buefy';
 import UserRoles from '@/Components/User/UserRoles.vue';
 import UserCreateUser from '@/Components/User/UserCreateUser.vue';
 import UserInviteUser from '@/Components/User/UserInviteUser.vue';
-import Back from '@/Components/Back.vue';
 import UserMetadata from '@/Components/User/UserMetadata.vue';
 import UserResetPasswordButton from '@/Components/User/UserResetPasswordButton.vue';
 import Sidebar from '@/Components/Sidebar/Sidebar.vue';

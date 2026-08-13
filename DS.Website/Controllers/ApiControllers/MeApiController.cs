@@ -43,6 +43,7 @@ namespace DS.Website.Controllers
             var model = new MeDto
             {
                 IsAuthenticated = HttpContext.User.Identity.IsAuthenticated,
+                Id = user.Id,
                 Name = user.GetFullName(),
                 FirstName = user.FirstName ?? string.Empty,
                 LastName = user.LastName ?? string.Empty,

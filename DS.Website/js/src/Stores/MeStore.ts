@@ -7,6 +7,7 @@ export const useMeStore = defineStore("me", () => {
   const meService = new MeService();
   const Me = ref<MeDto>({
     name: "",
+    id: "",
     firstName: "",
     lastName: "",
     mustEnableTwoFactor: false,

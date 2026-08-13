@@ -1,6 +1,4 @@
 <template>
-    <Back icon="user" title="Min profil" />
-
     <div class="profile-scroll compact-scroll">
         <section class="section">
             <div class="columns is-centered">
@@ -171,7 +169,6 @@ import { useMeStore } from '@/Stores/MeStore';
 import { BButton, BField, BInput, BModal, useToast, BTable, BTableColumn } from 'buefy';
 import { onMounted, ref } from 'vue';
 import { storeToRefs } from 'pinia';
-import Back from '@/Components/Back.vue';
 import TwoFactorSetupModal from '@/Components/Account/TwoFactorSetupModal.vue';
 import RecoveryCodesModal from '@/Components/Account/RecoveryCodesModal.vue';
 import type { PasskeyDto } from '@/types';
