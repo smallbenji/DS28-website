@@ -151,6 +151,7 @@ builder.Services.Configure<IdentityPasskeyOptions>(options =>
     {
         throw new Exception("MISSING SERVER ORIGIN ENV");
     }
+    // set as null in development to bypass https requirement
     options.ServerDomain = serverOrigin;
 });
 
