@@ -12,14 +12,23 @@
                 <i class="fas fa-circle-exclamation"></i> Mangler udfyldning
             </span>
         </div>
-        <BTabs v-model="activeTab" type="is-boxed" class="activity-detail-tabs">
-            <BTabItem>
-                <template #header>
-                    <span>Aktivitet</span>
-                    <span class="tag is-success is-light" v-if="activityTabFilled">Udfyldt</span>
-                    <span class="tag is-danger is-light" v-else>Mangler</span>
-                </template>
-                <div class="activity-detail-form">
+        <div class="activity-detail-body">
+            <nav class="activity-detail-nav">
+                <button
+                    v-for="(tab, index) in tabs"
+                    :key="tab.key"
+                    type="button"
+                    class="activity-detail-nav-item"
+                    :class="{ 'is-active': activeTab === index }"
+                    @click="activeTab = index"
+                >
+                    <i class="activity-detail-nav-icon" :class="tab.icon"></i>
+                    <span class="activity-detail-nav-label">{{ tab.label }}</span>
+                    <i class="far fa-circle-check activity-detail-nav-check" v-if="tab.filled"></i>
+                </button>
+            </nav>
+            <div class="activity-detail-panel">
+                <div class="activity-detail-form" v-if="activeTab === 0">
                     <BField label="Navn">
                         <BInput v-model="form.name" placeholder="Aktivitetens navn" />
                     </BField>
@@ -27,14 +36,7 @@
                         <BInput v-model.number="form.budget" type="number" placeholder="0" disabled />
                     </BField>
                 </div>
-            </BTabItem>
-            <BTabItem>
-                <template #header>
-                    <span>Katalog</span>
-                    <span class="tag is-success is-light" v-if="catalogTabFilled">Udfyldt</span>
-                    <span class="tag is-danger is-light" v-else>Mangler</span>
-                </template>
-                <div class="activity-detail-form">
+                <div class="activity-detail-form" v-else-if="activeTab === 1">
                     <BField label="Katalognavn">
                         <BInput v-model="form.catalog.name" placeholder="Katalognavn" />
                     </BField>
@@ -45,8 +47,8 @@
                         <BInput v-model="form.catalog.description" type="textarea" placeholder="Beskrivelse" />
                     </BField>
                 </div>
-            </BTabItem>
-        </BTabs>
+            </div>
+        </div>
         <div class="activity-detail-actions">
             <BButton type="is-success" icon-left="check" :loading="saving" :disabled="saving" @click="saveActivity">
                 Gem
@@ -56,7 +58,7 @@
 </template>
 <script lang="ts" setup>
 import { useActivityStore } from '@/Stores/ActivityStore';
-import { BButton, BField, BInput, BTabs, BTabItem, useToast } from 'buefy';
+import { BButton, BField, BInput, useToast } from 'buefy';
 import { storeToRefs } from 'pinia';
 import { reactive, ref, computed, watch } from 'vue';
 import type { CatalogDataDto } from '@/types';
@@ -101,6 +103,11 @@ const catalogTabFilled = computed(
         || form.catalog.description.trim().length > 0
 );
 
+const tabs = computed(() => [
+    { key: 'activity', label: 'Aktivitet', icon: 'fas fa-calendar-days', filled: activityTabFilled.value },
+    { key: 'catalog', label: 'Katalog', icon: 'fas fa-globe', filled: catalogTabFilled.value }
+]);
+
 const saveActivity = async () => {
     saving.value = true;
     const success = await activityStore.UPDATE_ACTIVITY({ ...form });
@@ -138,17 +145,92 @@ const saveActivity = async () => {
         }
     }
 
-    &-tabs {
+    &-body {
+        display: flex;
+        align-items: stretch;
+        gap: 2rem;
         min-height: calc(100vh - 18rem);
+    }
 
-        .tabs li .tag {
-            margin-left: 0.4rem;
+    &-nav {
+        flex: 0 0 19rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.3rem;
+        border-right: 1px solid rgba(0, 0, 0, 0.08);
+        padding-right: 1.25rem;
+
+        &-item {
+            display: flex;
+            align-items: center;
+            gap: 1.1rem;
+            width: 100%;
+            padding: 1rem 1.15rem;
+            border: 0;
+            border-radius: 10px;
+            background: transparent;
+            color: #4a4a4a;
+            font-family: inherit;
+            font-size: 1.15rem;
+            text-align: left;
+            cursor: pointer;
+            transition: background-color 0.15s ease, color 0.15s ease;
+
+            &:hover {
+                background-color: #f2f2f2;
+                color: #363636;
+
+                .activity-detail-nav-icon {
+                    color: #4a4a4a;
+                }
+            }
+
+            &.is-active {
+                background-color: #e8e8e8;
+                color: #1f1f1f;
+                font-weight: 600;
+
+                .activity-detail-nav-icon {
+                    color: #1f1f1f;
+                }
+            }
+        }
+
+        &-icon {
+            flex: 0 0 1.5rem;
+            font-size: 1.35rem;
+            color: #7a7a7a;
+            text-align: center;
+            transition: color 0.15s ease;
+        }
+
+        &-label {
+            flex: 1;
+        }
+
+        &-check {
+            color: #34c759;
+            font-size: 1.4rem;
         }
     }
 
+    &-panel {
+        flex: 1;
+        min-width: 0;
+    }
+
     &-form {
-        padding: 1.5rem 0.25rem 0.5rem;
-        max-width: 32rem;
+        padding: 0.25rem 0.25rem 0.5rem;
+        max-width: 36rem;
+
+        .label {
+            font-size: 1.05rem;
+        }
+
+        .input,
+        .textarea {
+            font-size: 1.05rem;
+        }
     }
 
     &-actions {

@@ -45,6 +45,7 @@
                 </section>
                 <WorkspaceContent>
                     <TeamMembers />
+                    <TeamActivities />
                 </WorkspaceContent>
             </template>
             <div v-else class="workspace-empty">
@@ -62,6 +63,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { useActivityStore } from '@/Stores/ActivityStore';
 import { storeToRefs } from 'pinia';
 import { BInput } from 'buefy';
+import TeamActivities from '@/Components/Activity/TeamActivities.vue';
 import ManagementWrapper from '@/Components/ManagementWrapper.vue';
 import Sidebar from '@/Components/Sidebar/Sidebar.vue';
 import SidebarHeader from '@/Components/Sidebar/SidebarHeader.vue';
