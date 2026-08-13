@@ -1,6 +1,6 @@
 import type { AxiosResponse } from "axios";
 import axios from "axios";
-import type { TwoFactorResultDto, TwoFactorSetupDto, TwoFactorStatusDto } from "@/types";
+import type { PasskeyAttestationRequestDto, PasskeyDto, PasskeyOptionsDto, TwoFactorResultDto, TwoFactorSetupDto, TwoFactorStatusDto } from "@/types";
 
 export default class AccountService {
     public async getTwoFactorStatus(): Promise<TwoFactorStatusDto | null> {
@@ -135,6 +135,69 @@ export default class AccountService {
             return response.status == 200;
         } catch {
             return false;
+        }
+    }
+
+    public async listPasskeys(): Promise<PasskeyDto[]> {
+        try {
+            const response: AxiosResponse<PasskeyDto[]> = await axios({
+                url: "/api/v1/account/2fa/passkeys",
+                method: "GET"
+            });
+            
+            return response.data?? []
+        } catch {
+            return [];
+        }
+    }
+
+    public async passkeyCreationOptions(displayName: string): Promise<PasskeyOptionsDto | null> {
+        try {
+            const response: AxiosResponse<PasskeyOptionsDto> = await axios({
+                url: "/api/v1/account/2fa/passkeys/options",
+                method: "POST",
+                data: {displayName},
+            })
+
+            return response.data ?? null;
+        } catch {
+            return null;
+        }
+    }
+
+    public async registerPasskey(data: PasskeyAttestationRequestDto): Promise<TwoFactorResultDto | null> {
+        try {
+            const response: AxiosResponse<TwoFactorResultDto> = await axios({
+                url: "/api/v1/account/2fa/passkeys",
+                method: "POST",
+                data: data,
+            })
+
+            if(response.status !== 200) return null;
+
+            return {recoveryCodes: response.data?.recoveryCodes ?? []};
+        } catch(err) {
+            return null;
+        }
+    }
+
+    public async removePasskey(id: string): Promise<string | null> {
+        try {
+            const response: AxiosResponse = await axios({
+                url: `/api/v1/account/2fa/passkeys/${id}`,
+                method: "DELETE"
+            });
+
+            return response.status == 200 ? null : "der skete en fejl";
+        } catch(error) {
+            if(axios.isAxiosError(error)) {
+                const data = error.response?.data;
+                if(typeof data === "string" && data.length > 0) {
+                    return data;
+                }
+            }
+
+            return "Der skete en fejl."
         }
     }
 }

@@ -15,18 +15,21 @@
 
                         <template v-if="step === 'login'">
                             <BField label="Email">
-                                <BInput ref="emailInput" v-model="email" type="email" icon="envelope" autocomplete="username" @keyup.enter="login" />
+                                <BInput ref="emailInput" v-model="email" type="email" icon="envelope"
+                                    autocomplete="username" @keyup.enter="login" />
                             </BField>
 
                             <BField label="Adgangskode">
-                                <BInput v-model="password" type="password" icon="lock" password-reveal autocomplete="current-password" @keyup.enter="login" />
+                                <BInput v-model="password" type="password" icon="lock" password-reveal
+                                    autocomplete="current-password" @keyup.enter="login" />
                             </BField>
 
                             <div v-if="error" class="notification is-danger is-light py-2 px-4 my-3">
                                 {{ error }}
                             </div>
 
-                            <BButton type="is-primary" expanded :loading="isSubmitting" :disabled="!canSubmitLogin" icon-left="right-to-bracket" @click="login">
+                            <BButton type="is-primary" expanded :loading="isSubmitting" :disabled="!canSubmitLogin"
+                                icon-left="right-to-bracket" @click="login">
                                 Log ind
                             </BButton>
 
@@ -38,28 +41,42 @@
 
                         <template v-else-if="step === 'twofactor'">
                             <p class="mb-4">
-                                Indtast den 6-cifrede kode fra din autentificeringsapp.
+                                {{
+                                    authenticatorAvailable
+                                        ? "Indtast den 6-cifrede kode fra din autentificeringsapp."
+                                        : "Login med din passkey."
+                                }}
                             </p>
 
-                            <BField label="Autentificeringskode">
-                                <BInput ref="twoFactorInput" v-model="twoFactorCode" icon="mobile-screen-button" autocomplete="one-time-code" @keyup.enter="verifyTwoFactor" />
-                            </BField>
-
-                            <BCheckbox v-model="rememberMachine">
-                                Husk denne enhed
-                            </BCheckbox>
-
-                            <div v-if="error" class="notification is-danger is-light py-2 px-4 my-3">
-                                {{ error }}
-                            </div>
-
-                            <BButton type="is-primary" expanded :loading="isSubmitting" :disabled="!canSubmitTwoFactor" icon-left="shield-halved" @click="verifyTwoFactor">
-                                Verificér
+                            <BButton v-if="hasPasskeys" type="is-info is-light" expanded :loading="isSubmitting"
+                                icon-left="fingerprint" class="mb-4" @click="verifyWithPasskey">
+                                Login med Passkey
                             </BButton>
 
-                            <p class="has-text-centered mt-4">
-                                <a class="has-text-link" @click="goToRecovery">Log ind med en recovery code</a>
-                            </p>
+                            <template v-if="authenticatorAvailable">
+
+                                <BField label="Autentificeringskode">
+                                    <BInput ref="twoFactorInput" v-model="twoFactorCode" icon="mobile-screen-button"
+                                        autocomplete="one-time-code" @keyup.enter="verifyTwoFactor" />
+                                </BField>
+
+                                <BCheckbox v-model="rememberMachine">
+                                    Husk denne enhed
+                                </BCheckbox>
+
+                                <div v-if="error" class="notification is-danger is-light py-2 px-4 my-3">
+                                    {{ error }}
+                                </div>
+
+                                <BButton type="is-primary" expanded :loading="isSubmitting"
+                                    :disabled="!canSubmitTwoFactor" icon-left="shield-halved" @click="verifyTwoFactor">
+                                    Verificér
+                                </BButton>
+
+                                <p class="has-text-centered mt-4">
+                                    <a class="has-text-link" @click="goToRecovery">Log ind med en recovery code</a>
+                                </p>
+                            </template>
                         </template>
 
                         <template v-else>
@@ -68,14 +85,16 @@
                             </p>
 
                             <BField label="Recovery code">
-                                <BInput ref="recoveryInput" v-model="recoveryCode" icon="key" autocomplete="one-time-code" @keyup.enter="loginWithRecoveryCode" />
+                                <BInput ref="recoveryInput" v-model="recoveryCode" icon="key"
+                                    autocomplete="one-time-code" @keyup.enter="loginWithRecoveryCode" />
                             </BField>
 
                             <div v-if="error" class="notification is-danger is-light py-2 px-4 my-3">
                                 {{ error }}
                             </div>
 
-                            <BButton type="is-primary" expanded :loading="isSubmitting" :disabled="!canSubmitRecovery" icon-left="right-to-bracket" @click="loginWithRecoveryCode">
+                            <BButton type="is-primary" expanded :loading="isSubmitting" :disabled="!canSubmitRecovery"
+                                icon-left="right-to-bracket" @click="loginWithRecoveryCode">
                                 Log ind
                             </BButton>
 
@@ -92,6 +111,7 @@
 </template>
 
 <script lang="ts" setup>
+import { startAssertion } from '@/lib/passkeys';
 import AuthService from '@/Services/AuthService';
 import { BButton, BCheckbox, BField, BInput } from 'buefy';
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
@@ -107,6 +127,7 @@ const twoFactorInput = ref<InstanceType<typeof BInput> | null>(null);
 const recoveryInput = ref<InstanceType<typeof BInput> | null>(null);
 
 const email = ref('');
+const userId = ref('');
 const password = ref('');
 const twoFactorCode = ref('');
 const recoveryCode = ref('');
@@ -125,6 +146,9 @@ const returnUrl = computed(() => {
 const canSubmitLogin = computed(() => email.value.trim() !== '' && password.value.length > 0);
 const canSubmitTwoFactor = computed(() => twoFactorCode.value.trim() !== '');
 const canSubmitRecovery = computed(() => recoveryCode.value.trim() !== '');
+
+const hasPasskeys = ref(false);
+const authenticatorAvailable = ref(true);
 
 watch(step, () => {
     nextTick(() => {
@@ -160,10 +184,13 @@ const login = async () => {
             return;
         }
 
-        if (result.requiresTwoFactor) {
-            step.value = 'twofactor';
-            return;
-        }
+            if (result.requiresTwoFactor) {
+                hasPasskeys.value = result.passkeysAvailable ?? false
+                authenticatorAvailable.value = result.hasAuthenticator ?? true
+                userId.value = result.userId ?? '';
+                step.value = 'twofactor';
+                return;
+            }
 
         window.location.assign(result.returnUrl || '/');
     } finally {
@@ -194,6 +221,37 @@ const verifyTwoFactor = async () => {
         isSubmitting.value = false;
     }
 };
+
+const verifyWithPasskey = async () => {
+    if (isSubmitting.value) return;
+    isSubmitting.value = true;
+    error.value = '';
+
+    try {
+        const options = await authService.passkeyOptions();
+        const credentialJson = await startAssertion(options.optionsJson);
+        
+        const result = await authService.passkeyVerify({
+            credentialJson,
+            rememberMachine: rememberMachine.value,
+            returnUrl: returnUrl.value,
+            userId: userId.value
+        });
+
+        if (result.error) {
+            error.value = result.error;
+            return;
+        }
+
+        window.location.assign(result.returnUrl || "/");
+    } catch (err) {
+        error.value = (err as DOMException)?.name === "NotAllowedError"
+            ? "Login med passkey blev afbrudt"
+            : "Der skete en uvented fejl ved login"
+    } finally {
+        isSubmitting.value = false
+    }
+}
 
 const loginWithRecoveryCode = async () => {
     if (!canSubmitRecovery.value || isSubmitting.value) return;

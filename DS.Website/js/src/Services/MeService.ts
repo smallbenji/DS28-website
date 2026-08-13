@@ -10,9 +10,9 @@ export default class MeService {
                 method: "GET"
             });
 
-            return response.data ? response.data : {name: "", firstName: "", lastName: "", mustEnableTwoFactor: false, roles: [], appRoles: [], isAuthenticated: false};
+            return response.data ? response.data : {name: "", firstName: "", lastName: "", mustEnableTwoFactor: false, roles: [], appRoles: [], isAuthenticated: false, passkeys: []};
         } catch {
-            return {name:"", firstName: "", lastName: "", mustEnableTwoFactor: false, roles: [], appRoles: [], isAuthenticated: false};
+            return {name:"", firstName: "", lastName: "", mustEnableTwoFactor: false, roles: [], appRoles: [], isAuthenticated: false, passkeys: []};
         }
     }
 

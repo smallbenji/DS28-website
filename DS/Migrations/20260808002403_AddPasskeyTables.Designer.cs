@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using DS;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -12,9 +13,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace DS.Migrations
 {
     [DbContext(typeof(DataDbContext))]
-    partial class DataDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260808002403_AddPasskeyTables")]
+    partial class AddPasskeyTables
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -110,14 +113,15 @@ namespace DS.Migrations
                     b.Property<bool>("IsAdmin")
                         .HasColumnType("boolean");
 
-                    b.Property<string>("UserId")
+                    b.Property<string>("UserID")
                         .HasColumnType("text");
 
                     b.HasKey("Id");
 
                     b.HasIndex("ActivityTeamId");
 
-                    b.HasIndex("UserId");
+                    b.HasIndex("UserID", "ActivityTeamId")
+                        .IsUnique();
 
                     b.ToTable("ActivityTeamMemberships");
                 });
@@ -365,9 +369,6 @@ namespace DS.Migrations
 
                     b.Property<int?>("GroupId")
                         .HasColumnType("integer");
-
-                    b.Property<bool>("HasEnabledAuthenticator")
-                        .HasColumnType("boolean");
 
                     b.Property<string>("LastName")
                         .HasColumnType("text");
@@ -814,13 +815,7 @@ namespace DS.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("DS.User", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId");
-
                     b.Navigation("ActivityTeam");
-
-                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("DS.Models.MaterialOrder", b =>

@@ -1,4 +1,6 @@
 using DS.DTOs;
+using DS.Website.Services;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -10,6 +12,8 @@ namespace DS.Website.Controllers
     [Route("/api/v1/account")]
     public class AccountApiController(UserManager<User> userManager, SignInManager<User> signInManager) : Controller
     {
+        private readonly int MAX_PASSKEY_COUNT = 3;
+
         [HttpGet("2fa")]
         public async Task<IActionResult> TwoFactorStatus()
         {
@@ -18,11 +22,11 @@ namespace DS.Website.Controllers
             {
                 return NotFound();
             }
-
             return Ok(new TwoFactorStatusDto
             {
                 TwoFactorEnabled = user.TwoFactorEnabled,
-                RecoveryCodesLeft = user.TwoFactorEnabled ? await userManager.CountRecoveryCodesAsync(user) : 0
+                RecoveryCodesLeft = user.TwoFactorEnabled ? await userManager.CountRecoveryCodesAsync(user) : 0,
+                HasEnabledAuthenticator = user.HasEnabledAuthenticator
             });
         }
 
@@ -105,6 +109,13 @@ namespace DS.Website.Controllers
             await userManager.SetTwoFactorEnabledAsync(user, true);
 
             var recoveryCodes = await userManager.GenerateNewTwoFactorRecoveryCodesAsync(user, 10);
+            user.HasEnabledAuthenticator = true;
+            var updateResult = await userManager.UpdateAsync(user);
+
+            if (!updateResult.Succeeded)
+            {
+                // Throw a warning in some kind of logging system
+            }
 
             return Ok(new EnableTwoFactorResultDto
             {
@@ -145,6 +156,8 @@ namespace DS.Website.Controllers
 
             await userManager.ResetAuthenticatorKeyAsync(user);
             await userManager.SetTwoFactorEnabledAsync(user, false);
+            user.HasEnabledAuthenticator = false;
+            await userManager.UpdateAsync(user);
 
             return Ok();
         }
@@ -176,6 +189,14 @@ namespace DS.Website.Controllers
 
             await userManager.SetTwoFactorEnabledAsync(user, false);
             await userManager.ResetAuthenticatorKeyAsync(user);
+
+            var passkeys = await userManager.GetPasskeysAsync(user);
+            foreach(var passkey in passkeys)
+            {
+                await userManager.RemovePasskeyAsync(user, passkey.CredentialId);
+            }
+            user.HasEnabledAuthenticator = false;
+            await userManager.UpdateAsync(user);
 
             return Ok();
         }
@@ -232,5 +253,113 @@ namespace DS.Website.Controllers
 
             return Ok();
         }
+
+        [HttpGet("2fa/passkeys")]
+        public async Task<IActionResult> ListPasskeys()
+        {
+            var user = await userManager.GetUserAsync(HttpContext.User);
+            if (user == null) return NotFound();
+
+            var passkeys = await userManager.GetPasskeysAsync(user);
+
+            return Ok(passkeys.Select(p => new PasskeyDto
+            {
+                Id = Base64UrlTextEncoder.Encode(p.CredentialId),
+                Name = p.Name,
+                CreatedAt = p.CreatedAt,
+                Transports = p.Transports ?? [],
+                IsBackedUp = p.IsBackedUp
+            }));
+        }
+
+        [HttpPost("2fa/passkeys")]
+        public async Task<IActionResult> RegisterPasskey([FromBody] PasskeyAttestationRequestDto data)
+        {
+            var user = await userManager.GetUserAsync(HttpContext.User);
+            if (user == null) return NotFound();
+
+            var result = await signInManager.PerformPasskeyAttestationAsync(data.CredentialJson);
+
+            if (!result.Succeeded || result.UserEntity.Id != user.Id)
+            {
+                return BadRequest("Ugyldig loginforsøg");
+            }
+
+            var passkey = result.Passkey;
+
+            if (!string.IsNullOrEmpty(data.Name)) passkey.Name = data.Name;
+
+            var addPasskeyResult = await userManager.AddOrUpdatePasskeyAsync(user, passkey);
+            if (!addPasskeyResult.Succeeded)
+            {
+                return BadRequest("kunne ikke gemme passkey");
+            }
+
+            // Hvis brugeren ikke har nogen 2fa sat op endu, slå 2fa til og generer "recovery codes"
+            if (!user.TwoFactorEnabled)
+            {
+                await userManager.SetTwoFactorEnabledAsync(user, true);
+                var recoveryCodes = await userManager.GenerateNewTwoFactorRecoveryCodesAsync(user, 10);
+                return Ok(new EnableTwoFactorResultDto
+                {
+                    RecoveryCodes = recoveryCodes?.ToList() ?? []
+                });
+            }
+
+            return Ok();
+        }
+
+
+        [HttpDelete("2fa/passkeys/{id}")]
+        public async Task<IActionResult> RemovePasskey(string id)
+        {
+            var user = await userManager.GetUserAsync(HttpContext.User);
+            if (user == null) return NotFound();
+
+            byte[] credentailId;
+            try
+            {
+                credentailId = Base64UrlTextEncoder.Decode(id);
+            }
+            catch
+            {
+                return BadRequest("ukendt passkey");
+            }
+
+            var passkeys = await userManager.GetPasskeysAsync(user);
+            bool hasTotp = await userManager.GetAuthenticatorKeyAsync(user) != null;
+
+            if (passkeys.Count == 1 && !hasTotp)
+            {
+                return BadRequest("Du kan ikke fjerne din sidste passkeyy. tilføj en anden 2FA-metode først.");
+
+            }
+
+            await userManager.RemovePasskeyAsync(user, credentailId);
+
+            return Ok();
+        }
+
+        [HttpPost("2fa/passkeys/options")]
+        public async Task<IActionResult> PasskeyCreationOptions([FromBody] PasskeyCreateOptionsDto options)
+        {
+            var user = await userManager.GetUserAsync(HttpContext.User);
+            if (user == null) return NotFound();
+            var passkeys = await userManager.GetPasskeysAsync(user);
+            if (passkeys.Count >= MAX_PASSKEY_COUNT) return BadRequest("Max antal passkeys er nået.");
+
+            var result = await signInManager.MakePasskeyCreationOptionsAsync(new()
+            {
+                Id = user.Id,
+                Name = user.UserName,
+                DisplayName = options.DisplayName
+            });
+
+            return Ok(new PasskeyOptionsDto
+            {
+                OptionsJson = result
+            });
+        }
+
     }
 }

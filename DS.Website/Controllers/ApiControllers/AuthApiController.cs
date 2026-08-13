@@ -1,4 +1,7 @@
+using System.Security.Claims;
 using DS.DTOs;
+using DS.Website.Services;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -37,7 +40,13 @@ namespace DS.Website.Controllers
 
             if (result.RequiresTwoFactor)
             {
-                return Ok(new AuthResultDto { RequiresTwoFactor = true });
+                return Ok(new AuthResultDto
+                {
+                    RequiresTwoFactor = true,
+                    PasskeysAvailable = (await userManager.GetPasskeysAsync(user)).Count > 0,
+                    HasAuthenticator = await userManager.GetAuthenticatorKeyAsync(user) != null,
+                    UserId = user.Id
+                });
             }
 
             if (result.IsLockedOut)
@@ -158,6 +167,50 @@ namespace DS.Website.Controllers
             }
 
             return "/";
+        }
+
+        [HttpPost("2fa/passkeys/options")]
+        public async Task<IActionResult> PostPasskeyOptions()
+        {
+            var user = await signInManager.GetTwoFactorAuthenticationUserAsync();
+
+            if (user == null) return BadRequest("ugyldigt loginforsøg");
+
+            var passkeys = await userManager.GetPasskeysAsync(user);
+            if (passkeys.Count == 0) return NotFound("ingen passkeys fundet");
+
+            var result = await signInManager.MakePasskeyRequestOptionsAsync(user);
+
+            return Ok(new PasskeyOptionsDto { OptionsJson = result });
+        }
+
+        [HttpPost("2fa/passkeys/verify")]
+        public async Task<IActionResult> PostPasskeyVerify([FromBody] PasskeyAssertionRequestDto data)
+        {
+            if (string.IsNullOrWhiteSpace(data.UserId))
+            {
+                return BadRequest("Ugyldigt loginforsøg. Bruger ID mangler.");
+            }
+
+            var user = await userManager.FindByIdAsync(data.UserId);
+            if (user == null)
+            {
+                return BadRequest("Ugyldigt loginforsøg. Bruger ikke fundet.");
+            }
+            var result = await signInManager.PerformPasskeyAssertionAsync(data.CredentialJson);
+
+            if (!result.Succeeded || result.User.Id != user.Id) return BadRequest("ugyldigt loginforsøg");
+
+            await userManager.AddOrUpdatePasskeyAsync(result.User, result.Passkey);
+
+            if (data.RememberMachine)
+            {
+                await signInManager.RememberTwoFactorClientAsync(result.User);
+            }
+
+            await signInManager.SignInWithClaimsAsync(result.User, isPersistent: true, [new Claim("amr", "mfa"), new Claim("amr", "phr")]);
+
+            return Ok(new AuthResultDto { ReturnUrl = ResolveReturnUrl(data.ReturnUrl) });
         }
     }
 }

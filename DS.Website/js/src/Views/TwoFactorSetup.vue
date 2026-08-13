@@ -12,7 +12,8 @@
 
                 <template v-if="setup && !enabled">
                     <div class="has-text-centered mb-3">
-                        <img :src="qrUrl" alt="QR-kode til autentificeringsappen" style="width: 200px; height: 200px;" />
+                        <img :src="qrUrl" alt="QR-kode til autentificeringsappen"
+                            style="width: 200px; height: 200px;" />
                     </div>
 
                     <p class="has-text-centered is-family-monospace is-size-7 has-text-grey mb-4">
@@ -20,7 +21,8 @@
                     </p>
 
                     <BField label="Verificér kode">
-                        <BInput ref="codeInput" v-model="code" placeholder="123456" autocomplete="one-time-code" @keyup.enter="verify" />
+                        <BInput ref="codeInput" v-model="code" placeholder="123456" autocomplete="one-time-code"
+                            @keyup.enter="verify" />
                     </BField>
 
                     <p v-if="error" class="help is-danger">
@@ -29,6 +31,27 @@
 
                     <BButton type="is-primary" expanded :loading="isVerifying" @click="verify">
                         Aktivér tofaktorautentificering
+                    </BButton>
+                </template>
+
+                <template v-if="setup && !enabled">
+                    <p class="has-text-centered has-text-grey mb-3">
+                        Har du en passkey? Du kan aktivere tofaktorautentificering med den i stedet for din
+                        autentificeringsapp.
+                    </p>
+
+                    <p v-if="passkeyError" class="help is-danger has-text-centered mb-2">
+                        {{ passkeyError }}
+                    </p>
+
+                    <BButton type="is-primary is-light" 
+                            outlined
+                            rounded
+                            expanded 
+                            :loading="isPasskeyVerifying" 
+                            icon-left="fingerprint"
+                            @click="enableWithPasskey">
+                        Aktivér med passkey
                     </BButton>
                 </template>
 
@@ -42,7 +65,8 @@
                             til at logge ind, hvis du mister adgang til din autentificeringsapp.
                         </p>
                         <div class="tags">
-                            <span v-for="recoveryCode in recoveryCodes" :key="recoveryCode" class="tag is-warning is-light is-medium is-family-monospace">
+                            <span v-for="recoveryCode in recoveryCodes" :key="recoveryCode"
+                                class="tag is-warning is-light is-medium is-family-monospace">
                                 {{ recoveryCode }}
                             </span>
                         </div>
@@ -74,9 +98,11 @@ import { BButton, BField, BInput } from 'buefy';
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import type { TwoFactorSetupDto } from '@/types';
+import { useMeStore } from '@/Stores/MeStore';
 
 const router = useRouter();
 const accountStore = useAccountStore();
+const meStore = useMeStore();
 const authService = new AuthService();
 
 const setup = ref<TwoFactorSetupDto | null>(null);
@@ -85,6 +111,9 @@ const enabled = ref(false);
 const recoveryCodes = ref<string[]>([]);
 const isVerifying = ref(false);
 const error = ref(false);
+const isPasskeyVerifying = ref(false);
+const passkeyError = ref('');
+
 
 const codeInput = ref<InstanceType<typeof BInput> | null>(null);
 
@@ -125,6 +154,29 @@ const logout = async () => {
     await authService.logout();
     window.location.href = "/login";
 };
+
+const enableWithPasskey = async () => {
+    if (isPasskeyVerifying.value) return;
+    isPasskeyVerifying.value = true;
+    passkeyError.value = '';
+
+
+    try {
+        const result = await accountStore.CREATE_PASSKEY(meStore.Me.name);
+        if (result) {
+            enabled.value = true;
+            recoveryCodes.value = result.recoveryCodes;
+        } else {
+            passkeyError.value = "Der skete en fejl under aktiveringen af din passkey."
+        }
+    } catch (e) {
+        passkeyError.value = (e as DOMException)?.name === "NotAllowedError"
+            ? "Aktivering blev afbrudt af brugeren."
+            : 'Der skete en uventet fejl under aktiveringen af din passkey.'
+    } finally {
+        isPasskeyVerifying.value = false;
+    }
+}
 </script>
 
 <style scoped>

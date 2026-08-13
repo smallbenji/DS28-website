@@ -4,6 +4,8 @@ namespace DS.DTOs
     {
         public bool TwoFactorEnabled { get; set; }
         public int RecoveryCodesLeft { get; set; }
+
+        public bool HasEnabledAuthenticator { get; set; }
     }
 
     public class TwoFactorSetupDto
