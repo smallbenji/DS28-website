@@ -363,7 +363,7 @@ const disable = async () => {
 
     try {
         const errorMessage = await accountStore.DISABLE_2FA(disablePassword.value);
-        if (errorMessage == null) {
+        if (errorMessage === null) {
             Toast.open({
                 message: 'Tofaktorautentificering er deaktiveret',
                 type: 'is-success'
