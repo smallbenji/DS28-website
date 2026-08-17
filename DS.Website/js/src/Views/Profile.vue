@@ -264,8 +264,8 @@ const deletePasskey = async (passkey: string) => {
         })
     }
 
-    const passkeyIndex = passkeys.value.findIndex((p) => p.id == passkey);
-    if(passkeyIndex == -1) {
+    const passkeyIndex = passkeys.value.findIndex((p) => p.id === passkey);
+    if(passkeyIndex === -1) {
         return Toast.open({
             message: "Kunne ikke finde passkey",
             type: "is-warning"
@@ -280,8 +280,8 @@ const deletePasskey = async (passkey: string) => {
         })
     }
 
-    const newPasskeyList = passkeys.value.splice(passkeyIndex, 1);
-    
+    const newPasskeyList = passkeys.value.filter((_, i) => i !== passkeyIndex);
+
     meStore.$patch({
         Me: {
             passkeys: newPasskeyList
