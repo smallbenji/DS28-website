@@ -22,6 +22,9 @@ public class GroupApiController(UserManager<User> userManager) : Controller
                 .ThenInclude(x => x.Scouts)
             .FirstOrDefaultAsync(u => u.Id == userId);
 
+        if (user?.Group == null)
+            return NotFound();
+
         return Ok(new GroupDto(user.Group));
     }
 }

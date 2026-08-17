@@ -146,7 +146,8 @@ onUnmounted(() => {
 });
 
 const saveUser = async () => {
-    const result = await userStore.UPDATE_USER(selectedUser.value as UserDto);
+    if (!selectedUser.value) return;
+    const result = await userStore.UPDATE_USER(selectedUser.value);
     if (result) {
         Toast.open({
             message: "Brugere er blevet opdateret!",

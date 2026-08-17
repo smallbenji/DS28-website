@@ -19,6 +19,8 @@ namespace DS.Website.Controllers
             }
 
             var user = await userManager.GetUserAsync(HttpContext.User);
+            if (user == null)
+                return NotFound();
 
             var roles = (await userManager.GetRolesAsync(user)).ToList();
 
