@@ -109,6 +109,18 @@ namespace DS.Website
                 ]
             }
         };
+
+        public static List<string> ResolveAppRoles(IEnumerable<string> roleNames)
+        {
+            return roleNames
+                .SelectMany(roleName =>
+                    Enum.TryParse<AppGroups>(roleName, out var group) &&
+                    Matrix.TryGetValue(group, out var subRoles)
+                        ? subRoles
+                        : [])
+                .Distinct()
+                .ToList();
+        }
     }
 
 }

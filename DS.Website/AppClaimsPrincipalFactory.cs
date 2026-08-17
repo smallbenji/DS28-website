@@ -27,17 +27,11 @@ public class AppClaimsPrincipalFactory : UserClaimsPrincipalFactory<User, Role>
         }
 
         var userRoles = await UserManager.GetRolesAsync(user);
-        foreach (var roleName in userRoles)
+        foreach (var subRole in AppAccess.ResolveAppRoles(userRoles))
         {
-            if (Enum.TryParse<AppGroups>(roleName, out var group) && AppAccess.Matrix.TryGetValue(group, out var subRoles))
+            if (!identity.HasClaim(identity.RoleClaimType, subRole))
             {
-                foreach (var subRole in subRoles)
-                {
-                    if (!identity.HasClaim(identity.RoleClaimType, subRole))
-                    {
-                        identity.AddClaim(new Claim(identity.RoleClaimType, subRole));
-                    }
-                }
+                identity.AddClaim(new Claim(identity.RoleClaimType, subRole));
             }
         }
 

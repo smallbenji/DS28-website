@@ -65,14 +65,7 @@ public class ClaimsTransformer(UserManager<User> userManager, IMemoryCache memor
 
         var userRoles = (await userManager.GetRolesAsync(user)).ToList();
 
-        var appRoles = userRoles
-            .SelectMany(roleName =>
-                Enum.TryParse<AppGroups>(roleName, out var group) &&
-                AppAccess.Matrix.TryGetValue(group, out var subRoles)
-                    ? subRoles
-                    : [])
-            .Distinct()
-            .ToList();
+        var appRoles = AppAccess.ResolveAppRoles(userRoles);
 
         var entry = new UserRolesCache(userRoles, appRoles);
         memoryCache.Set(cacheKey, entry, TimeSpan.FromMinutes(5));

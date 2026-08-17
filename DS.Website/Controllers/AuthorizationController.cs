@@ -149,14 +149,8 @@ public class AuthorizationController : Controller
         {
             var userRoles = await _userManager.GetRolesAsync(user);
 
-            var wordpressRoles = userRoles
-                .SelectMany(roleName =>
-                    Enum.TryParse<AppGroups>(roleName, out var group) &&
-                    AppAccess.Matrix.TryGetValue(group, out var subRoles)
-                        ? subRoles
-                        : [])
+            var wordpressRoles = AppAccess.ResolveAppRoles(userRoles)
                 .Where(role => role is nameof(AppRoles.WordPressEditor) or nameof(AppRoles.WordPressAdmin))
-                .Distinct()
                 .ToList();
 
             if (wordpressRoles.Count > 0)

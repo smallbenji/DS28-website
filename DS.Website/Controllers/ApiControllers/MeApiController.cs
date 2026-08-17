@@ -24,14 +24,7 @@ namespace DS.Website.Controllers
 
             var roles = (await userManager.GetRolesAsync(user)).ToList();
 
-            var appRoles = roles
-                .SelectMany(roleName =>
-                    Enum.TryParse<AppGroups>(roleName, out var group) &&
-                    AppAccess.Matrix.TryGetValue(group, out var subRoles)
-                        ? subRoles
-                        : [])
-                .Distinct()
-                .ToList();
+            var appRoles = AppAccess.ResolveAppRoles(roles);
 
             var passkeys = (await userManager.GetPasskeysAsync(user)).Select(p => new PasskeyDto
             {
