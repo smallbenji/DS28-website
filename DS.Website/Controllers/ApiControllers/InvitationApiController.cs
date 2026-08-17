@@ -45,9 +45,9 @@ namespace DS.HQ.Controllers
                 return BadRequest("Invitation has already been used");
             }
 
-            if (string.IsNullOrWhiteSpace(data.Password) || data.Password.Length < 8)
+            if (string.IsNullOrWhiteSpace(data.Password) || data.Password.Length < 4)
             {
-                return BadRequest("Password must be at least 8 characters long");
+                return BadRequest("Password must be at least 4 characters long");
             }
 
             if (string.IsNullOrWhiteSpace(data.FirstName) || string.IsNullOrWhiteSpace(data.LastName))

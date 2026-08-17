@@ -157,6 +157,7 @@ builder.Services.Configure<IdentityPasskeyOptions>(options =>
 });
 
 builder.Services.AddTransient<ActivityRepository>();
+builder.Services.AddTransient<CampSettings>();
 
 var app = builder.Build();
 
@@ -171,17 +172,15 @@ if (!app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseRouting();
 
-app.UseHttpsRedirection();
+app.UseForwardedHeaders(new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+});
 
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapStaticAssets();
-
-app.UseForwardedHeaders(new ForwardedHeadersOptions
-{
-    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
-});
 
 app.MapControllerRoute(
     name: "default",
