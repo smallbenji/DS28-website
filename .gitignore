@@ -289,10 +289,11 @@ __pycache__/
 *.xsd.cs
 appsettings.json
 
+DS.Website/certs/
+*.pfx
+*.pem
+
 # Custom
-pointMaster/js/package-lock.json
-pointMaster/js/dist
-pointMaster/wwwroot/js/dist
 .env
 
 dist
@@ -300,4 +301,4 @@ node_modules
 *.lscache
 
 docker-compose.test.yaml
-.DS_STORE
+.DS_Store

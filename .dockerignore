@@ -1,0 +1,34 @@
+.git
+.github
+.env
+.env.*
+!.env.example
+
+.vscode
+.zed
+
+docker-compose*.yaml
+Containerfile.*
+
+*.md
+TODO.md
+
+# Build artifacts (dotnet restore/publish rebuilds these)
+**/bin
+**/obj
+
+# JS (rebuilt via npm ci in node-build stage)
+**/node_modules
+
+# Runtime-only files (mounted via volume in docker-compose)
+certs
+
+# Editor/OS artifacts
+.DS_Store
+Thumbs.db
+*.swp
+*~
+
+# Tooling config
+opencode.json
+mise.toml
