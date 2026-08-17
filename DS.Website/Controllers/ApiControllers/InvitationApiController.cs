@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
-namespace DS.HQ.Controllers
+namespace DS.Website.Controllers
 {
     [AllowAnonymous]
     [Route("api/v1/invitation")]

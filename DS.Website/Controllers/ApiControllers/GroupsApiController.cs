@@ -1,12 +1,11 @@
 using DS.DTOs;
 using DS.Models;
-using DS.Website;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
-namespace DS.HQ.Controllers;
+namespace DS.Website.Controllers;
 
 [Authorize(Roles = nameof(AppRoles.GroupsView))]
 [Route("/api/v1/groups")]
