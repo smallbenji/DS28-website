@@ -235,29 +235,6 @@ using (var scope = app.Services.CreateScope())
     {
         logger.LogError(ex, "Der opstod en fejl under migrering eller seeding af databasen.");
     }
-
-    var manager = scope.ServiceProvider.GetRequiredService<IOpenIddictApplicationManager>();
-
-    if (await manager.FindByClientIdAsync("wordpress-app1") is null)
-    {
-        await manager.CreateAsync(new OpenIddictApplicationDescriptor
-        {
-            ClientId = "wordpress-app1",
-            ClientSecret = "isoisoisoisoisoisoisoiso",
-            DisplayName = "WordPress Hjemmeside",
-            Permissions =
-            {
-                OpenIddictConstants.Permissions.Endpoints.Authorization,
-                OpenIddictConstants.Permissions.Endpoints.Token,
-                OpenIddictConstants.Permissions.GrantTypes.AuthorizationCode,
-                OpenIddictConstants.Permissions.ResponseTypes.Code,
-                OpenIddictConstants.Permissions.Scopes.Email,
-                OpenIddictConstants.Permissions.Scopes.Profile,
-                OpenIddictConstants.Permissions.Scopes.Roles
-            },
-            RedirectUris = { new Uri("https://www.distriktssommerlejr.dk/wp-admin/admin-ajax.php?action=openid-connect-authorize") }
-        });
-    }
 }
 
 app.Run();
