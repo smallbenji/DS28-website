@@ -1,4 +1,5 @@
 using DS.DTOs;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -6,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 namespace DS.Website.Controllers;
 
 [Route("/api/v1/group")]
+[Authorize]
 // [Authorize(Roles = nameof(AppRoles.AuditLogView))]
 public class GroupApiController(UserManager<User> userManager) : Controller
 {
