@@ -11,7 +11,7 @@ export default class GroupService {
 
             return response.data;
         } catch {
-            return { name: "", id: "0", district: District.DANEHOF, patrols: [], scouts: [] };
+            return { name: "", id: "0", district: District.DANEHOF, patrols: [], scouts: [], users: [] };
         }
     }
 }
