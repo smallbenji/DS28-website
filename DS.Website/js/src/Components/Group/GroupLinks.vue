@@ -1,79 +1,101 @@
 <template>
-    <div class="link-container">
-        <div class="link-line">
-            <span>
-                Forhåndstilmelding
+    <div class="group-links">
+        <div v-for="link in links" class="link" :class="{'is-inactive': isLocked(link.date)}">
+            <span class="subtitle is-5 mb-1 has-text-weight-bold">
+                {{ link.name }}
             </span>
-            <span class="date">
-                Åbner d. 1/7/2026
-            </span>
-        </div>
-        <div class="link-line link-line--disabled">
-            <span>
-                Endelig Tilmelding
-            </span>
-            <span class="date">
-                Åbner d. 1/7/2026
-            </span>
-        </div>
-        <div class="link-line link-line--disabled">
-            <span>
-                Ønskerunde aktiviteter
-            </span>
-            <span class="date">
-                Åbner d. 1/7/2026
-            </span>
-        </div>
-        <div class="link-line link-line--disabled">
-            <span>
-                Aktivitets Tilmelding
-            </span>
-            <span class="date">
-                Åbner d. 1/7/2026
+            <span v-if="isLocked(link.date)">
+                {{ link.date.getDate() + "/" + link.date.getMonth() + "/" + link.date.getFullYear() }}
             </span>
         </div>
     </div>
 </template>
 <script lang="ts" setup>
+const links = [
+    {
+        name: "Forhåndstilmelding",
+        date: new Date(2026, 4, 5)
+    },
+    {
+        name: "Endelig Tilmelding",
+        date: new Date(2026, 10, 5)
+    },
+    {
+        name: "Aktivitets ønskerunde",
+        date: new Date(2026, 10, 5)
+    },
+    {
+        name: "Aktivitetstilmelding",
+        date: new Date(2026, 10, 5)
+    },
+]
+
+const isLocked = (targetDate: Date) => {
+    const today = new Date();
+    return today < targetDate;
+}
 </script>
 <style lang="scss">
-.link {
-    &-container {
-        background-color: white;
-        border-radius: 10px;
-        max-width: 25rem;
-        overflow: hidden;
-    }
-    &-line {
-        padding: 1rem;
+.group-links {
+    background-color: white;
+    border-radius: 10px;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    display: flex;
+    gap: 1rem;
+    padding: 1rem;
+    box-shadow: 5px 5px 5px 0 rgba(0, 0, 0, 0.1);
 
-        border-bottom: 1px solid rgba(0, 0, 0, 0.1);
-        cursor: pointer;
+    .link {
+        height: 8rem;
+        min-width: 12rem;
+        border-radius: 10px;
         display: flex;
-        justify-content: space-between;
+        flex-direction: column;
+        justify-content: center;
         align-items: center;
-        
-        transition: 0.1s ease-in-out;
-        &:last-child {
-            border: none;
-        }
+        border: 1px solid rgba(0, 0, 0, 0.1);
+        background-color: rgba(255,255,255,1);
+        transition: 0.2s ease-out;
+        box-shadow: 5px 5px 5px 0 rgba(0, 0, 0, 0.05);
+        padding: 1rem;
+        position: relative; /* Essential to anchor the huge CSS cross lines */
+        overflow: hidden;
 
         &:hover {
+            cursor: pointer;
             background-color: rgba(0, 0, 0, 0.1);
         }
 
-        .date {
-            font-size: 0.75rem;
-            color: rgba(0, 0, 0, 0.4);
-            padding-left: 1rem;
+        &.is-locked {
+            cursor: not-allowed;
+            background-color: rgba(0, 0, 0, 0.2);
         }
 
-        &--disabled {
-            opacity: 0.5;
+        &.is-inactive {
+            opacity: 0.7;
+            background-color: #fafafa;
             cursor: not-allowed;
+            pointer-events: none;
+            overflow: hidden;
 
-            &:hover {
-                background-color: transparent;
+            /* This creates the giant diagonal line going top-left to bottom-right */
+            &::before {
+                content: "";
+                position: absolute;
+                width: 150%; /* wider than 100% to fully cover the diagonal span */
+                height: 3px;  /* Thickness of the cross line */
+                background-color: rgba(255, 56, 96, 0.6); /* Red color with transparency */
+                transform: rotate(33deg); /* Perfectly fits a 12x8rem box aspect ratio */
+            }
+
+            /* This creates the giant diagonal line going bottom-left to top-right */
+            &::after {
+                content: "";
+                position: absolute;
+                width: 150%;
+                height: 3px;
+                background-color: rgba(255, 56, 96, 0.6);
+                transform: rotate(-33deg);
             }
         }
     }

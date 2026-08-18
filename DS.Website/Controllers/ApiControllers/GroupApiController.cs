@@ -25,6 +25,10 @@ public class GroupApiController(UserManager<User> userManager) : Controller
         if (user?.Group == null)
             return NotFound();
 
-        return Ok(new GroupDto(user.Group));
+        var users = await userManager.Users
+            .Where(u => u.Group != null && u.Group.Id == user.Group.Id)
+            .ToListAsync();
+
+        return Ok(new GroupDto(user.Group, users));
     }
 }

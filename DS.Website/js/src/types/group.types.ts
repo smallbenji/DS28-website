@@ -12,4 +12,13 @@ export interface GroupDto {
     district: District;
     patrols: PatrolDto[];
     scouts: ScoutDto[];
+    users: GroupUserDto[];
+}
+
+export interface GroupUserDto {
+    id: string;
+    userName: string;
+    email: string;
+    firstName: string;
+    lastName: string;
 }

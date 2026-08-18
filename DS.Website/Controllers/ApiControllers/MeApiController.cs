@@ -26,14 +26,7 @@ namespace DS.Website.Controllers
 
             var appRoles = AppAccess.ResolveAppRoles(roles);
 
-            var passkeys = (await userManager.GetPasskeysAsync(user)).Select(p => new PasskeyDto
-            {
-                Id = Base64UrlTextEncoder.Encode(p.CredentialId),
-                Name = p.Name,
-                CreatedAt = p.CreatedAt,
-                Transports = p.Transports ?? [],
-                IsBackedUp = p.IsBackedUp
-            });
+            var passkeys = (await userManager.GetPasskeysAsync(user)).ToDtoList();
 
             var model = new MeDto
             {
@@ -45,7 +38,7 @@ namespace DS.Website.Controllers
                 MustEnableTwoFactor = await userManager.IsInRoleAsync(user, nameof(AppGroups.SysAdmin)) && !user.TwoFactorEnabled,
                 Roles = roles,
                 AppRoles = appRoles,
-                Passkeys = passkeys.ToList()
+                Passkeys = passkeys
             };
 
             return Ok(model);

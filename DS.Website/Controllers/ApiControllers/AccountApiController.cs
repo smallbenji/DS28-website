@@ -262,14 +262,7 @@ namespace DS.Website.Controllers
 
             var passkeys = await userManager.GetPasskeysAsync(user);
 
-            return Ok(passkeys.Select(p => new PasskeyDto
-            {
-                Id = Base64UrlTextEncoder.Encode(p.CredentialId),
-                Name = p.Name,
-                CreatedAt = p.CreatedAt,
-                Transports = p.Transports ?? [],
-                IsBackedUp = p.IsBackedUp
-            }));
+            return Ok(passkeys.ToDtoList());
         }
 
         [HttpPost("2fa/passkeys")]
