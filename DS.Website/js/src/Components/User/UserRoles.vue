@@ -7,13 +7,13 @@
                 Tildel rolle
             </BButton>
         </div>
-        <div class="panel-block role-line" v-for="group in selectedUser.roles">
+        <div class="panel-block role-line" v-for="group in selectedUser.roles" :key="group">
             <span class="panel-icon">
                 <font-awesome-icon icon="dice-d6" />
             </span>
             {{ group }}
             <div class="flex"></div>
-            <BButton type="is-small is-danger" @click="Remove(group)">
+            <BButton type="is-small is-danger" v-if="assignableGroups.includes(group)" @click="Remove(group)">
                 Fjern
             </BButton>
         </div>
@@ -71,7 +71,7 @@ const props = defineProps<{
 }>();
 
 const userStore = useUserStore();
-const {GROUPS: groups} = storeToRefs(userStore);
+const {GROUPS: groups, ASSIGNABLE_GROUPS: assignableGroups} = storeToRefs(userStore);
 
 const selectedGroup = ref<string>();
 const open = ref<boolean>(false);
@@ -80,7 +80,10 @@ const confirmationOpen = ref<boolean>(false);
 const selectedGroupToRemove = ref<string>("");
 
 const filteredGroups = computed(() => {
-    return groups.value.filter(x => !props.selectedUser.roles.includes(x.name)) as RoleDto[];
+    return groups.value.filter(x =>
+        !props.selectedUser.roles.includes(x.name) &&
+        assignableGroups.value.includes(x.name)
+    ) as RoleDto[];
 })
 
 const Assign = async () => {

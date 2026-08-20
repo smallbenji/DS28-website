@@ -129,6 +129,18 @@ public class UserApiController(DataDbContext dataDb, UserManager<User> userManag
             return BadRequest("Role is required.");
         }
 
+        var currentUser = await userManager.GetUserAsync(User);
+        if (currentUser == null)
+        {
+            return Forbid();
+        }
+
+        var currentUserRoles = await userManager.GetRolesAsync(currentUser);
+        if (!AppAccess.CanAssignRole(currentUserRoles, role))
+        {
+            return Forbid();
+        }
+
         var user = await userManager.FindByIdAsync(id);
         if (user == null)
         {
@@ -152,6 +164,18 @@ public class UserApiController(DataDbContext dataDb, UserManager<User> userManag
         if (string.IsNullOrWhiteSpace(role))
         {
             return BadRequest("Role is required.");
+        }
+
+        var currentUser = await userManager.GetUserAsync(User);
+        if (currentUser == null)
+        {
+            return Forbid();
+        }
+
+        var currentUserRoles = await userManager.GetRolesAsync(currentUser);
+        if (!AppAccess.CanAssignRole(currentUserRoles, role))
+        {
+            return Forbid();
         }
 
         var user = await userManager.FindByIdAsync(id);
@@ -229,6 +253,24 @@ public class UserApiController(DataDbContext dataDb, UserManager<User> userManag
         return Ok();
     }
 
+    [HttpGet("assignable-groups")]
+    public async Task<IActionResult> GetAssignableGroups()
+    {
+        var currentUser = await userManager.GetUserAsync(User);
+        if (currentUser == null)
+        {
+            return Forbid();
+        }
+
+        var currentUserRoles = await userManager.GetRolesAsync(currentUser);
+        var assignable = Enum.GetValues<AppGroups>()
+            .Where(g => AppAccess.CanAssignRole(currentUserRoles, g.ToString()))
+            .Select(g => g.ToString())
+            .ToList();
+
+        return Ok(assignable);
+    }
+
     [HttpGet("groups")]
     public async Task<IActionResult> GetGroups()
     {
@@ -273,10 +315,23 @@ public class UserApiController(DataDbContext dataDb, UserManager<User> userManag
             return BadRequest("Invalid request body.");
         }
 
+        var currentUser = await userManager.GetUserAsync(User);
+        if (currentUser == null)
+        {
+            return Forbid();
+        }
+
+        var currentUserRoles = await userManager.GetRolesAsync(currentUser);
+        var allowedRoles = data.Roles.Where(r => AppAccess.CanAssignRole(currentUserRoles, r)).ToList();
+        if (allowedRoles.Count != data.Roles.Count)
+        {
+            return BadRequest("Du har ikke tilladelse til at tildele nogle af de valgte roller.");
+        }
+
         var invitation = new UserInvitation()
         {
             InvitationId = Guid.NewGuid(),
-            Roles = data.Roles,
+            Roles = allowedRoles,
             Email = data.Email
         };
 

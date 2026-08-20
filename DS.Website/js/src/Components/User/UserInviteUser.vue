@@ -23,7 +23,7 @@
                     <BField label="Roller">
                         <div class="block">
                             <BCheckbox
-                                v-for="group in groups"
+                                v-for="group in filteredGroups"
                                 :key="group.id"
                                 v-model="selectedRoles"
                                 :native-value="group.name"
@@ -50,19 +50,23 @@
     </div>
 </template>
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { BButton, BModal, BField, BInput, BCheckbox, useToast } from 'buefy';
 import { useUserStore } from '@/Stores/UserStore';
 import { storeToRefs } from 'pinia';
 
 const userStore = useUserStore();
-const { GROUPS: groups } = storeToRefs(userStore);
+const { GROUPS: groups, ASSIGNABLE_GROUPS: assignableGroups } = storeToRefs(userStore);
 const Toast = useToast();
 
 const isModalActive = ref(false);
 const isLoading = ref(false);
 const email = ref('');
 const selectedRoles = ref<string[]>([]);
+
+const filteredGroups = computed(() => {
+    return groups.value.filter(x => assignableGroups.value.includes(x.name));
+});
 
 const openModal = () => {
     email.value = '';

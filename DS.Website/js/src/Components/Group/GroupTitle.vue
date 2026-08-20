@@ -4,7 +4,7 @@
             <h1 class="title">
                 {{ Group.name }}
             </h1>
-            <p class="subtitle">
+            <p class="subtitle is-6">
                 {{ Group.district }}
             </p>
         </div>

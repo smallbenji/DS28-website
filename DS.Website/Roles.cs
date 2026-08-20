@@ -110,6 +110,44 @@ namespace DS.Website
             }
         };
 
+        public static readonly Dictionary<AppGroups, AppGroups[]> AssignableGroups = new()
+        {
+            {
+                AppGroups.SysAdmin,
+                [
+                    AppGroups.SysAdmin,
+                    AppGroups.CampAdmin,
+                    AppGroups.EventAdmin,
+                    AppGroups.ActivityAdmin,
+                    AppGroups.ActivityUser,
+                    AppGroups.FinanceAdmin,
+                    AppGroups.PRAdmin,
+                    AppGroups.FoodAdmin,
+                    AppGroups.User,
+                ]
+            },
+            {
+                AppGroups.CampAdmin,
+                [
+                    AppGroups.EventAdmin,
+                    AppGroups.ActivityAdmin,
+                    AppGroups.ActivityUser,
+                    AppGroups.FinanceAdmin,
+                    AppGroups.PRAdmin,
+                    AppGroups.FoodAdmin,
+                    AppGroups.User,
+                ]
+            },
+        };
+
+        public static bool CanAssignRole(IEnumerable<string> userGroups, string targetGroup)
+        {
+            return userGroups.Any(g =>
+                Enum.TryParse<AppGroups>(g, out var group) &&
+                AssignableGroups.TryGetValue(group, out var assignable) &&
+                assignable.Any(a => a.ToString() == targetGroup));
+        }
+
         public static List<string> ResolveAppRoles(IEnumerable<string> roleNames)
         {
             return roleNames

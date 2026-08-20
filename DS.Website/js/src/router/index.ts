@@ -100,6 +100,7 @@ router.beforeEach(async (to) => {
         if (to.meta.requiresUserData) {
             promises.push(userStore.GET_USERS());
             promises.push(userStore.GET_GROUPS());
+            promises.push(userStore.GET_ASSIGNABLE_GROUPS());
             promises.push(groupsStore.GET_GROUPS());
         }
 

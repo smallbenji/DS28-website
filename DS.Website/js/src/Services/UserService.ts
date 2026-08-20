@@ -61,6 +61,24 @@ export default class UserService {
         }
     }
 
+    public async getAssignableGroups(): Promise<string[]> {
+        try {
+            const response: AxiosResponse<string[]> = await axios({
+                url: "/api/v1/user/assignable-groups",
+                method: "GET"
+            });
+
+            if (response.status == 200) {
+                return response.data;
+            }
+            else {
+                return [];
+            }
+        } catch {
+            return [];
+        }
+    }
+
     public async getGroups(): Promise<RoleDto[]> {
         try {
             const response: AxiosResponse<RoleDto[]> = await axios({
