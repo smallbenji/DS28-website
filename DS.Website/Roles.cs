@@ -67,6 +67,7 @@ namespace DS.Website
                 AppGroups.CampAdmin,
                 [
                     nameof(AppRoles.UsersView),
+                    nameof(AppRoles.UsersResetPassword),
 
                     nameof(AppRoles.GroupsView),
                     nameof(AppRoles.GroupsCreate),
