@@ -9,6 +9,7 @@ namespace DS.DTOs
             Id = user.Id;
             UserName = user.UserName ?? string.Empty;
             Email = user.Email ?? string.Empty;
+            Phone = user.PhoneNumber ?? string.Empty;
             FirstName = user.FirstName ?? string.Empty;
             LastName = user.LastName ?? string.Empty;
             Group = user.Group != null ? new GroupDto(user.Group) : null;
@@ -20,6 +21,7 @@ namespace DS.DTOs
         public string Email { get; set; }
         public string FirstName { get; set; }
         public string LastName { get; set; }
+        public string Phone { get; set; }
         public GroupDto Group { get; set; }
         public DateTimeOffset? LockoutEnd { get; set; }
         public List<string> Roles { get; set; } = [];

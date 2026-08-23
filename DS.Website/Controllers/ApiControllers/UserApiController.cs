@@ -96,6 +96,7 @@ public class UserApiController(DataDbContext dataDb, UserManager<User> userManag
         user.Email = data.Email;
         user.FirstName = data.FirstName;
         user.LastName = data.LastName;
+        user.PhoneNumber = data.Phone;
 
         if (data.Group != null)
         {

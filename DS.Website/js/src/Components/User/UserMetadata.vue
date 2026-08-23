@@ -13,6 +13,9 @@
             <BField label="Email">
                 <BInput v-model="selectedUser.email" />
             </BField>
+            <BField label="Telefon">
+                <BInput v-model="selectedUser.phone" />
+            </BField>
             <BField label="Gruppe">
                 <BSelect v-model="selectedGroupId" expanded>
                     <option value=""></option>

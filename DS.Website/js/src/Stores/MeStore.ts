@@ -10,6 +10,7 @@ export const useMeStore = defineStore("me", () => {
     id: "",
     firstName: "",
     lastName: "",
+    phone: "",
     mustEnableTwoFactor: false,
     roles: [],
     appRoles: [],

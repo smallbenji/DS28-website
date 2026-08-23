@@ -20,6 +20,11 @@
                                         <BInput v-model="lastName" />
                                     </BField>
                                 </div>
+                                <div class="column is-2">
+                                    <BField label="Telefon">
+                                        <BInput v-model="phone" />
+                                    </BField>
+                                </div>
                             </div>
                             <BButton type="is-primary" :loading="isUpdatingName" @click="updateName">
                                 Opdater navn
@@ -182,6 +187,7 @@ const { Me } = storeToRefs(meStore);
 
 const firstName = ref('');
 const lastName = ref('');
+const phone = ref('');
 const isUpdatingName = ref(false);
 const passkeys = ref<PasskeyDto[] | null>(null);
 
@@ -205,6 +211,7 @@ onMounted(() => {
     accountStore.GET_STATUS();
     firstName.value = Me.value.firstName ?? '';
     lastName.value = Me.value.lastName ?? '';
+    phone.value = Me.value.phone ?? '';
     passkeys.value = Me.value.passkeys;
 });
 

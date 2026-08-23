@@ -6,6 +6,7 @@ export interface MeDto {
   name: string;
   firstName: string;
   lastName: string;
+  phone: string;
   mustEnableTwoFactor: boolean;
   roles: string[];
   appRoles: string[];

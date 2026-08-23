@@ -35,6 +35,7 @@ namespace DS.Website.Controllers
                 Name = user.GetFullName(),
                 FirstName = user.FirstName ?? string.Empty,
                 LastName = user.LastName ?? string.Empty,
+                Phone = user.PhoneNumber ?? string.Empty,
                 MustEnableTwoFactor = await userManager.IsInRoleAsync(user, nameof(AppGroups.SysAdmin)) && !user.TwoFactorEnabled,
                 Roles = roles,
                 AppRoles = appRoles,
@@ -42,6 +43,31 @@ namespace DS.Website.Controllers
             };
 
             return Ok(model);
+        }
+
+        [HttpPut("phone")]
+        public async Task<IActionResult> UpdatePhone([FromBody] UpdatePhoneDto data)
+        {
+            if (data == null)
+            {
+                return BadRequest("Invalid request body.");
+            }
+
+            var user = await userManager.GetUserAsync(HttpContext.User);
+            if (user == null)
+            {
+                return NotFound();
+            }
+
+            user.PhoneNumber = data.Phone;
+
+            var result = await userManager.UpdateAsync(user);
+            if (!result.Succeeded)
+            {
+                return BadRequest(result.Errors);
+            }
+
+            return Ok();
         }
     }
 }
