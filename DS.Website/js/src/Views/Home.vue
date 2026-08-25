@@ -55,7 +55,7 @@ const isExternal = (url: string) => {
   background-color: #fff;
   border-radius: 10px;
   box-shadow: 5px 5px 5px 0 rgba(0, 0, 0, 0.05);
-  transition: 0.2s ease-in-out;
+  transition: 0.2s ease-in;
   cursor: pointer;
   text-decoration: none;
   color: black;
