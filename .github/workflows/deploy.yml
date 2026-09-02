@@ -1,0 +1,68 @@
+# CI/CD: Build and publish to GHCR on semantic version tag push
+name: Deploy
+
+on:
+  # Trigger ONLY on SemVer git tags like v1.0.0, v2.1.3-rc1 (no other branches/PRs)
+  push:
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+*"
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    # Grant the job permission to push packages to GHCR and read repo scope
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      # 1) Check out the repository source
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2) Set up QEMU so multi-arch images can be built (e.g. linux/amd64)
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      # 3) Set up Docker Buildx with the driver that enables layer/image caching
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # 4) Authenticate with GHCR using the auto-provisioned GITHUB_TOKEN
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # 5) Generate image tags/labels from the SemVer git tag
+      #    -> <image>:1.2.3 (exact), <image>:1.2 (minor), <image>:1 (major), <image>:latest
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      # 6) Build the image from the custom Containerfile and push all 4 tags
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .                  # build context is repo root
+          file: ./Containerfile       # use Containerfile instead of Dockerfile
+          platforms: linux/amd64
+          push: true                  # publish to GHCR
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          # GitHub Actions layer cache (type=gha) to speed up rebuilds
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
