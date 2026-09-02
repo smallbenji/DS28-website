@@ -51,14 +51,14 @@ jobs:
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=semver,pattern={{major}}
-            type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value=latest
 
       # 6) Build the image from the custom Containerfile and push all 4 tags
       - name: Build and push Docker image
         uses: docker/build-push-action@v6
         with:
           context: .                  # build context is repo root
-          file: ./Containerfile       # use Containerfile instead of Dockerfile
+          file: ./Containerfile.Website # build from the repo's container file
           platforms: linux/amd64
           push: true                  # publish to GHCR
           tags: ${{ steps.meta.outputs.tags }}
