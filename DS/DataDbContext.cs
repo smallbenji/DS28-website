@@ -20,10 +20,22 @@ public class DataDbContext : IdentityDbContext<User, Role, string>
     public DbSet<ActivityTeamMembership> ActivityTeamMemberships { get; set; }
     public DbSet<Material> Materials { get; set; }
     public DbSet<MaterialOrder> MaterialOrders { get; set; }
+    public DbSet<GroupPreSignup> GroupPreSignups { get; set; }
+    public DbSet<RegistrationSettings> RegistrationSettings { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+
+        modelBuilder.Entity<RegistrationSettings>().HasData(new RegistrationSettings
+        {
+            Id = 1,
+            IsPreSignupOpen = true
+        });
+
+        modelBuilder.Entity<UserInvitation>()
+            .HasOne(i => i.Group).WithMany().HasForeignKey(i => i.GroupId)
+            .OnDelete(DeleteBehavior.Cascade);
 
         // Relation: Group -> Patrols
         modelBuilder.Entity<Patrol>()
@@ -106,5 +118,10 @@ public class DataDbContext : IdentityDbContext<User, Role, string>
         modelBuilder.Entity<CatalogData>()
             .HasMany(cd => cd.Categories)
             .WithMany();
+
+        modelBuilder.Entity<Group>()
+            .HasOne(g => g.PreSignup)
+            .WithOne(p => p.Group)
+            .HasForeignKey<GroupPreSignup>(p => p.GroupId);
     }
 }

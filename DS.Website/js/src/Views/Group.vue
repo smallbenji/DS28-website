@@ -2,7 +2,8 @@
     <div style="padding: 1rem 2rem; display: flex; justify-content: space-between; gap: 1rem;">
         <div class="group-view">
             <GroupTitle />
-            <GroupLinks class="" />
+            <GroupStats />
+            <GroupLinks />
         </div>
         <GroupUsers />
     </div>
@@ -10,6 +11,7 @@
 
 <script setup lang="ts">
 import GroupLinks from '@/Components/Group/GroupLinks.vue';
+import GroupStats from '@/Components/Group/GroupStats.vue';
 import GroupTitle from '@/Components/Group/GroupTitle.vue';
 import GroupUsers from '@/Components/Group/GroupUsers.vue';
 

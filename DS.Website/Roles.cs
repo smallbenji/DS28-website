@@ -24,6 +24,7 @@ namespace DS.Website
         GroupsView,
         GroupsCreate,
         GroupsDelete,
+        PreSignupManage,
 
         ActivityView,
         ActivityAdmin,
@@ -50,6 +51,7 @@ namespace DS.Website
                     nameof(AppRoles.GroupsView),
                     nameof(AppRoles.GroupsCreate),
                     nameof(AppRoles.GroupsDelete),
+                    nameof(AppRoles.PreSignupManage),
 
                     nameof(AppRoles.WordPressAdmin),
 
@@ -73,6 +75,7 @@ namespace DS.Website
                     nameof(AppRoles.GroupsCreate),
 
                     nameof(AppRoles.WordPressEditor),
+                    nameof(AppRoles.PreSignupManage),
                     nameof(AppRoles.ActivityAdmin),
                     nameof(AppRoles.ActivityView),
                 ]

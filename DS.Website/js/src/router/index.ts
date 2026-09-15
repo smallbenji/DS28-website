@@ -8,6 +8,25 @@ import { useActivityStore } from "@/Stores/ActivityStore";
 
 const routes: RouteRecordRaw[] = [
     {
+        path: "/camp-settings",
+        component: () => import("@/Views/CampSettings.vue"),
+        meta: { requiresAuth: true, requiredRole: "PreSignupManage", pageTitle: "Lejrindstillinger", pageIcon: "sliders" }
+    },
+    {
+        path: "/group/members",
+        component: () => import("@/Views/GroupMembers.vue"),
+        meta: { requiresAuth: true, pageTitle: "Gruppens brugere", pageIcon: "users" }
+    },
+    {
+        path: "/group-invitation/:id",
+        component: () => import("@/Views/GroupInvitation.vue")
+    },
+    {
+        path: "/group-pre-signup",
+        component: () => import("@/Views/GroupPreSignup.vue"),
+        meta: { guestOnly: true }
+    },
+    {
         path: "/",
         component: () => import("@/Views/Home.vue"),
         meta: { requiresHomeData: true, pageTitle: "HQ", pageIcon: "house", hideBack: true }
@@ -53,6 +72,11 @@ const routes: RouteRecordRaw[] = [
         path: "/group",
         component: () => import("@/Views/Group.vue"),
         meta: { requiresGroupData: true, pageTitle: "Gruppe", pageIcon: "users" }
+    },
+    {
+        path: "/group/pre-signup",
+        component: () => import("@/Views/GroupPreSignupEdit.vue"),
+        meta: { requiresAuth: true, pageTitle: "Forhåndstilmelding", pageIcon: "users" }
     },
     {
         path: "/activity",
@@ -133,6 +157,14 @@ router.beforeEach(async (to) => {
 
         if (promises.length > 0) {
             await Promise.all(promises);
+        }
+
+        if (to.meta.requiresAuth && !meStore.ME.isAuthenticated) {
+            return { path: "/login", query: { returnUrl: to.fullPath } };
+        }
+
+        if (typeof to.meta.requiredRole === "string" && !meStore.ME.appRoles.includes(to.meta.requiredRole)) {
+            return "/";
         }
 
         if (to.meta.guestOnly && meStore.ME.isAuthenticated) {

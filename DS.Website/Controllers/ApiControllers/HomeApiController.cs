@@ -14,6 +14,7 @@ namespace DS.Website.Controllers
             // Need roles
             new() { Title = "Brugerstyring", Url = "/user", Icon = ["user-pen"], RequiredRole = nameof(AppRoles.UsersView) },
             new() { Title = "Gruppestyring", Url = "/groups", Icon = ["users-gear"], RequiredRole = nameof(AppRoles.GroupsView) },
+            new() { Title = "Lejrindstillinger", Url = "/camp-settings", Icon = ["sliders"], RequiredRole = nameof(AppRoles.PreSignupManage) },
             // new() { Title = "Aktivitetsmodul", Url = "/activity", Icon = ["fa-solid fa-newspaper"], RequiredRoles = [nameof(AppRoles.ActivityAdmin), nameof(AppRoles.ActivityView)] },
             
             // No roles needed

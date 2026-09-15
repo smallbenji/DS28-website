@@ -15,7 +15,7 @@ namespace DS.Website.Controllers
         public async Task<IActionResult> GetInvitation(string id)
         {
             Guid.TryParse(id, out var guidId);
-            var result = await dataDb.Invitations.FirstOrDefaultAsync(x => x.InvitationId == guidId);
+            var result = await dataDb.Invitations.FirstOrDefaultAsync(x => x.InvitationId == guidId && x.GroupId == null);
 
             if (result == null)
             {
@@ -33,7 +33,7 @@ namespace DS.Website.Controllers
                 return BadRequest("Invalid request body.");
             }
 
-            var invitation = await dataDb.Invitations.FirstOrDefaultAsync(x => x.InvitationId == id);
+            var invitation = await dataDb.Invitations.FirstOrDefaultAsync(x => x.InvitationId == id && x.GroupId == null);
 
             if (invitation == null)
             {

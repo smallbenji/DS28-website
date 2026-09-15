@@ -12,6 +12,12 @@ namespace DS.Website.Controllers
         [HttpGet("/register")]
         public IActionResult Register() => SpaIndex();
 
+        [HttpGet("/group-pre-signup")]
+        public IActionResult GroupPreSignup() => SpaIndex();
+
+        [HttpGet("/group-invitation/{id}")]
+        public IActionResult GroupInvitation() => SpaIndex();
+
         [HttpGet("/invitation/{id}")]
         public IActionResult Invitation() => SpaIndex();
 

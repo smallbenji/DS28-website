@@ -12,4 +12,6 @@ public class UserInvitation
     public bool Used { get; set; } = false;
     public int? ActivityTeamId { get; set; }
     public bool IsAdmin { get; set; }
+    public int? GroupId { get; set; }
+    public Group Group { get; set; }
 }

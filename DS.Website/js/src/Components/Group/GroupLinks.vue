@@ -1,20 +1,25 @@
 <template>
     <div class="group-links">
-        <div v-for="link in links" class="link" :class="{'is-inactive': isLocked(link.date)}">
+        <component :is="link.to && !isLocked(link.date) ? RouterLink : 'div'"
+            v-for="link in links" :key="link.name" :to="link.to"
+            class="link has-text-dark" :class="{'is-inactive': isLocked(link.date)}">
             <span class="subtitle is-5 mb-1 has-text-weight-bold">
                 {{ link.name }}
             </span>
-            <span v-if="isLocked(link.date)">
+            <span v-if="link.date && isLocked(link.date)">
                 {{ link.date.getDate() + "/" + link.date.getMonth() + "/" + link.date.getFullYear() }}
             </span>
-        </div>
+        </component>
     </div>
 </template>
 <script lang="ts" setup>
+import { RouterLink } from 'vue-router';
+
 const links = [
     {
         name: "Forhåndstilmelding",
-        date: new Date(2026, 4, 5)
+        to: "/group/pre-signup",
+        date: null
     },
     {
         name: "Endelig Tilmelding",
@@ -30,7 +35,8 @@ const links = [
     },
 ]
 
-const isLocked = (targetDate: Date) => {
+const isLocked = (targetDate: Date | null) => {
+    if (!targetDate) return false;
     const today = new Date();
     return today < targetDate;
 }
@@ -70,34 +76,40 @@ const isLocked = (targetDate: Date) => {
             cursor: not-allowed;
             background-color: rgba(0, 0, 0, 0.2);
         }
-
         &.is-inactive {
-            opacity: 0.7;
             background-color: #fafafa;
+            opacity: 0.7;
             cursor: not-allowed;
-            pointer-events: none;
-            overflow: hidden;
 
-            /* This creates the giant diagonal line going top-left to bottom-right */
-            &::before {
-                content: "";
-                position: absolute;
-                width: 150%; /* wider than 100% to fully cover the diagonal span */
-                height: 3px;  /* Thickness of the cross line */
-                background-color: rgba(255, 56, 96, 0.6); /* Red color with transparency */
-                transform: rotate(33deg); /* Perfectly fits a 12x8rem box aspect ratio */
-            }
-
-            /* This creates the giant diagonal line going bottom-left to top-right */
-            &::after {
-                content: "";
-                position: absolute;
-                width: 150%;
-                height: 3px;
-                background-color: rgba(255, 56, 96, 0.6);
-                transform: rotate(-33deg);
-            }
         }
+
+        // &.is-inactive {
+        //     opacity: 0.7;
+        //     background-color: #fafafa;
+        //     cursor: not-allowed;
+        //     pointer-events: none;
+        //     overflow: hidden;
+
+        //     /* This creates the giant diagonal line going top-left to bottom-right */
+        //     &::before {
+        //         content: "";
+        //         position: absolute;
+        //         width: 150%; /* wider than 100% to fully cover the diagonal span */
+        //         height: 3px;  /* Thickness of the cross line */
+        //         background-color: rgba(255, 56, 96, 0.6); /* Red color with transparency */
+        //         transform: rotate(33deg); /* Perfectly fits a 12x8rem box aspect ratio */
+        //     }
+
+        //     /* This creates the giant diagonal line going bottom-left to top-right */
+        //     &::after {
+        //         content: "";
+        //         position: absolute;
+        //         width: 150%;
+        //         height: 3px;
+        //         background-color: rgba(255, 56, 96, 0.6);
+        //         transform: rotate(-33deg);
+        //     }
+        // }
     }
 }
 </style>

@@ -33,10 +33,10 @@
                                 Log ind
                             </BButton>
 
-                            <!-- <p class="has-text-centered mt-4">
-                                Har du ingen bruger?
-                                <router-link to="/register">Opret bruger</router-link>
-                            </p> -->
+                            <p class="has-text-centered mt-4">
+                                Skal din gruppe med?
+                                <router-link to="/group-pre-signup">Forhåndstilmeld gruppen</router-link>
+                            </p>
                         </template>
 
                         <template v-else-if="step === 'twofactor'">

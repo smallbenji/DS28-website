@@ -12,6 +12,7 @@ public class Group
     public District District { get; set; }
     public ICollection<Patrol> Patrols { get; set; }
     public ICollection<Scout> Scouts { get; set; }
+    public GroupPreSignup PreSignup { get; set; }
 }
 
 public class Patrol
@@ -59,4 +60,19 @@ public enum District
 {
     DANEHOF,
     FIONIA
+}
+
+public class GroupPreSignup
+{
+    [Key]
+    public int Id { get; set; }
+    public Group Group { get; set; }
+    public int GroupId { get; set; }
+    public int Beaver { get; set; }
+    public int Wolf { get; set; }
+    public int Junior { get; set; }
+    public int Trop { get; set; }
+    public int Senior { get; set; }
+    public int Rover { get; set; }
+    public int Leader { get; set; }
 }
