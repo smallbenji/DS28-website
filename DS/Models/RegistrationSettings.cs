@@ -9,5 +9,6 @@ namespace DS.Models
         [DatabaseGenerated(DatabaseGeneratedOption.None)]
         public int Id { get; set; }
         public bool IsPreSignupOpen { get; set; }
+        public bool IsSignupOpen { get; set; }
     }
 }

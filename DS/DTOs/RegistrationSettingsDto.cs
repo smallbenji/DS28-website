@@ -1,10 +1,8 @@
-using System.Text.Json.Serialization;
-
 namespace DS.DTOs
 {
     public class RegistrationSettingsDto
     {
-        [JsonRequired]
-        public bool IsPreSignupOpen { get; set; }
+        public bool? IsPreSignupOpen { get; set; }
+        public bool? IsSignupOpen { get; set; }
     }
 }

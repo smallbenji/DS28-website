@@ -1,23 +1,25 @@
 <template>
     <section class="section">
-        <div class="container camp-settings">
-            <p class="mb-5">Administrer, hvilke tilmeldinger der er åbne for grupperne.</p>
+        <div class="camp-settings">
             <PreSignupToggle />
-            <BButton @click="router.push('/')">Tilbage til HQ</BButton>
+            <SignupToggle />
         </div>
     </section>
 </template>
 
 <script setup lang="ts">
-import { BButton } from 'buefy';
-import { useRouter } from 'vue-router';
 import PreSignupToggle from '@/Components/PreSignupToggle.vue';
-
-const router = useRouter();
+import SignupToggle from '@/Components/SignupToggle.vue';
 </script>
 
 <style scoped>
+
 .camp-settings {
-    max-width: 52rem;
+    background-color: white;
+    padding: 1rem;
+    border-radius: 10px;
+    box-shadow: 5px 5px 5px 0 rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    width: fit-content;
 }
 </style>

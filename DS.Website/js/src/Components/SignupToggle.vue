@@ -1,6 +1,6 @@
 <template>
-    <div class="pre-signup-toggle">
-        <p>Forhåndstilmelding</p>
+    <div class="signup-toggle">
+        <p>Endelig tilmelding</p>
         <BSwitch :key="switchVersion" :model-value="isOpen" :disabled="saving" @update:model-value="update">
             <!-- {{ isOpen ? 'Åben' : 'Lukket' }} -->
         </BSwitch>
@@ -22,7 +22,7 @@ async function load() {
     error.value = '';
 
     try {
-        isOpen.value = (await service.get()).isPreSignupOpen;
+        isOpen.value = (await service.get()).isSignupOpen;
     } catch {
         error.value = 'Tilmeldingsstatus kunne ikke hentes.';
     }
@@ -34,11 +34,11 @@ async function update(value: unknown) {
     error.value = '';
 
     try {
-        isOpen.value = (await service.update({ isPreSignupOpen: value })).isPreSignupOpen;
+        isOpen.value = (await service.update({ isSignupOpen: value })).isSignupOpen;
     } catch {
         error.value = 'Ændringen kunne ikke bekræftes. Kontrollér status, og prøv igen.';
         try {
-            isOpen.value = (await service.get()).isPreSignupOpen;
+            isOpen.value = (await service.get()).isSignupOpen;
         } catch {
             // Keep the switch hidden until the persisted state can be retrieved.
         }
@@ -52,7 +52,7 @@ onMounted(load);
 </script>
 
 <style scoped>
-.pre-signup-toggle {
+.signup-toggle {
     margin: 1rem auto;
     display: flex;
     gap: 1rem;

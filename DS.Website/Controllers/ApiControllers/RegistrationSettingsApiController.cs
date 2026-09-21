@@ -15,7 +15,11 @@ namespace DS.Website.Controllers
             var settings = await dataDb.RegistrationSettings
                 .AsNoTracking()
                 .Where(s => s.Id == 1)
-                .Select(s => new RegistrationSettingsDto { IsPreSignupOpen = s.IsPreSignupOpen })
+                .Select(s => new RegistrationSettingsDto
+                {
+                    IsPreSignupOpen = s.IsPreSignupOpen,
+                    IsSignupOpen = s.IsSignupOpen
+                })
                 .SingleOrDefaultAsync();
             if (settings == null)
             {
@@ -29,20 +33,34 @@ namespace DS.Website.Controllers
         [HttpPut]
         public async Task<IActionResult> UpdateSettings([FromBody] RegistrationSettingsDto data)
         {
-            if (data == null || !ModelState.IsValid)
+            if (data == null || !ModelState.IsValid || (data.IsPreSignupOpen == null && data.IsSignupOpen == null))
             {
-                return BadRequest("Angiv, om forhåndstilmeldingen skal være åben eller lukket.");
+                return BadRequest("Angiv, om forhåndstilmeldingen eller den endelige tilmelding skal være åben eller lukket.");
             }
 
-            var updatedCount = await dataDb.RegistrationSettings
-                .Where(s => s.Id == 1)
-                .ExecuteUpdateAsync(s => s.SetProperty(x => x.IsPreSignupOpen, data.IsPreSignupOpen));
-            if (updatedCount == 0)
+            var settings = await dataDb.RegistrationSettings.SingleOrDefaultAsync(s => s.Id == 1);
+            if (settings == null)
             {
                 return NotFound("Tilmeldingsindstillingerne kunne ikke findes.");
             }
 
-            return Ok(data);
+            if (data.IsPreSignupOpen != null)
+            {
+                settings.IsPreSignupOpen = data.IsPreSignupOpen.Value;
+            }
+
+            if (data.IsSignupOpen != null)
+            {
+                settings.IsSignupOpen = data.IsSignupOpen.Value;
+            }
+
+            await dataDb.SaveChangesAsync();
+
+            return Ok(new RegistrationSettingsDto
+            {
+                IsPreSignupOpen = settings.IsPreSignupOpen,
+                IsSignupOpen = settings.IsSignupOpen
+            });
         }
     }
 }
