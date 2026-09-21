@@ -6,6 +6,15 @@ export enum District {
     FIONIA = 'FIONIA'
 }
 
+export const DistrictLabels: Record<District, string> = {
+    [District.DANEHOF]: 'Danehof',
+    [District.FIONIA]: 'Fionia'
+};
+
+export function districtLabel(district: string | undefined): string | undefined {
+    return DistrictLabels[district as District] ?? district;
+}
+
 export interface GroupDto {
     id: string;
     name: string;

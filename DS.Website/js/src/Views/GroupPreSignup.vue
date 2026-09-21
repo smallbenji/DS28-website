@@ -27,7 +27,7 @@
                             </BStepItem>
                             <BStepItem label="Deltagere" :clickable="false">
                                 <form @submit.prevent="next">
-                                    <p class="mb-4"><strong>{{ group?.name }}</strong> · Gruppenummer {{ group?.id }} · {{ group?.district }}</p>
+                                    <p class="mb-4"><strong>{{ group?.name }}</strong> · Gruppenummer {{ group?.id }} · {{ districtLabel(group?.district) }}</p>
                                     <p class="mb-4">Angiv det forventede antal deltagere i hver gren. Antallene er foreløbige.</p>
                                     <div class="columns is-multiline">
                                         <div v-for="field in fields" :key="field.key" class="column is-half">
@@ -84,6 +84,7 @@ import { BButton, BField, BInput, BSteps, BStepItem, BNotification } from 'buefy
 import RegistrationSettingsService from '@/Services/RegistrationSettingsService';
 import axios from 'axios';
 import GroupPreSignupService, { type ParticipantCounts, type SignupGroup } from '@/Services/GroupPreSignupService';
+import { districtLabel } from '@/types';
 
 const service = new GroupPreSignupService();
 const settingsService = new RegistrationSettingsService();

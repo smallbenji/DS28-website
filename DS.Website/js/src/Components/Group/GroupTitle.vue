@@ -5,7 +5,7 @@
                 {{ Group.name }}
             </h1>
             <p class="subtitle is-6">
-                {{ Group.district }}
+                {{ districtLabel(Group.district) }}
             </p>
         </div>
         <div class="flex"></div>
@@ -16,6 +16,7 @@
 </template>
 <script lang="ts" setup>
 import { useGroupStore } from '@/Stores/GroupStore';
+import { districtLabel } from '@/types';
 import { storeToRefs } from 'pinia';
 
 const groupStore = useGroupStore();

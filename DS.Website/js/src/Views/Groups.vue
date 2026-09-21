@@ -30,7 +30,7 @@
             <section class="hero is-link">
                 <div class="hero-body">
                     <p class="title is-3">{{ selectedGroup?.name }}</p>
-                    <p class="subtitle is-6">Gruppe-ID: {{ selectedGroup?.id }} · Distrikt: {{ selectedGroup?.district }}</p>
+                    <p class="subtitle is-6">Gruppe-ID: {{ selectedGroup?.id }} · Distrikt: {{ districtLabel(selectedGroup?.district) }}</p>
                 </div>
             </section>
             <WorkspaceContent>
@@ -83,7 +83,7 @@ import GroupCreateGroup from '@/Components/Groups/GroupsCreateGroup.vue';
 import GroupUsers from '@/Components/Groups/GroupsUsers.vue';
 import GroupPatrols from '@/Components/Groups/GroupsPatrols.vue';
 import GroupScouts from '@/Components/Groups/GroupsScouts.vue';
-import type { GroupDto, PatrolDto, ScoutDto } from '@/types';
+import { districtLabel, type GroupDto, type PatrolDto, type ScoutDto } from '@/types';
 
 const Toast = useToast();
 
