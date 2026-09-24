@@ -148,11 +148,16 @@ til projektet. Kontrollér altid koden igen ved fremtidige ændringer.
 - Fjernelse af et gruppemedlem ophæver gruppetilknytningen og bevarer kontoen.
   Et medlem kan ikke fjerne sig selv gennem gruppens brugeradministration.
 - Lejrindstillinger har en selvstændig side på `/camp-settings`, som åbnes fra
-  HQ. Her ligger en Buefy-toggle til at åbne og lukke forhåndstilmeldingen.
+  HQ. Her ligger en Buefy-toggle til at åbne og lukke forhåndstilmeldingen og
+  en tilsvarende toggle til at åbne og lukke den endelige tilmelding.
   Den nuværende adgang er givet til systemadministrator og lejrchef gennem
   `PreSignupManage`.
-- Åben/lukket gemmes i databasen og styres manuelt, uafhængigt af planens datoer.
-  Indstillingen starter som åben ved migrering for at bevare den hidtidige adgang.
+- Åben/lukket gemmes i databasen som `IsPreSignupOpen` og `IsSignupOpen` og
+  styres manuelt, uafhængigt af planens datoer. Forhåndstilmeldingen starter
+  som åben ved migrering for at bevare den hidtidige adgang, mens den endelige
+  tilmelding starter lukket.
+- Indstillingen for endelig tilmelding styrer endnu kun selve flaget; der er
+  ikke implementeret et særskilt flow for endelig tilmelding.
 - Den foreløbige fortolkning af lukket forhåndstilmelding er, at både nye
   tilmeldinger og ændringer af deltagerantal blokeres i backend. Eksisterende
   tilmeldinger kan fortsat ses. Om eksisterende grupper skal kunne ændre deres
