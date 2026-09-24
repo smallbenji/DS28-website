@@ -21,16 +21,16 @@
                     </BField>
 
                     <BField label="Roller">
-                        <div class="block">
-                            <BCheckbox
-                                v-for="group in filteredGroups"
-                                :key="group.id"
-                                v-model="selectedRoles"
-                                :native-value="group.name"
-                            >
-                                {{ group.name }}
-                            </BCheckbox>
-                        </div>
+                        <BTaginput
+                            v-model="selectedRoles"
+                            autocomplete
+                            append-to-body
+                            :data="filteredRoleNames"
+                            :allow-new="false"
+                            icon="tags"
+                            placeholder="Vælg roller..."
+                            @typing="onTyping"
+                        />
                     </BField>
                 </section>
                 <footer class="modal-card-foot">
@@ -51,7 +51,7 @@
 </template>
 <script setup lang="ts">
 import { ref, computed } from 'vue';
-import { BButton, BModal, BField, BInput, BCheckbox, useToast } from 'buefy';
+import { BButton, BModal, BField, BInput, BTaginput, useToast } from 'buefy';
 import { useUserStore } from '@/Stores/UserStore';
 import { storeToRefs } from 'pinia';
 
@@ -67,6 +67,24 @@ const selectedRoles = ref<string[]>([]);
 const filteredGroups = computed(() => {
     return groups.value.filter(x => assignableGroups.value.includes(x.name));
 });
+
+const assignableGroupNames = computed(() => {
+    return filteredGroups.value.map(x => x.name);
+});
+
+const tagQuery = ref('');
+const filteredRoleNames = computed(() => {
+    if (!tagQuery.value) {
+        return assignableGroupNames.value;
+    }
+
+    const query = tagQuery.value.toLowerCase();
+    return assignableGroupNames.value.filter(name => name.toLowerCase().includes(query));
+});
+
+const onTyping = (text: string | number | undefined) => {
+    tagQuery.value = text == null ? '' : String(text);
+};
 
 const openModal = () => {
     email.value = '';
