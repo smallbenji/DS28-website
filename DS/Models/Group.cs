@@ -1,10 +1,19 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using DS.DTOs;
 
 namespace DS.Models;
 
 public class Group
 {
+    public Group() {  }
+    public Group(GroupDto data)
+    {
+        Id = data.Id;
+        Name = data.Name;
+        District = data.District;
+    }
+
     [Key]
     [DatabaseGenerated(DatabaseGeneratedOption.None)]
     public int Id { get; set; }
@@ -13,20 +22,91 @@ public class Group
     public ICollection<Patrol> Patrols { get; set; }
     public ICollection<Scout> Scouts { get; set; }
     public GroupPreSignup PreSignup { get; set; }
+
+    public Scout CreateScout(Scout scout)
+    {
+        scout.Group = this;
+        Scouts.Add(scout);
+
+        return scout;
+    }
+
+    public Patrol CreatePatrol(Patrol patrol)
+    {
+        patrol.Group = this;
+        Patrols.Add(patrol);
+
+        return patrol;
+    }
+
+    private void EnsureCanAcceptMember(User member)
+    {
+        if (member.Group != null)
+        {
+            throw new InvalidOperationException("Brugeren tilhører allerede en gruppe.");
+        }
+    }
+
+    public void AssignMember(User member)
+    {
+        EnsureCanAcceptMember(member);
+        member.Group = this;
+    }
 }
 
 public class Patrol
 {
+    public Patrol() {  }
+    public Patrol(CreatePatrolDto data)
+    {
+        Name = data.Name;
+    }
+
     [Key]
     public int Id { get; set; }
     public string Name { get; set; }
     public int GroupId { get; set; }
     public Group Group { get; set; } = null!;
     public ICollection<PatrolMembership> Memberships { get; set; }
+
+    public void AssignScout(Scout scout)
+    {
+        if (Memberships.Any(m => m.ScoutId == scout.Id))
+        {
+            return;
+        }
+
+        Memberships.Add(new PatrolMembership
+        {
+            Patrol = this,
+            Scout = scout,
+            JoinedDate = DateTime.UtcNow,
+            IsPatrolLeader = false
+        });
+    }
+
+    public void RemoveScout(Scout scout)
+    {
+        var membership = Memberships.FirstOrDefault(m => m.ScoutId == scout.Id);
+        if (membership == null)
+        {
+            return;
+        }
+
+        Memberships.Remove(membership);
+    }
 }
 
 public class Scout
 {
+    public Scout() { }
+    public Scout(CreateScoutDto data)
+    {
+        Name = data.Name;
+        Birthday = DateTime.SpecifyKind(data.Birthday, DateTimeKind.Utc);
+        Gender = data.Gender;
+    }
+
     [Key]
     public int Id { get; set; }
     public string Name { get; set; }

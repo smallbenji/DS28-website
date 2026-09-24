@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
-namespace DS.Website.Controllers;
+namespace DS.Website.Controllers.ApiControllers;
 
 [Authorize(Roles = nameof(AppRoles.GroupsView))]
 [Route("/api/v1/groups")]
@@ -51,42 +51,29 @@ public class GroupsApiController : Controller
     [HttpPost]
     public async Task<IActionResult> CreateGroup([FromBody] GroupDto data)
     {
-        if (data == null)
-        {
-            return BadRequest("Invalid request body.");
-        }
+        if (data == null) return BadRequest("Invalid request body.");
 
-        dataDb.Groups.Add(new Group
-        {
-            Id = data.Id,
-            Name = data.Name,
-            District = data.District
-        });
+        dataDb.Groups.Add(new Group(data));
+
         await dataDb.SaveChangesAsync();
+
         return Ok();
     }
 
     [HttpPost("patrol")]
     public async Task<IActionResult> CreatePatrol([FromBody] CreatePatrolDto data)
     {
-        if (data == null)
-        {
-            return BadRequest("Invalid request body.");
-        }
+        if (data == null) return BadRequest("Invalid request body.");
 
-        var groupExists = await dataDb.Groups.AnyAsync(g => g.Id == data.GroupId);
-        if (!groupExists)
-        {
-            return BadRequest("Group does not exist.");
-        }
+        var group = await dataDb
+            .Groups
+            .Include(x => x.Patrols)
+            .FirstOrDefaultAsync(x => x.Id == data.GroupId);
 
-        var patrol = new Patrol
-        {
-            Name = data.Name,
-            GroupId = data.GroupId
-        };
+        if (group == null) return BadRequest("No group exists.");
 
-        dataDb.Patrols.Add(patrol);
+        var patrol = group.CreatePatrol(new Patrol(data));
+
         await dataDb.SaveChangesAsync();
 
         return Ok(new PatrolDto(patrol));
@@ -95,26 +82,17 @@ public class GroupsApiController : Controller
     [HttpPost("scout")]
     public async Task<IActionResult> CreateScout([FromBody] CreateScoutDto data)
     {
-        if (data == null)
-        {
-            return BadRequest("Invalid request body.");
-        }
+        if (data == null) return BadRequest("Invalid request body.");
 
-        var groupExists = await dataDb.Groups.AnyAsync(g => g.Id == data.GroupId);
-        if (!groupExists)
-        {
-            return BadRequest("Group does not exist.");
-        }
+        var group = await dataDb
+            .Groups
+            .Include(x => x.Scouts)
+            .FirstOrDefaultAsync(x => x.Id == data.GroupId);
 
-        var scout = new Scout
-        {
-            Name = data.Name,
-            Birthday = DateTime.SpecifyKind(data.Birthday, DateTimeKind.Utc),
-            Gender = data.Gender,
-            GroupId = data.GroupId
-        };
+        if (group == null) return BadRequest("Group does not exist.");
 
-        dataDb.Scouts.Add(scout);
+        var scout = group.CreateScout(new Scout(data));
+
         await dataDb.SaveChangesAsync();
 
         return Ok(new ScoutDto(scout));
@@ -123,38 +101,16 @@ public class GroupsApiController : Controller
     [HttpPost("scout/add-patrol")]
     public async Task<IActionResult> AddPatrol([FromBody] ScoutPatrolDto data)
     {
-        if (data == null)
-        {
-            return BadRequest("Invalid request body.");
-        }
+        if (data == null) return BadRequest("Invalid request body.");
 
-        var scoutExists = await dataDb.Scouts.AnyAsync(s => s.Id == data.ScoutId);
-        if (!scoutExists)
-        {
-            return NotFound("Scout not found.");
-        }
+        var scout = await dataDb.Scouts.FirstOrDefaultAsync(s => s.Id == data.ScoutId);
+        if (scout == null) return NotFound("Scout not found.");
 
-        var patrolExists = await dataDb.Patrols.AnyAsync(p => p.Id == data.PatrolId);
-        if (!patrolExists)
-        {
-            return NotFound("Patrol not found.");
-        }
+        var patrol = await dataDb.Patrols.Include(x => x.Memberships).FirstOrDefaultAsync(p => p.Id == data.PatrolId);
+        if (patrol == null) return NotFound("Patrol not found.");
 
-        var alreadyMember = await dataDb.PatrolMemberships.AnyAsync(pm => pm.ScoutId == data.ScoutId && pm.PatrolId == data.PatrolId);
-        if (alreadyMember)
-        {
-            return Ok();
-        }
+        patrol.AssignScout(scout);
 
-        var membership = new PatrolMembership
-        {
-            ScoutId = data.ScoutId,
-            PatrolId = data.PatrolId,
-            JoinedDate = DateTime.UtcNow,
-            IsPatrolLeader = false
-        };
-
-        dataDb.PatrolMemberships.Add(membership);
         await dataDb.SaveChangesAsync();
         return Ok();
     }
@@ -162,20 +118,17 @@ public class GroupsApiController : Controller
     [HttpPost("scout/remove-patrol")]
     public async Task<IActionResult> RemovePatrol([FromBody] ScoutPatrolDto data)
     {
-        if (data == null)
-        {
-            return BadRequest("Invalid request body.");
-        }
+        if (data == null) return BadRequest("Invalid request body.");
 
-        var membership = await dataDb.PatrolMemberships
-            .FirstOrDefaultAsync(pm => pm.ScoutId == data.ScoutId && pm.PatrolId == data.PatrolId);
+        var scout = await dataDb.Scouts.FirstOrDefaultAsync(s => s.Id == data.ScoutId);
+        if (scout == null) return NotFound("Scout not found.");
 
-        if (membership != null)
-        {
-            dataDb.PatrolMemberships.Remove(membership);
-            await dataDb.SaveChangesAsync();
-        }
+        var patrol = await dataDb.Patrols.Include(x => x.Memberships).FirstOrDefaultAsync(p => p.Id == data.PatrolId);
+        if (patrol == null) return NotFound("Patrol not found.");
 
+        patrol.RemoveScout(scout);
+
+        await dataDb.SaveChangesAsync();
         return Ok();
     }
 
