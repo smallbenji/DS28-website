@@ -5,6 +5,7 @@ import { useLoading } from "buefy";
 import { useMeStore } from "@/Stores/MeStore";
 import { useGroupStore } from "@/Stores/GroupStore";
 import { useActivityStore } from "@/Stores/ActivityStore";
+import { useVersionStore } from "@/Stores/VersionStore";
 
 const routes: RouteRecordRaw[] = [
     {
@@ -111,6 +112,7 @@ router.beforeEach(async (to) => {
     const groupsStore = useGroupsStore();
     const groupStore = useGroupStore();
     const activityStore = useActivityStore();
+    const versionStore = useVersionStore();
 
     const promises = [];
 
@@ -129,6 +131,7 @@ router.beforeEach(async (to) => {
         }
 
         if (to.meta.requiresHomeData) {
+            promises.push(versionStore.GET_VERSION());
             promises.push(meStore.GET_HQ());
         }
 

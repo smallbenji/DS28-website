@@ -15,11 +15,16 @@
             </div>
         </component>
     </div>
+    <p class="center">{{ VERSION.version }}</p>
 </template>
 
 <script lang="ts" setup>
 import { useMeStore } from '@/Stores/MeStore';
+import { useVersionStore } from '@/Stores/VersionStore';
 import { storeToRefs } from 'pinia';
+
+const versionStore = useVersionStore();
+const { VERSION } = storeToRefs(versionStore);
 
 const meStore = useMeStore();
 const { HQ } = storeToRefs(meStore);
@@ -30,6 +35,11 @@ const isExternal = (url: string) => {
 };
 </script>
 <style lang="scss">
+.center {
+  margin: 0 auto;
+  color: rgba(0, 0, 0, 0.1);
+}
+
 .grid {
   display: grid;
   gap: 1rem;
