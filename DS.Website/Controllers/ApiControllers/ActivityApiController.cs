@@ -18,10 +18,7 @@ namespace DS.Website.Controllers
 
         private async Task<bool> HasAccessAsync(int teamId, bool isAdmin = false)
         {
-            if (IsActivityAdmin())
-            {
-                return true;
-            }
+            if (IsActivityAdmin()) return true;
 
             var userId = userManager.GetUserId(User);
             return await activityRepository.HasAccessToTeam(userId, teamId, isAdmin);
@@ -40,15 +37,9 @@ namespace DS.Website.Controllers
         [HttpPost("team/{teamId:int}/activity/add")]
         public async Task<IActionResult> AddActivity([FromBody] ActivityDto data, int teamId)
         {
-            if (!await HasAccessAsync(teamId, true))
-            {
-                return StatusCode(StatusCodes.Status403Forbidden);
-            }
+            if (!await HasAccessAsync(teamId, true)) return StatusCode(StatusCodes.Status403Forbidden);
 
-            await activityRepository.AddActivity(teamId, new Activity
-            {
-                Name = data.Name,
-            });
+            await activityRepository.AddActivity(teamId, new Activity(data));
 
             return Ok();
         }

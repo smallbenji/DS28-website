@@ -1,10 +1,17 @@
 using System.ComponentModel.DataAnnotations;
+using DS.DTOs;
 using Microsoft.EntityFrameworkCore;
 
 namespace DS.Models;
 
 public class Activity
 {
+    public Activity() { }
+    public Activity(ActivityDto data)
+    {
+        Name = data.Name;
+    }
+
     [Key]
     public int Id { get; set; }
     public string Name { get; set; }
