@@ -12,6 +12,7 @@ namespace DS
         public string SMTPPassword { get; set; }
         public string SMTPFromEmail { get; set; }
         public string SMTPFromName { get; set; }
+        public string PublicBaseUrl { get; set; }
         public string InternalApiKey { get; set; }
     }
 }

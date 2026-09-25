@@ -1,5 +1,6 @@
 using DS.DTOs;
 using DS.Models;
+using DS.Website.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -10,7 +11,7 @@ namespace DS.Website.Controllers
 {
     [Authorize(Roles = nameof(AppRoles.UsersView))]
     [Route("/api/v1/user")]
-    public class UserApiController(DataDbContext dataDb, UserManager<User> userManager, RoleManager<Role> roleManager, IMemoryCache memoryCache) : Controller
+    public class UserApiController(DataDbContext dataDb, UserManager<User> userManager, RoleManager<Role> roleManager, IMemoryCache memoryCache, EmailService emailService) : Controller
     {
         [HttpGet]
         public async Task<IActionResult> Index()
@@ -237,6 +238,9 @@ namespace DS.Website.Controllers
                 return BadRequest("Du har ikke tilladelse til at tildele nogle af de valgte roller.");
             }
 
+            var newUser = await userManager.FindByEmailAsync(data.Email);
+            if (newUser != null) return BadRequest("Bruger findes allerede.");
+
             var invitation = new UserInvitation()
             {
                 InvitationId = Guid.NewGuid(),
@@ -247,23 +251,7 @@ namespace DS.Website.Controllers
             await dataDb.Invitations.AddAsync(invitation);
             await dataDb.SaveChangesAsync();
 
-//             var message = dSMailer.CreateMessage();
-//             message.To.Add(new MailboxAddress("", data.Email));
-
-//             message.Subject = "Velkommen til DS";
-
-//             message.Body = new BodyBuilder
-//             {
-//                 TextBody = @$"
-// Velkommen til DS28!
-
-// Hermed sendes invitations link til oprettelse i DS_OS.
-
-// https://{Request.Host.Value}/invitation/{invitation.InvitationId}
-//                 "
-//             }.ToMessageBody();
-
-//             await dSMailer.SendMail(message);
+            emailService.SendInvitation(invitation);
 
             return Ok();
         }
