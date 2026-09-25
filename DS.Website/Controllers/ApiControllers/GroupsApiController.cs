@@ -135,18 +135,12 @@ public class GroupsApiController : Controller
     [HttpPost("scout/toggle-leader")]
     public async Task<IActionResult> ToggleLeader([FromBody] ScoutPatrolDto data)
     {
-        if (data == null)
-        {
-            return BadRequest("Invalid request body.");
-        }
+        if (data == null) return BadRequest("Invalid request body.");
 
         var membership = await dataDb.PatrolMemberships
             .FirstOrDefaultAsync(pm => pm.ScoutId == data.ScoutId && pm.PatrolId == data.PatrolId);
 
-        if (membership == null)
-        {
-            return NotFound("Membership not found.");
-        }
+        if (membership == null) return NotFound("Membership not found.");
 
         membership.IsPatrolLeader = !membership.IsPatrolLeader;
         await dataDb.SaveChangesAsync();
@@ -159,10 +153,7 @@ public class GroupsApiController : Controller
     public async Task<IActionResult> DeletePatrol(int id)
     {
         var patrol = await dataDb.Patrols.FindAsync(id);
-        if (patrol == null)
-        {
-            return NotFound($"Patrol with ID {id} not found.");
-        }
+        if (patrol == null) return NotFound($"Patrol with ID {id} not found.");
 
         dataDb.Patrols.Remove(patrol);
         await dataDb.SaveChangesAsync();
@@ -173,10 +164,7 @@ public class GroupsApiController : Controller
     public async Task<IActionResult> DeleteScout(int id)
     {
         var scout = await dataDb.Scouts.FindAsync(id);
-        if (scout == null)
-        {
-            return NotFound($"Scout with ID {id} not found.");
-        }
+        if (scout == null) return NotFound($"Scout with ID {id} not found.");
 
         dataDb.Scouts.Remove(scout);
         await dataDb.SaveChangesAsync();
@@ -186,21 +174,12 @@ public class GroupsApiController : Controller
     [HttpPut("{id}")]
     public async Task<IActionResult> UpdateGroup([FromBody] GroupDto data, int id)
     {
-        if (data == null)
-        {
-            return BadRequest("Invalid request body.");
-        }
+        if (data == null) return BadRequest("Invalid request body.");
 
-        if (data.Id != id)
-        {
-            return BadRequest("ID mismatch");
-        }
+        if (data.Id != id) return BadRequest("ID mismatch");
 
         var group = await dataDb.Groups.FindAsync(id);
-        if (group == null)
-        {
-            return NotFound($"Group with ID {id} not found.");
-        }
+        if (group == null) return NotFound($"Group with ID {id} not found.");
 
         group.Name = data.Name;
         group.District = data.District;
@@ -213,10 +192,7 @@ public class GroupsApiController : Controller
     public async Task<IActionResult> DeleteGroup(int id)
     {
         var group = await dataDb.Groups.FindAsync(id);
-        if (group == null)
-        {
-            return NotFound($"Group with ID {id} not found.");
-        }
+        if (group == null) return NotFound($"Group with ID {id} not found.");
 
         dataDb.Groups.Remove(group);
         await dataDb.SaveChangesAsync();
