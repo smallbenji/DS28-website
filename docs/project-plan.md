@@ -13,7 +13,7 @@ og konkrete opgaver kan ændre planen.
 Formålet med den oprindelige plan var at beskrive systemet så grundigt som
 muligt, inden udviklingen gik i gang.
 
-- Systemansvarlig: Benjamin Falch, +45 25755838.
+- Systemansvarlig: Benjamin Falch
 - Foreslået vikar: Milas Holsting. Ikke vedtaget endnu.
 
 ## Overordnet idé
