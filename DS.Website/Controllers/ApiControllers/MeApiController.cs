@@ -19,13 +19,10 @@ namespace DS.Website.Controllers
             }
 
             var user = await userManager.GetUserAsync(HttpContext.User);
-            if (user == null)
-                return NotFound();
+            if (user == null) return NotFound();
 
             var roles = (await userManager.GetRolesAsync(user)).ToList();
-
             var appRoles = AppAccess.ResolveAppRoles(roles);
-
             var passkeys = (await userManager.GetPasskeysAsync(user)).ToDtoList();
 
             var model = new MeDto
@@ -36,7 +33,10 @@ namespace DS.Website.Controllers
                 FirstName = user.FirstName ?? string.Empty,
                 LastName = user.LastName ?? string.Empty,
                 Phone = user.PhoneNumber ?? string.Empty,
-                MustEnableTwoFactor = await userManager.IsInRoleAsync(user, nameof(AppGroups.SysAdmin)) && !user.TwoFactorEnabled,
+                MustEnableTwoFactor = await userManager.IsInRoleAsync(
+                    user,
+                    nameof(AppGroups.SysAdmin)
+                ) && !user.TwoFactorEnabled,
                 Roles = roles,
                 AppRoles = appRoles,
                 Passkeys = passkeys
@@ -48,24 +48,15 @@ namespace DS.Website.Controllers
         [HttpPut("phone")]
         public async Task<IActionResult> UpdatePhone([FromBody] UpdatePhoneDto data)
         {
-            if (data == null)
-            {
-                return BadRequest("Invalid request body.");
-            }
+            if (data == null) return BadRequest("Invalid request body.");
 
             var user = await userManager.GetUserAsync(HttpContext.User);
-            if (user == null)
-            {
-                return NotFound();
-            }
+            if (user == null) return NotFound();
 
             user.PhoneNumber = data.Phone;
 
             var result = await userManager.UpdateAsync(user);
-            if (!result.Succeeded)
-            {
-                return BadRequest(result.Errors);
-            }
+            if (!result.Succeeded) return BadRequest(result.Errors);
 
             return Ok();
         }

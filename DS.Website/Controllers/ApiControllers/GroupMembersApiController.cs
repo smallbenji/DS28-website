@@ -21,21 +21,16 @@ namespace DS.Website.Controllers
         [HttpPost("invitations")]
         public async Task<IActionResult> InviteAsync([FromBody] InviteGroupMemberDto data)
         {
-            if (data == null || !ModelState.IsValid)
-            {
-                return BadRequest("Indtast en gyldig email.");
-            }
+            if (data == null || !ModelState.IsValid) return BadRequest("Indtast en gyldig email.");
 
             var currentUser = await GetCurrentUserAsync();
-            if (currentUser?.Group == null)
-            {
-                return Forbid();
-            }
+            if (currentUser?.Group == null) return Forbid();
 
             var email = data.Email.Trim();
             var existingUser = await userManager.Users
                 .Include(u => u.Group)
-                .SingleOrDefaultAsync(u => u.NormalizedEmail == userManager.NormalizeEmail(email));
+                .SingleOrDefaultAsync(u =>
+                    u.NormalizedEmail == userManager.NormalizeEmail(email));
             if (existingUser?.Group != null)
             {
                 return BadRequest("Brugeren er allerede tilknyttet en gruppe.");
@@ -59,10 +54,7 @@ namespace DS.Website.Controllers
         public async Task<IActionResult> GetInvitationsAsync()
         {
             var currentUser = await GetCurrentUserAsync();
-            if (currentUser?.Group == null)
-            {
-                return Forbid();
-            }
+            if (currentUser?.Group == null) return Forbid();
 
             return Ok(await dataDb.Invitations
                 .Where(i => i.GroupId == currentUser.Group.Id && !i.Used)
@@ -74,13 +66,13 @@ namespace DS.Website.Controllers
         public async Task<IActionResult> RevokeAsync(Guid id)
         {
             var currentUser = await GetCurrentUserAsync();
-            if (currentUser?.Group == null)
-            {
-                return Forbid();
-            }
+            if (currentUser?.Group == null) return Forbid();
 
             var updatedCount = await dataDb.Invitations
-                .Where(i => i.GroupId == currentUser.Group.Id && i.InvitationId == id && !i.Used)
+                .Where(i =>
+                    i.GroupId == currentUser.Group.Id &&
+                    i.InvitationId == id &&
+                    !i.Used)
                 .ExecuteUpdateAsync(s => s.SetProperty(i => i.Used, true));
 
             return updatedCount == 0 ? NotFound() : NoContent();
@@ -90,10 +82,7 @@ namespace DS.Website.Controllers
         public async Task<IActionResult> RemoveAsync(string id)
         {
             var currentUser = await GetCurrentUserAsync();
-            if (currentUser?.Group == null)
-            {
-                return Forbid();
-            }
+            if (currentUser?.Group == null) return Forbid();
 
             if (currentUser.Id == id)
             {
@@ -102,15 +91,20 @@ namespace DS.Website.Controllers
 
             await using var transaction = await dataDb.Database.BeginTransactionAsync();
 
-            await dataDb.Database.ExecuteSqlInterpolatedAsync($"SELECT 1 FROM \"Groups\" WHERE \"Id\" = {currentUser.Group.Id} FOR UPDATE");
-            if (!await userManager.Users.AnyAsync(u => u.Id == currentUser.Id && u.Group.Id == currentUser.Group.Id))
+            await dataDb.Database.ExecuteSqlInterpolatedAsync(
+                $"SELECT 1 FROM \"Groups\" WHERE \"Id\" = {currentUser.Group.Id} FOR UPDATE");
+            if (!await userManager.Users.AnyAsync(u =>
+                u.Id == currentUser.Id &&
+                u.Group.Id == currentUser.Group.Id))
             {
                 return Forbid();
             }
 
             var member = await userManager.Users
                 .Include(u => u.Group)
-                .SingleOrDefaultAsync(u => u.Id == id && u.Group.Id == currentUser.Group.Id);
+                .SingleOrDefaultAsync(u =>
+                    u.Id == id &&
+                    u.Group.Id == currentUser.Group.Id);
             if (member == null)
             {
                 return NotFound("Brugeren er ikke medlem af din gruppe.");

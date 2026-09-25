@@ -25,5 +25,14 @@ namespace DS.DTOs
         public GroupDto Group { get; set; }
         public DateTimeOffset? LockoutEnd { get; set; }
         public List<string> Roles { get; set; } = [];
+
+        public void ApplyTo(User user)
+        {
+            user.UserName = string.IsNullOrWhiteSpace(UserName) ? user.UserName : UserName;
+            user.Email = Email;
+            user.FirstName = FirstName;
+            user.LastName = LastName;
+            user.PhoneNumber = Phone;
+        }
     }
 }

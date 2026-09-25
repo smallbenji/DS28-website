@@ -10,12 +10,16 @@ namespace DS.Website.Controllers
 {
     [AllowAnonymous]
     [Route("/api/v1/group-pre-signup")]
-    public class GroupPreSignupApiController(DataDbContext dataDb, UserManager<User> userManager, SignInManager<User> signInManager) : Controller
+    public class GroupPreSignupApiController(
+        DataDbContext dataDb,
+        UserManager<User> userManager,
+        SignInManager<User> signInManager) : Controller
     {
         [HttpGet("{groupId:int}")]
         public async Task<IActionResult> Lookup(int groupId)
         {
-            if (!await dataDb.RegistrationSettings.AnyAsync(s => s.Id == 1 && s.IsPreSignupOpen))
+            if (!await dataDb.RegistrationSettings.AnyAsync(
+                s => s.Id == 1 && s.IsPreSignupOpen))
             {
                 return Conflict("Forhåndstilmeldingen er lukket.");
             }
@@ -23,9 +27,14 @@ namespace DS.Website.Controllers
             var group = await dataDb.Groups
                 .AsNoTracking()
                 .Where(g => g.Id == groupId)
-                .Select(g => new { g.Id, g.Name, g.District, AlreadySignedUp = g.PreSignup != null })
+                .Select(g => new
+                {
+                    g.Id,
+                    g.Name,
+                    g.District,
+                    AlreadySignedUp = g.PreSignup != null
+                })
                 .SingleOrDefaultAsync();
-
             if (group == null)
             {
                 return NotFound("Gruppen blev ikke fundet. Kontrollér gruppenummeret.");
@@ -55,8 +64,10 @@ namespace DS.Website.Controllers
             await using var transaction = await dataDb.Database.BeginTransactionAsync();
 
             // Keep the setting stable until this registration has been committed.
-            await dataDb.Database.ExecuteSqlRawAsync("SELECT 1 FROM \"RegistrationSettings\" WHERE \"Id\" = 1 FOR SHARE");
-            if (!await dataDb.RegistrationSettings.AnyAsync(s => s.Id == 1 && s.IsPreSignupOpen))
+            await dataDb.Database.ExecuteSqlRawAsync(
+                "SELECT 1 FROM \"RegistrationSettings\" WHERE \"Id\" = 1 FOR SHARE");
+            if (!await dataDb.RegistrationSettings.AnyAsync(
+                s => s.Id == 1 && s.IsPreSignupOpen))
             {
                 return Conflict("Forhåndstilmeldingen er lukket.");
             }

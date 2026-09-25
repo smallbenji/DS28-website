@@ -15,16 +15,15 @@ namespace DS.Website.Controllers
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginDto data)
         {
-            if (data == null || string.IsNullOrWhiteSpace(data.Email) || string.IsNullOrWhiteSpace(data.Password))
+            if (data == null ||
+                string.IsNullOrWhiteSpace(data.Email) ||
+                string.IsNullOrWhiteSpace(data.Password))
             {
                 return BadRequest("Email og adgangskode skal udfyldes.");
             }
 
             var user = await userManager.FindByEmailAsync(data.Email);
-            if (user == null)
-            {
-                return BadRequest("Ugyldigt loginforsøg.");
-            }
+            if (user == null) return BadRequest("Ugyldigt loginforsøg.");
 
             var result = await signInManager.PasswordSignInAsync(
                 user.UserName!,
@@ -32,11 +31,7 @@ namespace DS.Website.Controllers
                 isPersistent: true,
                 lockoutOnFailure: false
             );
-
-            if (result.Succeeded)
-            {
-                return Ok(new AuthResultDto { ReturnUrl = ResolveReturnUrl(data.ReturnUrl) });
-            }
+            if (result.Succeeded) return Ok(new AuthResultDto { ReturnUrl = ResolveReturnUrl(data.ReturnUrl) });
 
             if (result.RequiresTwoFactor)
             {
@@ -49,10 +44,7 @@ namespace DS.Website.Controllers
                 });
             }
 
-            if (result.IsLockedOut)
-            {
-                return BadRequest("Denne bruger er blevet låst, venligst kontakt IT");
-            }
+            if (result.IsLockedOut) return BadRequest("Denne bruger er blevet låst, venligst kontakt IT");
 
             return BadRequest("Ugyldigt loginforsøg.");
         }
@@ -61,15 +53,9 @@ namespace DS.Website.Controllers
         public async Task<IActionResult> TwoFactorLogin([FromBody] TwoFactorLoginDto data)
         {
             var user = await signInManager.GetTwoFactorAuthenticationUserAsync();
-            if (user == null)
-            {
-                return BadRequest("Ugyldigt loginforsøg.");
-            }
+            if (user == null) return BadRequest("Ugyldigt loginforsøg.");
 
-            if (data == null || string.IsNullOrWhiteSpace(data.TwoFactorCode))
-            {
-                return BadRequest("Kode skal udfyldes.");
-            }
+            if (data == null || string.IsNullOrWhiteSpace(data.TwoFactorCode)) return BadRequest("Kode skal udfyldes.");
 
             var authenticatorCode = data.TwoFactorCode.Replace(" ", string.Empty).Replace("-", string.Empty);
 
@@ -78,16 +64,9 @@ namespace DS.Website.Controllers
                 isPersistent: true,
                 rememberClient: data.RememberMachine
             );
+            if (result.Succeeded) return Ok(new AuthResultDto { ReturnUrl = ResolveReturnUrl(data.ReturnUrl) });
 
-            if (result.Succeeded)
-            {
-                return Ok(new AuthResultDto { ReturnUrl = ResolveReturnUrl(data.ReturnUrl) });
-            }
-
-            if (result.IsLockedOut)
-            {
-                return BadRequest("Denne bruger er blevet låst, venligst kontakt IT");
-            }
+            if (result.IsLockedOut) return BadRequest("Denne bruger er blevet låst, venligst kontakt IT");
 
             return BadRequest("Ugyldig autentificeringskode.");
         }
@@ -96,27 +75,14 @@ namespace DS.Website.Controllers
         public async Task<IActionResult> RecoveryCodeLogin([FromBody] RecoveryCodeLoginDto data)
         {
             var user = await signInManager.GetTwoFactorAuthenticationUserAsync();
-            if (user == null)
-            {
-                return BadRequest("Ugyldigt loginforsøg.");
-            }
+            if (user == null) return BadRequest("Ugyldigt loginforsøg.");
 
-            if (data == null || string.IsNullOrWhiteSpace(data.RecoveryCode))
-            {
-                return BadRequest("Recovery code skal udfyldes.");
-            }
+            if (data == null || string.IsNullOrWhiteSpace(data.RecoveryCode)) return BadRequest("Recovery code skal udfyldes.");
 
             var result = await signInManager.TwoFactorRecoveryCodeSignInAsync(data.RecoveryCode);
+            if (result.Succeeded) return Ok(new AuthResultDto { ReturnUrl = ResolveReturnUrl(data.ReturnUrl) });
 
-            if (result.Succeeded)
-            {
-                return Ok(new AuthResultDto { ReturnUrl = ResolveReturnUrl(data.ReturnUrl) });
-            }
-
-            if (result.IsLockedOut)
-            {
-                return BadRequest("Denne bruger er blevet låst, venligst kontakt IT");
-            }
+            if (result.IsLockedOut) return BadRequest("Denne bruger er blevet låst, venligst kontakt IT");
 
             return BadRequest("Ugyldig recovery code.");
         }
@@ -143,11 +109,7 @@ namespace DS.Website.Controllers
             };
 
             var result = await userManager.CreateAsync(newUser, data.Password);
-
-            if (!result.Succeeded)
-            {
-                return BadRequest(string.Join(" ", result.Errors.Select(e => e.Description)));
-            }
+            if (!result.Succeeded) return BadRequest(string.Join(" ", result.Errors.Select(e => e.Description)));
 
             return Ok();
         }
@@ -156,12 +118,15 @@ namespace DS.Website.Controllers
         public async Task<IActionResult> Logout()
         {
             await signInManager.SignOutAsync();
+
             return Ok();
         }
 
         private static string ResolveReturnUrl(string returnUrl)
         {
-            if (!string.IsNullOrWhiteSpace(returnUrl) && returnUrl.StartsWith('/') && !returnUrl.StartsWith("//"))
+            if (!string.IsNullOrWhiteSpace(returnUrl) &&
+                returnUrl.StartsWith('/') &&
+                !returnUrl.StartsWith("//"))
             {
                 return returnUrl;
             }
@@ -173,7 +138,6 @@ namespace DS.Website.Controllers
         public async Task<IActionResult> PostPasskeyOptions()
         {
             var user = await signInManager.GetTwoFactorAuthenticationUserAsync();
-
             if (user == null) return BadRequest("ugyldigt loginforsøg");
 
             var passkeys = await userManager.GetPasskeysAsync(user);
@@ -187,18 +151,12 @@ namespace DS.Website.Controllers
         [HttpPost("2fa/passkeys/verify")]
         public async Task<IActionResult> PostPasskeyVerify([FromBody] PasskeyAssertionRequestDto data)
         {
-            if (string.IsNullOrWhiteSpace(data.UserId))
-            {
-                return BadRequest("Ugyldigt loginforsøg. Bruger ID mangler.");
-            }
+            if (string.IsNullOrWhiteSpace(data.UserId)) return BadRequest("Ugyldigt loginforsøg. Bruger ID mangler.");
 
             var user = await userManager.FindByIdAsync(data.UserId);
-            if (user == null)
-            {
-                return BadRequest("Ugyldigt loginforsøg. Bruger ikke fundet.");
-            }
-            var result = await signInManager.PerformPasskeyAssertionAsync(data.CredentialJson);
+            if (user == null) return BadRequest("Ugyldigt loginforsøg. Bruger ikke fundet.");
 
+            var result = await signInManager.PerformPasskeyAssertionAsync(data.CredentialJson);
             if (!result.Succeeded || result.User.Id != user.Id) return BadRequest("ugyldigt loginforsøg");
 
             await userManager.AddOrUpdatePasskeyAsync(result.User, result.Passkey);
@@ -208,7 +166,11 @@ namespace DS.Website.Controllers
                 await signInManager.RememberTwoFactorClientAsync(result.User);
             }
 
-            await signInManager.SignInWithClaimsAsync(result.User, isPersistent: true, [new Claim("amr", "mfa"), new Claim("amr", "phr")]);
+            await signInManager.SignInWithClaimsAsync(
+                result.User,
+                isPersistent: true,
+                [new Claim("amr", "mfa"), new Claim("amr", "phr")]
+            );
 
             return Ok(new AuthResultDto { ReturnUrl = ResolveReturnUrl(data.ReturnUrl) });
         }

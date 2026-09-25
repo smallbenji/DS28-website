@@ -15,12 +15,9 @@ namespace DS.Website.Controllers
         public async Task<IActionResult> GetInvitation(string id)
         {
             Guid.TryParse(id, out var guidId);
-            var result = await dataDb.Invitations.FirstOrDefaultAsync(x => x.InvitationId == guidId && x.GroupId == null);
-
-            if (result == null)
-            {
-                return NotFound("Invitation not found");
-            }
+            var result = await dataDb.Invitations
+                .FirstOrDefaultAsync(x => x.InvitationId == guidId && x.GroupId == null);
+            if (result == null) return NotFound("Invitation not found");
 
             return Ok(new UserInvitationDto(result));
         }
@@ -28,29 +25,21 @@ namespace DS.Website.Controllers
         [HttpPost("{id:guid}")]
         public async Task<IActionResult> CreateUser([FromBody] UserInvitationCreationDto data, Guid id)
         {
-            if (data == null)
-            {
-                return BadRequest("Invalid request body.");
-            }
+            if (data == null) return BadRequest("Invalid request body.");
 
-            var invitation = await dataDb.Invitations.FirstOrDefaultAsync(x => x.InvitationId == id && x.GroupId == null);
+            var invitation = await dataDb.Invitations
+                .FirstOrDefaultAsync(x => x.InvitationId == id && x.GroupId == null);
+            if (invitation == null) return NotFound("Invitation not found");
 
-            if (invitation == null)
-            {
-                return NotFound("Invitation not found");
-            }
-
-            if (invitation.Used)
-            {
-                return BadRequest("Invitation has already been used");
-            }
+            if (invitation.Used) return BadRequest("Invitation has already been used");
 
             if (string.IsNullOrWhiteSpace(data.Password) || data.Password.Length < 4)
             {
                 return BadRequest("Password must be at least 4 characters long");
             }
 
-            if (string.IsNullOrWhiteSpace(data.FirstName) || string.IsNullOrWhiteSpace(data.LastName))
+            if (string.IsNullOrWhiteSpace(data.FirstName)
+                || string.IsNullOrWhiteSpace(data.LastName))
             {
                 return BadRequest("First name and last name are required");
             }
@@ -64,14 +53,9 @@ namespace DS.Website.Controllers
             };
 
             var result = await userManager.CreateAsync(newUser, data.Password);
-
-            if (!result.Succeeded)
-            {
-                return BadRequest("Fejl under oprettelse");
-            }
+            if (!result.Succeeded) return BadRequest("Fejl under oprettelse");
 
             var user = await userManager.FindByEmailAsync(invitation.Email);
-
             if (user != null)
             {
                 await userManager.AddToRolesAsync(user, invitation.Roles);

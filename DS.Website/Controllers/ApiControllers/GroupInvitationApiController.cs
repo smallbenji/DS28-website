@@ -8,14 +8,20 @@ namespace DS.Website.Controllers
 {
     [AllowAnonymous]
     [Route("api/v1/group-invitations")]
-    public class GroupInvitationApiController(DataDbContext dataDb, UserManager<User> userManager, SignInManager<User> signInManager) : Controller
+    public class GroupInvitationApiController(
+        DataDbContext dataDb,
+        UserManager<User> userManager,
+        SignInManager<User> signInManager) : Controller
     {
         [HttpGet("{id:guid}")]
         public async Task<IActionResult> GetInvitationAsync(Guid id)
         {
             var invitation = await dataDb.Invitations
                 .Include(i => i.Group)
-                .SingleOrDefaultAsync(i => i.InvitationId == id && i.GroupId != null && !i.Used);
+                .SingleOrDefaultAsync(i =>
+                    i.InvitationId == id &&
+                    i.GroupId != null &&
+                    !i.Used);
             if (invitation?.Group == null)
             {
                 return NotFound("Invitationen findes ikke eller er allerede brugt eller annulleret.");
@@ -45,14 +51,12 @@ namespace DS.Website.Controllers
             var invitation = await dataDb.Invitations
                 .Include(i => i.Group)
                 .SingleAsync(i => i.InvitationId == id);
-            if (invitation.Group == null)
-            {
-                return NotFound("Gruppen findes ikke længere.");
-            }
+            if (invitation.Group == null) return NotFound("Gruppen findes ikke længere.");
 
             var user = await userManager.Users
                 .Include(u => u.Group)
-                .SingleOrDefaultAsync(u => u.NormalizedEmail == userManager.NormalizeEmail(invitation.Email));
+                .SingleOrDefaultAsync(u =>
+                    u.NormalizedEmail == userManager.NormalizeEmail(invitation.Email));
 
             var isNewUser = user == null;
             if (!isNewUser)
@@ -64,7 +68,9 @@ namespace DS.Website.Controllers
 
                 var joinedCount = await userManager.Users
                     .Where(u => u.Id == user.Id && u.Group == null)
-                    .ExecuteUpdateAsync(s => s.SetProperty(u => EF.Property<int?>(u, "GroupId"), invitation.GroupId));
+                    .ExecuteUpdateAsync(s => s.SetProperty(
+                        u => EF.Property<int?>(u, "GroupId"),
+                        invitation.GroupId));
                 if (joinedCount != 1)
                 {
                     return BadRequest("Du er allerede tilknyttet en gruppe.");

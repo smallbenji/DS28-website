@@ -53,16 +53,19 @@ separate documentation request.
 ## C# controller style
 
 Use `DS.Website/Controllers/ApiControllers/ActivityApiController.cs` as the
-canonical reference for controller formatting. Read it before creating or
-substantially editing a controller. The user explicitly prefers this local
-style; use Microsoft C# conventions where the reference does not establish one.
+general reference for controller formatting. Read it before creating or
+substantially editing a controller. The guard style below is authoritative and
+supersedes single-return examples in the reference. Use Microsoft C# conventions
+where the reference does not establish a convention.
 
 - Use block-scoped namespaces with braces, not file-scoped namespaces.
 - Use four spaces per indentation level, including inside the namespace.
 - Put opening and closing braces on their own lines for namespaces, classes,
-  methods, and control-flow blocks.
-- Always include braces around `if`, `else`, and similar blocks, even for a
-  single return statement.
+  methods, and multi-statement control-flow blocks.
+- Keep an `if` with one short return on one line, for example
+  `if (!result.Succeeded) return BadRequest(result.Errors);`. Use braces when
+  the body has multiple statements or needs multiple lines for readability.
+  Apply the same rule to other single-statement guard clauses.
 - Use normal method bodies for controller helpers rather than expression-bodied
   methods, matching the reference controller.
 - Keep primary constructors and method signatures on one line when readable.
@@ -95,10 +98,7 @@ namespace DS.Website.Controllers
         public async Task<IActionResult> GetExample(int id)
         {
             var example = await repository.GetAsync(id);
-            if (example == null)
-            {
-                return NotFound();
-            }
+            if (example == null) return NotFound();
 
             return Ok(example);
         }
@@ -113,8 +113,10 @@ project patterns for forms, buttons, tables, notifications, and step flows.
 
 ## Verification
 
-- Review formatting against `ActivityApiController.cs`; an automatic formatter
-  alone does not establish compliance with the user's preferred style.
+- Review formatting against this section and use
+  `ActivityApiController.cs` for patterns not specified here; an automatic
+  formatter alone does not establish compliance with the user's preferred
+  style.
 - Run `git diff --check` after edits.
 - For C# changes, build with
   `dotnet build DS.Website/DS.Website.csproj --no-restore --disable-build-servers -m:1`.

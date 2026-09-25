@@ -18,10 +18,8 @@ namespace DS.Website.Controllers
         public async Task<IActionResult> TwoFactorStatus()
         {
             var user = await userManager.GetUserAsync(HttpContext.User);
-            if (user == null)
-            {
-                return NotFound();
-            }
+            if (user == null) return NotFound();
+
             return Ok(new TwoFactorStatusDto
             {
                 TwoFactorEnabled = user.TwoFactorEnabled,
@@ -34,10 +32,7 @@ namespace DS.Website.Controllers
         public async Task<IActionResult> TwoFactorSetup()
         {
             var user = await userManager.GetUserAsync(HttpContext.User);
-            if (user == null)
-            {
-                return NotFound();
-            }
+            if (user == null) return NotFound();
 
             await AuthenticatorHelper.EnsureAuthenticatorKeyAsync(userManager, user);
 
@@ -52,16 +47,10 @@ namespace DS.Website.Controllers
         public async Task<IActionResult> TwoFactorQrCode()
         {
             var user = await userManager.GetUserAsync(HttpContext.User);
-            if (user == null)
-            {
-                return NotFound();
-            }
+            if (user == null) return NotFound();
 
             var authenticatorUri = await AuthenticatorHelper.GetAuthenticatorUriAsync(userManager, user);
-            if (string.IsNullOrEmpty(authenticatorUri))
-            {
-                return NotFound();
-            }
+            if (string.IsNullOrEmpty(authenticatorUri)) return NotFound();
 
             Response.Headers.CacheControl = "no-store";
 
@@ -76,20 +65,11 @@ namespace DS.Website.Controllers
         public async Task<IActionResult> EnableTwoFactor([FromBody] EnableTwoFactorDto data)
         {
             var user = await userManager.GetUserAsync(HttpContext.User);
-            if (user == null)
-            {
-                return NotFound();
-            }
+            if (user == null) return NotFound();
 
-            if (user.TwoFactorEnabled)
-            {
-                return BadRequest("Tofaktorautentificering er allerede aktiveret.");
-            }
+            if (user.TwoFactorEnabled) return BadRequest("Tofaktorautentificering er allerede aktiveret.");
 
-            if (data == null || string.IsNullOrWhiteSpace(data.Code))
-            {
-                return BadRequest("Kode skal udfyldes.");
-            }
+            if (data == null || string.IsNullOrWhiteSpace(data.Code)) return BadRequest("Kode skal udfyldes.");
 
             await AuthenticatorHelper.EnsureAuthenticatorKeyAsync(userManager, user);
 
@@ -100,18 +80,13 @@ namespace DS.Website.Controllers
                 userManager.Options.Tokens.AuthenticatorTokenProvider,
                 verificationCode
             );
-
-            if (!isValid)
-            {
-                return BadRequest("Den indtastede kode var ikke gyldig.");
-            }
+            if (!isValid) return BadRequest("Den indtastede kode var ikke gyldig.");
 
             await userManager.SetTwoFactorEnabledAsync(user, true);
 
             var recoveryCodes = await userManager.GenerateNewTwoFactorRecoveryCodesAsync(user, 10);
             user.HasEnabledAuthenticator = true;
             var updateResult = await userManager.UpdateAsync(user);
-
             if (!updateResult.Succeeded)
             {
                 // Throw a warning in some kind of logging system
@@ -127,15 +102,9 @@ namespace DS.Website.Controllers
         public async Task<IActionResult> GenerateRecoveryCodes()
         {
             var user = await userManager.GetUserAsync(HttpContext.User);
-            if (user == null)
-            {
-                return NotFound();
-            }
+            if (user == null) return NotFound();
 
-            if (!user.TwoFactorEnabled)
-            {
-                return BadRequest("Tofaktorautentificering er ikke aktiveret.");
-            }
+            if (!user.TwoFactorEnabled) return BadRequest("Tofaktorautentificering er ikke aktiveret.");
 
             var recoveryCodes = await userManager.GenerateNewTwoFactorRecoveryCodesAsync(user, 10);
 
@@ -149,10 +118,7 @@ namespace DS.Website.Controllers
         public async Task<IActionResult> ResetAuthenticator()
         {
             var user = await userManager.GetUserAsync(HttpContext.User);
-            if (user == null)
-            {
-                return NotFound();
-            }
+            if (user == null) return NotFound();
 
             await userManager.ResetAuthenticatorKeyAsync(user);
             await userManager.SetTwoFactorEnabledAsync(user, false);
@@ -166,15 +132,9 @@ namespace DS.Website.Controllers
         public async Task<IActionResult> DisableTwoFactor([FromBody] DisableTwoFactorDto data)
         {
             var user = await userManager.GetUserAsync(HttpContext.User);
-            if (user == null)
-            {
-                return NotFound();
-            }
+            if (user == null) return NotFound();
 
-            if (data == null || string.IsNullOrWhiteSpace(data.Password))
-            {
-                return BadRequest("Adgangskode skal udfyldes.");
-            }
+            if (data == null || string.IsNullOrWhiteSpace(data.Password)) return BadRequest("Adgangskode skal udfyldes.");
 
             if (await userManager.IsInRoleAsync(user, nameof(AppGroups.SysAdmin)))
             {
@@ -182,19 +142,17 @@ namespace DS.Website.Controllers
             }
 
             var isCorrectPassword = await userManager.CheckPasswordAsync(user, data.Password);
-            if (!isCorrectPassword)
-            {
-                return BadRequest("Forkert adgangskode.");
-            }
+            if (!isCorrectPassword) return BadRequest("Forkert adgangskode.");
 
             await userManager.SetTwoFactorEnabledAsync(user, false);
             await userManager.ResetAuthenticatorKeyAsync(user);
 
             var passkeys = await userManager.GetPasskeysAsync(user);
-            foreach(var passkey in passkeys)
+            foreach (var passkey in passkeys)
             {
                 await userManager.RemovePasskeyAsync(user, passkey.CredentialId);
             }
+
             user.HasEnabledAuthenticator = false;
             await userManager.UpdateAsync(user);
 
@@ -205,12 +163,11 @@ namespace DS.Website.Controllers
         public async Task<IActionResult> UpdateName([FromBody] UpdateNameDto data)
         {
             var user = await userManager.GetUserAsync(HttpContext.User);
-            if (user == null)
-            {
-                return NotFound();
-            }
+            if (user == null) return NotFound();
 
-            if (data == null || string.IsNullOrWhiteSpace(data.FirstName) || string.IsNullOrWhiteSpace(data.LastName))
+            if (data == null ||
+                string.IsNullOrWhiteSpace(data.FirstName) ||
+                string.IsNullOrWhiteSpace(data.LastName))
             {
                 return BadRequest("Fornavn og efternavn skal udfyldes.");
             }
@@ -219,10 +176,7 @@ namespace DS.Website.Controllers
             user.LastName = data.LastName.Trim();
 
             var result = await userManager.UpdateAsync(user);
-            if (!result.Succeeded)
-            {
-                return BadRequest(string.Join(" ", result.Errors.Select(e => e.Description)));
-            }
+            if (!result.Succeeded) return BadRequest(string.Join(" ", result.Errors.Select(e => e.Description)));
 
             await signInManager.RefreshSignInAsync(user);
 
@@ -233,21 +187,17 @@ namespace DS.Website.Controllers
         public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordDto data)
         {
             var user = await userManager.GetUserAsync(HttpContext.User);
-            if (user == null)
-            {
-                return NotFound();
-            }
+            if (user == null) return NotFound();
 
-            if (data == null || string.IsNullOrWhiteSpace(data.OldPassword) || string.IsNullOrWhiteSpace(data.NewPassword))
+            if (data == null ||
+                string.IsNullOrWhiteSpace(data.OldPassword) ||
+                string.IsNullOrWhiteSpace(data.NewPassword))
             {
                 return BadRequest("Adgangskoder skal udfyldes.");
             }
 
             var result = await userManager.ChangePasswordAsync(user, data.OldPassword, data.NewPassword);
-            if (!result.Succeeded)
-            {
-                return BadRequest(result.Errors);
-            }
+            if (!result.Succeeded) return BadRequest(result.Errors);
 
             await signInManager.RefreshSignInAsync(user);
 
@@ -272,21 +222,14 @@ namespace DS.Website.Controllers
             if (user == null) return NotFound();
 
             var result = await signInManager.PerformPasskeyAttestationAsync(data.CredentialJson);
-
-            if (!result.Succeeded || result.UserEntity.Id != user.Id)
-            {
-                return BadRequest("Ugyldig loginforsøg");
-            }
+            if (!result.Succeeded || result.UserEntity.Id != user.Id) return BadRequest("Ugyldig loginforsøg");
 
             var passkey = result.Passkey;
 
             if (!string.IsNullOrEmpty(data.Name)) passkey.Name = data.Name;
 
             var addPasskeyResult = await userManager.AddOrUpdatePasskeyAsync(user, passkey);
-            if (!addPasskeyResult.Succeeded)
-            {
-                return BadRequest("kunne ikke gemme passkey");
-            }
+            if (!addPasskeyResult.Succeeded) return BadRequest("kunne ikke gemme passkey");
 
             // Hvis brugeren ikke har nogen 2fa sat op endu, slå 2fa til og generer "recovery codes"
             if (!user.TwoFactorEnabled)
@@ -301,7 +244,6 @@ namespace DS.Website.Controllers
 
             return Ok();
         }
-
 
         [HttpDelete("2fa/passkeys/{id}")]
         public async Task<IActionResult> RemovePasskey(string id)
@@ -325,7 +267,6 @@ namespace DS.Website.Controllers
             if (passkeys.Count == 1 && !hasTotp)
             {
                 return BadRequest("Du kan ikke fjerne din sidste passkeyy. tilføj en anden 2FA-metode først.");
-
             }
 
             await userManager.RemovePasskeyAsync(user, credentailId);
@@ -338,6 +279,7 @@ namespace DS.Website.Controllers
         {
             var user = await userManager.GetUserAsync(HttpContext.User);
             if (user == null) return NotFound();
+
             var passkeys = await userManager.GetPasskeysAsync(user);
             if (passkeys.Count >= MAX_PASSKEY_COUNT) return BadRequest("Max antal passkeys er nået.");
 
@@ -353,6 +295,5 @@ namespace DS.Website.Controllers
                 OptionsJson = result
             });
         }
-
     }
 }

@@ -21,16 +21,10 @@ namespace DS.Website.Controllers
             }
 
             var user = await userManager.FindByIdAsync(data.UserId);
-            if (user == null)
-            {
-                return BadRequest("Brugeren findes ikke.");
-            }
+            if (user == null) return BadRequest("Brugeren findes ikke.");
 
             var result = await userManager.ResetPasswordAsync(user, data.Token, data.NewPassword);
-            if (!result.Succeeded)
-            {
-                return BadRequest(result.Errors);
-            }
+            if (!result.Succeeded) return BadRequest(result.Errors);
 
             return Ok();
         }

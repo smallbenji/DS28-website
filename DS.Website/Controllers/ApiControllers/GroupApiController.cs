@@ -19,11 +19,16 @@ namespace DS.Website.Controllers
                 .AsNoTracking()
                 .Include(u => u.Group).ThenInclude(g => g.PreSignup)
                 .SingleOrDefaultAsync(u => u.Id == userId);
-
-            if (user?.Group == null) return NotFound("Din bruger er ikke tilknyttet en gruppe.");
+            if (user?.Group == null)
+            {
+                return NotFound("Din bruger er ikke tilknyttet en gruppe.");
+            }
 
             var signup = user.Group.PreSignup;
-            if (signup == null) return NotFound("Gruppen har endnu ingen forhåndstilmelding.");
+            if (signup == null)
+            {
+                return NotFound("Gruppen har endnu ingen forhåndstilmelding.");
+            }
 
             return Ok(new
             {
@@ -36,22 +41,35 @@ namespace DS.Website.Controllers
         [HttpPut("pre-signup")]
         public async Task<IActionResult> UpdatePreSignup([FromBody] UpdateGroupPreSignupDto data)
         {
-            if (data == null || !ModelState.IsValid) return BadRequest("Udfyld alle deltagerantal med hele tal på 0 eller derover.");
+            if (data == null || !ModelState.IsValid)
+            {
+                return BadRequest("Udfyld alle deltagerantal med hele tal på 0 eller derover.");
+            }
 
             await using var transaction = await dataDb.Database.BeginTransactionAsync();
 
-            await dataDb.Database.ExecuteSqlRawAsync("SELECT 1 FROM \"RegistrationSettings\" WHERE \"Id\" = 1 FOR SHARE");
-            if (!await dataDb.RegistrationSettings.AnyAsync(s => s.Id == 1 && s.IsPreSignupOpen)) return Conflict("Forhåndstilmeldingen er lukket. Deltagerantallene kan ikke ændres.");
+            await dataDb.Database.ExecuteSqlRawAsync(
+                "SELECT 1 FROM \"RegistrationSettings\" WHERE \"Id\" = 1 FOR SHARE");
+            if (!await dataDb.RegistrationSettings.AnyAsync(
+                s => s.Id == 1 && s.IsPreSignupOpen))
+            {
+                return Conflict("Forhåndstilmeldingen er lukket. Deltagerantallene kan ikke ændres.");
+            }
 
             var userId = userManager.GetUserId(User);
             var user = await userManager.Users
                 .Include(u => u.Group).ThenInclude(g => g.PreSignup)
                 .SingleOrDefaultAsync(u => u.Id == userId);
-
-            if (user?.Group == null) return NotFound("Din bruger er ikke tilknyttet en gruppe.");
+            if (user?.Group == null)
+            {
+                return NotFound("Din bruger er ikke tilknyttet en gruppe.");
+            }
 
             var signup = user.Group.PreSignup;
-            if (signup == null) return NotFound("Gruppen har endnu ingen forhåndstilmelding.");
+            if (signup == null)
+            {
+                return NotFound("Gruppen har endnu ingen forhåndstilmelding.");
+            }
 
             data.ApplyTo(signup);
 
@@ -67,18 +85,14 @@ namespace DS.Website.Controllers
             var userId = userManager.GetUserId(HttpContext.User);
             var user = await userManager.Users
                 .Include(x => x.Group)
-                    .ThenInclude(x => x.Patrols)
+                .ThenInclude(x => x.Patrols)
                 .Include(x => x.Group)
-                    .ThenInclude(x => x.Scouts)
+                .ThenInclude(x => x.Scouts)
                 .FirstOrDefaultAsync(u => u.Id == userId);
-
             if (user?.Group == null) return NotFound();
 
             var users = await userManager.Users
-                .Where(u => 
-                    u.Group != null &&
-                    u.Group.Id == user.Group.Id
-                )
+                .Where(u => u.Group != null && u.Group.Id == user.Group.Id)
                 .ToListAsync();
 
             return Ok(new GroupDto(user.Group, users));
