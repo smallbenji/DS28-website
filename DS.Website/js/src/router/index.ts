@@ -61,6 +61,11 @@ const routes: RouteRecordRaw[] = [
         meta: { guestOnly: true }
     },
     {
+        path: "/forgot-password",
+        component: () => import("@/Views/ForgotPassword.vue"),
+        meta: { guestOnly: true }
+    },
+    {
         path: "/register",
         component: () => import("@/Views/Register.vue"),
         meta: { guestOnly: true }

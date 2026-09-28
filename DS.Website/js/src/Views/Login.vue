@@ -34,9 +34,14 @@
                             </BButton>
 
                             <p class="has-text-centered mt-4">
+                                <router-link to="/forgot-password">
+                                    Glemt adgangskode
+                                </router-link>
+                            </p>
+                            <!-- <p class="has-text-centered mt-4">
                                 Skal din gruppe med?
                                 <router-link to="/group-pre-signup">Forhåndstilmeld gruppen</router-link>
-                            </p>
+                            </p> -->
                         </template>
 
                         <template v-else-if="step === 'twofactor'">

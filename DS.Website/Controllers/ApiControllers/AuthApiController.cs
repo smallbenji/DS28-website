@@ -10,7 +10,7 @@ namespace DS.Website.Controllers
 {
     [AllowAnonymous]
     [Route("/api/v1/auth")]
-    public class AuthApiController(UserManager<User> userManager, SignInManager<User> signInManager) : Controller
+    public class AuthApiController(UserManager<User> userManager, SignInManager<User> signInManager, EmailService emailService) : Controller
     {
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginDto data)
@@ -110,6 +110,23 @@ namespace DS.Website.Controllers
 
             var result = await userManager.CreateAsync(newUser, data.Password);
             if (!result.Succeeded) return BadRequest(string.Join(" ", result.Errors.Select(e => e.Description)));
+
+            return Ok();
+        }
+
+        [HttpPost("forgot-password")]
+        public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordDto data)
+        {
+            if (data == null || string.IsNullOrWhiteSpace(data.Email)) return BadRequest("Email skal udfyldes.");
+
+            // Svarer altid med Ok, så man ikke kan bruge svaret til at finde ud af
+            // hvilke emailadresser der er oprettet.
+            var user = await userManager.FindByEmailAsync(data.Email);
+            if (user != null)
+            {
+                var token = await userManager.GeneratePasswordResetTokenAsync(user);
+                emailService.SendResetPasswordMail(user, token);
+            }
 
             return Ok();
         }

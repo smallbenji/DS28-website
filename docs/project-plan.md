@@ -162,6 +162,24 @@ til projektet. Kontrollér altid koden igen ved fremtidige ændringer.
   tilmeldinger og ændringer af deltagerantal blokeres i backend. Eksisterende
   tilmeldinger kan fortsat ses. Om eksisterende grupper skal kunne ændre deres
   tal efter lukning, er endnu ikke bekræftet af Benjamin.
+- Glemt adgangskode er et selvbetjent flow på `/forgot-password`. Brugeren
+  indtaster sin email, og backend sender et nulstillingslink på
+  `/reset-password/{brugerId}?token=...`. Det er en mail, der sendes
+  automatisk, i modsætning til gruppeinvitationer ovenfor, hvor Benjamin
+  bevidst har valgt, at brugerne selv deler linket. Dette er altså en ny
+  afklaring og ikke en udvidelse af invitationflowet.
+- Endpoints svarer altid ens på en anmodning om nulstillingslink, uanset om
+  emailadressen findes, så svaret ikke afslører hvilke brugere der er
+  oprettet. Det er kun det konkrete nulstillingslink, der afslører om
+  brugeren findes.
+- Linket i mailen bygges ud fra `DS.PublicBaseUrl`, ligesom invitationsmailen.
+  Den eksisterende admin-genererede nulstillingslink-funktion bruger derimod
+  `Request.Scheme` og `Request.Host` og er dermed sårbar bag en proxy.
+- Nulstillingslinket er Identity's `DataProtectorTokenProvider` med en
+  standardlevetid på 24 timer. Der er ikke implementeret en streng
+  engangsbrugsbegrænsning ud over den normale sikkerhedsstempel, så teksten i
+  brugeradmin-fladen om at linket kun er gyldigt ét brug er upræcis. Det er
+  ikke ændret af denne implementering.
 
 Nye beslutninger kan føjes til dette afsnit, så den oprindelige plan fortsat
 kan skelnes fra senere valg.

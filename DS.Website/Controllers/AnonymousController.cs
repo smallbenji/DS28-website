@@ -24,6 +24,9 @@ namespace DS.Website.Controllers
         [HttpGet("/reset-password/{id}")]
         public IActionResult ResetPassword() => SpaIndex();
 
+        [HttpGet("/forgot-password")]
+        public IActionResult ForgotPassword() => SpaIndex();
+
         private IActionResult SpaIndex()
         {
             var filePath = Path.Combine(env.ContentRootPath, "wwwroot", "dist", "index.html");

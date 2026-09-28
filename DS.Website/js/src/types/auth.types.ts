@@ -11,6 +11,10 @@ export interface RegisterDto {
   password: string;
 }
 
+export interface ForgotPasswordDto {
+  email: string;
+}
+
 export interface TwoFactorLoginDto {
   twoFactorCode: string;
   rememberMachine: boolean;

@@ -1,6 +1,6 @@
 import type { AxiosResponse } from "axios";
 import axios from "axios";
-import type { AuthResultDto, LoginDto, PasskeyAssertionRequestDto, RecoveryCodeLoginDto, RegisterDto, TwoFactorLoginDto } from "@/types";
+import type { AuthResultDto, ForgotPasswordDto, LoginDto, PasskeyAssertionRequestDto, RecoveryCodeLoginDto, RegisterDto, TwoFactorLoginDto } from "@/types";
 import type { PasskeyOptionsDto } from "@/types/passkeys.types";
 
 export default class AuthService {
@@ -25,6 +25,11 @@ export default class AuthService {
 
   public async register(data: RegisterDto): Promise<string | null> {
     const result = await this.post<never>("/api/v1/auth/register", data);
+    return result.error ?? null;
+  }
+
+  public async forgotPassword(data: ForgotPasswordDto): Promise<string | null> {
+    const result = await this.post<never>("/api/v1/auth/forgot-password", data);
     return result.error ?? null;
   }
 

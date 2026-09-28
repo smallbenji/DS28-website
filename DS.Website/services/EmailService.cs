@@ -51,21 +51,26 @@ Mvh. DS28 teamet"
             SendMail(message);
         }
 
-        public void SendResetPasswordMail()
+        public void SendResetPasswordMail(User user, string token)
         {
             var message = new MimeMessage();
-            message.Subject = "Hello, World!";
+            message.To.Add(new MailboxAddress(user.GetFullName(), user.Email));
+            message.Subject = "Nulstil din adgangskode i DS28";
+
+            var baseUri = new Uri(options.Value.PublicBaseUrl, UriKind.Absolute);
+            var link = new Uri(baseUri, $"/reset-password/{user.Id}?token={Uri.EscapeDataString(token)}").AbsoluteUri;
 
             message.Body = new TextPart("plain")
             {
                 Text =
-@$"Hej {message.To.FirstOrDefault().Name} 
+$@"Hej {user.GetFullName()}
 
-Hermed sendes din kode til vores applikation.
+Du har bedt om at nulstille din adgangskode. Følg dette link for at vælge en ny adgangskode:
+{link}
 
-Indsæt link her
+Linket er gyldigt i 24 timer. Hvis du ikke selv har bedt om nulstillingen, kan du ignorere denne mail. Din adgangskode er stadig uændret.
 
-Mhv. DS28 teamet
+Mvh. DS28 teamet
                 "
             };
 

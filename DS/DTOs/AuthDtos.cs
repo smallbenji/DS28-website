@@ -15,6 +15,11 @@ namespace DS.DTOs
         public string Password { get; set; } = string.Empty;
     }
 
+    public class ForgotPasswordDto
+    {
+        public string Email { get; set; } = string.Empty;
+    }
+
     public class TwoFactorLoginDto
     {
         public string TwoFactorCode { get; set; } = string.Empty;
