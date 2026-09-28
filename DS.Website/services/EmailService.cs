@@ -1,4 +1,5 @@
 using DS.Models;
+using MailKit;
 using MailKit.Net.Smtp;
 using MailKit.Security;
 using Microsoft.Extensions.Options;
@@ -10,10 +11,18 @@ namespace DS.Website.Services
     {
         private void SendMail(MimeMessage message)
         {
+            var settings = options.Value;
+
             using var client = new SmtpClient();
-            client.Connect(options.Value.SMTPHost, 587, SecureSocketOptions.StartTls);
-            client.Authenticate(options.Value.SMTPUser, options.Value.SMTPPassword);
-            message.From.Add(new MailboxAddress(options.Value.SMTPFromName, options.Value.SMTPFromEmail));
+            client.CheckCertificateRevocation = false;
+            client.Connect(settings.SMTPHost, 587, SecureSocketOptions.StartTls);
+
+            if (!string.IsNullOrWhiteSpace(settings.SMTPUser) && client.Capabilities.HasFlag(SmtpCapabilities.Authentication))
+            {
+                client.Authenticate(settings.SMTPUser, settings.SMTPPassword);
+            }
+
+            message.From.Add(new MailboxAddress(settings.SMTPFromName, settings.SMTPFromEmail));
             client.Send(message);
             client.Disconnect(true);
         }
