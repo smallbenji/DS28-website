@@ -49,6 +49,21 @@ namespace DS.Website.Controllers
                             RequiredRole = nameof(AppRoles.PreSignupManage)
                         }
                     ]
+                },
+                new()
+                {
+                    Title = "System",
+                    Icon = "gear",
+                    Entries =
+                    [
+                        new HQPanelEntryDto
+                        {
+                            Title = "Mailkø",
+                            Url = "/email-outbox",
+                            Icon = ["inbox"],
+                            RequiredRole = nameof(AppRoles.EmailOutboxView)
+                        }
+                    ]
                 }
             ];
         }

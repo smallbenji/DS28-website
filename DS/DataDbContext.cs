@@ -22,6 +22,7 @@ public class DataDbContext : IdentityDbContext<User, Role, string>
     public DbSet<MaterialOrder> MaterialOrders { get; set; }
     public DbSet<GroupPreSignup> GroupPreSignups { get; set; }
     public DbSet<RegistrationSettings> RegistrationSettings { get; set; }
+    public DbSet<EmailOutbox> EmailOutbox { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -123,5 +124,8 @@ public class DataDbContext : IdentityDbContext<User, Role, string>
             .HasOne(g => g.PreSignup)
             .WithOne(p => p.Group)
             .HasForeignKey<GroupPreSignup>(p => p.GroupId);
+
+        modelBuilder.Entity<EmailOutbox>()
+            .HasIndex(m => new { m.NextAttemptAt, m.Id });
     }
 }

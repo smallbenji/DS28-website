@@ -159,6 +159,7 @@ builder.Services.Configure<IdentityPasskeyOptions>(options =>
 builder.Services.AddTransient<ActivityRepository>();
 builder.Services.AddTransient<CampSettings>();
 builder.Services.AddTransient<EmailService>();
+builder.Services.AddHostedService<EmailOutboxWorker>();
 
 var app = builder.Build();
 

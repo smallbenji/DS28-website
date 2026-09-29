@@ -14,5 +14,6 @@ namespace DS
         public string SMTPFromName { get; set; }
         public string PublicBaseUrl { get; set; }
         public string InternalApiKey { get; set; }
+        public bool NotificationsEnabled { get; set; }
     }
 }

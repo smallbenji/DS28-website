@@ -103,6 +103,11 @@ const routes: RouteRecordRaw[] = [
         path: "/admin",
         component: () => import("@/Views/Admin.vue"),
         meta: { requiresAuth: true, requiredRole: "AdminAccess", pageTitle: "Admin", pageIcon: "gear" }
+    },
+    {
+        path: "/email-outbox",
+        component: () => import("@/Views/EmailOutbox.vue"),
+        meta: { requiresAuth: true, requiredRole: "EmailOutboxView", pageTitle: "Mailkø", pageIcon: "inbox" }
     }
 ];
 

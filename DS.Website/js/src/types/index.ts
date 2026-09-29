@@ -2,6 +2,7 @@ export * from './account.types';
 export * from './activity.types';
 export * from './admin.types';
 export * from './auth.types';
+export * from './email-outbox.types';
 export * from './group.types';
 export * from './groups.types';
 export * from './home.types';
