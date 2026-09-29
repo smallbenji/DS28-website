@@ -6,6 +6,8 @@ namespace DS.DTOs;
 
 public class UpdateGroupPreSignupDto
 {
+    public UpdateGroupPreSignupDto() { }
+
     public UpdateGroupPreSignupDto(GroupPreSignup data)
     {
         Beaver = data.Beaver;

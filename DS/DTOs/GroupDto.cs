@@ -25,6 +25,8 @@ namespace DS.DTOs
 
     public class GroupUserDto
     {
+        public GroupUserDto() { }
+
         public GroupUserDto(User user)
         {
             Id = user.Id;
