@@ -14,29 +14,23 @@ namespace DS.Website.Controllers
         {
             return
             [
-                // Need roles
+                // Adminfunktioner ligger samlet under /admin
                 new()
                 {
-                    Title = "Brugerstyring",
-                    Url = "/user",
-                    Icon = ["user-pen"],
-                    RequiredRole = nameof(AppRoles.UsersView)
+                    Title = "Admin",
+                    Url = "/admin",
+                    Icon = ["gear"],
+                    RequiredRole = nameof(AppRoles.AdminAccess)
                 },
+
+                // Kun for roller der ikke er dækket af AdminAccess
                 new()
                 {
-                    Title = "Gruppestyring",
-                    Url = "/groups",
-                    Icon = ["users-gear"],
-                    RequiredRole = nameof(AppRoles.GroupsView)
+                    Title = "Aktivitetsmodul",
+                    Url = "/activity",
+                    Icon = ["newspaper"],
+                    RequiredRole = nameof(AppRoles.ActivityView)
                 },
-                new()
-                {
-                    Title = "Lejrindstillinger",
-                    Url = "/camp-settings",
-                    Icon = ["sliders"],
-                    RequiredRole = nameof(AppRoles.PreSignupManage)
-                },
-                // new() { Title = "Aktivitetsmodul", Url = "/activity", Icon = ["fa-solid fa-newspaper"], RequiredRoles = [nameof(AppRoles.ActivityAdmin), nameof(AppRoles.ActivityView)] },
 
                 // No roles needed
                 new()
@@ -59,7 +53,6 @@ namespace DS.Website.Controllers
                 },
 
                 // Not in use
-                // new() { Title = "Audit log", Url = "#", Icon = ["fa-solid fa-file-lines"], RequiredRole = nameof(AppRoles.AuditLogView) },
                 // new() { Title = "Materialesystem", Url = "#", Icon = ["fa-solid fa-cart-plus"], RequiredRole = nameof(AppRoles.GroupsDelete) },
                 // new() { Title = "Økonomi", Url = "#", Icon = ["fa-solid fa-money-check-dollar"], RequiredRole = nameof(AppRoles.GroupsDelete) },
                 // new() { Title = "Tilmeldingssystem", Url = "#", Icon = ["fa-solid fa-plus-circle"] },

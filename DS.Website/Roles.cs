@@ -30,6 +30,7 @@ namespace DS.Website
         ActivityAdmin,
 
         AuditLogView,
+        AdminAccess,
 
         WordPressEditor,
         WordPressAdmin,
@@ -57,6 +58,9 @@ namespace DS.Website
 
                     nameof(AppRoles.ActivityView),
                     nameof(AppRoles.ActivityAdmin),
+
+                    nameof(AppRoles.AuditLogView),
+                    nameof(AppRoles.AdminAccess),
                 ]
             },
             {
@@ -78,6 +82,9 @@ namespace DS.Website
                     nameof(AppRoles.PreSignupManage),
                     nameof(AppRoles.ActivityAdmin),
                     nameof(AppRoles.ActivityView),
+
+                    nameof(AppRoles.AuditLogView),
+                    nameof(AppRoles.AdminAccess),
                 ]
             },
             {

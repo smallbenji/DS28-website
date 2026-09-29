@@ -98,6 +98,11 @@ const routes: RouteRecordRaw[] = [
         path: "/activity/:id",
         component: () => import("@/Views/ActivityDetail.vue"),
         meta: { requiresActivityData: true, pageTitle: "Aktivitetsmodul", pageIcon: "fa-newspaper" }
+    },
+    {
+        path: "/admin",
+        component: () => import("@/Views/Admin.vue"),
+        meta: { requiresAuth: true, requiredRole: "AdminAccess", pageTitle: "Admin", pageIcon: "gear" }
     }
 ];
 
