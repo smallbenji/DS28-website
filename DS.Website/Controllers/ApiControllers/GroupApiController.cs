@@ -1,4 +1,5 @@
 using DS.DTOs;
+using DS.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -16,18 +17,19 @@ namespace DS.Website.Controllers
         {
             var userId = userManager.GetUserId(User);
             var user = await userManager.Users
-                .AsNoTracking()
                 .Include(u => u.Group).ThenInclude(g => g.PreSignup)
                 .SingleOrDefaultAsync(u => u.Id == userId);
-            if (user?.Group == null)
-            {
-                return NotFound("Din bruger er ikke tilknyttet en gruppe.");
-            }
+            if (user?.Group == null) return NotFound("Din bruger er ikke tilknyttet en gruppe.");
 
             var signup = user.Group.PreSignup;
             if (signup == null)
             {
-                return NotFound("Gruppen har endnu ingen forhåndstilmelding.");
+                signup = new GroupPreSignup
+                {
+                    GroupId = user.Group.Id
+                };
+                dataDb.GroupPreSignups.Add(signup);
+                await dataDb.SaveChangesAsync();
             }
 
             return Ok(new
@@ -60,15 +62,16 @@ namespace DS.Website.Controllers
             var user = await userManager.Users
                 .Include(u => u.Group).ThenInclude(g => g.PreSignup)
                 .SingleOrDefaultAsync(u => u.Id == userId);
-            if (user?.Group == null)
-            {
-                return NotFound("Din bruger er ikke tilknyttet en gruppe.");
-            }
+            if (user?.Group == null) return NotFound("Din bruger er ikke tilknyttet en gruppe.");
 
             var signup = user.Group.PreSignup;
             if (signup == null)
             {
-                return NotFound("Gruppen har endnu ingen forhåndstilmelding.");
+                signup = new GroupPreSignup
+                {
+                    GroupId = user.Group.Id
+                };
+                dataDb.GroupPreSignups.Add(signup);
             }
 
             data.ApplyTo(signup);

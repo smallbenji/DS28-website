@@ -140,6 +140,13 @@ async function lookup() {
     group.value = null;
     try {
         group.value = await service.lookup(String(Number(groupNumber.value)));
+        if (group.value.counts) {
+            for (const [key, value] of Object.entries(group.value.counts)) {
+                if (key in counts) {
+                    counts[key as keyof ParticipantCounts] = Number(value);
+                }
+            }
+        }
         step.value = 1;
     } catch (cause) { showError(cause); }
     finally { busy.value = false; }

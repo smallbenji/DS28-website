@@ -26,26 +26,27 @@ namespace DS.Website.Controllers
 
             var group = await dataDb.Groups
                 .AsNoTracking()
+                .Include(g => g.PreSignup)
                 .Where(g => g.Id == groupId)
-                .Select(g => new
-                {
-                    g.Id,
-                    g.Name,
-                    g.District,
-                    AlreadySignedUp = g.PreSignup != null
-                })
                 .SingleOrDefaultAsync();
             if (group == null)
             {
                 return NotFound("Gruppen blev ikke fundet. Kontrollér gruppenummeret.");
             }
 
-            if (group.AlreadySignedUp)
+            var hasUsers = await dataDb.Users.AnyAsync(u => u.Group != null && u.Group.Id == groupId);
+            if (hasUsers)
             {
                 return Conflict("Gruppen er allerede forhåndstilmeldt. Log ind eller kontakt gruppens kontaktperson.");
             }
 
-            return Ok(new { group.Id, group.Name, group.District });
+            return Ok(new
+            {
+                group.Id,
+                group.Name,
+                group.District,
+                Counts = group.PreSignup != null ? new UpdateGroupPreSignupDto(group.PreSignup) : null
+            });
         }
 
         [HttpPost]
@@ -63,7 +64,6 @@ namespace DS.Website.Controllers
 
             await using var transaction = await dataDb.Database.BeginTransactionAsync();
 
-            // Keep the setting stable until this registration has been committed.
             await dataDb.Database.ExecuteSqlRawAsync(
                 "SELECT 1 FROM \"RegistrationSettings\" WHERE \"Id\" = 1 FOR SHARE");
             if (!await dataDb.RegistrationSettings.AnyAsync(
@@ -71,6 +71,9 @@ namespace DS.Website.Controllers
             {
                 return Conflict("Forhåndstilmeldingen er lukket.");
             }
+
+            await dataDb.Database.ExecuteSqlInterpolatedAsync(
+                $"SELECT 1 FROM \"Groups\" WHERE \"Id\" = {data.GroupId} FOR UPDATE");
 
             var group = await dataDb.Groups
                 .Include(g => g.PreSignup)
@@ -80,7 +83,8 @@ namespace DS.Website.Controllers
                 return NotFound("Gruppen blev ikke fundet. Kontrollér gruppenummeret.");
             }
 
-            if (group.PreSignup != null)
+            var hasUsers = await dataDb.Users.AnyAsync(u => u.Group != null && u.Group.Id == group.Id);
+            if (hasUsers)
             {
                 return Conflict("Gruppen er allerede forhåndstilmeldt. Log ind eller kontakt gruppens kontaktperson.");
             }
@@ -103,17 +107,30 @@ namespace DS.Website.Controllers
                     return BadRequest(string.Join(" ", result.Errors.Select(e => e.Description)));
                 }
 
-                dataDb.GroupPreSignups.Add(new GroupPreSignup
+                if (group.PreSignup == null)
                 {
-                    GroupId = group.Id,
-                    Beaver = data.Beaver,
-                    Wolf = data.Wolf,
-                    Junior = data.Junior,
-                    Trop = data.Trop,
-                    Senior = data.Senior,
-                    Rover = data.Rover,
-                    Leader = data.Leader
-                });
+                    dataDb.GroupPreSignups.Add(new GroupPreSignup
+                    {
+                        GroupId = group.Id,
+                        Beaver = data.Beaver,
+                        Wolf = data.Wolf,
+                        Junior = data.Junior,
+                        Trop = data.Trop,
+                        Senior = data.Senior,
+                        Rover = data.Rover,
+                        Leader = data.Leader
+                    });
+                }
+                else
+                {
+                    group.PreSignup.Beaver = data.Beaver;
+                    group.PreSignup.Wolf = data.Wolf;
+                    group.PreSignup.Junior = data.Junior;
+                    group.PreSignup.Trop = data.Trop;
+                    group.PreSignup.Senior = data.Senior;
+                    group.PreSignup.Rover = data.Rover;
+                    group.PreSignup.Leader = data.Leader;
+                }
 
                 await dataDb.SaveChangesAsync();
                 await transaction.CommitAsync();

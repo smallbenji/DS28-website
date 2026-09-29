@@ -4,6 +4,7 @@ export interface SignupGroup {
     id: string;
     name: string;
     district: string;
+    counts?: Record<keyof ParticipantCounts, string | number> | null;
 }
 
 export interface ParticipantCounts {
