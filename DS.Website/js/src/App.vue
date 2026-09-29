@@ -16,6 +16,95 @@ const showBack = computed(() => !!route.meta.pageTitle);
 </template>
 
 <style lang="scss">
+// Flis-sproget er delt mellem HQ og /admin, og skal derfor ligge i en
+// altid indlæst fil. Lægtes disse regler i Home.vue ville de kun findes
+// efter at den view var blevet indlæst.
+.center {
+    margin: 0 auto;
+    color: rgba(0, 0, 0, 0.1);
+}
+
+.grid {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+    max-width: 52rem;
+    margin: auto;
+    margin-top: 1rem;
+
+    @media (max-width: 768px) {
+        margin-left: 1rem;
+        margin-right: 1rem;
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        overflow-y: auto;
+    }
+}
+
+.link-box {
+    height: 8rem;
+    width: 100%;
+    background-color: #fff;
+    border-radius: 10px;
+    box-shadow: 5px 5px 5px 0 rgba(0, 0, 0, 0.05);
+    transition: 0.2s ease-in;
+    cursor: pointer;
+    text-decoration: none;
+    color: black;
+
+    @media (max-width: 768px) {
+        height: auto;
+        padding: 1rem;
+    }
+
+    div {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        height: 100%;
+
+        @media (max-width: 768px) {
+            flex-direction: row;
+            width: 100%;
+            justify-content: space-between;
+        }
+
+        svg {
+            font-size: 44px;
+            color: rgba(0, 0, 0, 0.4);
+            transition: ease-in 0.2s;
+        }
+
+        svg:hover {
+            color: rgb(59, 130, 246);
+        }
+
+        p {
+            text-align: center;
+            margin: 0;
+            font-size: 18px;
+            padding: 0;
+            color: rgba(0, 0, 0, 0.4);
+            transition: ease-in 0.2s;
+        }
+    }
+
+    &:hover {
+        background-color: #eee;
+
+        p {
+            color: #000;
+        }
+
+        svg {
+            color: rgb(59, 130, 246);
+        }
+    }
+}
+
 .compact-scroll {
     $track-color: rgba(0, 0, 0, 0.1);
     $handle-color: rgba(0, 0, 0, 0.2);
