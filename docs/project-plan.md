@@ -66,6 +66,49 @@ Brugere skal eventuelt kunne få besked om hændelser, eksempelvis når nogen
 opretter en patrulje eller ændrer deltagerantal. Dette blev primært tænkt som
 en "Ole-feature"; målgruppe, kanaler og regler er ikke nærmere fastlagt.
 
+**Beslutning 2026-09-29:** Notifikationer starter som **mail**. En `EmailOutbox`
+fungerer som transaktionel outbox og en `EmailOutboxWorker` sender fra køen i
+baggrunden. Adgang til at se køen (`EmailOutboxView`) er givet til
+systemadministrator og lejrchef, via `/admin`.
+
+Ubesluttede punkter:
+- Notifikationer skal kun sendes til brugere der har bedt om den pågældende
+  hændelsestype. Præferencer er endnu ikke implementeret, og der findes ingen
+  afmeldingsmulighed endnu.
+- Transaktionelle mails (invitation og adgangskodenulstilling) skal fortsat
+  sendes synkront i forbindelse med den handling, brugeren har bedt om. De må
+  ikke gå gennem køen, fordi brugeren skal kunne få en fejl, hvis afsendelsen
+  mislykkes.
+- Der er endnu ingen konkret hændelse, der lægger rækker i køen.
+
+### Adminområde
+
+**Beslutning 2026-09-29:** Der oprettes et samlet adminområde på `/admin` med
+sektioner, som kræver `AppRoles.AdminAccess`. Rollen er tildelt
+systemadministrator og lejrchef. Hvert element i adminområdet gater fortsat på
+sin egen rolle; adgang til siden og adgang til den enkelte funktion er to
+separate ting.
+
+HQ viser kun én "Admin"-flis i stedet for de enkelte administrationsfliser.
+Aktivitetsmodulet og Wordpress-login bliver stående på HQ, fordi de også er
+tilgængelige for roller uden for systemadministrator og lejrchef.
+
+**Beslutning 2026-09-29:** Adminområdet har en sidebar med tilmeldingsstatistik,
+der sammenligner forhåndstilmelding og endelig tilmelding mod måletallet fra
+`DS/ParticipantData.cs` (`TotalUniqueParticipants`, 285).
+
+Tærsklerne er: grøn når målet er nået, gul når mindst halvdelen er nået, rød
+under halvdelen. Tallet er hærdet som halvdelen af målet, så en tærskel ikke
+skal vedligeholdes separat.
+
+De to tal har forskellige kilder og er ikke koblet til hinanden:
+- Forhåndstilmelding summerer `GroupPreSignup` for alle grupper og aldersgrupper,
+  altså gruppernes erklærede antal.
+- Endelig tilmelding tæller rækker i `Scout`, altså navngivne deltagere.
+
+Uafklaret: sidebaren skal på sigende og senere rumme de åb/luk-funktioner, der
+hidtil ligger på `/camp-settings`.
+
 ### Aktiviteter
 
 - Registrerede aktiviteter kan udgives i et katalog.
@@ -92,10 +135,44 @@ en "Ole-feature"; målgruppe, kanaler og regler er ikke nærmere fastlagt.
   så aktiviteter kan starte igen næste morgen.
 - Den første udskrift af materialelister tager udgangspunkt i dag 1.
 
+### Dataudtræk
+
+Planen under Økonomi nævner eksport af deltagerantal pr. dag og pr. gruppe, men
+beskriver ikke hvordan udtræk skal defineres eller hvem der må hente dem.
+
+**Beslutning 2026-09-29:** Dataudtræk defineres udelukkende i backend. Hvert
+udtræk er en `DataExport`-klasse under `DS.Website/Exports/`, som registreres som
+scoped service i `Program.cs`. Frontend henter listen fra `GET /api/v1/exports`
+og renderer den, så et nyt udtræk kræver ingen frontend-ændring. Siden ligger
+på `/exports` og linkes fra adminområdet.
+
+- Første udtræk er grupper med distrikt og forhåndstilmeldingens syv
+  aldersgrupper plus en sumkolonne. Grupper uden forhåndstilmelding får tomme
+  felter, så de kan skelnes fra grupper der har tilmeldt nul.
+- Filer genereres som `.xlsx` med ClosedXML. Ark får frosne overskrifter,
+  autofilter og tilpassede kolonnebredder via `ExportSheetExtensions`.
+- Adgang kræver `ExportsView`, som er tildelt systemadministrator og lejrchef.
+  Hvert enkelt udtræk kræver desuden sin egen rolle, i dag `GroupsView`, og den
+  kontrolleres både i listen og ved download, så en nøgle ikke kan gættes.
+- Der er ikke bygget udtræk for spejdere, brugere, aktiviteter, patruljer eller
+  materialer. De blev gennemgået, men valgt ud i første version. Spejdere og
+  brugere ville indeholde persondata og kræver en egen afvejning.
+- `ParticipantData` er hardkodet placeholder-data og eksporteres ikke, fordi
+  tallene ikke er rigtige.
+- Der logges ikke, hvem der har hentet et udtræk. Det aktuelle udtræk indeholder
+  kun tal, men kommende udtræk med persondata bør overveje det.
+- Backend manglede hidtil danske visningsnavne på enums; de ligger nu i
+  `DS.Website/Labels.cs`. Frontend har stadig egne kopier i `group.types.ts` og
+  `GroupsScouts.vue`, som på sigt bør læse fra den fælles kilde.
+
 ### Auditlog – nice to have
 
 Det skal eventuelt være muligt at se, hvem der har ændret hvad. Den planlagte
 adgang er begrænset til systemadministrator og lejrchef.
+
+**Beslutning 2026-09-29:** `AuditLogView` er nu tildelt systemadministrator og
+lejrchef, så adgangen matcher den planlagte. Auditloggen er endnu hverken
+implementeret eller synlig i adminområdet.
 
 ## Teknologi og planlagt drift
 
