@@ -257,6 +257,20 @@ til projektet. Kontrollér altid koden igen ved fremtidige ændringer.
   engangsbrugsbegrænsning ud over den normale sikkerhedsstempel, så teksten i
   brugeradmin-fladen om at linket kun er gyldigt ét brug er upræcis. Det er
   ikke ændret af denne implementering.
+- **Beslutning 2026-09-29:** Hvis en bruger tilknyttet en gruppe tilgår
+  forhåndstilmeldingen (`/group/pre-signup`), men der endnu ikke er oprettet en
+  forhåndstilmelding for gruppen gennem det offentlige flow, oprettes der
+  automatisk en tom `GroupPreSignup` for gruppen, så brugeren alligevel får
+  adgang til at se og redigere tallene. Hvis en bruger ikke er tilknyttet en
+  gruppe, gives der ikke adgang.
+- **Beslutning 2026-09-29:** Hvis en gruppe allerede har en `GroupPreSignup`
+  (f.eks. oprettet af staben), men gruppen endnu ikke har nogen oprettet bruger,
+  tillader det offentlige forhåndstilmeldingsflow (`/group-pre-signup`), at en
+  gruppeleder gennemfører flowet og opretter den første bruger til gruppen.
+  Eksisterende forhåndstilmeldte deltagerantal forudfyldes i flowet. Dette kan
+  kun ske 1 gang: så snart en bruger er tilknyttet gruppen, spærres det
+  offentlige flow for gruppen for at forhindre uautoriseret brugeroprettelse.
+
 
 Nye beslutninger kan føjes til dette afsnit, så den oprindelige plan fortsat
 kan skelnes fra senere valg.
