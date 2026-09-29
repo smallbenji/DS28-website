@@ -62,6 +62,13 @@ namespace DS.Website.Controllers
                             Url = "/email-outbox",
                             Icon = ["inbox"],
                             RequiredRole = nameof(AppRoles.EmailOutboxView)
+                        },
+                        new HQPanelEntryDto
+                        {
+                            Title = "Dataudtræk",
+                            Url = "/exports",
+                            Icon = ["file-arrow-down"],
+                            RequiredRole = nameof(AppRoles.ExportsView)
                         }
                     ]
                 }

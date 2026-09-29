@@ -31,6 +31,7 @@ namespace DS.Website
 
         AuditLogView,
         EmailOutboxView,
+        ExportsView,
         AdminAccess,
 
         WordPressEditor,
@@ -62,6 +63,7 @@ namespace DS.Website
 
                     nameof(AppRoles.AuditLogView),
                     nameof(AppRoles.EmailOutboxView),
+                    nameof(AppRoles.ExportsView),
                     nameof(AppRoles.AdminAccess),
                 ]
             },
@@ -87,6 +89,7 @@ namespace DS.Website
 
                     nameof(AppRoles.AuditLogView),
                     nameof(AppRoles.EmailOutboxView),
+                    nameof(AppRoles.ExportsView),
                     nameof(AppRoles.AdminAccess),
                 ]
             },

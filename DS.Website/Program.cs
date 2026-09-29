@@ -2,6 +2,7 @@ using System.Security.Cryptography.X509Certificates;
 using System.Text.Json.Serialization;
 using DS;
 using DS.Website;
+using DS.Website.Exports;
 using DS.Website.Repositories;
 using DS.Website.Services;
 using Microsoft.AspNetCore.Authentication;
@@ -160,6 +161,7 @@ builder.Services.AddTransient<ActivityRepository>();
 builder.Services.AddTransient<CampSettings>();
 builder.Services.AddTransient<EmailService>();
 builder.Services.AddHostedService<EmailOutboxWorker>();
+builder.Services.AddScoped<DataExport, GroupPreSignupExport>();
 
 var app = builder.Build();
 

@@ -108,6 +108,11 @@ const routes: RouteRecordRaw[] = [
         path: "/email-outbox",
         component: () => import("@/Views/EmailOutbox.vue"),
         meta: { requiresAuth: true, requiredRole: "EmailOutboxView", pageTitle: "Mailkø", pageIcon: "inbox" }
+    },
+    {
+        path: "/exports",
+        component: () => import("@/Views/Exports.vue"),
+        meta: { requiresAuth: true, requiredRole: "ExportsView", pageTitle: "Dataudtræk", pageIcon: "file-arrow-down" }
     }
 ];
 
