@@ -50,6 +50,17 @@ separate documentation request.
 - Routine formatting changes and fixes that do not affect the documented plan
   do not require a plan update.
 
+## Comments
+
+Do not add code comments unless explicitly asked. This covers `//`, `/* */`,
+`<!-- -->`, and XML documentation comments.
+
+- Prefer self-documenting code: descriptive names over explanatory comments.
+- Record the reasoning in `docs/project-plan.md` instead, which is where
+  decisions belong.
+- An exception is a short note on a non-obvious security invariant, where a
+  future change would otherwise silently introduce a bug. Keep it to one line.
+
 ## C# controller style
 
 Use `DS.Website/Controllers/ApiControllers/ActivityApiController.cs` as the
