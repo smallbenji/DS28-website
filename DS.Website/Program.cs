@@ -1,3 +1,5 @@
+using DS.Models;
+using DS.Data;
 using System.Security.Cryptography.X509Certificates;
 using System.Text.Json.Serialization;
 using DS;
@@ -10,7 +12,6 @@ using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
 using OpenIddict.Abstractions;
 using OpenIddict.Server;
 
@@ -45,7 +46,8 @@ builder.Services.AddDbContext<DataDbContext>(options =>
 {
     var dssettings = builder.Configuration.GetSection("DS").Get<DSSettings>();
 
-    options.UseNpgsql(dssettings?.ConnectionString ?? "");
+    options.UseNpgsql(dssettings?.ConnectionString ?? "")
+        .UseSnakeCaseNamingConvention();
 
     options.UseOpenIddict();
 });
@@ -82,16 +84,13 @@ builder.Services.AddOpenIddict()
         options.AllowAuthorizationCodeFlow();
         // .RequireProofKeyForCodeExchange();
 
-        // WordPress sender 'scope' med i token-anmodningen ved authorization code flow.
-        // OpenIddict afviser dette med ID2074, da scopes allerede er bundet til
-        // authorization koden. Vi fjerner derfor valideringen, så parameteren ignoreres.
         options.RemoveEventHandler(OpenIddictServerHandlers.Exchange.ValidateScopeParameter.Descriptor);
-	options.RegisterScopes(
-                OpenIddictConstants.Scopes.OpenId,
-                OpenIddictConstants.Scopes.Profile,
-                OpenIddictConstants.Scopes.Email,
-                OpenIddictConstants.Scopes.Roles // (Hvis du også vil sende roller med over)
-            );
+	    options.RegisterScopes(
+            OpenIddictConstants.Scopes.OpenId,
+            OpenIddictConstants.Scopes.Profile,
+            OpenIddictConstants.Scopes.Email,
+            OpenIddictConstants.Scopes.Roles
+        );
 
         string certPath = builder.Configuration["OpenIddict:CertificatePath"];
         string certPass = builder.Configuration["OpenIddict:CertificatePassword"];
@@ -136,14 +135,10 @@ builder.Services.ConfigureApplicationCookie(options =>
     }
 });
 
-// Cacher brugerroller, så ClaimsTransformer ikke rammer databasen på hver request.
 builder.Services.AddMemoryCache();
 
-// Roller/approller hentes frisk fra databasen på hver request,
-// så rolleændringer slår igennem uden at brugeren skal logge ind igen.
 builder.Services.AddScoped<IClaimsTransformation, ClaimsTransformer>();
 
-// Configure passkey auth flow
 builder.Services.Configure<IdentityPasskeyOptions>(options =>
 {
     options.AuthenticatorTimeout = TimeSpan.FromMinutes(2);
@@ -153,7 +148,7 @@ builder.Services.Configure<IdentityPasskeyOptions>(options =>
     {
         throw new Exception("MISSING SERVER ORIGIN ENV");
     }
-    // set as null in development to bypass https requirement
+
     options.ServerDomain = serverOrigin;
 });
 
@@ -169,7 +164,6 @@ var app = builder.Build();
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
 

@@ -1,10 +1,7 @@
-using System.ComponentModel.DataAnnotations;
-
 namespace DS.Models;
 
 public class EmailOutbox
 {
-    [Key]
     public int Id { get; set; }
 
     public string EventType { get; set; }

@@ -186,6 +186,50 @@ implementeret eller synlig i adminområdet.
 Dette afsnit dokumenterer planen og bekræfter ikke den aktuelle hosting eller
 driftsopsætning.
 
+### Flytning af modelkonfiguration og udfasning af C#-migrations
+
+**Beslutning 2026-09-30:** C#-migrations skal udfases. Som første trin samles
+EF Core-modelkonfiguration i `DS/Data/Configurations`, én
+`IEntityTypeConfiguration<T>` pr. domænemodel. `DataDbContext` ligger nu i
+`DS/Data` og indlæser konfigurationerne efter Identity-konfigurationen.
+Nøgler og regler for genererede id'er er flyttet fra modelattributter til
+konfigurationsklasserne. De nye klasser følger de påbegyndte konfigurationers
+mønster med eksplicitte snake_case-tabelnavne og identity-always for genererede
+id'er; gruppe- og indstillings-id'er genereres fortsat ikke.
+
+**Afklaring 2026-09-30:** `DS/Models/db.sql` er planen for de nye tabeller.
+Konfigurationerne for eksisterende modeller følger nu denne plan, også for
+Identity-tabellerne: kolonnenavne, datatyper, nullability, standardværdier,
+unikhed, check constraints og sletteregler. Det erstatter de tidligere
+mappings, hvor SQL-planen ændrer dem. Eksempelvis gemmes køn som `MALE` og
+`FEMALE`, fødselsdag som `date`, materialepris som `numeric(10, 2)` via en
+konvertering fra modellens `double`, og `OrderedToDate` som `use_date`.
+Nye lejrindstillinger starter med begge tilmeldinger lukket, som angivet i
+SQL-planen; det erstatter den tidligere seed med åben forhåndstilmelding.
+Eksisterende databaser er ikke ændret af denne opgave.
+
+Audit- og soft-delete-felterne følger SQL-planens nullable `deleted_at` og
+`NOW()`-standarder for oprettelse og opdatering. Automatisk ændring af
+`updated_at` ved opdateringer og soft-delete-filtrering er ikke implementeret.
+Outboxens eksisterende indeks på næste forsøg og id er bevaret ud over de
+indekser, SQL-planen angiver. EF genererer fortsat egne indeks- og
+constraint-navne samt konventionsbaserede fremmednøgleindekser.
+
+Udfasningen af migrations er endnu ikke gennemført: eksisterende migrations
+og `Database.Migrate()` ved opstart er bevaret. Den nuværende database kan
+ikke bruges med de nye mappings uden en tilsvarende skemaomlægning.
+Valg af den endelige mekanisme til skemaopdateringer udestår.
+`activity_timeslot`, `scout_activity_timeslot` og `scout_signup` er planlagte
+tabeller uden modeller endnu og er ikke implementeret som del af flytningen.
+**Beslutning 2026-09-30:** `EFCore.NamingConventions` aktiveres med
+`UseSnakeCaseNamingConvention()` både ved normal opstart og i
+`DesignTimeDbContextFactory`. Almindelige kolonnenavne kommer fra konventionen;
+kun afvigelser som `OrderedToDate` → `use_date` mappes eksplicit. De eksplicitte
+tabelnavne fra SQL-planen bevares. Konventionen gælder også nøgler, indeks og
+OpenIddict-kolonner. OpenIddicts eksplicitte tabelnavne, eksempelvis
+`OpenIddictApplications`, bevares. SQL-planen indeholder endnu ikke
+OpenIddict-tabellerne.
+
 ## Foreløbig tidsplan
 
 | Dato | Milepæl |

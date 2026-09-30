@@ -1,3 +1,4 @@
+using DS.Models;
 using System.Security.Claims;
 using DS.DTOs;
 using DS.Website.Services;
