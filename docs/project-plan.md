@@ -215,20 +215,31 @@ Outboxens eksisterende indeks på næste forsøg og id er bevaret ud over de
 indekser, SQL-planen angiver. EF genererer fortsat egne indeks- og
 constraint-navne samt konventionsbaserede fremmednøgleindekser.
 
-Udfasningen af migrations er endnu ikke gennemført: eksisterende migrations
-og `Database.Migrate()` ved opstart er bevaret. Den nuværende database kan
+C#-migrations er slettet. `Database.Migrate()` ved opstart findes stadig,
+men kan ikke oprette de nye tabeller ud fra de slettede migrations. Den nuværende database kan
 ikke bruges med de nye mappings uden en tilsvarende skemaomlægning.
 Valg af den endelige mekanisme til skemaopdateringer udestår.
-`activity_timeslot`, `scout_activity_timeslot` og `scout_signup` er planlagte
-tabeller uden modeller endnu og er ikke implementeret som del af flytningen.
+`ActivityTimeslot` har nu en model og konfiguration. `scout_activity_timeslot`
+og `scout_signup` er fortsat planlagte tabeller uden modeller.
 **Beslutning 2026-09-30:** `EFCore.NamingConventions` aktiveres med
 `UseSnakeCaseNamingConvention()` både ved normal opstart og i
 `DesignTimeDbContextFactory`. Almindelige kolonnenavne kommer fra konventionen;
 kun afvigelser som `OrderedToDate` → `use_date` mappes eksplicit. De eksplicitte
 tabelnavne fra SQL-planen bevares. Konventionen gælder også nøgler, indeks og
-OpenIddict-kolonner. OpenIddicts eksplicitte tabelnavne, eksempelvis
-`OpenIddictApplications`, bevares. SQL-planen indeholder endnu ikke
-OpenIddict-tabellerne.
+OpenIddict-kolonner.
+
+**Beslutning 2026-09-30:** OpenIddict-tabellerne er nu også med i `db.sql`
+som `open_iddict_applications`, `open_iddict_authorizations`,
+`open_iddict_scopes` og `open_iddict_tokens`. Det erstatter den tidligere
+beslutning om at bevare OpenIddicts PascalCase-tabelnavne. Fire konfigurationer
+under `DS/Data/Configurations` fastlægger tabelnavnene; OpenIddicts egen
+konfiguration bevarer feltregler, relationer og concurrency tokens.
+SQL-definitionerne er hentet fra den aktuelle EF-model og kontrolleret mod
+den slettede `AddOpenIddict`-migration i Git-historikken. De omfatter alle
+kolonner, primærnøgler, tre fremmednøgler og seks indeks, heraf tre unikke.
+Fremmednøglerne bruger fortsat PostgreSQLs standard `NO ACTION`, uden cascade.
+SQL'en opretter nye tabeller og flytter eller omdøber ikke eksisterende data.
+Der er ikke kørt SQL mod en database som del af denne opgave.
 
 ## Foreløbig tidsplan
 
