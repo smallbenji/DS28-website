@@ -215,12 +215,28 @@ Outboxens eksisterende indeks på næste forsøg og id er bevaret ud over de
 indekser, SQL-planen angiver. EF genererer fortsat egne indeks- og
 constraint-navne samt konventionsbaserede fremmednøgleindekser.
 
-C#-migrations er slettet. `Database.Migrate()` ved opstart findes stadig,
-men kan ikke oprette de nye tabeller ud fra de slettede migrations. Den nuværende database kan
-ikke bruges med de nye mappings uden en tilsvarende skemaomlægning.
-Valg af den endelige mekanisme til skemaopdateringer udestår.
-`ActivityTimeslot` har nu en model og konfiguration. `scout_activity_timeslot`
-og `scout_signup` er fortsat planlagte tabeller uden modeller.
+**Beslutning 2026-09-30:** DbUp håndterer nu SQL-migrations fra
+`DS/Migrations`, som erstatter den samlede `DS/Models/db.sql`-fil.
+Scripts indlejres i DS-assemblyen og indlæses derfra, så opstart og publicering
+ikke afhænger af arbejdsmappe eller løse SQL-filer. Grupper oprettes før
+brugere, fordi brugertabellen refererer til `scout_group`.
+Timeslot-tabellen hedder `activity_timeslots`, også i indeks og fremmednøgler.
+Alle ventende scripts køres i én transaktion. Ved migrationsfejl afbrydes
+opstart, og `Database.Migrate()` er fjernet. DbUp registrerer udførte scripts
+med deres resource-navne; efter ibrugtagning skal skemaændringer tilføjes som
+nye scripts, ikke ved at redigere eller omdøbe allerede udførte scripts.
+
+Scripts opretter et nyt skema; der er ikke implementeret flytning af data fra
+det gamle EF-skema. Databaser, hvor tidligere scripts allerede er kørt med
+andre navne eller kun delvist, kræver særskilt afstemning før denne opsætning
+anvendes. Der er ikke ændret nogen eksisterende database i denne opgave.
+`ActivityTimeslot` og `ScoutSignup` har nu modeller og konfigurationer;
+`scout_activity_timeslot` er fortsat uden en model.
+
+Aktivitetsredigering indlæser og opdaterer det eksisterende budget i den
+selvstændige `activity_budget`-tabel. Kun aktiviteter uden et budget får
+oprettet en ny række, så den unikke `activity_id` bevares.
+
 **Beslutning 2026-09-30:** `EFCore.NamingConventions` aktiveres med
 `UseSnakeCaseNamingConvention()` både ved normal opstart og i
 `DesignTimeDbContextFactory`. Almindelige kolonnenavne kommer fra konventionen;

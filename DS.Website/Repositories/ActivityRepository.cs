@@ -60,6 +60,7 @@ namespace DS.Website.Repositories
         public async Task UpdateActivityAsync(int activityId, ActivityDto data)
         {
             var activity = await dataDb.Activities
+                .Include(a => a.Budget)
                 .Include(a => a.Catalog)
                 .FirstOrDefaultAsync(a => a.Id == activityId);
 
@@ -69,7 +70,8 @@ namespace DS.Website.Repositories
             }
 
             activity.Name = data.Name;
-            activity.Budget = new ActivityBudget { Budget = data.Budget };
+            activity.Budget ??= new ActivityBudget();
+            activity.Budget.Budget = data.Budget;
 
             if (data.Catalog != null)
             {

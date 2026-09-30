@@ -54,7 +54,7 @@ CREATE TABLE user_invitation (
 
 CREATE TABLE scout_activity_timeslot (
     activity_timeslot_id INTEGER NOT NULL
-        REFERENCES activity_timeslot(id)
+        REFERENCES activity_timeslots(id)
         ON DELETE CASCADE,
 
     scout_id INTEGER NOT NULL

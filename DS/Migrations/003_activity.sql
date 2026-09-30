@@ -57,7 +57,7 @@ CREATE TABLE activity_timeslots (
 );
 
 CREATE INDEX idx_activity_timeslot_activity_id
-    ON activity_timeslot(activity_id);
+    ON activity_timeslots(activity_id);
 
 CREATE TABLE catalog_data_category (
     catalog_data_id INTEGER NOT NULL

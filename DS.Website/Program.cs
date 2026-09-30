@@ -197,12 +197,18 @@ app.MapFallback(async context =>
     await context.Response.SendFileAsync(filePath);
 }).RequireAuthorization();
 
-DeployChanges.To
+var migrationResult = DeployChanges.To
     .PostgresqlDatabase(dssettings.ConnectionString)
-    .WithScriptsFromFileSystem("Migrations")
+    .WithScriptsEmbeddedInAssembly(typeof(DataDbContext).Assembly)
+    .WithTransaction()
     .LogToConsole()
     .Build()
     .PerformUpgrade();
+
+if (!migrationResult.Successful)
+{
+    throw new InvalidOperationException("Databasemigreringen mislykkedes.", migrationResult.Error);
+}
 
 using (var scope = app.Services.CreateScope())
 {
@@ -211,9 +217,6 @@ using (var scope = app.Services.CreateScope())
 
     try
     {
-        var context = services.GetRequiredService<DataDbContext>();
-        context.Database.Migrate();
-
         var roleManager = services.GetRequiredService<RoleManager<Role>>();
         var groupNames = Enum.GetNames<AppGroups>();
 
@@ -239,7 +242,7 @@ using (var scope = app.Services.CreateScope())
     }
     catch (Exception ex)
     {
-        logger.LogError(ex, "Der opstod en fejl under migrering eller seeding af databasen.");
+        logger.LogError(ex, "Der opstod en fejl under seeding af databasen.");
     }
 }
 
