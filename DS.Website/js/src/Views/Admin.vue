@@ -6,7 +6,7 @@
             <p v-if="loading && sections.length === 0" class="center" role="status">Indlæser admin…</p>
 
             <section v-for="section in sections" :key="section.title" class="admin-section">
-                <h2 class="title is-5 admin-heading">
+                <h2 class="title is-5 admin-heading mb-4">
                     <font-awesome-icon :icon="section.icon" />
                     {{ section.title }}
                 </h2>
@@ -32,7 +32,7 @@
         </div>
 
         <aside class="admin-aside">
-            <h2 class="title is-6 admin-heading">
+            <h2 class="title is-6 admin-heading mb-4">
                 <font-awesome-icon :icon="'chart-simple'" />
                 Tilmeldingsstatistik
             </h2>

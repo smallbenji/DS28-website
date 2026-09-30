@@ -17,6 +17,7 @@ public class DataDbContext : IdentityDbContext<User, Role, string>
     public DbSet<Scout> Scouts { get; set; }
     public DbSet<PatrolMembership> PatrolMemberships { get; set; }
     public DbSet<GroupPreSignup> GroupPreSignups { get; set; }
+    public DbSet<ScoutSignup> ScoutSignups { get; set; }
 
     public DbSet<Activity> Activities { get; set; }
     public DbSet<ActivityCategory> ActivityCategories { get; set; }

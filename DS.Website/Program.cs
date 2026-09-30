@@ -14,6 +14,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using OpenIddict.Abstractions;
 using OpenIddict.Server;
+using DbUp;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -42,9 +43,10 @@ if (!string.IsNullOrWhiteSpace(dataProtectionKeysPath))
 
 builder.Services.AddScoped<IUserClaimsPrincipalFactory<User>, AppClaimsPrincipalFactory>();
 
+var dssettings = builder.Configuration.GetSection("DS").Get<DSSettings>();
+
 builder.Services.AddDbContext<DataDbContext>(options =>
 {
-    var dssettings = builder.Configuration.GetSection("DS").Get<DSSettings>();
 
     options.UseNpgsql(dssettings?.ConnectionString ?? "")
         .UseSnakeCaseNamingConvention();
@@ -194,6 +196,13 @@ app.MapFallback(async context =>
     context.Response.ContentType = "text/html";
     await context.Response.SendFileAsync(filePath);
 }).RequireAuthorization();
+
+DeployChanges.To
+    .PostgresqlDatabase(dssettings.ConnectionString)
+    .WithScriptsFromFileSystem("Migrations")
+    .LogToConsole()
+    .Build()
+    .PerformUpgrade();
 
 using (var scope = app.Services.CreateScope())
 {

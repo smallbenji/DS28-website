@@ -119,6 +119,14 @@ public class Scout : IAuditableEntity, ISoftDeleteable
     public DateTime? DeletedAt { get; set; }
 }
 
+public class ScoutSignup
+{
+    public int Id { get; set; }
+    public DateOnly Day { get; set; }
+    public int ScoutId { get; set; }
+    public Scout Scout { get; set; }
+}
+
 public class PatrolMembership
 {
     public int Id { get; set; }
