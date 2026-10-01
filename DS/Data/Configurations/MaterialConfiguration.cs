@@ -18,9 +18,6 @@ public class MaterialConfiguration : IEntityTypeConfiguration<Material>
         builder.Property(x => x.Id)
             .UseIdentityAlwaysColumn();
 
-        builder.Property(x => x.Name)
-            .IsRequired();
-
         builder.Property(x => x.Price)
             .HasConversion<decimal>()
             .HasColumnType("numeric(10, 2)")

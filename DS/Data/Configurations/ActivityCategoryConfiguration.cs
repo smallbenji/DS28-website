@@ -17,8 +17,5 @@ public class ActivityCategoryConfiguration : IEntityTypeConfiguration<ActivityCa
 
         builder.Property(x => x.Id)
             .UseIdentityAlwaysColumn();
-
-        builder.Property(x => x.Name)
-            .IsRequired();
     }
 }

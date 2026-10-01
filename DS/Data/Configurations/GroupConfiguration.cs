@@ -18,9 +18,6 @@ public class GroupConfiguration : IEntityTypeConfiguration<Group>
         builder.Property(x => x.Id)
             .ValueGeneratedNever();
 
-        builder.Property(x => x.Name)
-            .IsRequired();
-
         builder.Property(x => x.District)
             .HasConversion<string>()
             .IsRequired();

@@ -13,7 +13,9 @@ BEGIN
     END IF;
 
     INSERT INTO ds28.scout_group (id, district, name)
-        SELECT s."Id", s."District", s."Name"
+        SELECT s."Id",
+            CASE WHEN upper(btrim(s."District")) = '' THEN 'DANEHOF' ELSE upper(btrim(s."District")) END,
+            s."Name"
         FROM public."Groups" s;
 
     INSERT INTO ds28.scout (id, birthday, gender, group_id, name)

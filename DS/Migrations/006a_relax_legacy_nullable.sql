@@ -1,0 +1,33 @@
+ALTER TABLE ds28.scout_group ALTER COLUMN name DROP NOT NULL;
+
+ALTER TABLE ds28.scout ALTER COLUMN name DROP NOT NULL;
+
+ALTER TABLE ds28.patrol ALTER COLUMN name DROP NOT NULL;
+
+ALTER TABLE ds28.material ALTER COLUMN name DROP NOT NULL;
+
+ALTER TABLE ds28.activity ALTER COLUMN name DROP NOT NULL;
+
+ALTER TABLE ds28.activity_team ALTER COLUMN name DROP NOT NULL;
+
+ALTER TABLE ds28.activity_category ALTER COLUMN name DROP NOT NULL;
+
+ALTER TABLE ds28.email_outbox ALTER COLUMN event_type DROP NOT NULL;
+
+ALTER TABLE ds28.email_outbox ALTER COLUMN user_id DROP NOT NULL;
+
+ALTER TABLE ds28.email_outbox ALTER COLUMN to_email DROP NOT NULL;
+
+ALTER TABLE ds28.email_outbox ALTER COLUMN subject DROP NOT NULL;
+
+ALTER TABLE ds28.email_outbox ALTER COLUMN body DROP NOT NULL;
+
+ALTER TABLE ds28.material_order ALTER COLUMN activity_id DROP NOT NULL;
+
+ALTER TABLE ds28.material_order ALTER COLUMN material_id DROP NOT NULL;
+
+ALTER TABLE ds28.user_invitation ALTER COLUMN email DROP NOT NULL;
+
+ALTER TABLE ds28.user_invitation ALTER COLUMN roles DROP NOT NULL;
+
+ALTER TABLE ds28.activity_team_membership ALTER COLUMN user_id DROP NOT NULL;

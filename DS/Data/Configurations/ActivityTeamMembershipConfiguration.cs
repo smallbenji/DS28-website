@@ -26,9 +26,6 @@ public class ActivityTeamMembershipConfiguration : IEntityTypeConfiguration<Acti
         builder.Property(x => x.Id)
             .UseIdentityAlwaysColumn();
 
-        builder.Property(x => x.UserId)
-            .IsRequired();
-
         builder.Property(x => x.ActivityTeamId)
             .IsRequired();
 

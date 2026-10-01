@@ -133,6 +133,14 @@ BEGIN
 
     IF EXISTS (
         SELECT 1
+        FROM public."Groups"
+        WHERE upper(btrim("District")) <> '' AND upper(btrim("District")) NOT IN ('DANEHOF', 'FIONIA')
+    ) THEN
+        RAISE EXCEPTION 'Legacy group districts must be empty, DANEHOF or FIONIA; resolve other values before migration';
+    END IF;
+
+    IF EXISTS (
+        SELECT 1
         FROM (VALUES
             ('Id', 'int4', 'NO'),
             ('EventType', 'text', 'YES'),
@@ -162,6 +170,12 @@ BEGIN
     END IF;
 
     IF EXISTS (
+        SELECT 1 FROM public."EmailOutbox" WHERE "Attempts" < 0
+    ) THEN
+        RAISE EXCEPTION 'Email outbox attempts cannot be negative; resolve these rows before migration';
+    END IF;
+
+    IF EXISTS (
         SELECT 1 FROM public."CatalogData" c
         LEFT JOIN public."Activities" a ON a."CatalogId" = c."Id"
         GROUP BY c."Id" HAVING count(a."Id") <> 1
@@ -175,6 +189,32 @@ BEGIN
            OR "Price"::text IN ('NaN', 'Infinity', '-Infinity')
     ) THEN
         RAISE EXCEPTION 'Material prices cannot be represented exactly as numeric(10, 2); resolve these prices before migration';
+    END IF;
+
+    IF EXISTS (
+        SELECT 1 FROM public."Materials" WHERE "Price" < 0
+    ) THEN
+        RAISE EXCEPTION 'Material prices cannot be negative; resolve these prices before migration';
+    END IF;
+
+    IF EXISTS (
+        SELECT 1 FROM public."MaterialOrders" WHERE "Quantity" <= 0
+    ) THEN
+        RAISE EXCEPTION 'Material order quantities must be greater than zero; resolve these orders before migration';
+    END IF;
+
+    IF EXISTS (
+        SELECT 1 FROM public."Activities" WHERE "Budget_Budget" < 0
+    ) THEN
+        RAISE EXCEPTION 'Activity budgets cannot be negative; resolve these budgets before migration';
+    END IF;
+
+    IF EXISTS (
+        SELECT 1
+        FROM public."GroupPreSignups"
+        WHERE least("Beaver", "Wolf", "Junior", "Trop", "Senior", "Rover", "Leader") < 0
+    ) THEN
+        RAISE EXCEPTION 'Group pre-signup counts cannot be negative; resolve these rows before migration';
     END IF;
 
     IF (SELECT count(*) FROM public."RegistrationSettings") <> 1

@@ -20,9 +20,6 @@ public class ActivityTeamConfiguration : IEntityTypeConfiguration<ActivityTeam>
         builder.Property(x => x.Id)
             .UseIdentityAlwaysColumn();
 
-        builder.Property(x => x.Name)
-            .IsRequired();
-
         builder.Property(x => x.CreatedAt)
             .IsRequired()
             .HasDefaultValueSql("NOW()");

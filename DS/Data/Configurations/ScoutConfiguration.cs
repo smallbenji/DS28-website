@@ -23,9 +23,6 @@ public class ScoutConfiguration : IEntityTypeConfiguration<Scout>
         builder.Property(x => x.Id)
             .UseIdentityAlwaysColumn();
 
-        builder.Property(x => x.Name)
-            .IsRequired();
-
         builder.Property(x => x.Birthday)
             .HasColumnType("date")
             .IsRequired();

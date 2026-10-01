@@ -309,6 +309,72 @@ SQL-standarden er `FALSE`: feltet kan derfor ikke indsættes eksplicit som
 DbUp fortsat ejer DDL'en. Identity's øvrige bool-felter har ingen
 database-standardværdi og får derfor ingen sentinel.
 
+**Beslutning 2026-10-01:** Et produktionsforsøg på overgangen til
+`v0.1.6`-skemaet fejlede i `006_copy_v016.sql`, fordi `scout_group`
+afviser andre distrikter end `DANEHOF` og `FIONIA`, mens
+`public."Groups"."District"` stadig er tom for grupper oprettet før den
+gamle `addingDistricts`-migration. Den tilføjede kolonne med
+`defaultValue: ""` gav disse rækker tom tekst, og ingen senere migration
+rettede dem. Den gamle enum havde kun `DANEHOF` og `FIONIA`, så den gamle
+app behandlede tomme distrikter som `DANEHOF`. Kopieringen normaliserer
+derfor tomme distrikter til `DANEHOF` og øvrige værdier til store
+bogstaver, på samme måde som kønsværdier allerede blev konverteret.
+`000_legacy_v016.sql` afviser distrikter ud over tom, `DANEHOF` og
+`FIONIA`.
+
+Samme kørsel afslørede, at syv `CHECK`-krav ikke blev forudgående
+kontrolleret: ikke-negative materialpriser, positive materialmængder,
+ikke-negative outbox-forsøg, ikke-negative aktivitetsbudgetter og
+ikke-negative forhåndstilmeldingstal. De afvises nu i
+`000_legacy_v016.sql` med beskeder, der angiver den overtrådte regel, i
+stedet for at kopieringen bryder midt i transaktionen. Det er verificeret
+ved at køre scripts mod et syntetisk v0.1.6-skema bygget fra
+Git-historikken.
+
+**Beslutning 2026-10-01:** Kolonner der var nullable i v0.1.6, er nullable
+i `ds28` også. Det gælder navne på grupper, spejdere, patruljer,
+materialer, aktiviteter, aktivitetshold og kategorier, outboxens
+`event_type`, `user_id`, `to_email`, `subject` og `body`,
+invitationsens `email` og `roles`, materialordrernes `activity_id` og
+`material_id` samt `activity_team_membership.user_id`. Scriptet
+`006a_relax_legacy_nullable.sql` fjerner `NOT NULL`, og de tilsvarende
+`.IsRequired()` er fjernet fra konfigurationerne. Prefixet `006a` er
+valgt, fordi scriptet skal køre før `006_copy_v016.sql` på en database
+hvor overgangen endnu ikke er kørt, men stadig anvendes på en database
+hvor `006` allerede er registreret; `DROP NOT NULL` er idempotent.
+
+Dette er en afslappelse af det nye skema og ikke en stramning. Det er
+valgt fordi overgangen ellers ville kræve rettelse af data i
+produktionsdatabasien. Det er ikke dokumenteret, at v0.1.6 faktisk
+indeholdt `NULL` i disse kolonner: v0.1.6 havde `Nullable` slået fra, så
+EF gjorde alle `string`-egenskaber nullable medmindre de var markeret
+`IsRequired()`. Den gamle kode oprettede heller aldrig outbox-rækker, så
+ud af disse kolonner er `email_outbox` antageligt tom. At slappe `NULL`
+er derfor forsigtighed for data, der sandsynligvis ikke findes, og det
+svækker blandt andet at `scout_group.name` og `email_outbox.user_id` nu
+kan mangle. To unikke krav bliver også svækket, fordi PostgreSQL tillader
+flere `NULL`: `activity_category.name` og
+`activity_team_membership (user_id, activity_team_id)`.
+
+Konsekvenser der endnu ikke er håndteret. Den reelle risiko er
+accept af en migreret invitation: `InvitationApiController` sætter
+`newUser.Email = invitation.Email`, hvor `User.Email` er påkrævet, kalder
+`FindByEmailAsync(invitation.Email)` og derefter
+`AddToRolesAsync(user, invitation.Roles)`. En migreret invitation uden
+email eller roller kan derfor give en uventet fejl i en brugers
+accept-flow, selv om brugeren er oprettet i mellemtiden. Det er ikke
+ændret her.
+
+`EmailOutboxWorker.Send` fanger derimod fejl fra
+`new MailboxAddress("", message.ToEmail)` og returnerer dem, så en
+manglende `to_email` ender som en registreret sendefejl der genprøves
+i stedet for at stoppe workeren. `EmailService.SendInvitation` kalder det
+samme uden try/catch, men den har kun `UserApiController` som kalder, og
+den sender en invitation den lige har oprettet af validerede input, så
+den læser ikke migrerede rækker. Frontendens TypeScript-typer for navne,
+invitationsemail og outboxfelter er stadig ikke-null. Intet af dette er
+ændret her.
+
 ## Foreløbig tidsplan
 
 | Dato | Milepæl |

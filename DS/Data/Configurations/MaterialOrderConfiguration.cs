@@ -18,23 +18,19 @@ public class MaterialOrderConfiguration : IEntityTypeConfiguration<MaterialOrder
         builder.HasOne(x => x.Activity)
             .WithMany()
             .HasForeignKey("ActivityId")
-            .IsRequired()
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasOne(x => x.Material)
             .WithMany()
             .HasForeignKey("MaterialId")
-            .IsRequired()
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.Property(x => x.Id)
             .UseIdentityAlwaysColumn();
 
-        builder.Property<int>("ActivityId")
-            .IsRequired();
+        builder.Property<int?>("ActivityId");
 
-        builder.Property<int>("MaterialId")
-            .IsRequired();
+        builder.Property<int?>("MaterialId");
 
         builder.Property(x => x.Quantity)
             .IsRequired()

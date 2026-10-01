@@ -26,11 +26,7 @@ public class UserInvitationConfiguration : IEntityTypeConfiguration<UserInvitati
         builder.Property(x => x.InvitationId)
             .IsRequired();
 
-        builder.Property(x => x.Email)
-            .IsRequired();
-
         builder.Property(x => x.Roles)
-            .IsRequired()
             .HasDefaultValueSql("'{}'");
 
         builder.Property(x => x.Used)

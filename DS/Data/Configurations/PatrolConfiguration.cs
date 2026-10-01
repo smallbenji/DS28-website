@@ -20,9 +20,6 @@ public class PatrolConfiguration : IEntityTypeConfiguration<Patrol>
         builder.Property(x => x.Id)
             .UseIdentityAlwaysColumn();
 
-        builder.Property(x => x.Name)
-            .IsRequired();
-
         builder.Property(x => x.GroupId)
             .IsRequired();
     }

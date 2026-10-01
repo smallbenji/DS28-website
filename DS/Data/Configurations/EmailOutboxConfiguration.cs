@@ -20,21 +20,6 @@ public class EmailOutboxConfiguration : IEntityTypeConfiguration<EmailOutbox>
         builder.Property(x => x.Id)
             .UseIdentityAlwaysColumn();
 
-        builder.Property(x => x.EventType)
-            .IsRequired();
-
-        builder.Property(x => x.UserId)
-            .IsRequired();
-
-        builder.Property(x => x.ToEmail)
-            .IsRequired();
-
-        builder.Property(x => x.Subject)
-            .IsRequired();
-
-        builder.Property(x => x.Body)
-            .IsRequired();
-
         builder.Property(x => x.CreatedAt)
             .IsRequired()
             .HasDefaultValueSql("NOW()");

@@ -71,12 +71,23 @@ de er ikke historiske oprettelsesdatoer. Eksisterende tidsstempler bevares.
 Appen starter ikke, og transaktionen rulles tilbage. De gamle tabeller og
 data i `public` ændres ikke. Fejlen viser scriptnavn og PostgreSQL-fejl.
 
-Nogle nye krav er strengere end i v0.1.6: eksempelvis obligatoriske navne,
-unikke medlemskaber og kategorinavne, positive materialemængder,
-ikke-negative budgetter og materialers obligatoriske relationer.
-Et katalog skal tilhøre præcis én aktivitet. Priser skal kunne repræsenteres
-uden afrunding som `numeric(10, 2)`. Uforenelige data skal afklares før et nyt
-forsøg; migreringen sletter ikke dubletter eller opfinder manglende værdier.
+Nogle nye krav er strengere end i v0.1.6: unikke medlemskaber og
+kategorinavne, positive materialemængder, ikke-negative budgetter og
+materialers obligatoriske relationer. Et katalog skal tilhøre præcis én
+aktivitet. Priser skal kunne repræsenteres uden afrunding som
+`numeric(10, 2)`. Uforenelige data skal afklares før et nyt forsøg;
+migreringen sletter ikke dubletter eller opfinder manglende værdier.
+
+Kravene til districtsværdi, materialpriser, materialmængder, outbox-forsøg,
+aktivitetsbudgetter og forhåndstilmeldingstal afvises nu i
+`000_legacy_v016.sql` med en besked, der siger hvilken regel der
+overtrædes. Grupper med tomt distrikt fra før `addingDistricts` sættes til
+`DANEHOF`, hvilket er den værdi den gamle enum gav dem.
+
+Kolonner der var valgfri i v0.1.6, er valgfri i `ds28` også: navne,
+outboxens modtager-, emne-, brødtekst-, type- og brugerfelter, invitationsens
+email og roller, materialordrernes aktivitets- og materialreferencer samt
+medlemskabets bruger. Se `006a_relax_legacy_nullable.sql`.
 
 Efter en afvist overgang kan den gamle release startes igen, når den nye er
 stoppet. Efter en vellykket overgang bliver `public` ikke længere opdateret.
@@ -96,18 +107,28 @@ kopi af det nye skema. Oprydning aftales særskilt efter validering.
 
 ## Lokal regressionstest
 
+Denne test findes ikke i repositoryet. `tests/` er tom, og
+`tests/migration-verification/run.py` har aldrig været committet. Kommandoen
+nedenfor virker derfor ikke, og overgangen er i øjeblikket utestet lokalt.
+Skriv testen, før næste skemamigrering.
+
+Den bør bygge det gamle skema fra Git-historikken med
+`dotnet ef migrations script` i et worktree på den commit, der slettede
+EF-migrationerne, og dække begge historikvarianter, nyinstallation,
+journalens skema, EF/Identity/OpenIddict i ds28, databevarelse,
+identity-sekvenser, genkørsel og rollback.
+
+En v0.1.6-tabel kan hentes med:
+
 ```sh
-python3 tests/migration-verification/run.py
+git worktree add ../ds28-legacy e1f4515^
+DS__ConnectionString="Host=localhost;Database=postgres;Username=postgres;Password=postgres" \
+  dotnet ef migrations script --no-build --startup-project DS/DS.csproj --output legacy_schema.sql
 ```
 
-Testen kræver .NET 10, Git-tagget `v0.1.6` og PostgreSQL-binærfiler.
-På macOS bruges som standard Postgres.app version 18. `POSTGRES_BIN` kan
-sættes til en anden mappe med `initdb` og `pg_ctl`.
+Bemærk at `DesignTimeDbContextFactory` bruger
+`UseSnakeCaseNamingConvention()`, mens produktion kørte v0.1.6 uden den.
+`__EFMigrationsHistory` får derfor `migration_id` i stedet for
+`MigrationId`; omdøb kolonnen, før `000_legacy_v016.sql` kan læse den.
 
-Testen opretter en midlertidig PostgreSQL-instans uden TCP-lytning. Den bygger
-det gamle skema fra Git-historikken og tester begge historikvarianter,
-nyinstallation, journalens skema, EF/Identity/OpenIddict i ds28, databevarelse,
-identity-sekvenser, genkørsel og rollback. De gamle public-data sammenlignes
-før/efter overgang og efter EF-skrivninger i det nye skema.
-Projektets databaseforbindelse bruges ikke; testinstansen stoppes og fjernes.
-Der er endnu ikke kørt en prøve på produktionsdata.
+Overgangen er ikke kørt mod produktionsdata.
