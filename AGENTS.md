@@ -50,6 +50,19 @@ separate documentation request.
 - Routine formatting changes and fixes that do not affect the documented plan
   do not require a plan update.
 
+## Keep the database documentation current
+
+Update `docs/database.md` in the same task whenever a change affects the
+database: entities, tables, columns, types, indexes, constraints, relationships,
+or migrations. Do not wait for a separate documentation request.
+
+- Describe the resulting schema, not the individual migration steps, so the
+  document stays valid for a fresh database.
+- Cover new and removed tables, columns, and indexes, including columns that
+  are nullable, unique, or required.
+- Update existing sections in place and remove content that no longer applies,
+  instead of appending a history of changes.
+
 ## Comments
 
 Do not add code comments unless explicitly asked. This covers `//`, `/* */`,
