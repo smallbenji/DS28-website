@@ -1,4 +1,4 @@
-CREATE TABLE scout_group (
+CREATE TABLE ds28.scout_group (
     id INTEGER PRIMARY KEY,
     name TEXT NOT NULL,
     district TEXT NOT NULL
@@ -9,7 +9,7 @@ CREATE TABLE scout_group (
     deleted_at TIMESTAMPTZ
 );
 
-CREATE TABLE scout (
+CREATE TABLE ds28.scout (
     id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     name TEXT NOT NULL,
     birthday DATE NOT NULL,
@@ -18,7 +18,7 @@ CREATE TABLE scout (
         CHECK (gender IN ('MALE', 'FEMALE')),
 
     group_id INTEGER NOT NULL
-        REFERENCES scout_group(id)
+        REFERENCES ds28.scout_group(id)
         ON DELETE RESTRICT,
 
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -26,24 +26,24 @@ CREATE TABLE scout (
     deleted_at TIMESTAMPTZ
 );
 
-CREATE TABLE patrol (
+CREATE TABLE ds28.patrol (
     id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     name TEXT NOT NULL,
 
     group_id INTEGER NOT NULL
-        REFERENCES scout_group(id)
+        REFERENCES ds28.scout_group(id)
         ON DELETE CASCADE
 );
 
-CREATE TABLE patrol_membership (
+CREATE TABLE ds28.patrol_membership (
     id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
 
     scout_id INTEGER NOT NULL
-        REFERENCES scout(id)
+        REFERENCES ds28.scout(id)
         ON DELETE CASCADE,
 
     patrol_id INTEGER NOT NULL
-        REFERENCES patrol(id)
+        REFERENCES ds28.patrol(id)
         ON DELETE CASCADE,
 
     joined_date TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -52,11 +52,11 @@ CREATE TABLE patrol_membership (
     UNIQUE (scout_id, patrol_id)
 );
 
-CREATE TABLE group_pre_signup (
+CREATE TABLE ds28.group_pre_signup (
     id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
 
     group_id INTEGER NOT NULL UNIQUE
-        REFERENCES scout_group(id)
+        REFERENCES ds28.scout_group(id)
         ON DELETE CASCADE,
 
     beaver  INTEGER NOT NULL DEFAULT 0 CHECK (beaver >= 0),
@@ -68,11 +68,11 @@ CREATE TABLE group_pre_signup (
     leader  INTEGER NOT NULL DEFAULT 0 CHECK (leader >= 0)
 );
 
-CREATE TABLE scout_signup (
+CREATE TABLE ds28.scout_signup (
     id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     day DATE NOT NULL,
     scout_id INTEGER NOT NULL
-        REFERENCES scout(id)
+        REFERENCES ds28.scout(id)
         ON DELETE CASCADE,
 
     UNIQUE (scout_id, day)

@@ -1,4 +1,4 @@
-CREATE TABLE material (
+CREATE TABLE ds28.material (
     id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     name TEXT NOT NULL,
     price NUMERIC(10, 2) NOT NULL DEFAULT 0
@@ -9,13 +9,13 @@ CREATE TABLE material (
     deleted_at TIMESTAMPTZ
 );
 
-CREATE TABLE material_order (
+CREATE TABLE ds28.material_order (
     id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     activity_id INTEGER NOT NULL
-        REFERENCES activity(id)
+        REFERENCES ds28.activity(id)
         ON DELETE RESTRICT,
     material_id INTEGER NOT NULL
-        REFERENCES material(id)
+        REFERENCES ds28.material(id)
         ON DELETE RESTRICT,
     quantity INTEGER NOT NULL DEFAULT 1
         CHECK (quantity > 0),
@@ -26,7 +26,7 @@ CREATE TABLE material_order (
 );
 
 CREATE INDEX idx_material_order_activity_id
-    ON material_order(activity_id);
+    ON ds28.material_order(activity_id);
 
 CREATE INDEX idx_material_order_material_id
-    ON material_order(material_id);
+    ON ds28.material_order(material_id);

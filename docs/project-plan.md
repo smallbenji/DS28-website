@@ -226,10 +226,48 @@ opstart, og `Database.Migrate()` er fjernet. DbUp registrerer udførte scripts
 med deres resource-navne; efter ibrugtagning skal skemaændringer tilføjes som
 nye scripts, ikke ved at redigere eller omdøbe allerede udførte scripts.
 
-Scripts opretter et nyt skema; der er ikke implementeret flytning af data fra
-det gamle EF-skema. Databaser, hvor tidligere scripts allerede er kørt med
-andre navne eller kun delvist, kræver særskilt afstemning før denne opsætning
-anvendes. Der er ikke ændret nogen eksisterende database i denne opgave.
+**Beslutning 2026-10-01:** Produktion kører ifølge Benjamin `v0.1.6`, og
+alle gamle EF-migrations er kørt uden fejl. Der er nu implementeret en
+overgang for dette skema. Det erstatter den tidligere begrænsning til
+nyoprettede databaser. `000_legacy_v016.sql` kontrollerer hele historikken,
+låser de gamle tabeller i `public`, inden det nye
+skema oprettes i `ds28`. De gamle tabeller flyttes ikke. `006_copy_v016.sql` kopierer data, bevarer id'er og
+loginoplysninger, flytter budgetter og katalogrelationer og viderefører
+identity-sekvenser. Eksisterende åbne/lukkede tilmeldinger bevares.
+Begge scripts indgår i samme DbUp-transaktion som skemaoprettelsen, og
+variabelsubstitution er deaktiveret af hensyn til PostgreSQL-blokkene. DbUp-logning går
+via `MigrationLog` til ASP.NET-logningen. Fejltekst uden formatargumenter
+behandles som ren tekst, så eksempelvis PostgreSQL-arrays med `{...}` ikke
+skjuler databasefejlen med en `FormatException`. Opstartsfejlen medtager
+scriptnavn og den oprindelige fejlbesked.
+
+Overgangen afviser manglende/ukendte migrations, blandede skemaer og data,
+der ikke kan opfylde de nye constraints. Delte eller forældreløse kataloger
+og priser, der kræver afrunding, afvises eksplicit. Der slettes ikke gamle
+data; de gamle tabeller i `public` bevares til efterkontrol. Nye auditfelter får
+migreringstidspunktet, ikke opdigtede historiske datoer. Fremtidige ændringer
+skal fortsat tilføjes som nye scripts.
+
+Overgangen er integrationstestet med PostgreSQL og syntetiske data fra det
+originale v0.1.6-skema. Den er ikke kørt mod produktionsdata. Deploy kræver
+backup, prøvekørsel på en kopi og stop af gamle appinstanser; se
+[deployvejledningen](deploy-v016-database.md). Databaser med tidligere
+manuelle eller delvise skemaomlægninger kræver særskilt afstemning.
+
+**Beslutning 2026-10-01:** `ds28` er nu standardskemaet for hele den nye
+EF-model, inklusive Identity og OpenIddict. DbUp bruger også `ds28`, og
+journalen ligger i `ds28.schemaversions`. SQL-skemaoprettelse og datakopiering
+bruger eksplicitte skemanavne. Dette erstatter den tidligere overgangsplan,
+hvor de gamle tabeller skulle flyttes til `ds28_legacy_v016`, og de nye
+oprettes i `public`. Kopieringen går nu fra `public` til `ds28`, mens
+kildetabellerne og EF-historikken bliver i `public` uændret. De gamle data
+holdes ikke synkroniseret efter overgangen.
+
+Allerede gennemførte omlægninger til snake_case i `public` og eksisterende
+arkivskemaer afvises, så nyere data ikke overskrives med en gammel kopi.
+En sådan database kræver særskilt afstemning. Nyinstallation, kopiering fra
+v0.1.6 og gentagen opstart mod `ds28` er understøttet.
+
 `ActivityTimeslot` og `ScoutSignup` har nu modeller og konfigurationer;
 `scout_activity_timeslot` er fortsat uden en model.
 
@@ -345,3 +383,13 @@ til projektet. Kontrollér altid koden igen ved fremtidige ændringer.
 
 Nye beslutninger kan føjes til dette afsnit, så den oprindelige plan fortsat
 kan skelnes fra senere valg.
+
+
+Afklaring 2026-10-01: Den rapporterede database har
+`20260929075734_AddEmailOutbox`, mens Git-tagget har
+`20260929112910_AddEmailOutbox`. Overgangen accepterer begge konkrete id'er
+som alternativer, men ikke begge samtidig eller andre ekstra migrations.
+Den oprindelige historik bevares uændret. `EmailOutbox` kontrolleres for det
+præcise sæt kolonner, PostgreSQL-datatyper og nullability før overgangen.
+Den tidligere migrationsfil er ikke fundet i Git-historikken; understøttelsen
+er derfor betinget af skemakontrollen, ikke af en antagelse om identisk kode.

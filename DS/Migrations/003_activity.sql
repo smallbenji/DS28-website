@@ -1,4 +1,4 @@
-CREATE TABLE activity_team (
+CREATE TABLE ds28.activity_team (
     id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     name TEXT NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -6,14 +6,14 @@ CREATE TABLE activity_team (
     deleted_at TIMESTAMPTZ
 );
 
-CREATE TABLE activity (
+CREATE TABLE ds28.activity (
     id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     name TEXT
         NOT NULL,
 
     activity_team_id INTEGER
         NOT NULL
-        REFERENCES activity_team(id)
+        REFERENCES ds28.activity_team(id)
         ON DELETE RESTRICT,
 
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -21,35 +21,35 @@ CREATE TABLE activity (
     deleted_at TIMESTAMPTZ
 );
 
-CREATE TABLE activity_budget (
+CREATE TABLE ds28.activity_budget (
     id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     budget INTEGER NOT NULL DEFAULT 0
         CHECK (budget >= 0),
     activity_id INTEGER NOT NULL UNIQUE
-        REFERENCES activity(id)
+        REFERENCES ds28.activity(id)
         ON DELETE CASCADE
 );
 
-CREATE TABLE catalog_data (
+CREATE TABLE ds28.catalog_data (
     id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     name TEXT,
     summary TEXT,
     description TEXT,
 
     activity_id INTEGER NOT NULL UNIQUE
-        REFERENCES activity(id)
+        REFERENCES ds28.activity(id)
         ON DELETE CASCADE
 );
 
-CREATE TABLE activity_category (
+CREATE TABLE ds28.activity_category (
     id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     name TEXT NOT NULL UNIQUE
 );
 
-CREATE TABLE activity_timeslots (
+CREATE TABLE ds28.activity_timeslots (
     id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     activity_id INTEGER NOT NULL
-        REFERENCES activity(id)
+        REFERENCES ds28.activity(id)
         ON DELETE RESTRICT,
     start_time TIMESTAMPTZ NOT NULL,
     duration INTEGER NOT NULL
@@ -57,27 +57,27 @@ CREATE TABLE activity_timeslots (
 );
 
 CREATE INDEX idx_activity_timeslot_activity_id
-    ON activity_timeslots(activity_id);
+    ON ds28.activity_timeslots(activity_id);
 
-CREATE TABLE catalog_data_category (
+CREATE TABLE ds28.catalog_data_category (
     catalog_data_id INTEGER NOT NULL
-        REFERENCES catalog_data(id)
+        REFERENCES ds28.catalog_data(id)
         ON DELETE CASCADE,
 
     activity_category_id INTEGER NOT NULL
-        REFERENCES activity_category(id)
+        REFERENCES ds28.activity_category(id)
         ON DELETE CASCADE,
 
     PRIMARY KEY (catalog_data_id, activity_category_id)
 );
 
-CREATE TABLE activity_team_membership (
+CREATE TABLE ds28.activity_team_membership (
     id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     user_id TEXT NOT NULL
-        REFERENCES asp_net_users(id)
+        REFERENCES ds28.asp_net_users(id)
         ON DELETE CASCADE,
     activity_team_id INTEGER NOT NULL
-        REFERENCES activity_team(id)
+        REFERENCES ds28.activity_team(id)
         ON DELETE CASCADE,
 
     is_admin BOOLEAN NOT NULL DEFAULT FALSE,
@@ -86,13 +86,13 @@ CREATE TABLE activity_team_membership (
 );
 
 CREATE INDEX idx_activity_activity_team_id
-    ON activity(activity_team_id);
+    ON ds28.activity(activity_team_id);
 
 CREATE INDEX idx_scout_group_id
-    ON scout(group_id);
+    ON ds28.scout(group_id);
 
 CREATE INDEX idx_patrol_group_id
-    ON patrol(group_id);
+    ON ds28.patrol(group_id);
 
 CREATE INDEX idx_patrol_membership_patrol_id
-    ON patrol_membership(patrol_id);
+    ON ds28.patrol_membership(patrol_id);

@@ -1,4 +1,4 @@
-CREATE TABLE email_outbox (
+CREATE TABLE ds28.email_outbox (
     id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
 
     event_type TEXT NOT NULL,
@@ -23,7 +23,7 @@ CREATE TABLE email_outbox (
     locked_by TEXT
 );
 
-CREATE TABLE registration_settings (
+CREATE TABLE ds28.registration_settings (
     id INTEGER PRIMARY KEY DEFAULT 1
         CHECK (id = 1),
 
@@ -31,20 +31,20 @@ CREATE TABLE registration_settings (
     is_signup_open BOOLEAN NOT NULL DEFAULT FALSE
 );
 
-INSERT INTO registration_settings DEFAULT VALUES;
+INSERT INTO ds28.registration_settings DEFAULT VALUES;
 
-CREATE TABLE user_invitation (
+CREATE TABLE ds28.user_invitation (
     id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     invitation_id UUID NOT NULL UNIQUE,
     email TEXT NOT NULL,
     roles TEXT[] NOT NULL DEFAULT '{}',
     used BOOLEAN NOT NULL DEFAULT FALSE,
     activity_team_id INTEGER
-        REFERENCES activity_team(id)
+        REFERENCES ds28.activity_team(id)
         ON DELETE RESTRICT,
     is_admin BOOLEAN NOT NULL DEFAULT FALSE,
     group_id INTEGER
-        REFERENCES scout_group(id)
+        REFERENCES ds28.scout_group(id)
         ON DELETE RESTRICT,
 
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -52,17 +52,17 @@ CREATE TABLE user_invitation (
     deleted_at TIMESTAMPTZ
 );
 
-CREATE TABLE scout_activity_timeslot (
+CREATE TABLE ds28.scout_activity_timeslot (
     activity_timeslot_id INTEGER NOT NULL
-        REFERENCES activity_timeslots(id)
+        REFERENCES ds28.activity_timeslots(id)
         ON DELETE CASCADE,
 
     scout_id INTEGER NOT NULL
-        REFERENCES scout(id)
+        REFERENCES ds28.scout(id)
         ON DELETE CASCADE,
 
     PRIMARY KEY (activity_timeslot_id, scout_id)
 );
 
 CREATE INDEX idx_scout_activity_timeslot_scout_id
-    ON scout_activity_timeslot(scout_id);
+    ON ds28.scout_activity_timeslot(scout_id);

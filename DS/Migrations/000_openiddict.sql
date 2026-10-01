@@ -1,4 +1,4 @@
-CREATE TABLE open_iddict_applications (
+CREATE TABLE ds28.open_iddict_applications (
     id TEXT NOT NULL PRIMARY KEY,
     application_type CHARACTER VARYING(50),
     client_id CHARACTER VARYING(100),
@@ -17,7 +17,7 @@ CREATE TABLE open_iddict_applications (
     settings TEXT
 );
 
-CREATE TABLE open_iddict_scopes (
+CREATE TABLE ds28.open_iddict_scopes (
     id TEXT NOT NULL PRIMARY KEY,
     concurrency_token CHARACTER VARYING(50),
     description TEXT,
@@ -29,10 +29,10 @@ CREATE TABLE open_iddict_scopes (
     resources TEXT
 );
 
-CREATE TABLE open_iddict_authorizations (
+CREATE TABLE ds28.open_iddict_authorizations (
     id TEXT NOT NULL PRIMARY KEY,
     application_id TEXT
-        REFERENCES open_iddict_applications (id),
+        REFERENCES ds28.open_iddict_applications (id),
     concurrency_token CHARACTER VARYING(50),
     creation_date TIMESTAMPTZ,
     properties TEXT,
@@ -42,12 +42,12 @@ CREATE TABLE open_iddict_authorizations (
     type CHARACTER VARYING(50)
 );
 
-CREATE TABLE open_iddict_tokens (
+CREATE TABLE ds28.open_iddict_tokens (
     id TEXT NOT NULL PRIMARY KEY,
     application_id TEXT
-        REFERENCES open_iddict_applications (id),
+        REFERENCES ds28.open_iddict_applications (id),
     authorization_id TEXT
-        REFERENCES open_iddict_authorizations (id),
+        REFERENCES ds28.open_iddict_authorizations (id),
     concurrency_token CHARACTER VARYING(50),
     creation_date TIMESTAMPTZ,
     expiration_date TIMESTAMPTZ,
@@ -61,19 +61,19 @@ CREATE TABLE open_iddict_tokens (
 );
 
 CREATE UNIQUE INDEX ix_open_iddict_applications_client_id
-    ON open_iddict_applications (client_id);
+    ON ds28.open_iddict_applications (client_id);
 
 CREATE INDEX ix_open_iddict_authorizations_application_id_status_subject_ty
-    ON open_iddict_authorizations (application_id, status, subject, type);
+    ON ds28.open_iddict_authorizations (application_id, status, subject, type);
 
 CREATE UNIQUE INDEX ix_open_iddict_scopes_name
-    ON open_iddict_scopes (name);
+    ON ds28.open_iddict_scopes (name);
 
 CREATE INDEX ix_open_iddict_tokens_application_id_status_subject_type
-    ON open_iddict_tokens (application_id, status, subject, type);
+    ON ds28.open_iddict_tokens (application_id, status, subject, type);
 
 CREATE INDEX ix_open_iddict_tokens_authorization_id
-    ON open_iddict_tokens (authorization_id);
+    ON ds28.open_iddict_tokens (authorization_id);
 
 CREATE UNIQUE INDEX ix_open_iddict_tokens_reference_id
-    ON open_iddict_tokens (reference_id);
+    ON ds28.open_iddict_tokens (reference_id);

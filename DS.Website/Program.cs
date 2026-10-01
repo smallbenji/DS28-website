@@ -198,16 +198,18 @@ app.MapFallback(async context =>
 }).RequireAuthorization();
 
 var migrationResult = DeployChanges.To
-    .PostgresqlDatabase(dssettings.ConnectionString)
+    .PostgresqlDatabase(dssettings.ConnectionString, "ds28")
+    .JournalToPostgresqlTable("ds28", "schemaversions")
     .WithScriptsEmbeddedInAssembly(typeof(DataDbContext).Assembly)
+    .WithVariablesDisabled()
     .WithTransaction()
-    .LogToConsole()
+    .LogTo(new MigrationLog(app.Services.GetRequiredService<ILogger<MigrationLog>>()))
     .Build()
     .PerformUpgrade();
 
 if (!migrationResult.Successful)
 {
-    throw new InvalidOperationException("Databasemigreringen mislykkedes.", migrationResult.Error);
+    throw new InvalidOperationException($"Databasemigreringen mislykkedes i {migrationResult.ErrorScript?.Name}: {migrationResult.Error.Message}", migrationResult.Error);
 }
 
 using (var scope = app.Services.CreateScope())

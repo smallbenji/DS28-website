@@ -33,6 +33,7 @@ public class DataDbContext : IdentityDbContext<User, Role, string>
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+        modelBuilder.HasDefaultSchema("ds28");
 
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(DataDbContext).Assembly);
     }
