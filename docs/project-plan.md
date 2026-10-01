@@ -186,6 +186,129 @@ implementeret eller synlig i adminområdet.
 Dette afsnit dokumenterer planen og bekræfter ikke den aktuelle hosting eller
 driftsopsætning.
 
+### Flytning af modelkonfiguration og udfasning af C#-migrations
+
+**Beslutning 2026-09-30:** C#-migrations skal udfases. Som første trin samles
+EF Core-modelkonfiguration i `DS/Data/Configurations`, én
+`IEntityTypeConfiguration<T>` pr. domænemodel. `DataDbContext` ligger nu i
+`DS/Data` og indlæser konfigurationerne efter Identity-konfigurationen.
+Nøgler og regler for genererede id'er er flyttet fra modelattributter til
+konfigurationsklasserne. De nye klasser følger de påbegyndte konfigurationers
+mønster med eksplicitte snake_case-tabelnavne og identity-always for genererede
+id'er; gruppe- og indstillings-id'er genereres fortsat ikke.
+
+**Afklaring 2026-09-30:** `DS/Models/db.sql` er planen for de nye tabeller.
+Konfigurationerne for eksisterende modeller følger nu denne plan, også for
+Identity-tabellerne: kolonnenavne, datatyper, nullability, standardværdier,
+unikhed, check constraints og sletteregler. Det erstatter de tidligere
+mappings, hvor SQL-planen ændrer dem. Eksempelvis gemmes køn som `MALE` og
+`FEMALE`, fødselsdag som `date`, materialepris som `numeric(10, 2)` via en
+konvertering fra modellens `double`, og `OrderedToDate` som `use_date`.
+Nye lejrindstillinger starter med begge tilmeldinger lukket, som angivet i
+SQL-planen; det erstatter den tidligere seed med åben forhåndstilmelding.
+Eksisterende databaser er ikke ændret af denne opgave.
+
+Audit- og soft-delete-felterne følger SQL-planens nullable `deleted_at` og
+`NOW()`-standarder for oprettelse og opdatering. Automatisk ændring af
+`updated_at` ved opdateringer og soft-delete-filtrering er ikke implementeret.
+Outboxens eksisterende indeks på næste forsøg og id er bevaret ud over de
+indekser, SQL-planen angiver. EF genererer fortsat egne indeks- og
+constraint-navne samt konventionsbaserede fremmednøgleindekser.
+
+**Beslutning 2026-09-30:** DbUp håndterer nu SQL-migrations fra
+`DS/Migrations`, som erstatter den samlede `DS/Models/db.sql`-fil.
+Scripts indlejres i DS-assemblyen og indlæses derfra, så opstart og publicering
+ikke afhænger af arbejdsmappe eller løse SQL-filer. Grupper oprettes før
+brugere, fordi brugertabellen refererer til `scout_group`.
+Timeslot-tabellen hedder `activity_timeslots`, også i indeks og fremmednøgler.
+Alle ventende scripts køres i én transaktion. Ved migrationsfejl afbrydes
+opstart, og `Database.Migrate()` er fjernet. DbUp registrerer udførte scripts
+med deres resource-navne; efter ibrugtagning skal skemaændringer tilføjes som
+nye scripts, ikke ved at redigere eller omdøbe allerede udførte scripts.
+
+**Beslutning 2026-10-01:** Produktion kører ifølge Benjamin `v0.1.6`, og
+alle gamle EF-migrations er kørt uden fejl. Der er nu implementeret en
+overgang for dette skema. Det erstatter den tidligere begrænsning til
+nyoprettede databaser. `000_legacy_v016.sql` kontrollerer hele historikken,
+låser de gamle tabeller i `public`, inden det nye
+skema oprettes i `ds28`. De gamle tabeller flyttes ikke. `006_copy_v016.sql` kopierer data, bevarer id'er og
+loginoplysninger, flytter budgetter og katalogrelationer og viderefører
+identity-sekvenser. Eksisterende åbne/lukkede tilmeldinger bevares.
+Begge scripts indgår i samme DbUp-transaktion som skemaoprettelsen, og
+variabelsubstitution er deaktiveret af hensyn til PostgreSQL-blokkene. DbUp-logning går
+via `MigrationLog` til ASP.NET-logningen. Fejltekst uden formatargumenter
+behandles som ren tekst, så eksempelvis PostgreSQL-arrays med `{...}` ikke
+skjuler databasefejlen med en `FormatException`. Opstartsfejlen medtager
+scriptnavn og den oprindelige fejlbesked.
+
+Overgangen afviser manglende/ukendte migrations, blandede skemaer og data,
+der ikke kan opfylde de nye constraints. Delte eller forældreløse kataloger
+og priser, der kræver afrunding, afvises eksplicit. Der slettes ikke gamle
+data; de gamle tabeller i `public` bevares til efterkontrol. Nye auditfelter får
+migreringstidspunktet, ikke opdigtede historiske datoer. Fremtidige ændringer
+skal fortsat tilføjes som nye scripts.
+
+Overgangen er integrationstestet med PostgreSQL og syntetiske data fra det
+originale v0.1.6-skema. Den er ikke kørt mod produktionsdata. Deploy kræver
+backup, prøvekørsel på en kopi og stop af gamle appinstanser; se
+[deployvejledningen](deploy-v016-database.md). Databaser med tidligere
+manuelle eller delvise skemaomlægninger kræver særskilt afstemning.
+
+**Beslutning 2026-10-01:** `ds28` er nu standardskemaet for hele den nye
+EF-model, inklusive Identity og OpenIddict. DbUp bruger også `ds28`, og
+journalen ligger i `ds28.schemaversions`. SQL-skemaoprettelse og datakopiering
+bruger eksplicitte skemanavne. Dette erstatter den tidligere overgangsplan,
+hvor de gamle tabeller skulle flyttes til `ds28_legacy_v016`, og de nye
+oprettes i `public`. Kopieringen går nu fra `public` til `ds28`, mens
+kildetabellerne og EF-historikken bliver i `public` uændret. De gamle data
+holdes ikke synkroniseret efter overgangen.
+
+Allerede gennemførte omlægninger til snake_case i `public` og eksisterende
+arkivskemaer afvises, så nyere data ikke overskrives med en gammel kopi.
+En sådan database kræver særskilt afstemning. Nyinstallation, kopiering fra
+v0.1.6 og gentagen opstart mod `ds28` er understøttet.
+
+`ActivityTimeslot` og `ScoutSignup` har nu modeller og konfigurationer;
+`scout_activity_timeslot` er fortsat uden en model.
+
+Aktivitetsredigering indlæser og opdaterer det eksisterende budget i den
+selvstændige `activity_budget`-tabel. Kun aktiviteter uden et budget får
+oprettet en ny række, så den unikke `activity_id` bevares.
+
+**Beslutning 2026-09-30:** `EFCore.NamingConventions` aktiveres med
+`UseSnakeCaseNamingConvention()` både ved normal opstart og i
+`DesignTimeDbContextFactory`. Almindelige kolonnenavne kommer fra konventionen;
+kun afvigelser som `OrderedToDate` → `use_date` mappes eksplicit. De eksplicitte
+tabelnavne fra SQL-planen bevares. Konventionen gælder også nøgler, indeks og
+OpenIddict-kolonner.
+
+**Beslutning 2026-09-30:** OpenIddict-tabellerne er nu også med i `db.sql`
+som `open_iddict_applications`, `open_iddict_authorizations`,
+`open_iddict_scopes` og `open_iddict_tokens`. Det erstatter den tidligere
+beslutning om at bevare OpenIddicts PascalCase-tabelnavne. Fire konfigurationer
+under `DS/Data/Configurations` fastlægger tabelnavnene; OpenIddicts egen
+konfiguration bevarer feltregler, relationer og concurrency tokens.
+SQL-definitionerne er hentet fra den aktuelle EF-model og kontrolleret mod
+den slettede `AddOpenIddict`-migration i Git-historikken. De omfatter alle
+kolonner, primærnøgler, tre fremmednøgler og seks indeks, heraf tre unikke.
+Fremmednøglerne bruger fortsat PostgreSQLs standard `NO ACTION`, uden cascade.
+SQL'en opretter nye tabeller og flytter eller omdøber ikke eksisterende data.
+Der er ikke kørt SQL mod en database som del af denne opgave.
+
+**Beslutning 2026-10-01:** Boolean-felter med database-standardværdi
+konfigureres med `HasSentinel(false)` ved siden af `HasDefaultValueSql("FALSE")`,
+fordi EF ellers advarer om manglende sentinel. Sentinel-værdien gør det
+eksplicit, at EF udelader kolonnen ved `false` og lader
+`DEFAULT FALSE` gælde. Det er den tilsigtede adfærd, fordi
+SQL-standarden er `FALSE`: feltet kan derfor ikke indsættes eksplicit som
+`false` ad en anden vej, men resultatet er det samme. Det gælder
+`ActivityTeamMembership.IsAdmin`, `PatrolMembership.IsPatrolLeader`,
+`RegistrationSettings.IsPreSignupOpen` og `IsSignupOpen`,
+`User.HasEnabledAuthenticator` samt `UserInvitation.Used` og
+`UserInvitation.IsAdmin`. Det ændrer hverken skema eller data, da
+DbUp fortsat ejer DDL'en. Identity's øvrige bool-felter har ingen
+database-standardværdi og får derfor ingen sentinel.
+
 ## Foreløbig tidsplan
 
 | Dato | Milepæl |
@@ -274,3 +397,13 @@ til projektet. Kontrollér altid koden igen ved fremtidige ændringer.
 
 Nye beslutninger kan føjes til dette afsnit, så den oprindelige plan fortsat
 kan skelnes fra senere valg.
+
+
+Afklaring 2026-10-01: Den rapporterede database har
+`20260929075734_AddEmailOutbox`, mens Git-tagget har
+`20260929112910_AddEmailOutbox`. Overgangen accepterer begge konkrete id'er
+som alternativer, men ikke begge samtidig eller andre ekstra migrations.
+Den oprindelige historik bevares uændret. `EmailOutbox` kontrolleres for det
+præcise sæt kolonner, PostgreSQL-datatyper og nullability før overgangen.
+Den tidligere migrationsfil er ikke fundet i Git-historikken; understøttelsen
+er derfor betinget af skemakontrollen, ikke af en antagelse om identisk kode.

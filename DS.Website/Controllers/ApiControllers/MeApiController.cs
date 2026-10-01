@@ -1,3 +1,4 @@
+using DS.Models;
 using DS.DTOs;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Identity;

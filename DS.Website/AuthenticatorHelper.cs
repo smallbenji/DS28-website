@@ -1,3 +1,4 @@
+using DS.Models;
 using Microsoft.AspNetCore.Identity;
 
 namespace DS.Website

@@ -1,10 +1,8 @@
-using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
 using DS.DTOs;
 
 namespace DS.Models;
 
-public class Group
+public class Group : IAuditableEntity, ISoftDeleteable
 {
     public Group() {  }
     public Group(GroupDto data)
@@ -14,14 +12,16 @@ public class Group
         District = data.District;
     }
 
-    [Key]
-    [DatabaseGenerated(DatabaseGeneratedOption.None)]
     public int Id { get; set; }
     public string Name { get; set; }
     public District District { get; set; }
     public ICollection<Patrol> Patrols { get; set; }
     public ICollection<Scout> Scouts { get; set; }
     public GroupPreSignup PreSignup { get; set; }
+
+    public DateTime CreatedAt { get; set; }
+    public DateTime UpdatedAt { get; set; }
+    public DateTime? DeletedAt { get; set; }
 
     public Scout CreateScout(Scout scout)
     {
@@ -62,7 +62,6 @@ public class Patrol
         Name = data.Name;
     }
 
-    [Key]
     public int Id { get; set; }
     public string Name { get; set; }
     public int GroupId { get; set; }
@@ -97,7 +96,7 @@ public class Patrol
     }
 }
 
-public class Scout
+public class Scout : IAuditableEntity, ISoftDeleteable
 {
     public Scout() { }
     public Scout(CreateScoutDto data)
@@ -107,7 +106,6 @@ public class Scout
         Gender = data.Gender;
     }
 
-    [Key]
     public int Id { get; set; }
     public string Name { get; set; }
     public DateTime Birthday { get; set; }
@@ -115,11 +113,22 @@ public class Scout
     public Group Group { get; set; }
     public int GroupId { get; set; }
     public ICollection<PatrolMembership> Memberships { get; set; }
+
+    public DateTime CreatedAt { get; set; }
+    public DateTime UpdatedAt { get; set; }
+    public DateTime? DeletedAt { get; set; }
+}
+
+public class ScoutSignup
+{
+    public int Id { get; set; }
+    public DateOnly Day { get; set; }
+    public int ScoutId { get; set; }
+    public Scout Scout { get; set; }
 }
 
 public class PatrolMembership
 {
-    [Key]
     public int Id { get; set; }
     public int ScoutId { get; set; }
     public Scout Scout { get; set; }
@@ -144,7 +153,6 @@ public enum District
 
 public class GroupPreSignup
 {
-    [Key]
     public int Id { get; set; }
     public Group Group { get; set; }
     public int GroupId { get; set; }

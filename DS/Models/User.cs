@@ -1,8 +1,7 @@
 using DS.DTOs;
-using DS.Models;
 using Microsoft.AspNetCore.Identity;
 
-namespace DS;
+namespace DS.Models;
 
 public class User : IdentityUser
 {
@@ -19,7 +18,7 @@ public class User : IdentityUser
     public string FirstName { get; set; }
     public string LastName { get; set; }
 
-    public Boolean HasEnabledAuthenticator { get; set; }
+    public bool HasEnabledAuthenticator { get; set; }
 
     public string GetFullName()
     {

@@ -1,10 +1,8 @@
-using System.ComponentModel.DataAnnotations;
 using DS.DTOs;
-using Microsoft.EntityFrameworkCore;
 
 namespace DS.Models;
 
-public class Activity
+public class Activity : IAuditableEntity, ISoftDeleteable
 {
     public Activity() { }
     public Activity(ActivityDto data)
@@ -12,7 +10,6 @@ public class Activity
         Name = data.Name;
     }
 
-    [Key]
     public int Id { get; set; }
     public string Name { get; set; }
 
@@ -21,47 +18,68 @@ public class Activity
 
     public ActivityBudget Budget { get; set; }
     public CatalogData Catalog { get; set; }
+
+    public DateTime CreatedAt { get; set; }
+    public DateTime UpdatedAt { get; set; }
+    public DateTime? DeletedAt { get; set; }
 }
 
-public class ActivityTeam
+public class ActivityTeam : IAuditableEntity, ISoftDeleteable
 {
-    [Key]
     public int Id { get; set; }
     public string Name { get; set; }
 
     public List<Activity> Activities { get; set; }
     public List<ActivityTeamMembership> Memberships { get; set; }
+
+    public DateTime CreatedAt { get; set; }
+    public DateTime UpdatedAt { get; set; }
+    public DateTime? DeletedAt { get; set; }
 }
 
 public class ActivityTeamMembership
 {
-    [Key]
     public int Id { get; set; }
+    public string UserId { get; set; }
     public User User { get; set; }
     public int ActivityTeamId { get; set; }
     public ActivityTeam ActivityTeam { get; set; }
     public bool IsAdmin { get; set; }
 }
 
-[Owned]
 public class ActivityBudget
 {
+    public int Id { get; set; }
     public int Budget { get; set; }
+
+    public int ActivityId { get; set; }
+    public Activity Activity { get; set; }
 }
 
 public class CatalogData
 {
-    [Key]
     public int Id { get; set; }
     public string Name { get; set; }
     public string Summary { get; set; }
     public string Description { get; set; }
+
+    public int ActivityId { get; set; }
+    public Activity Activity { get; set; }
+
     public List<ActivityCategory> Categories { get; set; }
 }
 
 public class ActivityCategory
 {
-    [Key]
     public int Id { get; set; }
     public string Name { get; set; }
+}
+
+public class ActivityTimeslot
+{
+    public int Id { get; set; }
+    public int ActivityId { get; set; }
+    public Activity Activity { get; set; }
+    public DateTime StartTime { get; set; }
+    public int Duration { get; set; }
 }

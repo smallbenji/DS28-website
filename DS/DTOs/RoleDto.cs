@@ -1,3 +1,4 @@
+using DS.Models;
 namespace DS.DTOs
 {
     public class RoleDto

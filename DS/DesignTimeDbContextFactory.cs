@@ -1,3 +1,4 @@
+using DS.Data;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
@@ -18,7 +19,8 @@ public class DesignTimeDbContextFactory : IDesignTimeDbContextFactory<DataDbCont
         var serviceProvider = services.BuildServiceProvider();
 
         var optionsBuilder = new DbContextOptionsBuilder<DataDbContext>();
-        optionsBuilder.UseNpgsql(connectionString);
+        optionsBuilder.UseNpgsql(connectionString)
+            .UseSnakeCaseNamingConvention();
         optionsBuilder.UseOpenIddict();
         optionsBuilder.UseApplicationServiceProvider(serviceProvider);
 
