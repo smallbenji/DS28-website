@@ -130,11 +130,8 @@ builder.Services.ConfigureApplicationCookie(options =>
     options.LoginPath = "/login";
     options.LogoutPath = "/logout";
     options.AccessDeniedPath = "/AccessDenied";
-
-    if (builder.Environment.IsDevelopment())
-    {
-        options.Cookie.SecurePolicy = CookieSecurePolicy.None;
-    }
+    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+    if (builder.Environment.IsDevelopment()) options.Cookie.SecurePolicy = CookieSecurePolicy.None;
 });
 
 builder.Services.AddMemoryCache();
