@@ -295,6 +295,20 @@ Fremmednøglerne bruger fortsat PostgreSQLs standard `NO ACTION`, uden cascade.
 SQL'en opretter nye tabeller og flytter eller omdøber ikke eksisterende data.
 Der er ikke kørt SQL mod en database som del af denne opgave.
 
+**Beslutning 2026-10-01:** Boolean-felter med database-standardværdi
+konfigureres med `HasSentinel(false)` ved siden af `HasDefaultValueSql("FALSE")`,
+fordi EF ellers advarer om manglende sentinel. Sentinel-værdien gør det
+eksplicit, at EF udelader kolonnen ved `false` og lader
+`DEFAULT FALSE` gælde. Det er den tilsigtede adfærd, fordi
+SQL-standarden er `FALSE`: feltet kan derfor ikke indsættes eksplicit som
+`false` ad en anden vej, men resultatet er det samme. Det gælder
+`ActivityTeamMembership.IsAdmin`, `PatrolMembership.IsPatrolLeader`,
+`RegistrationSettings.IsPreSignupOpen` og `IsSignupOpen`,
+`User.HasEnabledAuthenticator` samt `UserInvitation.Used` og
+`UserInvitation.IsAdmin`. Det ændrer hverken skema eller data, da
+DbUp fortsat ejer DDL'en. Identity's øvrige bool-felter har ingen
+database-standardværdi og får derfor ingen sentinel.
+
 ## Foreløbig tidsplan
 
 | Dato | Milepæl |

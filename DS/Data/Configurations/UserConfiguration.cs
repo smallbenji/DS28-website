@@ -47,6 +47,7 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
 
         builder.Property(x => x.HasEnabledAuthenticator)
             .IsRequired()
-            .HasDefaultValueSql("FALSE");
+            .HasDefaultValueSql("FALSE")
+            .HasSentinel(false);
     }
 }

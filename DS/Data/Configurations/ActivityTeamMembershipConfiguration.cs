@@ -34,6 +34,7 @@ public class ActivityTeamMembershipConfiguration : IEntityTypeConfiguration<Acti
 
         builder.Property(x => x.IsAdmin)
             .IsRequired()
-            .HasDefaultValueSql("FALSE");
+            .HasDefaultValueSql("FALSE")
+            .HasSentinel(false);
     }
 }

@@ -37,7 +37,8 @@ public class PatrolMembershipConfiguration : IEntityTypeConfiguration<PatrolMemb
 
         builder.Property(x => x.IsPatrolLeader)
             .IsRequired()
-            .HasDefaultValueSql("FALSE");
+            .HasDefaultValueSql("FALSE")
+            .HasSentinel(false);
 
         builder.HasIndex(x => new { x.ScoutId, x.PatrolId })
             .IsUnique();

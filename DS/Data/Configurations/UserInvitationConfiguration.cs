@@ -35,11 +35,13 @@ public class UserInvitationConfiguration : IEntityTypeConfiguration<UserInvitati
 
         builder.Property(x => x.Used)
             .IsRequired()
-            .HasDefaultValueSql("FALSE");
+            .HasDefaultValueSql("FALSE")
+            .HasSentinel(false);
 
         builder.Property(x => x.IsAdmin)
             .IsRequired()
-            .HasDefaultValueSql("FALSE");
+            .HasDefaultValueSql("FALSE")
+            .HasSentinel(false);
 
         builder.Property(x => x.CreatedAt)
             .IsRequired()

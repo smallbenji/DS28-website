@@ -27,10 +27,12 @@ public class RegistrationSettingsConfiguration : IEntityTypeConfiguration<Regist
 
         builder.Property(x => x.IsPreSignupOpen)
             .IsRequired()
-            .HasDefaultValueSql("FALSE");
+            .HasDefaultValueSql("FALSE")
+            .HasSentinel(false);
 
         builder.Property(x => x.IsSignupOpen)
             .IsRequired()
-            .HasDefaultValueSql("FALSE");
+            .HasDefaultValueSql("FALSE")
+            .HasSentinel(false);
     }
 }
