@@ -85,6 +85,11 @@ const routes: RouteRecordRaw[] = [
         meta: { requiresAuth: true, pageTitle: "Forhåndstilmelding", pageIcon: "users" }
     },
     {
+        path: "/group/final-signup",
+        component: () => import("@/Views/GroupFinalSignup.vue"),
+        meta: { requiresAuth: true, requiresGroupData: true, pageTitle: "Endelig tilmelding", pageIcon: "users" }
+    },
+    {
         path: "/activity",
         component: () => import("@/Views/Activity.vue"),
         meta: { requiresActivityTeamData: true, pageTitle: "Aktivitetsmodul", pageIcon: "fa-newspaper" }
