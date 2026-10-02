@@ -186,6 +186,23 @@ implementeret eller synlig i adminområdet.
 Dette afsnit dokumenterer planen og bekræfter ikke den aktuelle hosting eller
 driftsopsætning.
 
+### Frontend-build og typekontrol
+
+**Midlertidig beslutning 2026-10-02:** `npm run build` i `DS.Website/js`
+kører kun `vite build` og udelader `vue-tsc -b`. Årsagen er en
+afhængighedskonflikt: `vue-tsc` 3.x løser `typescript/lib/tsc`, og
+TypeScript 7 eksporterer ikke længere det subpath, så buildet fejlede med
+`ERR_PACKAGE_PATH_NOT_EXPORTED`, før Vite overhovedet kørte.
+
+Det er en midlertidig løsning, ikke en permanent afvejning af typekontrol.
+Frontendens typer kontrolleres derfor ikke længere som del af buildet.
+`vue-tsc` er fortsat en devDependency, og scriptet `npm run typecheck`
+(`vue-tsc -b`) er tilføjet som en manuel kontrol – men det fejler stadig med
+samme `ERR_PACKAGE_PATH_NOT_EXPORTED`, ind afhængighedskonflikten er løst.
+Beslutningen skal genovervejes, når `vue-tsc` understøtter TypeScript 7;
+alternativt kan TypeScript nedgraderes til 5.x og typekontrollen føjes tilbage
+i buildet.
+
 ### Flytning af modelkonfiguration og udfasning af C#-migrations
 
 **Beslutning 2026-09-30:** C#-migrations skal udfases. Som første trin samles
