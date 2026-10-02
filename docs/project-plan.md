@@ -342,8 +342,17 @@ til projektet. Kontrollér altid koden igen ved fremtidige ændringer.
   styres manuelt, uafhængigt af planens datoer. Forhåndstilmeldingen starter
   som åben ved migrering for at bevare den hidtidige adgang, mens den endelige
   tilmelding starter lukket.
-- Indstillingen for endelig tilmelding styrer endnu kun selve flaget; der er
-  ikke implementeret et særskilt flow for endelig tilmelding.
+- Indstillingen for endelig tilmelding styrer endnu kun selve flaget; den
+  gater ikke adgangen til siden `/group/final-signup`.
+- **Beslutning 2026-10-02:** Den endelige tilmeldingsside (`/group/final-signup`)
+  er implementeret og tilgængelig fra gruppekortet. Siden giver gruppemedlemmer
+  mulighed for at oprette spejdere (navn, fødselsdato, køn), oprette patruljer
+  og tildele spejdere til patruljer. En spejder kan tilknyttes flere patruljer.
+  Endpoints er gruppeafgrænsede under `GET/POST/DELETE /api/v1/group/scouts` og
+  `/api/v1/group/patrols` samt `POST /api/v1/group/scouts/add-patrol` og
+  `/api/v1/group/scouts/remove-patrol`. Alle endpoints kontrollerer, at den
+  pågældende ressource tilhører brugerens gruppe. Åben/lukket-flaget for endelig
+  tilmelding håndhæves endnu ikke over for siden; det er et åbent spørgsmål.
 - Den foreløbige fortolkning af lukket forhåndstilmelding er, at både nye
   tilmeldinger og ændringer af deltagerantal blokeres i backend. Eksisterende
   tilmeldinger kan fortsat ses. Om eksisterende grupper skal kunne ændre deres

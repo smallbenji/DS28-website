@@ -23,7 +23,8 @@ const links = [
     },
     {
         name: "Endelig Tilmelding",
-        date: new Date(2026, 10, 5)
+        to: "/group/final-signup",
+        date: null
     },
     {
         name: "Aktivitets ønskerunde",

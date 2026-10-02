@@ -43,7 +43,7 @@
                     <BInput v-model="newScoutName" placeholder="Spejderens navn" @keyup.enter="createScout" />
                 </BField>
                 <BField label="Fødselsdato">
-                    <BInput v-model="newScoutBirthday" type="date" @keyup.enter="createScout" />
+                    <BDatepicker v-model="newScoutBirthday" locale="da-DK" placeholder="dd-mm-åååå" icon="calendar" editable :append-to-body="true" />
                 </BField>
                 <BField label="Køn">
                     <BSelect v-model="newScoutGender" expanded>
@@ -138,7 +138,7 @@
 </template>
 <script lang="ts" setup>
 import { ref } from 'vue';
-import { BButton, BModal, BField, BInput, BSelect, useToast } from 'buefy';
+import { BButton, BDatepicker, BModal, BField, BInput, BSelect, useToast } from 'buefy';
 import { useGroupsStore } from '@/Stores/GroupsStore';
 import GroupsService from '@/Services/GroupsService';
 import type { GroupDto, ScoutDto } from '@/types';
@@ -160,7 +160,7 @@ const groupService = new GroupsService();
 
 const isCreateModalOpen = ref(false);
 const newScoutName = ref('');
-const newScoutBirthday = ref('');
+const newScoutBirthday = ref<Date | null>(null);
 const newScoutGender = ref<'Male' | 'Female'>('Male');
 
 const isPatrolsModalOpen = ref(false);
@@ -172,7 +172,7 @@ const scoutToDelete = ref<ScoutDto | null>(null);
 
 const openCreateModal = () => {
     newScoutName.value = '';
-    newScoutBirthday.value = '';
+    newScoutBirthday.value = null;
     newScoutGender.value = 'Male';
     isCreateModalOpen.value = true;
 };
@@ -312,7 +312,7 @@ const createScout = async () => {
     const scout = await groupService.createScout(
         props.selectedGroup.id,
         newScoutName.value.trim(),
-        newScoutBirthday.value,
+        newScoutBirthday.value.toISOString(),
         newScoutGender.value
     );
 

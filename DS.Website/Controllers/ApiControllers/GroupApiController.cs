@@ -89,9 +89,9 @@ namespace DS.Website.Controllers
             var userId = userManager.GetUserId(HttpContext.User);
             var user = await userManager.Users
                 .Include(x => x.Group)
-                .ThenInclude(x => x.Patrols)
+                .ThenInclude(x => x.Patrols).ThenInclude(p => p.Memberships)
                 .Include(x => x.Group)
-                .ThenInclude(x => x.Scouts)
+                .ThenInclude(x => x.Scouts).ThenInclude(s => s.Memberships)
                 .FirstOrDefaultAsync(u => u.Id == userId);
             if (user?.Group == null) return NotFound();
 
@@ -100,6 +100,134 @@ namespace DS.Website.Controllers
                 .ToListAsync();
 
             return Ok(new GroupDto(user.Group, users));
+        }
+
+        [HttpPost("scouts")]
+        public async Task<IActionResult> CreateScout([FromBody] CreateScoutDto data)
+        {
+            if (data == null || string.IsNullOrWhiteSpace(data.Name)) return BadRequest("Udfyld spejderens navn.");
+
+            var userId = userManager.GetUserId(User);
+            var user = await userManager.Users
+                .Include(u => u.Group).ThenInclude(g => g.Scouts)
+                .FirstOrDefaultAsync(u => u.Id == userId);
+            if (user?.Group == null) return NotFound("Din bruger er ikke tilknyttet en gruppe.");
+
+            data.GroupId = user.Group.Id;
+            var scout = user.Group.CreateScout(new Scout(data));
+
+            await dataDb.SaveChangesAsync();
+
+            return Ok(new ScoutDto(scout));
+        }
+
+        [HttpDelete("scouts/{scoutId:int}")]
+        public async Task<IActionResult> DeleteScout(int scoutId)
+        {
+            var userId = userManager.GetUserId(User);
+            var user = await userManager.Users
+                .Include(u => u.Group)
+                .FirstOrDefaultAsync(u => u.Id == userId);
+            if (user?.Group == null) return NotFound("Din bruger er ikke tilknyttet en gruppe.");
+
+            var scout = await dataDb.Scouts
+                .FirstOrDefaultAsync(s => s.Id == scoutId && s.GroupId == user.Group.Id);
+            if (scout == null) return NotFound("Spejderen blev ikke fundet.");
+
+            dataDb.Scouts.Remove(scout);
+            await dataDb.SaveChangesAsync();
+
+            return NoContent();
+        }
+
+        [HttpPost("patrols")]
+        public async Task<IActionResult> CreatePatrol([FromBody] CreatePatrolDto data)
+        {
+            if (data == null || string.IsNullOrWhiteSpace(data.Name)) return BadRequest("Udfyld patruljens navn.");
+
+            var userId = userManager.GetUserId(User);
+            var user = await userManager.Users
+                .Include(u => u.Group).ThenInclude(g => g.Patrols)
+                .FirstOrDefaultAsync(u => u.Id == userId);
+            if (user?.Group == null) return NotFound("Din bruger er ikke tilknyttet en gruppe.");
+
+            data.GroupId = user.Group.Id;
+            var patrol = user.Group.CreatePatrol(new Patrol(data));
+
+            await dataDb.SaveChangesAsync();
+
+            return Ok(new PatrolDto(patrol));
+        }
+
+        [HttpDelete("patrols/{patrolId:int}")]
+        public async Task<IActionResult> DeletePatrol(int patrolId)
+        {
+            var userId = userManager.GetUserId(User);
+            var user = await userManager.Users
+                .Include(u => u.Group)
+                .FirstOrDefaultAsync(u => u.Id == userId);
+            if (user?.Group == null) return NotFound("Din bruger er ikke tilknyttet en gruppe.");
+
+            var patrol = await dataDb.Patrols
+                .FirstOrDefaultAsync(p => p.Id == patrolId && p.GroupId == user.Group.Id);
+            if (patrol == null) return NotFound("Patruljen blev ikke fundet.");
+
+            dataDb.Patrols.Remove(patrol);
+            await dataDb.SaveChangesAsync();
+
+            return NoContent();
+        }
+
+        [HttpPost("scouts/add-patrol")]
+        public async Task<IActionResult> AddScoutToPatrol([FromBody] ScoutPatrolDto data)
+        {
+            if (data == null) return BadRequest("Ugyldig anmodning.");
+
+            var userId = userManager.GetUserId(User);
+            var user = await userManager.Users
+                .Include(u => u.Group)
+                .FirstOrDefaultAsync(u => u.Id == userId);
+            if (user?.Group == null) return NotFound("Din bruger er ikke tilknyttet en gruppe.");
+
+            var scout = await dataDb.Scouts
+                .FirstOrDefaultAsync(s => s.Id == data.ScoutId && s.GroupId == user.Group.Id);
+            if (scout == null) return NotFound("Spejderen blev ikke fundet.");
+
+            var patrol = await dataDb.Patrols
+                .Include(p => p.Memberships)
+                .FirstOrDefaultAsync(p => p.Id == data.PatrolId && p.GroupId == user.Group.Id);
+            if (patrol == null) return NotFound("Patruljen blev ikke fundet.");
+
+            patrol.AssignScout(scout);
+            await dataDb.SaveChangesAsync();
+
+            return Ok();
+        }
+
+        [HttpPost("scouts/remove-patrol")]
+        public async Task<IActionResult> RemoveScoutFromPatrol([FromBody] ScoutPatrolDto data)
+        {
+            if (data == null) return BadRequest("Ugyldig anmodning.");
+
+            var userId = userManager.GetUserId(User);
+            var user = await userManager.Users
+                .Include(u => u.Group)
+                .FirstOrDefaultAsync(u => u.Id == userId);
+            if (user?.Group == null) return NotFound("Din bruger er ikke tilknyttet en gruppe.");
+
+            var scout = await dataDb.Scouts
+                .FirstOrDefaultAsync(s => s.Id == data.ScoutId && s.GroupId == user.Group.Id);
+            if (scout == null) return NotFound("Spejderen blev ikke fundet.");
+
+            var patrol = await dataDb.Patrols
+                .Include(p => p.Memberships)
+                .FirstOrDefaultAsync(p => p.Id == data.PatrolId && p.GroupId == user.Group.Id);
+            if (patrol == null) return NotFound("Patruljen blev ikke fundet.");
+
+            patrol.RemoveScout(scout);
+            await dataDb.SaveChangesAsync();
+
+            return NoContent();
         }
     }
 }
