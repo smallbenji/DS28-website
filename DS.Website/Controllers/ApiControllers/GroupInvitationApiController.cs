@@ -24,10 +24,8 @@ namespace DS.Website.Controllers
                     i.InvitationId == id &&
                     i.GroupId != null &&
                     !i.Used);
-            if (invitation?.Group == null)
-            {
-                return NotFound("Invitationen findes ikke eller er allerede brugt eller annulleret.");
-            }
+
+            if (invitation?.Group == null) return NotFound("Invitationen findes ikke eller er allerede brugt eller annulleret.");
 
             return Ok(new
             {
@@ -45,14 +43,13 @@ namespace DS.Website.Controllers
             var claimedCount = await dataDb.Invitations
                 .Where(i => i.InvitationId == id && i.GroupId != null && !i.Used)
                 .ExecuteUpdateAsync(s => s.SetProperty(i => i.Used, true));
-            if (claimedCount != 1)
-            {
-                return NotFound("Invitationen findes ikke eller er allerede brugt eller annulleret.");
-            }
+
+            if (claimedCount != 1) return NotFound("Invitationen findes ikke eller er allerede brugt eller annulleret.");
 
             var invitation = await dataDb.Invitations
                 .Include(i => i.Group)
                 .SingleAsync(i => i.InvitationId == id);
+
             if (invitation.Group == null) return NotFound("Gruppen findes ikke længere.");
 
             var user = await userManager.Users
@@ -80,10 +77,7 @@ namespace DS.Website.Controllers
             }
             else
             {
-                if (User.Identity?.IsAuthenticated == true)
-                {
-                    return BadRequest("Log ud, før du opretter en konto med den inviterede email.");
-                }
+                if (User.Identity?.IsAuthenticated == true) return BadRequest("Log ud, før du opretter en konto med den inviterede email.");
 
                 if (data == null ||
                     string.IsNullOrWhiteSpace(data.FirstName) ||
@@ -104,18 +98,13 @@ namespace DS.Website.Controllers
                 };
 
                 var result = await userManager.CreateAsync(user, data.Password);
-                if (!result.Succeeded)
-                {
-                    return BadRequest(string.Join(" ", result.Errors.Select(e => e.Description)));
-                }
+             
+                if (!result.Succeeded) return BadRequest(string.Join(" ", result.Errors.Select(e => e.Description)));
             }
 
             await transaction.CommitAsync();
 
-            if (isNewUser)
-            {
-                await signInManager.SignInAsync(user, isPersistent: true);
-            }
+            if (isNewUser) await signInManager.SignInAsync(user, isPersistent: true);
 
             return Ok();
         }
