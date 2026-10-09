@@ -71,15 +71,39 @@ fungerer som transaktionel outbox og en `EmailOutboxWorker` sender fra køen i
 baggrunden. Adgang til at se køen (`EmailOutboxView`) er givet til
 systemadministrator og lejrchef, via `/admin`.
 
+**Beslutning 2026-10-06:** Køen køres på **Hangfire** (`Hangfire.PostgreSql`,
+schema `hangfire`). `EmailOutboxWorker` er erstattet af `EmailOutboxJobs`: et
+recurring dispatcher-job der kører hvert 15. sekund og enqueuer ét
+`Send`-job pr. due outbox-række, og et send-job der atomisk claim'er rækken,
+sender og opdaterer `email_outbox` med samme backoff-, forsøgs- og
+dead-letter-semantik som før. `email_outbox` forbliver den transaktionelle
+outbox, og transaktionelle mails sendes fortsat synkront. Hangfire-dashboardet
+ligger på `/hangfire` og kræver `AdminAccess`. Hangfire-schemaet ejes udelukkende
+af DbUp: `007_hangfire.sql` installerer Hangfires egne install-scripts med
+`PrepareSchemaIfNecessary = false`, så senere Hangfire-opgraderinger tilføjes
+som almindelige migrationer. Dette overskriver implementeringsdelen af
+beslutningen 2026-09-29; outbox-beslutningen står uændret.
+
+**Beslutning 2026-10-06 (senere samme dag):** Mails enqueueres **direkte**
+som Hangfire-jobs. `EmailService.QueueInvitationMail` og
+`QueueResetPasswordMail` bygger indholdet, validerer modtageradressen og
+kalder `BackgroundJob.Enqueue` med en `MailData`-payload (modtager, emne,
+tekst); `MailJobs.Send` sender via SMTP. Invitationer og nulstilling af
+adgangskode sendes dermed asynkron: API'et svarer med det samme, og
+SMTP-fejl bliver failed Hangfire-jobs med retry (30/60/120/240 s,
+5 forsøg) der kan genkøes manuelt i dashboardet. `email_outbox`-tabellen,
+dispatcheren, outbox-APIet, admin-siden "Mailkø" og `EmailOutboxView`-
+rollen fjernes (`008_drop_email_outbox.sql`); Hangfire-flisen i Admin
+erstatter mailkøen, og Vite-dev-proxyen sender `/hangfire` videre til
+backenden. `NotificationsEnabled` flyttes til enqueue-trinnet og gate'er
+nu også invitationer og nulstilling. Beslutningen overskriver outbox-,
+synkron-send- og kø-delen af beslutningerne 2026-09-29 og 2026-10-06
+(samme dag); Hangfire som kø-teknologi og dashboardet består.
+
 Ubesluttede punkter:
 - Notifikationer skal kun sendes til brugere der har bedt om den pågældende
   hændelsestype. Præferencer er endnu ikke implementeret, og der findes ingen
   afmeldingsmulighed endnu.
-- Transaktionelle mails (invitation og adgangskodenulstilling) skal fortsat
-  sendes synkront i forbindelse med den handling, brugeren har bedt om. De må
-  ikke gå gennem køen, fordi brugeren skal kunne få en fejl, hvis afsendelsen
-  mislykkes.
-- Der er endnu ingen konkret hændelse, der lægger rækker i køen.
 
 ### Adminområde
 
@@ -228,8 +252,9 @@ Eksisterende databaser er ikke ændret af denne opgave.
 Audit- og soft-delete-felterne følger SQL-planens nullable `deleted_at` og
 `NOW()`-standarder for oprettelse og opdatering. Automatisk ændring af
 `updated_at` ved opdateringer og soft-delete-filtrering er ikke implementeret.
-Outboxens eksisterende indeks på næste forsøg og id er bevaret ud over de
-indekser, SQL-planen angiver. EF genererer fortsat egne indeks- og
+Outboxens dengang eksisterende indeks på næste forsøg og id blev bevaret ud
+over de indekser, SQL-planen angiver; tabellen er senere fjernet
+(beslutning 2026-10-06). EF genererer fortsat egne indeks- og
 constraint-navne samt konventionsbaserede fremmednøgleindekser.
 
 **Beslutning 2026-09-30:** DbUp håndterer nu SQL-migrations fra
@@ -366,7 +391,8 @@ produktionsdatabasien. Det er ikke dokumenteret, at v0.1.6 faktisk
 indeholdt `NULL` i disse kolonner: v0.1.6 havde `Nullable` slået fra, så
 EF gjorde alle `string`-egenskaber nullable medmindre de var markeret
 `IsRequired()`. Den gamle kode oprettede heller aldrig outbox-rækker, så
-ud af disse kolonner er `email_outbox` antageligt tom. At slappe `NULL`
+ud af disse kolonner er `email_outbox` antageligt tom (tabellen er siden
+fjernet, beslutning 2026-10-06). At slappe `NULL`
 er derfor forsigtighed for data, der sandsynligvis ikke findes, og det
 svækker blandt andet at `scout_group.name` og `email_outbox.user_id` nu
 kan mangle. To unikke krav bliver også svækket, fordi PostgreSQL tillader
@@ -382,14 +408,15 @@ email eller roller kan derfor give en uventet fejl i en brugers
 accept-flow, selv om brugeren er oprettet i mellemtiden. Det er ikke
 ændret her.
 
-`EmailOutboxWorker.Send` fanger derimod fejl fra
-`new MailboxAddress("", message.ToEmail)` og returnerer dem, så en
-manglende `to_email` ender som en registreret sendefejl der genprøves
-i stedet for at stoppe workeren. `EmailService.SendInvitation` kalder det
-samme uden try/catch, men den har kun `UserApiController` som kalder, og
+`EmailService.QueueInvitationMail` kalder
+`new MailboxAddress("", invitation.Email)` uden try/catch, så en
+ugyldig eller manglende adresse giver en fejl i API-kaldet før
+enqueue i stedet for at blive en job-fejl; `MailJobs.Send` giver
+heller ikke retry på `ArgumentException` eller `ParseException`.
+Metoden har kun `UserApiController` som kalder, og
 den sender en invitation den lige har oprettet af validerede input, så
-den læser ikke migrerede rækker. Frontendens TypeScript-typer for navne,
-invitationsemail og outboxfelter er stadig ikke-null. Intet af dette er
+den læser ikke migrerede rækker. Frontendens TypeScript-typer for navne og
+invitationsemail er stadig ikke-null. Intet af dette er
 ændret her.
 
 ## Foreløbig tidsplan

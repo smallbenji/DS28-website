@@ -263,33 +263,12 @@ erDiagram
         timestamptz deleted_at
     }
 
-    email_outbox {
-        int id PK
-        text event_type
-        uuid correlation_id
-        text user_id
-        text to_email
-        text subject
-        text body
-        timestamptz created_at
-        timestamptz sent_at
-        timestamptz next_attempt_at
-        int attempts "CHECK >= 0"
-        text last_error
-        timestamptz failed_at
-        timestamptz locked_at
-        text locked_by
-    }
-
     registration_settings {
         int id PK "Singleton, CHECK id = 1"
         bool is_pre_signup_open
         bool is_signup_open
     }
 ```
-
-`email_outbox.user_id` har ingen foreign key, da en udsendelse kan ske til en
-inviteret adresse uden brugerkonto.
 
 ## OpenIddict
 
@@ -359,12 +338,132 @@ erDiagram
     open_iddict_authorizations ||--o{ open_iddict_tokens : "indeholder"
 ```
 
+## Hangfire
+
+```mermaid
+erDiagram
+    schema {
+        int version PK
+    }
+
+    job {
+        bigint id PK
+        bigint stateid
+        text statename
+        jsonb invocationdata
+        jsonb arguments
+        timestamptz createdat
+        timestamptz expireat
+        int updatecount
+    }
+
+    state {
+        bigint id PK
+        bigint jobid FK
+        text name
+        text reason
+        timestamptz createdat
+        jsonb data
+    }
+
+    jobparameter {
+        bigint id PK
+        bigint jobid FK
+        text name
+        text value
+        int updatecount
+    }
+
+    jobqueue {
+        bigint id PK
+        bigint jobid FK
+        text queue
+        timestamptz fetchedat
+        int updatecount
+    }
+
+    server {
+        text id PK
+        jsonb data
+        timestamptz lastheartbeat
+        int updatecount
+    }
+
+    lock {
+        text resource UK
+        timestamptz acquired
+        int updatecount
+    }
+
+    set {
+        bigint id PK
+        text key
+        float8 score
+        text value
+        timestamptz expireat
+        int updatecount
+    }
+
+    counter {
+        bigint id PK
+        text key
+        bigint value
+        timestamptz expireat
+    }
+
+    aggregatedcounter {
+        bigint id PK
+        text key
+        bigint value
+        timestamptz expireat
+    }
+
+    hash {
+        bigint id PK
+        text key
+        text field
+        text value
+        timestamptz expireat
+        int updatecount
+    }
+
+    list {
+        bigint id PK
+        text key
+        text value
+        timestamptz expireat
+        int updatecount
+    }
+
+    job ||--o{ state : "har"
+    job ||--o{ jobparameter : "har"
+    job ||--o{ jobqueue : "har"
+```
+
+Skemaet `hangfire` ejes af DbUp, ikke af Hangfire. `007_hangfire.sql`
+vendorer Hangfire.PostgreSql-installationsscripts `Install.v3`–`Install.v23`
+(version 1.21.1) med de versionsopdateringer som Hangfires installer ellers
+udfører mellem scripts, og `PrepareSchemaIfNecessary = false` i `Program.cs`
+forhindrer Hangfire i selv at ændre schemata. Ved opgradering af
+Hangfire.PostgreSql tilføjes et nyt migrationsskript med de nye
+install-scripts.
+
+`hangfire.schema` indeholder én række med installationsversionen (23 efter
+`007_hangfire.sql`); hæves den ikke korrekt, springer Hangfires egne
+install-scripts (`version >= N`) over eller fejler. `hangfire.state`,
+`hangfire.jobparameter` og `hangfire.jobqueue` har foreign keys til
+`hangfire.job` med `ON DELETE CASCADE`.
+
+Postgangen køres som Hangfire-jobs uden outbox-tabel: hver mail
+enqueuees direkte med modtager, emne og tekst som job-argumenter i
+`hangfire.job.arguments`. Fejlede mails ligger som Failed-jobs i
+dashboardet med exception og kan genkøes manuelt.
+
 ## Bemærkninger
 
 - Soft delete via `deleted_at` på `scout_group`, `scout`, `activity_team`,
   `activity`, `material` og `material_order`.
 - Migration `006a_relax_legacy_nullable.sql` gør flere kolonner nullable,
-  bl.a. `scout_group.name`, `scout.name`, `activity.name` og
-  `email_outbox.to_email`.
+  bl.a. `scout_group.name`, `scout.name` og `activity.name`.
 - `scout_activity_timeslot` findes i databasen, men har ingen tilsvarende
   entitet i `DataDbContext`.

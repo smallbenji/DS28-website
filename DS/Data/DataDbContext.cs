@@ -10,8 +10,6 @@ public class DataDbContext : IdentityDbContext<User, Role, string>
 
     public DbSet<UserInvitation> Invitations { get; set; }
     public DbSet<RegistrationSettings> RegistrationSettings { get; set; }
-    public DbSet<EmailOutbox> EmailOutbox { get; set; }
-
     public DbSet<Group> Groups { get; set; }
     public DbSet<Patrol> Patrols { get; set; }
     public DbSet<Scout> Scouts { get; set; }

@@ -14,10 +14,10 @@
                     <component
                         v-for="(link, index) in section.entries"
                         :key="index"
-                        :is="isExternal(link.url) ? 'a' : 'router-link'"
-                        :[isExternal(link.url)?'href':'to']="link.url"
-                        :target="isExternal(link.url) ? '_blank' : undefined"
-                        :rel="isExternal(link.url) ? 'noopener noreferrer' : undefined"
+                        :is="isExternal(link) ? 'a' : 'router-link'"
+                        :[isExternal(link)?'href':'to']="link.url"
+                        :target="isExternal(link) ? '_blank' : undefined"
+                        :rel="isExternal(link) ? 'noopener noreferrer' : undefined"
                         class="link-box"
                     >
                         <div>
@@ -65,15 +65,17 @@
 import { onMounted, ref } from 'vue';
 import { BButton, BNotification } from 'buefy';
 import axios from 'axios';
-import type { AdminSectionDto, AdminViewModelDto, SignupProgressDto } from '@/types';
+import type { AdminSectionDto, AdminViewModelDto, HQPanelEntryDto, SignupProgressDto } from '@/types';
 
 const sections = ref<AdminSectionDto[]>([]);
 const signupProgress = ref<SignupProgressDto[]>([]);
 const loading = ref(true);
 const error = ref('');
 
-const isExternal = (url: string) => {
-    return /^https?:\/\//i.test(url);
+const isExternal = (link: HQPanelEntryDto) => {
+    if (link.mvc) return true;
+
+    return /^https?:\/\//i.test(link.url);
 };
 
 function percent(item: SignupProgressDto) {

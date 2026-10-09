@@ -126,7 +126,7 @@ namespace DS.Website.Controllers
             if (user != null)
             {
                 var token = await userManager.GeneratePasswordResetTokenAsync(user);
-                emailService.SendResetPasswordMail(user, token);
+                emailService.QueueResetPasswordMail(user, token);
             }
 
             return Ok();

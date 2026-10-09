@@ -8,4 +8,5 @@ export interface HQPanelEntryDto {
     icon: string[];
     requiredRole: string;
     requiredRoles: string[];
+    mvc: boolean;
 }

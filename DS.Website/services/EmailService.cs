@@ -1,80 +1,62 @@
 using DS.Models;
-using MailKit;
-using MailKit.Net.Smtp;
-using MailKit.Security;
+using Hangfire;
 using Microsoft.Extensions.Options;
 using MimeKit;
 
 namespace DS.Website.Services
 {
-    public class EmailService(IOptions<DSSettings> options)
+    public class EmailService(IOptions<DSSettings> options, IBackgroundJobClient backgroundJobs, ILogger<EmailService> logger)
     {
-        private void SendMail(MimeMessage message)
+        public void QueueInvitationMail(UserInvitation invitation)
         {
-            var settings = options.Value;
-
-            using var client = new SmtpClient();
-            client.CheckCertificateRevocation = false;
-            client.Connect(settings.SMTPHost, 587, SecureSocketOptions.StartTls);
-
-            if (!string.IsNullOrWhiteSpace(settings.SMTPUser) && client.Capabilities.HasFlag(SmtpCapabilities.Authentication))
-            {
-                client.Authenticate(settings.SMTPUser, settings.SMTPPassword);
-            }
-
-            message.From.Add(new MailboxAddress(settings.SMTPFromName, settings.SMTPFromEmail));
-            client.Send(message);
-            client.Disconnect(true);
-        }
-
-        public void SendInvitation(UserInvitation invitation)
-        {
-            var message = new MimeMessage();
-            message.To.Add(new MailboxAddress("", invitation.Email));
-            message.Subject = "Du er blevet inviteret til DS28";
+            var subject = "Du er blevet inviteret til DS28";
 
             var path = invitation.GroupId.HasValue ? "group-invitation" : "invitation";
             var baseUri = new Uri(options.Value.PublicBaseUrl, UriKind.Absolute);
             var link = new Uri(baseUri, $"/{path}/{invitation.InvitationId}").AbsoluteUri;
 
-            message.Body = new TextPart("plain") 
-            {
-                Text = 
+            var body =
 @$"Du er blevet inviteret til DS28 systemet.
 
 For at komme i gang skal du oprette en bruger ved brug af følgende link:
 {link}
 
-Mvh. DS28 teamet"
-            };
+Mvh. DS28 teamet";
 
-            SendMail(message);
+            Enqueue(new MailboxAddress("", invitation.Email), subject, body);
         }
 
-        public void SendResetPasswordMail(User user, string token)
+        public void QueueResetPasswordMail(User user, string token)
         {
-            var message = new MimeMessage();
-            message.To.Add(new MailboxAddress(user.GetFullName(), user.Email));
-            message.Subject = "Nulstil din adgangskode i DS28";
+            var subject = "Nulstil din adgangskode i DS28";
 
             var baseUri = new Uri(options.Value.PublicBaseUrl, UriKind.Absolute);
             var link = new Uri(baseUri, $"/reset-password/{user.Id}?token={Uri.EscapeDataString(token)}").AbsoluteUri;
 
-            message.Body = new TextPart("plain")
-            {
-                Text =
+            var body =
 $@"Hej {user.GetFullName()}
 
-Du har bedt om at nulstille din adgangskode. Følg dette link for at vælge en ny adgangskode:
+Du har bedt om at nulstille din adgangskode i DS28. Følg dette link for at vælge en ny adgangskode:
 {link}
 
 Linket er gyldigt i 24 timer. Hvis du ikke selv har bedt om nulstillingen, kan du ignorere denne mail. Din adgangskode er stadig uændret.
 
 Mvh. DS28 teamet
-                "
-            };
+                ";
 
-            SendMail(message);
+            Enqueue(new MailboxAddress(user.GetFullName(), user.Email), subject, body);
+        }
+
+        private void Enqueue(MailboxAddress recipient, string subject, string body)
+        {
+            if (!options.Value.NotificationsEnabled)
+            {
+                logger.LogWarning("Springer mail til {ToEmail} over: NotificationsEnabled er slået fra.", recipient.Address);
+                return;
+            }
+
+            backgroundJobs.Enqueue<MailJobs>(jobs => jobs.Send(new MailData(recipient.Address, recipient.Name, subject, body)));
+            logger.LogInformation("Stillede mail til {ToEmail} i køen: {Subject}", recipient.Address, subject);
         }
     }
 }

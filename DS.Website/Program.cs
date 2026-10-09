@@ -15,6 +15,9 @@ using Microsoft.EntityFrameworkCore;
 using OpenIddict.Abstractions;
 using OpenIddict.Server;
 using DbUp;
+using Hangfire;
+using Hangfire.Dashboard;
+using Hangfire.PostgreSql;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -154,7 +157,15 @@ builder.Services.Configure<IdentityPasskeyOptions>(options =>
 builder.Services.AddTransient<ActivityRepository>();
 builder.Services.AddTransient<CampSettings>();
 builder.Services.AddTransient<EmailService>();
-builder.Services.AddHostedService<EmailOutboxWorker>();
+builder.Services.AddTransient<MailJobs>();
+builder.Services.AddHangfire(config => config.UsePostgreSqlStorage(
+    storage => storage.UseNpgsqlConnection(dssettings.ConnectionString),
+    new PostgreSqlStorageOptions
+    {
+        SchemaName = "hangfire",
+        PrepareSchemaIfNecessary = false,
+    }));
+builder.Services.AddHangfireServer(options => options.WorkerCount = 5);
 builder.Services.AddScoped<DataExport, GroupPreSignupExport>();
 
 var app = builder.Build();
@@ -176,6 +187,11 @@ app.UseForwardedHeaders(new ForwardedHeadersOptions
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+app.UseHangfireDashboard("/hangfire", new DashboardOptions
+{
+    Authorization = [new HangfireDashboardAuthorizationFilter()]
+});
 
 app.MapStaticAssets();
 

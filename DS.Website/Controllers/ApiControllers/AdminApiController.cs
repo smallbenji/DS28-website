@@ -60,17 +60,18 @@ namespace DS.Website.Controllers
                     [
                         new HQPanelEntryDto
                         {
-                            Title = "Mailkø",
-                            Url = "/email-outbox",
-                            Icon = ["inbox"],
-                            RequiredRole = nameof(AppRoles.EmailOutboxView)
-                        },
-                        new HQPanelEntryDto
-                        {
                             Title = "Dataudtræk",
                             Url = "/exports",
                             Icon = ["file-arrow-down"],
                             RequiredRole = nameof(AppRoles.ExportsView)
+                        },
+                        new HQPanelEntryDto
+                        {
+                            Title = "Hangfire",
+                            Url = "/hangfire",
+                            Icon = ["fa", "h"],
+                            Mvc = true,
+                            RequiredRole = nameof(AppRoles.AdminAccess)
                         }
                     ]
                 }

@@ -12,5 +12,6 @@ namespace DS.DTOs
         public string[] Icon { get; set; }
         public string RequiredRole { get; set; }
         public string[] RequiredRoles { get; set; }
+        public bool Mvc { get; set; } = false;
     }
 }

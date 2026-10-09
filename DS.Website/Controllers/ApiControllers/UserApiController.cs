@@ -252,7 +252,7 @@ namespace DS.Website.Controllers
             await dataDb.Invitations.AddAsync(invitation);
             await dataDb.SaveChangesAsync();
 
-            emailService.SendInvitation(invitation);
+            emailService.QueueInvitationMail(invitation);
 
             return Ok();
         }
