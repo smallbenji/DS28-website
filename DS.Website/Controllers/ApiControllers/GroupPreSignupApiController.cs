@@ -53,15 +53,9 @@ namespace DS.Website.Controllers
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] GroupPreSignupDto data)
         {
-            if (User.Identity?.IsAuthenticated == true)
-            {
-                return BadRequest("Log ud, før du opretter en ny bruger til forhåndstilmeldingen.");
-            }
+            if (User.Identity?.IsAuthenticated == true) return BadRequest("Log ud, før du opretter en ny bruger til forhåndstilmeldingen.");
 
-            if (data == null || !ModelState.IsValid)
-            {
-                return BadRequest("Udfyld navn, gyldig email og adgangskode på mindst 4 tegn. Deltagerantal skal være hele tal på 0 eller derover.");
-            }
+            if (data == null || !ModelState.IsValid) return BadRequest("Udfyld navn, gyldig email og adgangskode på mindst 4 tegn. Deltagerantal skal være hele tal på 0 eller derover.");
 
             await using var transaction = await dataDb.Database.BeginTransactionAsync();
 
@@ -79,16 +73,10 @@ namespace DS.Website.Controllers
             var group = await dataDb.Groups
                 .Include(g => g.PreSignup)
                 .SingleOrDefaultAsync(g => g.Id == data.GroupId);
-            if (group == null)
-            {
-                return NotFound("Gruppen blev ikke fundet. Kontrollér gruppenummeret.");
-            }
+            if (group == null) return NotFound("Gruppen blev ikke fundet. Kontrollér gruppenummeret.");
 
             var hasUsers = await dataDb.Users.AnyAsync(u => u.Group != null && u.Group.Id == group.Id);
-            if (hasUsers)
-            {
-                return Conflict("Gruppen er allerede forhåndstilmeldt. Log ind eller kontakt gruppens kontaktperson.");
-            }
+            if (hasUsers) return Conflict("Gruppen er allerede forhåndstilmeldt. Log ind eller kontakt gruppens kontaktperson.");
 
             var user = new User
             {
