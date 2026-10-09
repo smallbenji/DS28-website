@@ -39,6 +39,18 @@ export default class UserService {
         }
     }
 
+    public async updateUserProfilePicture(userId: string, publicId: string | null) {
+        try {
+            const response: AxiosResponse = await axios.put(`/api/v1/user/${userId}/profile-picture`, {
+                image: publicId ? { publicId } : null
+            });
+
+            return response.status == 200;
+        } catch {
+            return false;
+        }
+    }
+
     public async createUser(user: UserDto) {
         try {
             const response: AxiosResponse = await axios({

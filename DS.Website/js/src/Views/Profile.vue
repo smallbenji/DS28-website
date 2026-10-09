@@ -34,6 +34,35 @@
 
                     <div class="card">
                         <header class="card-header">
+                            <p class="card-header-title">Profilbillede</p>
+                        </header>
+                        <div class="card-content">
+                            <div class="is-flex is-align-items-center">
+                                <figure class="profile-picture">
+                                    <img v-if="Me.profilePicture" :src="Me.profilePicture.url" alt="Profilbillede" />
+                                    <BIcon v-else icon="user" size="is-large" />
+                                </figure>
+                                <div class="ml-4">
+                                    <div class="buttons">
+                                        <BUpload v-model="selectedPicture" accept="image/*"
+                                            :disabled="isUpdatingPicture">
+                                            <BButton tag="a" type="is-primary" :loading="isUpdatingPicture">
+                                                {{ Me.profilePicture ? 'Vælg nyt billede' : 'Vælg billede' }}
+                                            </BButton>
+                                        </BUpload>
+                                        <BButton v-if="Me.profilePicture" type="is-danger is-light"
+                                            :disabled="isUpdatingPicture" @click="removePicture">
+                                            Fjern
+                                        </BButton>
+                                    </div>
+                                    <p class="help">Billedet beskæres kvadratisk og gemmes som WebP.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <header class="card-header">
                             <p class="card-header-title">Skift adgangskode</p>
                         </header>
                         <div class="card-content">
@@ -188,12 +217,13 @@
 <script lang="ts" setup>
 import { useAccountStore } from '@/Stores/AccountStore';
 import { useMeStore } from '@/Stores/MeStore';
-import { BButton, BField, BInput, BModal, useToast, BTable, BTableColumn, BCheckbox } from 'buefy';
-import { computed, onMounted, ref } from 'vue';
+import { BButton, BField, BIcon, BInput, BModal, BUpload, useToast, BTable, BTableColumn, BCheckbox } from 'buefy';
+import { computed, onMounted, ref, watch } from 'vue';
 import { storeToRefs } from 'pinia';
 import TwoFactorSetupModal from '@/Components/Account/TwoFactorSetupModal.vue';
 import RecoveryCodesModal from '@/Components/Account/RecoveryCodesModal.vue';
 import NotificationService from '@/Services/NotificationService';
+import FileService from '@/Services/FileService';
 import type { NotificationPreferenceDto, PasskeyDto } from '@/types';
 import { formatDate } from '@/lib/util';
 
@@ -201,6 +231,7 @@ const Toast = useToast();
 const accountStore = useAccountStore();
 const meStore = useMeStore();
 const notificationService = new NotificationService();
+const fileService = new FileService();
 const { Status } = storeToRefs(accountStore);
 const { Me } = storeToRefs(meStore);
 
@@ -233,6 +264,62 @@ const isDisabling = ref(false);
 
 const showReset = ref(false);
 const isResetting = ref(false);
+
+const selectedPicture = ref<File | null>(null);
+const isUpdatingPicture = ref(false);
+
+const updatePicture = async (file: File) => {
+    selectedPicture.value = null;
+    isUpdatingPicture.value = true;
+
+    try {
+        const uploaded = await fileService.uploadProfilePicture(file);
+        const ready = await fileService.waitUntilReady(uploaded.publicId);
+
+        if (!ready) {
+            Toast.open({
+                message: 'Billedet kunne ikke behandles. Prøv igen.',
+                type: 'is-danger'
+            });
+            return;
+        }
+
+        const ok = await meStore.UPDATE_PROFILE_PICTURE(uploaded.publicId);
+        Toast.open({
+            message: ok
+                ? 'Dit profilbillede er blevet opdateret!'
+                : 'Der skete en fejl under opdatering af dit profilbillede',
+            type: ok ? 'is-success' : 'is-danger'
+        });
+    } catch {
+        Toast.open({
+            message: 'Der skete en fejl under upload af billedet',
+            type: 'is-danger'
+        });
+    } finally {
+        isUpdatingPicture.value = false;
+    }
+};
+
+const removePicture = async () => {
+    isUpdatingPicture.value = true;
+
+    try {
+        const ok = await meStore.UPDATE_PROFILE_PICTURE(null);
+        Toast.open({
+            message: ok
+                ? 'Dit profilbillede er blevet fjernet!'
+                : 'Der skete en fejl under fjernelse af dit profilbillede',
+            type: ok ? 'is-success' : 'is-danger'
+        });
+    } finally {
+        isUpdatingPicture.value = false;
+    }
+};
+
+watch(selectedPicture, (file) => {
+    if (file) updatePicture(file);
+});
 
 onMounted(() => {
     accountStore.GET_STATUS();
@@ -482,5 +569,23 @@ const reset = async () => {
     flex: 1;
     min-height: 0;
     overflow-y: auto;
+}
+
+.profile-picture {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 96px;
+    height: 96px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    overflow: hidden;
+    background-color: hsl(0, 0%, 93%);
+
+    img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
 }
 </style>

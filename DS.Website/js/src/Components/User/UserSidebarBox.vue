@@ -1,23 +1,27 @@
 <template>
     <div class="user-sidebar-box" :class="{active: selected}">
-        <div class="user-sidebar-box-name">
-            <span>{{ user.firstName }} {{ user.lastName }}</span>
-            <span v-if="isLocked" class="tag is-warning user-sidebar-box-locked">
-                Låst
-            </span>
-        </div>
-        <div class="user-sidebar-box-role-pills">
-            <span v-for="role in user.roles" :key="role" class="tag is-dark">
-                {{ role }}
-            </span>
-        </div>
-        <div class="user-sidebar-box-group-info" v-if="user.group?.name">
-            {{ user.group.name }}
+        <UserAvatar :user="user" size="small" />
+        <div class="user-sidebar-box-content">
+            <div class="user-sidebar-box-name">
+                <span>{{ user.firstName }} {{ user.lastName }}</span>
+                <span v-if="isLocked" class="tag is-warning user-sidebar-box-locked">
+                    Låst
+                </span>
+            </div>
+            <div class="user-sidebar-box-role-pills">
+                <span v-for="role in user.roles" :key="role" class="tag is-dark">
+                    {{ role }}
+                </span>
+            </div>
+            <div class="user-sidebar-box-group-info" v-if="user.group?.name">
+                {{ user.group.name }}
+            </div>
         </div>
     </div>
 </template>
 <script lang="ts" setup>
 import { computed } from 'vue';
+import UserAvatar from '@/Components/User/UserAvatar.vue';
 import type { UserDto } from '@/types';
 
 const props = defineProps<{
@@ -32,11 +36,19 @@ const isLocked = computed(() => {
 </script>
 <style lang="scss">
 .user-sidebar-box {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
     border: 1px solid rgba(0, 0, 0, 0.1);
     padding: 1rem 1.2rem;
     border-radius: 10px;
     margin-bottom: 1rem;
     cursor: pointer;
+
+    &-content {
+        flex: 1;
+        min-width: 0;
+    }
 
     &-name {
         font-weight: 600;

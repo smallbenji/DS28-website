@@ -1,3 +1,4 @@
+import type { ImageReferenceDto } from "./file.types";
 import type { PasskeyDto } from "./passkeys.types";
 
 export interface MeDto {
@@ -11,4 +12,5 @@ export interface MeDto {
   roles: string[];
   appRoles: string[];
   passkeys: PasskeyDto[]
+  profilePicture: ImageReferenceDto | null;
 }

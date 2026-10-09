@@ -15,5 +15,6 @@ namespace DS.DTOs
         public bool MustEnableTwoFactor { get; set; }
 
         public List<PasskeyDto> Passkeys { get; set;} = [];
+        public ImageReferenceDto ProfilePicture { get; set; }
     }
 }

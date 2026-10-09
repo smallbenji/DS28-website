@@ -113,7 +113,8 @@ namespace DS.Website.Controllers
 
             if (data == null || string.IsNullOrWhiteSpace(data.Name)) return BadRequest("Invalid request body.");
 
-            await activityRepository.UpdateActivityAsync(activityId, data);
+            var userId = userManager.GetUserId(User);
+            if (!await activityRepository.UpdateActivityAsync(activityId, data, userId)) return BadRequest("Billedet findes ikke.");
 
             return Ok();
         }

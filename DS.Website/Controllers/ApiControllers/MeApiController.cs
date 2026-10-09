@@ -28,6 +28,14 @@ namespace DS.Website.Controllers
             var appRoles = AppAccess.ResolveAppRoles(roles);
             var passkeys = (await userManager.GetPasskeysAsync(user)).ToDtoList();
 
+            var profilePicture = user.ProfilePictureFileId.HasValue
+                ? await dataDb.StoredFiles
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(f => f.Id == user.ProfilePictureFileId.Value
+                        && f.Status == StoredFileStatus.Ready
+                        && f.DeletedAt == null)
+                : null;
+
             var model = new MeDto
             {
                 IsAuthenticated = HttpContext.User.Identity.IsAuthenticated,
@@ -42,7 +50,8 @@ namespace DS.Website.Controllers
                 ) && !user.TwoFactorEnabled,
                 Roles = roles,
                 AppRoles = appRoles,
-                Passkeys = passkeys
+                Passkeys = passkeys,
+                ProfilePicture = profilePicture != null ? new ImageReferenceDto(profilePicture) : null
             };
 
             return Ok(model);
@@ -62,6 +71,40 @@ namespace DS.Website.Controllers
             if (!result.Succeeded) return BadRequest(result.Errors);
 
             return Ok();
+        }
+
+        [HttpPut("profile-picture")]
+        public async Task<IActionResult> UpdateProfilePicture([FromBody] UpdateProfilePictureDto data)
+        {
+            if (data == null) return BadRequest("Invalid request body.");
+
+            var user = await userManager.GetUserAsync(HttpContext.User);
+            if (user == null) return NotFound();
+
+            if (data.Image == null)
+            {
+                user.ProfilePictureFileId = null;
+
+                var clearResult = await userManager.UpdateAsync(user);
+                if (!clearResult.Succeeded) return BadRequest(clearResult.Errors);
+
+                return Ok();
+            }
+
+            var image = await dataDb.StoredFiles
+                .FirstOrDefaultAsync(f => f.PublicId == data.Image.PublicId
+                    && f.Purpose == FilePurpose.ProfilePicture
+                    && f.Status == StoredFileStatus.Ready
+                    && f.DeletedAt == null
+                    && f.UploadedByUserId == user.Id);
+            if (image == null) return BadRequest("Billedet findes ikke.");
+
+            user.ProfilePictureFileId = image.Id;
+
+            var result = await userManager.UpdateAsync(user);
+            if (!result.Succeeded) return BadRequest(result.Errors);
+
+            return Ok(new ImageReferenceDto(image));
         }
 
         [HttpGet("notifications")]

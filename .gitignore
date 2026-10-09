@@ -295,6 +295,8 @@ DS.Website/certs/
 
 # Custom
 .env
+files
+DS.Website/files
 
 dist
 node_modules

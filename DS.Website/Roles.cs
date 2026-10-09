@@ -20,6 +20,7 @@ namespace DS.Website
         UsersLock,
         UsersDelete,
         UsersResetPassword,
+        UsersEditProfilePicture,
 
         GroupsView,
         GroupsCreate,
@@ -49,6 +50,7 @@ namespace DS.Website
                     nameof(AppRoles.UsersLock),
                     nameof(AppRoles.UsersDelete),
                     nameof(AppRoles.UsersResetPassword),
+                    nameof(AppRoles.UsersEditProfilePicture),
 
                     nameof(AppRoles.GroupsView),
                     nameof(AppRoles.GroupsCreate),

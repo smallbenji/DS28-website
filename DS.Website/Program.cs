@@ -160,6 +160,8 @@ builder.Services.AddTransient<CampSettings>();
 builder.Services.AddTransient<EmailService>();
 builder.Services.AddTransient<MailJobs>();
 builder.Services.AddTransient<OpenIddictJobs>();
+builder.Services.AddTransient<FileProcessingJobs>();
+builder.Services.AddSingleton<IFileStorage, LocalFileStorage>();
 builder.Services.AddHangfire(config => config.UsePostgreSqlStorage(
     storage => storage.UseNpgsqlConnection(dssettings.ConnectionString),
     new PostgreSqlStorageOptions

@@ -66,6 +66,9 @@ public class CatalogData
     public int ActivityId { get; set; }
     public Activity Activity { get; set; }
 
+    public int? ImageFileId { get; set; }
+    public StoredFile ImageFile { get; set; }
+
     public List<ActivityCategory> Categories { get; set; }
 }
 

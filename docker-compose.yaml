@@ -11,8 +11,10 @@ services:
       - .env
     environment:
       DataProtection__KeysPath: /app/keys
+      DS__FileStoragePath: /app/files
     volumes:
       - dp-keys:/app/keys
+      - files:/app/files
       - ../certs:/app/certs:ro
     labels:
       - traefik.enable=true
@@ -39,3 +41,4 @@ networks:
 
 volumes:
   dp-keys:
+  files:

@@ -89,6 +89,7 @@ erDiagram
         text summary
         text description
         int activity_id FK "CASCADE, UNIQUE"
+        int image_file_id FK "SET NULL"
     }
 
     activity_category {
@@ -141,6 +142,26 @@ erDiagram
         timestamptz deleted_at
     }
 
+    stored_file {
+        int id PK
+        uuid public_id UK
+        text original_name
+        text content_type
+        bigint size_bytes
+        varchar sha256
+        int width
+        int height
+        text storage_key
+        varchar status "Pending | Processing | Ready | Failed"
+        text error
+        varchar purpose "CatalogImage | ProfilePicture"
+        bool is_public
+        text uploaded_by_user_id FK "SET NULL"
+        timestamptz created_at
+        timestamptz updated_at
+        timestamptz deleted_at
+    }
+
     scout_group ||--o{ scout : "har medlemmer"
     scout_group ||--o{ patrol : "har patruljer"
     scout_group ||--o| group_pre_signup : "har forudtilmelding"
@@ -160,6 +181,7 @@ erDiagram
     catalog_data ||--o{ catalog_data_category : "kategoriseres af"
     activity_category ||--o{ catalog_data_category : "indeholder"
     material ||--o{ material_order : "bestilles i"
+    catalog_data ||--o| stored_file : "har billede"
 ```
 
 ## Brugere og roller
@@ -186,6 +208,7 @@ erDiagram
         text last_name
         int group_id FK "RESTRICT"
         bool has_enabled_authenticator
+        int profile_picture_file_id FK "SET NULL"
     }
 
     asp_net_roles {
@@ -249,6 +272,8 @@ erDiagram
     asp_net_users ||--o{ activity_team_membership : "er medlem af"
     asp_net_users ||--o{ user_invitation : "oprettes via"
     asp_net_users ||--o{ user_notification_preference : "abonnerer på"
+    asp_net_users ||--o| stored_file : "har profilbillede"
+    asp_net_users ||--o{ stored_file : "uploader"
 ```
 
 ## Drift og invitationer
@@ -473,7 +498,17 @@ mindst syv dage gamle. Det er ren dataoprydning uden skemaændring.
 ## Bemærkninger
 
 - Soft delete via `deleted_at` på `scout_group`, `scout`, `activity_team`,
-  `activity`, `material` og `material_order`.
+  `activity`, `material`, `material_order` og `stored_file`.
+- `stored_file.status` styres af konverteringsjobbet: `Pending` ved upload,
+  `Processing` under konvertering, `Ready` når WebP-filen er skrevet, og
+  `Failed` med fejltekst i `error` hvis den fejler. `storage_key` er først sat
+  når rækken er `Ready`; den midlertidige fil ligger under en `pending/`-nøgle
+  og slettes efter konvertering. `public_id` er det ugættelige id, som
+  offentlige katalogbilleder betjenes på.
+- `catalog_data.image_file_id` og `asp_net_users.profile_picture_file_id` har
+  `ON DELETE SET NULL`, så en slettet `stored_file` frigør referencen uden at
+  slette aktiviteten eller brugeren. `stored_file.uploaded_by_user_id` har
+  samme regel.
 - Migration `006a_relax_legacy_nullable.sql` gør flere kolonner nullable,
   bl.a. `scout_group.name`, `scout.name` og `activity.name`.
 - `scout_activity_timeslot` findes i databasen, men har ingen tilsvarende

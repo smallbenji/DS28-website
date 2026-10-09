@@ -49,5 +49,10 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
             .IsRequired()
             .HasDefaultValueSql("FALSE")
             .HasSentinel(false);
+
+        builder.HasOne(x => x.ProfilePicture)
+            .WithMany()
+            .HasForeignKey(x => x.ProfilePictureFileId)
+            .OnDelete(DeleteBehavior.SetNull);
     }
 }

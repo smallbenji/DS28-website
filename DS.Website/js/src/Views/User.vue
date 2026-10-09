@@ -29,9 +29,12 @@
             </button>
             <section class="hero is-link">
                 <div class="hero-body is-flex is-justify-content-space-between is-align-items-center">
-                    <div>
-                        <p class="title is-3">{{ selectedUser?.firstName }} {{ selectedUser?.lastName }}</p>
-                        <p class="subtitle is-6">{{ selectedUser?.id }}</p>
+                    <div class="is-flex is-align-items-center">
+                        <UserAvatar v-if="selectedUser" :user="selectedUser" size="large" class="mr-4" />
+                        <div>
+                            <p class="title is-3">{{ selectedUser?.firstName }} {{ selectedUser?.lastName }}</p>
+                            <p class="subtitle is-6">{{ selectedUser?.id }}</p>
+                        </div>
                     </div>
                     <div>
                         <div class="buttons">
@@ -68,6 +71,7 @@ import UserRoles from '@/Components/User/UserRoles.vue';
 import UserCreateUser from '@/Components/User/UserCreateUser.vue';
 import UserInviteUser from '@/Components/User/UserInviteUser.vue';
 import UserMetadata from '@/Components/User/UserMetadata.vue';
+import UserAvatar from '@/Components/User/UserAvatar.vue';
 import UserResetPasswordButton from '@/Components/User/UserResetPasswordButton.vue';
 import Sidebar from '@/Components/Sidebar/Sidebar.vue';
 import SidebarHeader from '@/Components/Sidebar/SidebarHeader.vue';

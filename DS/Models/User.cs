@@ -20,6 +20,9 @@ public class User : IdentityUser
 
     public bool HasEnabledAuthenticator { get; set; }
 
+    public int? ProfilePictureFileId { get; set; }
+    public StoredFile ProfilePicture { get; set; }
+
     public string GetFullName()
     {
         return string.Join(" ", FirstName, LastName);

@@ -185,6 +185,77 @@ hidtil ligger på `/camp-settings`.
   så aktiviteter kan starte igen næste morgen.
 - Den første udskrift af materialelister tager udgangspunkt i dag 1.
 
+### Filopbevaring
+
+**Beslutning 2026-10-09:** Der indføres et generelt fil-lager til billeder.
+Katalogbilleder (aktivitetsbilleder) er **offentlige** og betjenes uden login via
+et ugætteligt `public_id`. **Profilbilleder** er **bag login**. Billeder
+konverteres **kun** til WebP; originalfilen gemmes ikke efter konverteringen.
+Profilbilleder centercroppes til **1:1**. Konverteringen sker asynkront i et
+**Hangfire-job** (`FileProcessingJobs.ConvertToWebp`), ikke synkront under
+upload, så et stort eller langsomt billede ikke blokerer API-kaldet.
+
+Upload gemmer den rå fil midlertidigt, opretter rækken i `stored_file` med
+`status = 'Pending'` og enqueuer et konverteringsjob. Jobbet læser den
+midlertidige fil, retter EXIF-orientering, centercropper ved profilformål,
+skalerer til maks. 2000 px, fjerner metadata og koder WebP (kvalitet 80).
+Derefter opdateres rækken til `Ready` med `width`, `height`, `size_bytes`,
+`sha256` og `storage_key`, og den midlertidige fil slettes. Fejler jobbet,
+sættes `status = 'Failed'` med fejlteksten og Hangfire genprøver
+(30/120/300 s, 3 forsøg).
+
+Lagringen er **lokal disk** via et Docker-volume (`files` → `/app/files`,
+`DS__FileStoragePath`) indtil videre. `IFileStorage` abstraherer gem/hent/slet,
+så en senere S3-implementering kan indsættes uden at ændre kaldstederne.
+Metadata (ejer, størrelse, mål, hash, oprindeligt navn, formål) ligger i
+`stored_file`; selve filerne ligger på disken under nøgler, der ikke kan pege
+uden for lagerroden.
+
+Billedbiblioteket er **SkiaSharp** (MIT, licensfri). ImageSharp blev fravalgt,
+fordi 3.x/4.x kræver en licensnøgle for Release-builds, hvilket ville bryde
+containerbygget uden en registreret nøgle.
+
+Endpoints under `/api/v1/files`: `POST /{purpose}` (multipart, `catalog` eller
+`profile`), `GET /public/{publicId}` (anonym, kun offentlige og `Ready`),
+`GET /{publicId}` (login), `DELETE /{id}` (uploader eller systemadministrator).
+
+Et uploadet billede refereres med `ImageReferenceDto` (`public_id` + `url`). I
+`ActivityDto` bæres referencen af `CatalogDataDto.Image`, og ved opdatering af
+en aktivitet sættes `catalog_data.image_file_id`, når billedet findes, er
+`Ready`, har formålet `CatalogImage` og er uploadet af samme bruger. `PUT
+/api/v1/me/profile-picture` sætter på samme måde
+`asp_net_users.profile_picture_file_id` (billedet skal være `ProfilePicture`,
+`Ready` og uploadet af brugeren selv); et `null`-billede rydder feltet.
+`MeDto.ProfilePicture` returnerer den aktuelle reference. Personalet kan rette
+en anden brugers billede via `PUT /api/v1/user/{id}/profile-picture`, som kræver
+den særskilte `AppRoles.UsersEditProfilePicture` (kun tildelt SysAdmin): samme
+validering, men det uploadede billede skal være uploadet af den handlede bruger,
+eftersom uploaderen er den, der knytter billedet til. `UsersView` alene giver
+altså kun visning, ikke ret til at ændre billedet.
+
+Frontend: `Profile.vue` har et Buefy-uploadfelt til profilbilledet. Filen
+uploades til `/api/v1/files/profile`, der ventes på, at baggrundsjobbet sætter
+den til `Ready` (ved at polle den private fil-URL), og referencen knyttes
+efterfølgende via `PUT /api/v1/me/profile-picture`. Billedet vises som en rund
+avatar, og et "Fjern"-knap kalder samme endpoint med `null`. Profilbilledet
+vises også i brugeradministrationen: `GET /api/v1/user` leverer `UserDto` med
+`ProfilePicture`, og `UserAvatar.vue` tegner det i listen
+(`UserSidebarBox.vue`) og i detaljevisningen (`User.vue`), med initialer som
+fallback når der ikke er noget billede. `UserMetadata.vue` har desuden et
+uploadfelt (gated med `<Can role="UsersEditProfilePicture">`), der sætter den
+valgte brugers billede med det samme via `PUT /api/v1/user/{id}/profile-picture`.
+
+Ubesluttede punkter:
+- Et katalogbillede kan endnu ikke ryddes via aktivitetsopdateringen: sendes
+  `Image` ikke, bevares det eksisterende billede.
+- Hvem må uploade katalogbilleder? I dag følger upload blot login, og koblingen
+  kræver kun, at uploaderen er den samme bruger.
+- Skal sletning nægtes, så længe et billede er i brug af en aktivitet eller
+  profil?
+- Der er endnu ingen frontend til katalogbilleder (kun profilbilleder), og
+  `waitUntilReady` i `FileService` poller fil-endpointet, fordi der ikke findes
+  et status-endpoint.
+
 ### Dataudtræk
 
 Planen under Økonomi nævner eksport af deltagerantal pr. dag og pr. gruppe, men

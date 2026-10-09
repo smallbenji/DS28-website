@@ -73,6 +73,15 @@ export const useUserStore = defineStore("user", () => {
         return data;
     }
 
+    async function UPDATE_USER_PROFILE_PICTURE(userId: string, publicId: string | null) {
+        var data = await userService.updateUserProfilePicture(userId, publicId);
+
+        if (data)
+            GET_USERS();
+
+        return data;
+    }
+
     async function DELETE_USER(user: UserDto) {
         var data = await userService.deleteUser(user);
 
@@ -111,6 +120,6 @@ export const useUserStore = defineStore("user", () => {
     return {
         Users, Groups, AssignableGroups,
         USERS, GROUPS, ASSIGNABLE_GROUPS,
-        GET_USERS, GET_GROUPS, GET_ASSIGNABLE_GROUPS, UPDATE_USER, DELETE_USER, LOCK_USER, UNLOCK_USER, CREATE_USER, REMOVE_USER_FROM_ROLE, ADD_USER_TO_ROLE, INVITE_USER, CREATE_RESET_PASSWORD_LINK
+        GET_USERS, GET_GROUPS, GET_ASSIGNABLE_GROUPS, UPDATE_USER, UPDATE_USER_PROFILE_PICTURE, DELETE_USER, LOCK_USER, UNLOCK_USER, CREATE_USER, REMOVE_USER_FROM_ROLE, ADD_USER_TO_ROLE, INVITE_USER, CREATE_RESET_PASSWORD_LINK
     }
 });

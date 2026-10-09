@@ -29,6 +29,8 @@ public class DataDbContext : IdentityDbContext<User, Role, string>
     public DbSet<Material> Materials { get; set; }
     public DbSet<MaterialOrder> MaterialOrders { get; set; }
 
+    public DbSet<StoredFile> StoredFiles { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);

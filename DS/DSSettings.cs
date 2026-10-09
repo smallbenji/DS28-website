@@ -15,5 +15,7 @@ namespace DS
         public string PublicBaseUrl { get; set; }
         public string InternalApiKey { get; set; }
         public bool NotificationsEnabled { get; set; }
+        public string FileStoragePath { get; set; }
+        public long MaxUploadBytes { get; set; } = 10 * 1024 * 1024;
     }
 }

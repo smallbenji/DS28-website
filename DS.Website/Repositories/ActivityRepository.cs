@@ -15,6 +15,7 @@ namespace DS.Website.Repositories
                 .SelectMany(m => m.ActivityTeam.Activities)
                 .Include(a => a.Budget)
                 .Include(a => a.Catalog)
+                    .ThenInclude(c => c.ImageFile)
                 .ToListAsync();
         }
 
@@ -54,10 +55,11 @@ namespace DS.Website.Repositories
                 .AsNoTracking()
                 .Include(a => a.Budget)
                 .Include(a => a.Catalog)
+                    .ThenInclude(c => c.ImageFile)
                 .FirstOrDefaultAsync(a => a.Id == activityId);
         }
 
-        public async Task UpdateActivityAsync(int activityId, ActivityDto data)
+        public async Task<bool> UpdateActivityAsync(int activityId, ActivityDto data, string userId)
         {
             var activity = await dataDb.Activities
                 .Include(a => a.Budget)
@@ -66,7 +68,7 @@ namespace DS.Website.Repositories
 
             if (activity == null)
             {
-                return;
+                return false;
             }
 
             activity.Name = data.Name;
@@ -79,9 +81,23 @@ namespace DS.Website.Repositories
                 activity.Catalog.Name = data.Catalog.Name;
                 activity.Catalog.Summary = data.Catalog.Summary;
                 activity.Catalog.Description = data.Catalog.Description;
+
+                if (data.Catalog.Image != null)
+                {
+                    var image = await dataDb.StoredFiles
+                        .FirstOrDefaultAsync(f => f.PublicId == data.Catalog.Image.PublicId
+                            && f.Purpose == FilePurpose.CatalogImage
+                            && f.Status == StoredFileStatus.Ready
+                            && f.DeletedAt == null
+                            && f.UploadedByUserId == userId);
+                    if (image == null) return false;
+
+                    activity.Catalog.ImageFileId = image.Id;
+                }
             }
 
             await dataDb.SaveChangesAsync();
+            return true;
         }
 
         public async Task AddTeamAsync(string name, string userId)

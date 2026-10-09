@@ -30,12 +30,14 @@ namespace DS.DTOs
             Name = model.Name;
             Summary = model.Summary;
             Description = model.Description;
+            Image = model.ImageFile != null ? new ImageReferenceDto(model.ImageFile) : null;
         }
 
         public int Id { get; set; }
         public string Name { get; set; }
         public string Summary { get; set; }
         public string Description { get; set; }
+        public ImageReferenceDto Image { get; set; }
     }
 
     public class ActivityTeamDto

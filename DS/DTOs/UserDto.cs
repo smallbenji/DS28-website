@@ -15,6 +15,11 @@ namespace DS.DTOs
             LastName = user.LastName ?? string.Empty;
             Group = user.Group != null ? new GroupDto(user.Group) : null;
             LockoutEnd = user.LockoutEnd;
+            ProfilePicture = user.ProfilePicture != null
+                && user.ProfilePicture.Status == StoredFileStatus.Ready
+                && user.ProfilePicture.DeletedAt == null
+                ? new ImageReferenceDto(user.ProfilePicture)
+                : null;
         }
 
         public string Id { get; set; }
@@ -25,6 +30,7 @@ namespace DS.DTOs
         public string Phone { get; set; }
         public GroupDto Group { get; set; }
         public DateTimeOffset? LockoutEnd { get; set; }
+        public ImageReferenceDto ProfilePicture { get; set; }
         public List<string> Roles { get; set; } = [];
 
         public void ApplyTo(User user)

@@ -21,6 +21,7 @@ namespace DS.Website.Controllers
                 .OrderBy(user => user.FirstName)
                 .ThenBy(user => user.LastName)
                 .Include(x => x.Group)
+                .Include(x => x.ProfilePicture)
                 .ToListAsync();
 
             var retval = new List<UserDto>();
@@ -88,6 +89,43 @@ namespace DS.Website.Controllers
             if (!result.Succeeded) return BadRequest(result.Errors);
 
             return Ok();
+        }
+
+        [HttpPut("{id}/profile-picture")]
+        [Authorize(Roles = nameof(AppRoles.UsersEditProfilePicture))]
+        public async Task<IActionResult> UpdateProfilePicture(string id, [FromBody] UpdateProfilePictureDto data)
+        {
+            if (data == null) return BadRequest("Invalid request body.");
+
+            var user = await userManager.FindByIdAsync(id);
+            if (user == null) return NotFound();
+
+            if (data.Image == null)
+            {
+                user.ProfilePictureFileId = null;
+
+                var clearResult = await userManager.UpdateAsync(user);
+                if (!clearResult.Succeeded) return BadRequest(clearResult.Errors);
+
+                return Ok();
+            }
+
+            var currentUserId = userManager.GetUserId(User);
+
+            var image = await dataDb.StoredFiles
+                .FirstOrDefaultAsync(f => f.PublicId == data.Image.PublicId
+                    && f.Purpose == FilePurpose.ProfilePicture
+                    && f.Status == StoredFileStatus.Ready
+                    && f.DeletedAt == null
+                    && f.UploadedByUserId == currentUserId);
+            if (image == null) return BadRequest("Billedet findes ikke.");
+
+            user.ProfilePictureFileId = image.Id;
+
+            var result = await userManager.UpdateAsync(user);
+            if (!result.Succeeded) return BadRequest(result.Errors);
+
+            return Ok(new ImageReferenceDto(image));
         }
 
         [HttpPut("{id}/role/add")]

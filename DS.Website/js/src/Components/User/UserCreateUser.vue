@@ -67,7 +67,8 @@ const createNewUser = () => {
         email: "",
     roles: [],
     group: null,
-    lockoutEnd: null
+    lockoutEnd: null,
+    profilePicture: null
   } as UserDto;
 };
 

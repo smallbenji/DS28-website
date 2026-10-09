@@ -2,6 +2,20 @@ import type { AxiosResponse } from "axios";
 import axios from "axios";
 import type { HomeViewModelDto, MeDto } from "@/types";
 
+const emptyMe: MeDto = {
+    id: "",
+    name: "",
+    firstName: "",
+    lastName: "",
+    mustEnableTwoFactor: false,
+    roles: [],
+    appRoles: [],
+    isAuthenticated: false,
+    passkeys: [],
+    phone: "",
+    profilePicture: null
+};
+
 export default class MeService {
     public async getMe(): Promise<MeDto> {
         try {
@@ -10,9 +24,23 @@ export default class MeService {
                 method: "GET"
             });
 
-            return response.data ? response.data : {id: "", name: "", firstName: "", lastName: "", mustEnableTwoFactor: false, roles: [], appRoles: [], isAuthenticated: false, passkeys: [], phone: ""};
+            return response.data ? response.data : { ...emptyMe };
         } catch {
-            return { id: "", name: "", firstName: "", lastName: "", mustEnableTwoFactor: false, roles: [], appRoles: [], isAuthenticated: false, passkeys: [], phone: "" };
+            return { ...emptyMe };
+        }
+    }
+
+    public async updateProfilePicture(publicId: string | null): Promise<boolean> {
+        try {
+            const response: AxiosResponse = await axios({
+                url: "/api/v1/me/profile-picture",
+                method: "PUT",
+                data: { image: publicId ? { publicId } : null }
+            });
+
+            return response.status === 200;
+        } catch {
+            return false;
         }
     }
 

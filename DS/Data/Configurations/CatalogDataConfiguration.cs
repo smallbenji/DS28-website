@@ -41,5 +41,10 @@ public class CatalogDataConfiguration : IEntityTypeConfiguration<CatalogData>
 
         builder.Property(x => x.ActivityId)
             .IsRequired();
+
+        builder.HasOne(x => x.ImageFile)
+            .WithMany()
+            .HasForeignKey(x => x.ImageFileId)
+            .OnDelete(DeleteBehavior.SetNull);
     }
 }

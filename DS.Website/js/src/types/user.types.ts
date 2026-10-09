@@ -1,3 +1,4 @@
+import type { ImageReferenceDto } from "./file.types";
 import type { GroupDto } from "./group.types";
 
 export interface UserDto {
@@ -10,4 +11,5 @@ export interface UserDto {
     roles: string[];
     group: GroupDto | null;
     lockoutEnd: string | null;
+    profilePicture: ImageReferenceDto | null;
 }

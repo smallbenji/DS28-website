@@ -3,6 +3,7 @@ export * from './activity.types';
 export * from './admin.types';
 export * from './auth.types';
 export * from './export.types';
+export * from './file.types';
 export * from './group.types';
 export * from './groups.types';
 export * from './home.types';

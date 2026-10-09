@@ -16,6 +16,7 @@ export const useMeStore = defineStore("me", () => {
     appRoles: [],
     isAuthenticated: false,
     passkeys: [],
+    profilePicture: null,
   });
   const ME = computed(() => Me.value);
   const Hq = ref<HomeViewModelDto>({ shortcuts: [] });
@@ -33,6 +34,12 @@ export const useMeStore = defineStore("me", () => {
     return data;
   }
 
+  async function UPDATE_PROFILE_PICTURE(publicId: string | null) {
+    const ok = await meService.updateProfilePicture(publicId);
+    if (ok) await GET_ME();
+    return ok;
+  }
+
   return {
     Me,
     Hq,
@@ -40,5 +47,6 @@ export const useMeStore = defineStore("me", () => {
     HQ,
     GET_ME,
     GET_HQ,
+    UPDATE_PROFILE_PICTURE,
   }
 });
