@@ -1,3 +1,4 @@
+using DS.Data;
 using DS.Models;
 using Hangfire;
 using Microsoft.Extensions.Options;
@@ -5,7 +6,7 @@ using MimeKit;
 
 namespace DS.Website.Services
 {
-    public class EmailService(IOptions<DSSettings> options, IBackgroundJobClient backgroundJobs, ILogger<EmailService> logger)
+    public class EmailService(IOptions<DSSettings> options, IBackgroundJobClient backgroundJobs, DataDbContext dataDb, ILogger<EmailService> logger)
     {
         public void QueueInvitationMail(UserInvitation invitation)
         {
@@ -24,6 +25,32 @@ For at komme i gang skal du oprette en bruger ved brug af følgende link:
 Mvh. DS28 teamet";
 
             Enqueue(new MailboxAddress("", invitation.Email), subject, body);
+        }
+
+        public void QueueNewUserNotificationMail(User user)
+        {
+            var subject = "Ny bruger oprettet i DS28";
+
+            var body =
+@$"Der er oprettet en ny bruger i DS28.
+
+Navn: {user.GetFullName()}
+E-mail: {user.Email}
+Brugernavn: {user.UserName}
+
+Mvh. DS28 teamet";
+
+            var recipients = dataDb.NotificationPreferences
+                .Where(p => p.NotificationType == NotificationType.NewUser)
+                .Select(p => p.User.Email)
+                .Where(email => email != null)
+                .Distinct()
+                .ToList();
+
+            foreach (var recipient in recipients)
+            {
+                Enqueue(new MailboxAddress("", recipient), subject, body);
+            }
         }
 
         public void QueueResetPasswordMail(User user, string token)

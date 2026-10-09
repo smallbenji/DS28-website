@@ -9,6 +9,7 @@ public class DataDbContext : IdentityDbContext<User, Role, string>
     public DataDbContext(DbContextOptions<DataDbContext> options) : base(options) { }
 
     public DbSet<UserInvitation> Invitations { get; set; }
+    public DbSet<UserNotificationPreference> NotificationPreferences { get; set; }
     public DbSet<RegistrationSettings> RegistrationSettings { get; set; }
     public DbSet<Group> Groups { get; set; }
     public DbSet<Patrol> Patrols { get; set; }

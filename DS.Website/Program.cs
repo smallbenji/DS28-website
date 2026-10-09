@@ -72,6 +72,7 @@ builder.Services
         options.Stores.SchemaVersion = IdentitySchemaVersions.Version3;
     })
     .AddEntityFrameworkStores<DataDbContext>()
+    .AddUserManager<NotificationUserManager>()
     .AddDefaultTokenProviders();
 
 builder.Services.AddOpenIddict()

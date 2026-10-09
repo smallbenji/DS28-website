@@ -111,10 +111,25 @@ applikationen ingen steder sletter udløbne tokens i dag. Jobbet er en udvidelse
 af Hangfire-beslutningen 2026-10-06, ikke en overskrivelse, og det kræver ingen
 skemaændring.
 
+**Beslutning 2026-10-09:** Brugere kan selv tilvælge notifikationer i
+`Profile.vue`, og valgene gemmes pr. bruger i `user_notification_preference`
+(`user_id` + `notification_type`). Hvilke typer en bruger må tilvælge er
+rollegated: mappingen ligger i `NotificationPermissions`, og `GET`/`PUT`
+`/api/v1/me/notifications` markerer kun tilladte typer med
+`canSubscribe = true`. Den første og eneste type er `NewUser`, som kræver
+app-rollen `UsersView` (SysAdmin og CampAdmin). Afsendelsen sker centralt i
+`NotificationUserManager`, en `UserManager<User>`-subklasse der overskriver
+`CreateAsync(User)`, så alle oprettelsesveje fanges — selvbetjening,
+admin-oprettelse, invitation, gruppe-invitation og gruppe-forhåndstilmelding.
+Efter et vellykket kald enqueuer `EmailService.QueueNewUserNotificationMail`
+en mail til hver bruger med præferencen slået til. Den tidligere faste
+modtager `DS__NewUserNotificationEmail` er dermed fjernet. Som de øvrige mails
+gate'er `NotificationsEnabled` på enqueue-trinnet.
+
 Ubesluttede punkter:
-- Notifikationer skal kun sendes til brugere der har bedt om den pågældende
-  hændelsestype. Præferencer er endnu ikke implementeret, og der findes ingen
-  afmeldingsmulighed endnu.
+- Præferencevalget er kun implementeret for `NewUser`. Flere hændelsestyper og
+  tilhørende rollegating er ikke fastlagt. Afmelding sker ved at fjerne krydset
+  i profilen; der findes ingen separat afmeldingsmulighed.
 
 ### Adminområde
 

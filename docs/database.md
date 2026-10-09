@@ -234,6 +234,11 @@ erDiagram
         text claim_value
     }
 
+    user_notification_preference {
+        text user_id PK,FK "CASCADE"
+        varchar notification_type PK
+    }
+
     asp_net_users ||--o{ asp_net_user_roles : "har roller"
     asp_net_roles ||--o{ asp_net_user_roles : "tildeles"
     asp_net_users ||--o{ asp_net_user_claims : "har claims"
@@ -243,6 +248,7 @@ erDiagram
     asp_net_roles ||--o{ asp_net_role_claims : "har claims"
     asp_net_users ||--o{ activity_team_membership : "er medlem af"
     asp_net_users ||--o{ user_invitation : "oprettes via"
+    asp_net_users ||--o{ user_notification_preference : "abonnerer på"
 ```
 
 ## Drift og invitationer

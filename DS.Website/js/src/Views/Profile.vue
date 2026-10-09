@@ -52,6 +52,23 @@
                         </div>
                     </div>
 
+                    <div v-if="hasNotificationOptions" class="card">
+                        <header class="card-header">
+                            <p class="card-header-title">Notifikationer</p>
+                        </header>
+                        <div class="card-content">
+                            <BField v-for="notification in notifications" :key="notification.type">
+                                <BCheckbox v-model="notification.subscribed"
+                                    :disabled="!notification.canSubscribe">
+                                    {{ notificationLabels[notification.type] ?? notification.type }}
+                                </BCheckbox>
+                            </BField>
+                            <BButton type="is-primary" :loading="isUpdatingNotifications" @click="updateNotifications">
+                                Gem notifikationer
+                            </BButton>
+                        </div>
+                    </div>
+
                     <div class="card">
                         <header class="card-header">
                             <p class="card-header-title">Tofaktorautentificering</p>
@@ -171,19 +188,29 @@
 <script lang="ts" setup>
 import { useAccountStore } from '@/Stores/AccountStore';
 import { useMeStore } from '@/Stores/MeStore';
-import { BButton, BField, BInput, BModal, useToast, BTable, BTableColumn } from 'buefy';
-import { onMounted, ref } from 'vue';
+import { BButton, BField, BInput, BModal, useToast, BTable, BTableColumn, BCheckbox } from 'buefy';
+import { computed, onMounted, ref } from 'vue';
 import { storeToRefs } from 'pinia';
 import TwoFactorSetupModal from '@/Components/Account/TwoFactorSetupModal.vue';
 import RecoveryCodesModal from '@/Components/Account/RecoveryCodesModal.vue';
-import type { PasskeyDto } from '@/types';
+import NotificationService from '@/Services/NotificationService';
+import type { NotificationPreferenceDto, PasskeyDto } from '@/types';
 import { formatDate } from '@/lib/util';
 
 const Toast = useToast();
 const accountStore = useAccountStore();
 const meStore = useMeStore();
+const notificationService = new NotificationService();
 const { Status } = storeToRefs(accountStore);
 const { Me } = storeToRefs(meStore);
+
+const notificationLabels: Record<string, string> = {
+    NewUser: 'Ny bruger oprettet'
+};
+
+const notifications = ref<NotificationPreferenceDto[]>([]);
+const isUpdatingNotifications = ref(false);
+const hasNotificationOptions = computed(() => notifications.value.some((notification) => notification.canSubscribe));
 
 const firstName = ref('');
 const lastName = ref('');
@@ -213,7 +240,40 @@ onMounted(() => {
     lastName.value = Me.value.lastName ?? '';
     phone.value = Me.value.phone ?? '';
     passkeys.value = Me.value.passkeys;
+    loadNotifications();
 });
+
+const loadNotifications = async () => {
+    try {
+        notifications.value = await notificationService.getPreferences();
+    } catch {
+        notifications.value = [];
+    }
+};
+
+const updateNotifications = async () => {
+    isUpdatingNotifications.value = true;
+
+    try {
+        const types = notifications.value
+            .filter((notification) => notification.subscribed && notification.canSubscribe)
+            .map((notification) => notification.type);
+
+        await notificationService.updatePreferences(types);
+
+        Toast.open({
+            message: 'Dine notifikationer er blevet opdateret!',
+            type: 'is-success'
+        });
+    } catch {
+        Toast.open({
+            message: 'Der skete en fejl under opdatering af dine notifikationer',
+            type: 'is-danger'
+        });
+    } finally {
+        isUpdatingNotifications.value = false;
+    }
+};
 
 const updateName = async () => {
     if (!firstName.value.trim() || !lastName.value.trim()) {
