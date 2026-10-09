@@ -2,12 +2,14 @@
 import { computed } from 'vue';
 import { useRoute } from 'vue-router';
 import Back from '@/Components/Back.vue';
+import SearchMenu from '@/Components/SearchMenu.vue';
 
 const route = useRoute();
 const showBack = computed(() => !!route.meta.pageTitle);
 </script>
 
 <template>
+    <SearchMenu />
     <template v-if="showBack">
         <Back />
         <router-view />
