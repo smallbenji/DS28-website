@@ -93,6 +93,8 @@ namespace DS.Website
             {
                 AppGroups.EventAdmin,
                 [
+                    nameof(AppRoles.ActivityView),
+                    nameof(AppRoles.ActivityAdmin),
                     nameof(AppRoles.WordPressEditor),
                 ]
             },
