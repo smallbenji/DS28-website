@@ -100,6 +100,17 @@ nu også invitationer og nulstilling. Beslutningen overskriver outbox-,
 synkron-send- og kø-delen af beslutningerne 2026-09-29 og 2026-10-06
 (samme dag); Hangfire som kø-teknologi og dashboardet består.
 
+**Beslutning 2026-10-07:** Hangfire bruges også til planlagt drift: et
+daglig recurring-job `prune-openiddict` (`OpenIddictJobs.Prune`, 03:00 UTC)
+kalder OpenIddicts `PruneAsync` og fjerner ugyldige eller udløbne rækker fra
+`open_iddict_tokens` og `open_iddict_authorizations`. Threshold er syv dage:
+rækker der er mindst syv dage gamle slettes først, hvilket både holder
+tabellerne små og bevarer et vindue hvor genbrug af et kasseret refresh-token
+kan opdages. Uden dette vokser `open_iddict_*`-tabellerne uendeligt, da
+applikationen ingen steder sletter udløbne tokens i dag. Jobbet er en udvidelse
+af Hangfire-beslutningen 2026-10-06, ikke en overskrivelse, og det kræver ingen
+skemaændring.
+
 Ubesluttede punkter:
 - Notifikationer skal kun sendes til brugere der har bedt om den pågældende
   hændelsestype. Præferencer er endnu ikke implementeret, og der findes ingen

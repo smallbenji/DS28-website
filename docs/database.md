@@ -459,6 +459,11 @@ enqueuees direkte med modtager, emne og tekst som job-argumenter i
 `hangfire.job.arguments`. Fejlede mails ligger som Failed-jobs i
 dashboardet med exception og kan genkøes manuelt.
 
+Derudover registreres et recurring-job `prune-openiddict` (dagligt 03:00 UTC)
+i `hangfire.set`, som kalder OpenIddicts `PruneAsync` og sletter ugyldige eller
+udløbne rækker i `open_iddict_tokens` og `open_iddict_authorizations` der er
+mindst syv dage gamle. Det er ren dataoprydning uden skemaændring.
+
 ## Bemærkninger
 
 - Soft delete via `deleted_at` på `scout_group`, `scout`, `activity_team`,

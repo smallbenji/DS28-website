@@ -158,6 +158,7 @@ builder.Services.AddTransient<ActivityRepository>();
 builder.Services.AddTransient<CampSettings>();
 builder.Services.AddTransient<EmailService>();
 builder.Services.AddTransient<MailJobs>();
+builder.Services.AddTransient<OpenIddictJobs>();
 builder.Services.AddHangfire(config => config.UsePostgreSqlStorage(
     storage => storage.UseNpgsqlConnection(dssettings.ConnectionString),
     new PostgreSqlStorageOptions
@@ -166,6 +167,7 @@ builder.Services.AddHangfire(config => config.UsePostgreSqlStorage(
         PrepareSchemaIfNecessary = false,
     }));
 builder.Services.AddHangfireServer(options => options.WorkerCount = 5);
+builder.Services.AddHostedService<RecurringJobRegistrar>();
 builder.Services.AddScoped<DataExport, GroupPreSignupExport>();
 
 var app = builder.Build();
