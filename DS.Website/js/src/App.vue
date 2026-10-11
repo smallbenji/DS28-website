@@ -34,12 +34,13 @@ const showBack = computed(() => !!route.meta.pageTitle);
     margin: auto;
     margin-top: 1rem;
 
-    @media (max-width: 768px) {
+    @media (max-width: 1024px) {
         margin-left: 1rem;
         margin-right: 1rem;
         display: flex;
         flex-direction: column;
-        height: 100%;
+        flex: 1;
+        min-height: 0;
         overflow-y: auto;
     }
 }
@@ -55,9 +56,23 @@ const showBack = computed(() => !!route.meta.pageTitle);
     text-decoration: none;
     color: black;
 
-    @media (max-width: 768px) {
+    @media (max-width: 1024px) {
         height: auto;
         padding: 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+
+        &::after {
+            content: "";
+            width: 0.6rem;
+            height: 0.6rem;
+            border-top: 2px solid hsl(0, 0%, 48%);
+            border-right: 2px solid hsl(0, 0%, 48%);
+            transform: rotate(45deg);
+            flex-shrink: 0;
+        }
     }
 
     div {
@@ -68,10 +83,13 @@ const showBack = computed(() => !!route.meta.pageTitle);
         gap: 0.5rem;
         height: 100%;
 
-        @media (max-width: 768px) {
+        @media (max-width: 1024px) {
+            flex: 1;
             flex-direction: row;
-            width: 100%;
-            justify-content: space-between;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 0.75rem;
+            height: auto;
         }
 
         svg {

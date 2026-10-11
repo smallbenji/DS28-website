@@ -34,3 +34,45 @@ const isExternal = (url: string) => {
     return /^https?:\/\//i.test(url);
 };
 </script>
+
+<style scoped>
+@media (max-width: 1024px) {
+    .grid {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .link-box {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex: 0 0 auto;
+        gap: 1rem;
+        height: auto;
+        min-height: 4.5rem;
+        padding: 1rem;
+        border-radius: 10px;
+    }
+
+    .link-box > div {
+        flex: 1;
+        min-width: 0;
+        height: auto;
+        flex-direction: row;
+        justify-content: flex-start;
+        gap: 0.75rem;
+    }
+
+    .link-box svg {
+        flex: 0 0 2rem;
+        width: 2rem;
+        font-size: 28px;
+    }
+
+    .link-box p {
+        text-align: left;
+        overflow-wrap: anywhere;
+    }
+}
+</style>
