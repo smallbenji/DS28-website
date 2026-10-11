@@ -6,7 +6,7 @@ namespace DS.Website
     {
         public bool Authorize(DashboardContext context)
         {
-            return context.GetHttpContext().User?.IsInRole(nameof(AppRoles.AdminAccess)) == true;
+            return context.GetHttpContext().User?.IsInRole(nameof(AppRoles.HangfireView)) == true;
         }
     }
 }

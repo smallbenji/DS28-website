@@ -71,7 +71,7 @@ namespace DS.Website.Controllers
                             Url = "/hangfire",
                             Icon = ["fa", "h"],
                             Mvc = true,
-                            RequiredRole = nameof(AppRoles.AdminAccess)
+                            RequiredRole = nameof(AppRoles.HangfireView)
                         }
                     ]
                 }
