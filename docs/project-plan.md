@@ -245,6 +245,16 @@ fallback når der ikke er noget billede. `UserMetadata.vue` har desuden et
 uploadfelt (gated med `<Can role="UsersEditProfilePicture">`), der sætter den
 valgte brugers billede med det samme via `PUT /api/v1/user/{id}/profile-picture`.
 
+Headerens brugermenu (`Back.vue`/`UserMenuTrigger.vue`) viser nu profilbilledet,
+navnet og brugerens gruppetitel i stedet for mailen. Titlen afledes i
+`AppAccess.ResolveGroupTitle` af den første matchende gruppe i
+`AppGroups`-enumets rækkefølge (SysAdmin, CampAdmin, EventAdmin, ActivityAdmin,
+ActivityUser, FinanceAdmin, PRAdmin, FoodAdmin, User), og hver gruppe har en
+dansk visningstitel i `AppAccess.GetGroupTitle` (fx CampAdmin = "Lejrchef",
+ActivityUser = "Aktivitets-teammedlem", User = "Deltager"). `MeDto.Title`
+leverer titlen til frontend. Enum-rækkefølgen er bevidst den prioriterede
+rækkefølge: en bruger med flere grupper ser titlen for den første i rækkefølgen.
+
 Ubesluttede punkter:
 - Et katalogbillede kan endnu ikke ryddes via aktivitetsopdateringen: sendes
   `Image` ikke, bevares det eksisterende billede.

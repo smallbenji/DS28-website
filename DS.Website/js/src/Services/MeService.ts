@@ -7,6 +7,7 @@ const emptyMe: MeDto = {
     name: "",
     firstName: "",
     lastName: "",
+    title: "",
     mustEnableTwoFactor: false,
     roles: [],
     appRoles: [],
@@ -36,6 +37,20 @@ export default class MeService {
                 url: "/api/v1/me/profile-picture",
                 method: "PUT",
                 data: { image: publicId ? { publicId } : null }
+            });
+
+            return response.status === 200;
+        } catch {
+            return false;
+        }
+    }
+
+    public async updatePhone(phone: string): Promise<boolean> {
+        try {
+            const response: AxiosResponse = await axios({
+                url: "/api/v1/me/phone",
+                method: "PUT",
+                data: { phone }
             });
 
             return response.status === 200;

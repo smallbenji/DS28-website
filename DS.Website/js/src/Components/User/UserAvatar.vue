@@ -6,10 +6,14 @@
 </template>
 <script lang="ts" setup>
 import { computed } from 'vue';
-import type { UserDto } from '@/types';
+import type { ImageReferenceDto } from '@/types';
 
 const props = withDefaults(defineProps<{
-    user: UserDto;
+    user: {
+        firstName?: string;
+        lastName?: string;
+        profilePicture?: ImageReferenceDto | null;
+    };
     size?: 'small' | 'medium' | 'large';
 }>(), {
     size: 'medium'

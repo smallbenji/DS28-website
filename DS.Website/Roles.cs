@@ -36,6 +36,8 @@ namespace DS.Website
 
         WordPressEditor,
         WordPressAdmin,
+
+        HangfireView,
     }
 
     public static class AppAccess
@@ -65,6 +67,8 @@ namespace DS.Website
                     nameof(AppRoles.AuditLogView),
                     nameof(AppRoles.ExportsView),
                     nameof(AppRoles.AdminAccess),
+
+                    nameof(AppRoles.HangfireView),
                 ]
             },
             {
@@ -176,6 +180,36 @@ namespace DS.Website
                         : [])
                 .Distinct()
                 .ToList();
+        }
+
+        public static string GetGroupTitle(AppGroups group)
+        {
+            return group switch
+            {
+                AppGroups.SysAdmin => "Systemadministrator",
+                AppGroups.CampAdmin => "Lejrchef",
+                AppGroups.EventAdmin => "Arrangementsansvarlig",
+                AppGroups.ActivityAdmin => "Aktivitetsansvarlig",
+                AppGroups.ActivityUser => "Aktivitets-teammedlem",
+                AppGroups.FinanceAdmin => "Kasserer",
+                AppGroups.PRAdmin => "PR-ansvarlig",
+                AppGroups.FoodAdmin => "Madansvarlig",
+                AppGroups.User => "Deltager",
+                _ => string.Empty,
+            };
+        }
+
+        public static string ResolveGroupTitle(IEnumerable<string> roleNames)
+        {
+            foreach (var group in Enum.GetValues<AppGroups>())
+            {
+                if (roleNames.Contains(group.ToString()))
+                {
+                    return GetGroupTitle(group);
+                }
+            }
+
+            return string.Empty;
         }
     }
 

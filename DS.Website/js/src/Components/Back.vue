@@ -19,21 +19,11 @@
                 position="is-bottom-left"
             >
                 <template #trigger>
-                    <b-button
-                        :label="ME.name"
-                        size="is-small"
-                        icon-right="angle-down"
-                    />
+                    <UserMenuTrigger />
                 </template>
-                <b-dropdown-item>
-                    {{ ME.name }}
-                </b-dropdown-item>
-                <hr class="dropdown-divider" />
-                <b-dropdown-item>
-                    <router-link to="/profile" class="has-text-dark">
-                        <b-icon pack="fas" icon="user" size="is-small" />
-                        Min profil
-                    </router-link>
+                <b-dropdown-item @click="goToProfile">
+                    <b-icon pack="fas" icon="user" size="is-small" />
+                    Min profil
                 </b-dropdown-item>
                 <hr class="dropdown-divider" />
                 <b-dropdown-item custom>
@@ -50,15 +40,11 @@
     </div>
 </template>
 <script lang="ts" setup>
-import { useMeStore } from '@/Stores/MeStore';
 import { BButton, BDropdown, BDropdownItem } from 'buefy';
 import { computed } from 'vue';
-import { storeToRefs } from 'pinia';
 import { useRoute, useRouter } from 'vue-router';
 import AuthService from '@/Services/AuthService';
-
-const meStore = useMeStore();
-const { ME } = storeToRefs(meStore);
+import UserMenuTrigger from '@/Components/User/UserMenuTrigger.vue';
 
 const authService = new AuthService();
 
@@ -76,6 +62,10 @@ function goBack() {
     } else {
         router.push('/');
     }
+}
+
+function goToProfile() {
+    router.push('/profile');
 }
 
 

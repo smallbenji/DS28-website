@@ -43,6 +43,7 @@ namespace DS.Website.Controllers
                 Name = user.GetFullName(),
                 FirstName = user.FirstName ?? string.Empty,
                 LastName = user.LastName ?? string.Empty,
+                Title = AppAccess.ResolveGroupTitle(roles),
                 Phone = user.PhoneNumber ?? string.Empty,
                 MustEnableTwoFactor = await userManager.IsInRoleAsync(
                     user,

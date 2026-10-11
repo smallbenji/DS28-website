@@ -10,6 +10,7 @@ export const useMeStore = defineStore("me", () => {
     id: "",
     firstName: "",
     lastName: "",
+    title: "",
     phone: "",
     mustEnableTwoFactor: false,
     roles: [],
@@ -40,6 +41,12 @@ export const useMeStore = defineStore("me", () => {
     return ok;
   }
 
+  async function UPDATE_PHONE(phone: string) {
+    const ok = await meService.updatePhone(phone);
+    if (ok) await GET_ME();
+    return ok;
+  }
+
   return {
     Me,
     Hq,
@@ -48,5 +55,6 @@ export const useMeStore = defineStore("me", () => {
     GET_ME,
     GET_HQ,
     UPDATE_PROFILE_PICTURE,
+    UPDATE_PHONE,
   }
 });
