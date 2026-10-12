@@ -182,7 +182,7 @@ onMounted(load);
 }
 
 .org-chart :deep(.b-sidebar) {
-    --bulma-sidebar-width: 28rem;
+    --bulma-sidebar-width: 20rem;
 }
 
 .org-tree-viewport {
