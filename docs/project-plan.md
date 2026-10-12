@@ -221,11 +221,13 @@ Model (implementeret):
 | `user_invitation` | nyt `org_position_id` (nullable) |
 
 Adgang opløses **dynamisk**: effektive grupper = direkte tildelte Identity-roller
-∪ `AppGroups` fra alle stillinger brugeren beklæder. Opløsningen sker i
-`ClaimsTransformer` og `AppClaimsPrincipalFactory`; en ændring af en stillings
-grupper slår dermed straks igennem for alle indehavere, og
-`user-roles:{id}`-cachen skal ryddes for de berørte brugere. Direkte
-rolletildeling via `UserApiController` består uændret.
+∪ `AppGroups` fra alle stillinger brugeren beklæder. Beklæder brugeren en
+personlig assistent-stilling, arves desuden `AppGroups` fra den stilling,
+assistenten er knyttet til (`pa_for_position_id`). Opløsningen sker i
+`ClaimsTransformer` og `AppClaimsPrincipalFactory` via `OrgPositionAccess`; en
+ændring af en stillings grupper slår dermed straks igennem for alle indehavere,
+inkl. dens personlige assistent, og `user-roles:{id}`-cachen skal ryddes for de
+berørte brugere. Direkte rolletildeling via `UserApiController` består uændret.
 
 Autoritet følger træet: at beklæde en stilling giver ret til at oprette
 børnestillinger under den og til at invitere eller tildele i det undertræ.
@@ -234,7 +236,8 @@ Rodstillinger (`parent_position_id` er null) oprettes kun af SysAdmin.
 **Invariant:** ingen må tildele flere rettigheder, end man selv besidder — med
 SysAdmin som undtagelse. Når en ikke-SysAdmin sætter en stillings `AppGroups`
 eller inviterer til en stilling, skal de tildelte grupper være en delmængde af
-ens egne effektive grupper (direkte roller ∪ egne stillinger). Det forhindrer, at
+ens egne effektive grupper (direkte roller ∪ egne stillinger, inkl. arvede
+grupper via en personlig assistent). Det forhindrer, at
 en indehaver eskalerer ved at oprette et barn med flere rettigheder og invitere
 sig selv, og spejler `CanAssignRole`. En SysAdmin kan derimod give en stilling
 vilkårlige `AppGroups`, også flere end forældrestillingen har; stillinger er
@@ -265,6 +268,9 @@ Implementeringsnoter (2026-10-12):
   understillinger, kan ikke ændres eller flyttes, og slettes sammen med
   ejerstillingen (`ON DELETE CASCADE`). Den kan dog give invitationer og
   beklædes af brugere.
+- Assistenten arver ejerstillingens `AppGroups` i sin effektive adgang. Når en
+  stilling får ændret sine grupper, ryddes derfor også rolle-cachen for dens
+  personlige assistents indehavere.
 - Stillinger kan farves med en fast palette (hex-værdi på `org_position.color`).
   Farven vises som en lys baggrundstone på kortet og vælges i draweren eller
   ved oprettelse. Personlige assistenter har ingen egen farve, men arver

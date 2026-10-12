@@ -35,12 +35,7 @@ public class AppClaimsPrincipalFactory : UserClaimsPrincipalFactory<User, Role>
 
         var userRoles = (await UserManager.GetRolesAsync(user)).ToList();
 
-        var positionGroups = await dataDb.OrgPositionHolders
-            .Where(holder => holder.UserId == user.Id && holder.Position.DeletedAt == null)
-            .SelectMany(holder => holder.Position.Groups)
-            .Select(group => group.GroupName)
-            .Distinct()
-            .ToListAsync();
+        var positionGroups = await OrgPositionAccess.GetEffectiveGroups(dataDb, user.Id).ToListAsync();
 
         foreach (var group in positionGroups)
         {

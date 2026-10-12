@@ -301,12 +301,7 @@ namespace DS.Website.Controllers
 
             var direct = (await userManager.GetRolesAsync(user)).ToList();
 
-            var fromPositions = await dataDb.OrgPositionHolders
-                .Where(holder => holder.UserId == user.Id && holder.Position.DeletedAt == null)
-                .SelectMany(holder => holder.Position.Groups)
-                .Select(group => group.GroupName)
-                .Distinct()
-                .ToListAsync();
+            var fromPositions = await OrgPositionAccess.GetEffectiveGroups(dataDb, user.Id).ToListAsync();
 
             return direct.Concat(fromPositions).Distinct().ToList();
         }
@@ -394,8 +389,10 @@ namespace DS.Website.Controllers
         private async Task EvictHoldersAsync(int positionId)
         {
             var userIds = await dataDb.OrgPositionHolders
-                .Where(holder => holder.PositionId == positionId)
+                .Where(holder => holder.PositionId == positionId
+                    || holder.Position.PaForPositionId == positionId)
                 .Select(holder => holder.UserId)
+                .Distinct()
                 .ToListAsync();
 
             foreach (var userId in userIds)

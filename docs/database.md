@@ -554,7 +554,8 @@ mindst syv dage gamle. Det er ren dataoprydning uden skemaændring.
   Migration `011_org_positions.sql` seeder systemstillingen
   "Systemadministrator" med gruppen `SysAdmin`; den er beskyttet i koden.
   Stillingernes grupper kopieres ikke til `asp_net_user_roles`: effektiv adgang
-  opløses dynamisk som Identity-roller ∪ stillingernes grupper.
+  opløses dynamisk som Identity-roller ∪ stillingernes grupper, hvor en
+  personlig assistent også arver grupperne fra den stilling, den er knyttet til.
   `user_invitation.org_position_id` peger på den stilling en invitation gælder.
   Sletning af en stilling sker som hård sletning; `org_position_group`,
   `org_position_holder` og stillingens personlige assistent ryddes via
@@ -562,7 +563,8 @@ mindst syv dage gamle. Det er ren dataoprydning uden skemaændring.
 - `org_position.pa_for_position_id` (nullable, unik) knytter en "Personlig
   assistent"-stilling til dens ejerstilling. Stillinger med
   `pa_for_position_id` sat har ingen understillinger og kan ikke ændres eller
-  flyttes; de er oprettet med gruppen `PersonalAssistant`. Unikt index
+  flyttes; de er oprettet med gruppen `PersonalAssistant` og arver desuden
+  ejerstillingens grupper i den effektive adgang. Unikt index
   `uq_org_position_pa_for_position_id` sikrer maksimalt én assistent pr.
   stilling.
 - `ix_org_position_deleted_at` er et partielt index over ikke-slettede

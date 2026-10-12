@@ -89,12 +89,7 @@ public class ClaimsTransformer(
 
         var userRoles = (await userManager.GetRolesAsync(user)).ToList();
 
-        var positionGroups = await dataDb.OrgPositionHolders
-            .Where(holder => holder.UserId == userId && holder.Position.DeletedAt == null)
-            .SelectMany(holder => holder.Position.Groups)
-            .Select(group => group.GroupName)
-            .Distinct()
-            .ToListAsync();
+        var positionGroups = await OrgPositionAccess.GetEffectiveGroups(dataDb, userId).ToListAsync();
 
         userRoles = userRoles.Concat(positionGroups).Distinct().ToList();
 
