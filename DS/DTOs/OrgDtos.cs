@@ -5,6 +5,7 @@ namespace DS.DTOs
         public int Id { get; set; }
         public string Title { get; set; }
         public int? ParentPositionId { get; set; }
+        public int? PaForPositionId { get; set; }
         public bool IsSystem { get; set; }
         public List<string> Groups { get; set; } = [];
         public List<OrgPositionHolderDto> Holders { get; set; } = [];

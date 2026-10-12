@@ -31,6 +31,14 @@ public class OrgPositionConfiguration : IEntityTypeConfiguration<OrgPosition>
 
         builder.HasIndex(x => x.ParentPositionId);
 
+        builder.HasOne(x => x.PaForPosition)
+            .WithMany()
+            .HasForeignKey(x => x.PaForPositionId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasIndex(x => x.PaForPositionId)
+            .IsUnique();
+
         builder.Property(x => x.CreatedAt)
             .IsRequired()
             .HasDefaultValueSql("NOW()");

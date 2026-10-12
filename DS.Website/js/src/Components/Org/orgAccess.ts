@@ -8,10 +8,12 @@ export function canManagePosition(
 ): boolean {
     if (isSysAdmin) return true;
     if (position.isSystem) return false;
-    if (position.parentPositionId === null) return false;
 
-    const parent = positions.find((candidate) => candidate.id === position.parentPositionId);
-    return parent?.holders.some((holder) => holder.userId === currentUserId) ?? false;
+    const managedPositionId = position.paForPositionId ?? position.parentPositionId;
+    if (managedPositionId === null) return false;
+
+    const manager = positions.find((candidate) => candidate.id === managedPositionId);
+    return manager?.holders.some((holder) => holder.userId === currentUserId) ?? false;
 }
 
 export function canCreateChild(

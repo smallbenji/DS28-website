@@ -10,6 +10,7 @@ namespace DS.Website
         FinanceAdmin,
         PRAdmin,
         FoodAdmin,
+        PersonalAssistant,
         User,
     }
 
@@ -149,6 +150,12 @@ namespace DS.Website
                 ]
             },
             {
+                AppGroups.PersonalAssistant,
+                [
+                    nameof(AppRoles.OrgView)
+                ]
+            },
+            {
                 AppGroups.User,
                 [
                     // nameof(AppRoles.UsersView)
@@ -169,6 +176,7 @@ namespace DS.Website
                     AppGroups.FinanceAdmin,
                     AppGroups.PRAdmin,
                     AppGroups.FoodAdmin,
+                    AppGroups.PersonalAssistant,
                     AppGroups.User,
                 ]
             },
@@ -181,6 +189,7 @@ namespace DS.Website
                     AppGroups.FinanceAdmin,
                     AppGroups.PRAdmin,
                     AppGroups.FoodAdmin,
+                    AppGroups.PersonalAssistant,
                     AppGroups.User,
                 ]
             },
@@ -218,6 +227,7 @@ namespace DS.Website
                 AppGroups.FinanceAdmin => "Kasserer",
                 AppGroups.PRAdmin => "PR-ansvarlig",
                 AppGroups.FoodAdmin => "Madansvarlig",
+                AppGroups.PersonalAssistant => "Personlig assistent",
                 AppGroups.User => "Deltager",
                 _ => string.Empty,
             };

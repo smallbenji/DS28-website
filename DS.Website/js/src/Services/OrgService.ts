@@ -53,6 +53,18 @@ export default class OrgService {
         }
     }
 
+    public async createPa(id: number): Promise<boolean> {
+        try {
+            await axios({
+                url: `/api/v1/org/${id}/pa`,
+                method: "POST"
+            });
+            return true;
+        } catch {
+            return false;
+        }
+    }
+
     public async movePosition(id: number, parentPositionId: number | null): Promise<boolean> {
         try {
             await axios({

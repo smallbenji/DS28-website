@@ -96,8 +96,19 @@ const selectedPosition = computed(
 );
 
 const roots = computed<OrgNodeModel[]>(() => {
+    const paByOwner = new Map<number, OrgPositionDto>();
+    positions.value.forEach((position) => {
+        if (position.paForPositionId !== null) paByOwner.set(position.paForPositionId, position);
+    });
+
     const map = new Map<number, OrgNodeModel>();
-    positions.value.forEach((position) => map.set(position.id, { position, children: [] }));
+    positions.value
+        .filter((position) => position.paForPositionId === null)
+        .forEach((position) => map.set(position.id, {
+            position,
+            pa: paByOwner.get(position.id) ?? null,
+            children: []
+        }));
 
     const result: OrgNodeModel[] = [];
     map.forEach((node) => {

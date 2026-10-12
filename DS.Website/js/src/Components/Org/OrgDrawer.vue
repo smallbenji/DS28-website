@@ -68,7 +68,12 @@
                 </div>
             </section>
 
-            <section v-if="canManage" class="org-drawer-section">
+            <section v-if="canManage && !isPa && !hasPa" class="org-drawer-section">
+                <h3 class="org-drawer-heading">Personlig assistent</h3>
+                <BButton size="is-small" :loading="loading" @click="addPa">Tilføj personlig assistent</BButton>
+            </section>
+
+            <section v-if="canManage && !isPa" class="org-drawer-section">
                 <h3 class="org-drawer-heading">Flyt</h3>
                 <div class="org-drawer-add">
                     <BSelect v-model="moveParentId" expanded>
@@ -81,7 +86,7 @@
                 </div>
             </section>
 
-            <section v-if="canCreateChild" class="org-drawer-section">
+            <section v-if="canCreateChild && !isPa" class="org-drawer-section">
                 <h3 class="org-drawer-heading">Ny understilling</h3>
                 <BField label="Titel">
                     <BInput v-model="createChildTitle" placeholder="Fx Økonomiansvarlig" />
@@ -96,8 +101,10 @@
                 <BButton size="is-small" :loading="loading" @click="createChild">Opret</BButton>
             </section>
 
-            <section v-if="canManage && !position.isSystem" class="org-drawer-section">
-                <BButton size="is-small" type="is-danger" @click="confirmDelete">Slet stilling</BButton>
+            <section v-if="canManage && (isPa || !position.isSystem)" class="org-drawer-section">
+                <BButton size="is-small" type="is-danger" @click="confirmDelete">
+                    {{ isPa ? 'Slet personlig assistent' : 'Slet stilling' }}
+                </BButton>
             </section>
         </div>
     </BSidebar>
@@ -150,7 +157,11 @@ const canManage = computed(
     () => position.value !== null && canManagePosition(position.value, props.positions, props.currentUserId, props.isSysAdmin)
 );
 
-const canEdit = computed(() => canManage.value && position.value !== null && !position.value.isSystem);
+const canEdit = computed(() => canManage.value && position.value !== null && !position.value.isSystem && position.value.paForPositionId === null);
+const isPa = computed(() => position.value?.paForPositionId != null);
+const hasPa = computed(
+    () => position.value !== null && props.positions.some((candidate) => candidate.paForPositionId === position.value!.id)
+);
 const canCreateChild = computed(
     () => position.value !== null && canCreateChildPosition(position.value, props.currentUserId, props.isSysAdmin)
 );
@@ -185,7 +196,9 @@ const descendantIds = computed(() => {
 const moveCandidates = computed(() => {
     const positionId = position.value?.id;
     return props.positions
-        .filter((candidate) => candidate.id !== positionId && !descendantIds.value.has(candidate.id))
+        .filter((candidate) => candidate.id !== positionId
+            && candidate.paForPositionId === null
+            && !descendantIds.value.has(candidate.id))
         .sort((a, b) => a.title.localeCompare(b.title));
 });
 
@@ -220,6 +233,18 @@ async function saveEdit() {
             groups: editGroups.value
         });
         if (report(success, success ? 'Stilling opdateret.' : 'Kunne ikke opdatere stillingen.')) {
+            emit('refresh');
+        }
+    } finally {
+        loading.value = false;
+    }
+}
+
+async function addPa() {
+    loading.value = true;
+    try {
+        const success = await service.createPa(position.value!.id);
+        if (report(success, success ? 'Personlig assistent tilføjet.' : 'Kunne ikke tilføje den personlige assistent.')) {
             emit('refresh');
         }
     } finally {
@@ -302,7 +327,7 @@ async function createChild() {
 
 function confirmDelete() {
     Dialog.open({
-        title: 'Slet stilling',
+        title: isPa.value ? 'Slet personlig assistent' : 'Slet stilling',
         message: `Slet "${position.value!.title}"?`,
         confirmText: 'Slet',
         type: 'is-danger',

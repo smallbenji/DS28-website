@@ -4,6 +4,7 @@ export interface OrgPositionDto {
     id: number;
     title: string;
     parentPositionId: number | null;
+    paForPositionId: number | null;
     isSystem: boolean;
     groups: string[];
     holders: OrgPositionHolderDto[];
@@ -32,6 +33,7 @@ export interface OrgPositionMoveDto {
 
 export interface OrgNodeModel {
     position: OrgPositionDto;
+    pa: OrgPositionDto | null;
     children: OrgNodeModel[];
 }
 
@@ -44,6 +46,7 @@ export const groupTitleLabels: Record<string, string> = {
     FinanceAdmin: 'Kasserer',
     PRAdmin: 'PR-ansvarlig',
     FoodAdmin: 'Madansvarlig',
+    PersonalAssistant: 'Personlig assistent',
     User: 'Deltager'
 };
 

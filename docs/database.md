@@ -310,6 +310,7 @@ erDiagram
         int id PK
         varchar title
         int parent_position_id FK "RESTRICT, self"
+        int pa_for_position_id FK "CASCADE, self, unik pr. stilling"
         bool is_system
         timestamptz created_at
         timestamptz updated_at
@@ -330,6 +331,7 @@ erDiagram
     org_position ||--o{ org_position_holder : "beklædes af"
     asp_net_users ||--o{ org_position_holder : "beklæder"
     org_position ||--o{ org_position : "har understillinger"
+    org_position ||--o| org_position : "er PA for"
     org_position ||--o{ user_invitation : "inviterer til"
 ```
 
@@ -553,5 +555,12 @@ mindst syv dage gamle. Det er ren dataoprydning uden skemaændring.
   Stillingernes grupper kopieres ikke til `asp_net_user_roles`: effektiv adgang
   opløses dynamisk som Identity-roller ∪ stillingernes grupper.
   `user_invitation.org_position_id` peger på den stilling en invitation gælder.
-  Sletning af en stilling sker som hård sletning; `org_position_group` og
-  `org_position_holder` ryddes via `ON DELETE CASCADE`.
+  Sletning af en stilling sker som hård sletning; `org_position_group`,
+  `org_position_holder` og stillingens personlige assistent ryddes via
+  `ON DELETE CASCADE`.
+- `org_position.pa_for_position_id` (nullable, unik) knytter en "Personlig
+  assistent"-stilling til dens ejerstilling. Stillinger med
+  `pa_for_position_id` sat har ingen understillinger og kan ikke ændres eller
+  flyttes; de er oprettet med gruppen `PersonalAssistant`. Unikt index
+  `uq_org_position_pa_for_position_id` sikrer maksimalt én assistent pr.
+  stilling.

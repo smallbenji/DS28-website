@@ -1,34 +1,59 @@
 <template>
     <li class="org-node">
-        <div
-            class="org-card"
-            :class="{ 'is-system': node.position.isSystem }"
-            role="button"
-            tabindex="0"
-            @click="emit('select', node.position.id)"
-            @keydown.enter.prevent="emit('select', node.position.id)"
-            @keydown.space.prevent="emit('select', node.position.id)"
-        >
-            <div class="org-card-head">
-                <span class="org-title">{{ node.position.title }}</span>
+        <div class="org-node-body">
+            <div
+                class="org-card"
+                :class="{ 'is-system': node.position.isSystem }"
+                role="button"
+                tabindex="0"
+                @click="emit('select', node.position.id)"
+                @keydown.enter.prevent="emit('select', node.position.id)"
+                @keydown.space.prevent="emit('select', node.position.id)"
+            >
+                <div class="org-card-head">
+                    <span class="org-title">{{ node.position.title }}</span>
+                </div>
+
+                <b-taglist v-if="node.position.groups.length" class="org-groups">
+                    <b-tag v-for="group in node.position.groups" :key="group" size="is-small">
+                        {{ groupTitle(group) }}
+                    </b-tag>
+                </b-taglist>
+
+                <ul v-if="node.position.holders.length" class="org-holders">
+                    <li v-for="holder in node.position.holders" :key="holder.userId" class="org-holder">
+                        <span class="org-holder-avatar">
+                            <img v-if="holder.profilePicture" :src="holder.profilePicture.url" :alt="holder.name" />
+                            <span v-else>{{ initials(holder.name) }}</span>
+                        </span>
+                        <span class="org-holder-name">{{ holder.name }}</span>
+                    </li>
+                </ul>
+                <p v-else class="org-empty">Ingen tilknyttet</p>
             </div>
 
-            <b-taglist v-if="node.position.groups.length" class="org-groups">
-                <b-tag v-for="group in node.position.groups" :key="group" size="is-small">
-                    {{ groupTitle(group) }}
-                </b-tag>
-            </b-taglist>
+            <div
+                v-if="node.pa"
+                class="org-pa"
+                role="button"
+                tabindex="0"
+                @click="emit('select', node.pa.id)"
+                @keydown.enter.prevent="emit('select', node.pa.id)"
+                @keydown.space.prevent="emit('select', node.pa.id)"
+            >
+                <span class="org-pa-title">Personlig assistent</span>
 
-            <ul v-if="node.position.holders.length" class="org-holders">
-                <li v-for="holder in node.position.holders" :key="holder.userId" class="org-holder">
-                    <span class="org-holder-avatar">
-                        <img v-if="holder.profilePicture" :src="holder.profilePicture.url" :alt="holder.name" />
-                        <span v-else>{{ initials(holder.name) }}</span>
-                    </span>
-                    <span class="org-holder-name">{{ holder.name }}</span>
-                </li>
-            </ul>
-            <p v-else class="org-empty">Ingen tilknyttet</p>
+                <ul v-if="node.pa.holders.length" class="org-holders">
+                    <li v-for="holder in node.pa.holders" :key="holder.userId" class="org-holder">
+                        <span class="org-holder-avatar">
+                            <img v-if="holder.profilePicture" :src="holder.profilePicture.url" :alt="holder.name" />
+                            <span v-else>{{ initials(holder.name) }}</span>
+                        </span>
+                        <span class="org-holder-name">{{ holder.name }}</span>
+                    </li>
+                </ul>
+                <p v-else class="org-empty">Ingen tilknyttet</p>
+            </div>
         </div>
 
         <ul v-if="node.children.length" class="org-children">
@@ -71,6 +96,60 @@ function initials(name: string): string {
     flex-direction: column;
     flex-shrink: 0;
     align-items: center;
+}
+
+.org-node-body {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: start;
+    gap: 0.75rem;
+    width: max-content;
+}
+
+.org-node-body > .org-card {
+    grid-column: 2;
+    grid-row: 1;
+}
+
+.org-node-body > .org-pa {
+    position: relative;
+    grid-column: 3;
+    grid-row: 1;
+}
+
+.org-node-body > .org-pa::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    right: 100%;
+    width: 0.75rem;
+    border-top: 1px solid hsl(0, 0%, 64%);
+}
+
+.org-pa {
+    display: flex;
+    flex-direction: column;
+    background: white;
+    border: 1px dashed hsl(0, 0%, 64%);
+    border-radius: 6px;
+    padding: 0.75rem;
+    min-width: 12rem;
+    max-width: 16rem;
+    text-align: center;
+    cursor: pointer;
+    transition: box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.org-pa:hover,
+.org-pa:focus-visible {
+    border-color: hsl(0, 0%, 29%);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+    outline: none;
+}
+
+.org-pa-title {
+    font-weight: 600;
+    font-size: 0.85rem;
 }
 
 .org-card {

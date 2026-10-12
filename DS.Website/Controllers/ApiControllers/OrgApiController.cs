@@ -54,6 +54,12 @@ namespace DS.Website.Controllers
 
             if (!await CanManageParentAsync(data.ParentPositionId)) return Forbid();
 
+            if (data.ParentPositionId != null && await dataDb.OrgPositions
+                .AnyAsync(parent => parent.Id == data.ParentPositionId && parent.PaForPositionId != null))
+            {
+                return BadRequest("Der kan ikke oprettes understillinger under en personlig assistent.");
+            }
+
             var groups = NormalizeGroups(data.Groups);
             if (groups.Contains(nameof(AppGroups.SysAdmin))) return BadRequest("SysAdmin kan ikke tildeles en almindelig stilling.");
             if (!await CanAssignGroupsAsync(groups)) return Forbid();
@@ -71,6 +77,33 @@ namespace DS.Website.Controllers
             return Ok(position.Id);
         }
 
+        [HttpPost("{id:int}/pa")]
+        public async Task<IActionResult> CreatePa(int id)
+        {
+            var position = await dataDb.OrgPositions
+                .FirstOrDefaultAsync(position => position.Id == id && position.DeletedAt == null);
+            if (position == null) return NotFound();
+
+            if (position.PaForPositionId != null) return BadRequest("Den personlige assistent kan ikke have sin egen assistent.");
+            if (!await CanManagePositionAsync(position)) return Forbid();
+
+            var hasPa = await dataDb.OrgPositions
+                .AnyAsync(pa => pa.PaForPositionId == id && pa.DeletedAt == null);
+            if (hasPa) return BadRequest("Stillingen har allerede en personlig assistent.");
+
+            var pa = new OrgPosition
+            {
+                Title = "Personlig assistent",
+                PaForPositionId = id,
+                Groups = [new OrgPositionGroup { GroupName = nameof(AppGroups.PersonalAssistant) }],
+            };
+
+            dataDb.OrgPositions.Add(pa);
+            await dataDb.SaveChangesAsync();
+
+            return Ok(pa.Id);
+        }
+
         [HttpPut("{id:int}")]
         public async Task<IActionResult> UpdatePosition([FromBody] OrgPositionUpdateDto data, int id)
         {
@@ -81,6 +114,7 @@ namespace DS.Website.Controllers
             if (position == null) return NotFound();
 
             if (position.IsSystem) return BadRequest("Systemstillingen kan ikke redigeres.");
+            if (position.PaForPositionId != null) return BadRequest("Den personlige assistent kan ikke redigeres.");
             if (!await CanManagePositionAsync(position)) return Forbid();
 
             var groups = NormalizeGroups(data.Groups);
@@ -114,6 +148,7 @@ namespace DS.Website.Controllers
             if (position == null) return NotFound();
 
             if (position.IsSystem && !IsSysAdmin()) return Forbid();
+            if (position.PaForPositionId != null) return BadRequest("Den personlige assistent er knyttet til en stilling og kan ikke flyttes.");
             if (!await CanManagePositionAsync(position)) return Forbid();
 
             var parentPositionId = data?.ParentPositionId;
@@ -148,8 +183,18 @@ namespace DS.Website.Controllers
 
             if (position.Holders.Count > 0) return BadRequest("Stillingen har personer tilknyttet og kan ikke slettes.");
 
+            var paHolderIds = await dataDb.OrgPositionHolders
+                .Where(holder => holder.Position.PaForPositionId == id)
+                .Select(holder => holder.UserId)
+                .ToListAsync();
+
             dataDb.OrgPositions.Remove(position);
             await dataDb.SaveChangesAsync();
+
+            foreach (var userId in paHolderIds)
+            {
+                ClaimsTransformer.Evict(memoryCache, userId);
+            }
 
             return Ok();
         }
@@ -277,7 +322,8 @@ namespace DS.Website.Controllers
         {
             if (IsSysAdmin()) return true;
 
-            return await CanManageParentAsync(position.ParentPositionId);
+            var managedPositionId = position.PaForPositionId ?? position.ParentPositionId;
+            return await CanManageParentAsync(managedPositionId);
         }
 
         private async Task<bool> IsDescendantAsync(int ancestorId, int candidateId)
@@ -343,6 +389,7 @@ namespace DS.Website.Controllers
                 Id = position.Id,
                 Title = position.Title,
                 ParentPositionId = position.ParentPositionId,
+                PaForPositionId = position.PaForPositionId,
                 IsSystem = position.IsSystem,
                 Groups = position.Groups
                     .Select(group => group.GroupName)

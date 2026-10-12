@@ -215,7 +215,7 @@ Model (implementeret):
 
 | Tabel | Indhold |
 | --- | --- |
-| `org_position` | `id`, `title`, `parent_position_id` (nullable), `is_system` |
+| `org_position` | `id`, `title`, `parent_position_id` (nullable), `pa_for_position_id` (nullable, unik), `is_system` |
 | `org_position_group` | `position_id`, `group_name` (et `AppGroups`-navn) |
 | `org_position_holder` | `position_id`, `user_id` |
 | `user_invitation` | nyt `org_position_id` (nullable) |
@@ -254,6 +254,17 @@ Implementeringsnoter (2026-10-12):
   grupper undtagen `FoodAdmin` og `User`.
   Visning af `/api/v1/org` kræver `OrgView`; mutationer afgøres af
   stillingsautoriteten.
+- Ny `AppGroups.PersonalAssistant` ("Personlig assistent") til personlige
+  assistenter i organisationen. Den kan gives til brugere og stillinger og
+  giver `OrgView` (ikke `OrgManage`).
+- En personlig assistent er en fast stabfunktion knyttet til én stilling: den
+  oprettes som en stilling med titel "Personlig assistent", gruppen
+  `PersonalAssistant` og `pa_for_position_id` sat til ejerstillingen. Der kan
+  være maksimalt én assistent pr. stilling; assistenten vises som en egen kasse
+  med stiplet kant ved siden af ejerstillingen. Assistenten kan ikke have
+  understillinger, kan ikke ændres eller flyttes, og slettes sammen med
+  ejerstillingen (`ON DELETE CASCADE`). Den kan dog give invitationer og
+  beklædes af brugere.
 - `AppGroups.SysAdmin` må ikke indgå i en almindelig stillings grupper; den
   findes kun på systemstillingen.
 - En stilling med understillinger eller indehavere kan ikke slettes, før den er
