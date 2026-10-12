@@ -124,12 +124,23 @@ const roots = computed<OrgNodeModel[]>(() => {
 async function load() {
     loading.value = true;
     try {
-        positions.value = await service.getPositions();
-        assignableGroups.value = await service.getAssignableGroups();
-        users.value = await userService.getUsers();
+        await Promise.all([loadOrg(), loadUsers()]);
     } finally {
         loading.value = false;
     }
+}
+
+async function loadOrg() {
+    const [orgPositions, groups] = await Promise.all([
+        service.getPositions(),
+        service.getAssignableGroups()
+    ]);
+    positions.value = orgPositions;
+    assignableGroups.value = groups;
+}
+
+async function loadUsers() {
+    users.value = await userService.getUsers();
 }
 
 function openDrawer(positionId: number) {
@@ -138,7 +149,7 @@ function openDrawer(positionId: number) {
 }
 
 async function handleRefresh() {
-    await load();
+    await loadOrg();
     if (selectedPosition.value === null) drawerOpen.value = false;
 }
 
@@ -156,7 +167,7 @@ async function createRoot() {
             rootOpen.value = false;
             rootTitle.value = '';
             rootGroups.value = [];
-            await load();
+            await loadOrg();
         }
     } finally {
         saving.value = false;

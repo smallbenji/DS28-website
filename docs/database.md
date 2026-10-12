@@ -564,3 +564,6 @@ mindst syv dage gamle. Det er ren dataoprydning uden skemaændring.
   flyttes; de er oprettet med gruppen `PersonalAssistant`. Unikt index
   `uq_org_position_pa_for_position_id` sikrer maksimalt én assistent pr.
   stilling.
+- `ix_org_position_deleted_at` er et partielt index over ikke-slettede
+  `org_position`-rækker (`WHERE deleted_at IS NULL`), der understøtter
+  listen over aktive stillinger.

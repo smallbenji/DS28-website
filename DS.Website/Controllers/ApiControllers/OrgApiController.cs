@@ -24,11 +24,13 @@ namespace DS.Website.Controllers
             if (!await HasViewAccessAsync()) return Forbid();
 
             var positions = await dataDb.OrgPositions
+                .AsNoTracking()
                 .Where(position => position.DeletedAt == null)
                 .Include(position => position.Groups)
                 .Include(position => position.Holders)
                     .ThenInclude(holder => holder.User)
                         .ThenInclude(user => user.ProfilePicture)
+                .AsSplitQuery()
                 .OrderBy(position => position.Id)
                 .ToListAsync();
 

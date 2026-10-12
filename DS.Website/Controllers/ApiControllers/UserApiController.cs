@@ -45,12 +45,22 @@ namespace DS.Website.Controllers
                     })
                     .ToList());
 
+            var roleNamesByUser = await (
+                from userRole in dataDb.UserRoles
+                join role in dataDb.Roles on userRole.RoleId equals role.Id
+                select new { userRole.UserId, role.Name }
+            ).AsNoTracking().ToListAsync();
+
+            var rolesLookup = roleNamesByUser
+                .GroupBy(entry => entry.UserId)
+                .ToDictionary(group => group.Key, group => group.Select(entry => entry.Name).ToList());
+
             var retval = new List<UserDto>();
             foreach (var user in users)
             {
                 var dto = new UserDto(user)
                 {
-                    Roles = (await userManager.GetRolesAsync(user)).ToList(),
+                    Roles = rolesLookup.TryGetValue(user.Id, out var roles) ? roles : [],
                     Positions = positionsLookup.TryGetValue(user.Id, out var positions) ? positions : []
                 };
 
