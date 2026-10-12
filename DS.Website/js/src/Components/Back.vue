@@ -33,7 +33,7 @@
                     <b-icon pack="fas" icon="user-shield" size="is-small" />
                     Vis som …
                 </b-dropdown-item>
-                <hr class="dropdown-divider" />
+                <hr v-if="ME.isImpersonating || ME.roles.includes('SysAdmin')" class="dropdown-divider" />
                 <b-dropdown-item @click="goToProfile">
                     <b-icon pack="fas" icon="user" size="is-small" />
                     Min profil
