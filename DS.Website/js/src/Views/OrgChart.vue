@@ -1,9 +1,7 @@
 <template>
     <div class="org-chart">
-        <div class="org-chart-head">
-            <h1 class="title is-4 mb-2">Organisationsdiagram</h1>
-            <p class="subtitle is-6">Stillinger og hvem der beklæder dem.</p>
-            <BButton v-if="isSysAdmin" type="is-primary" size="is-small" @click="rootOpen = true">
+        <div v-if="isSysAdmin && roots.length === 0" class="org-chart-head">
+            <BButton type="is-primary" size="is-small" @click="rootOpen = true">
                 Ny rodstilling
             </BButton>
         </div>
