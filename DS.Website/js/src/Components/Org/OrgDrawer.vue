@@ -382,6 +382,10 @@ async function removePosition() {
 </script>
 
 <style lang="scss" scoped>
+:deep(.sidebar-content) {
+    width: min(40rem, 100vw);
+}
+
 .org-drawer {
     display: flex;
     flex-direction: column;
