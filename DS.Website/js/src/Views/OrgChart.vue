@@ -210,10 +210,6 @@ onMounted(load);
     margin-bottom: 1.5rem;
 }
 
-.org-chart :deep(.b-sidebar) {
-    --bulma-sidebar-width: 20rem;
-}
-
 .org-tree-viewport {
     width: 100%;
     flex: 1;
