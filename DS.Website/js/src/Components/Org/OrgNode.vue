@@ -11,7 +11,6 @@
         >
             <div class="org-card-head">
                 <span class="org-title">{{ node.position.title }}</span>
-                <b-tag v-if="node.position.isSystem && !isSysAdmin" type="is-dark" size="is-small">System</b-tag>
             </div>
 
             <b-taglist v-if="node.position.groups.length" class="org-groups">
@@ -47,17 +46,12 @@
 import { BTaglist, BTag } from 'buefy';
 import type { OrgNodeModel } from '@/types';
 import { groupTitle } from '@/types';
-import { computed } from 'vue';
-import { useMeStore } from '@/Stores/MeStore';
 
 defineOptions({ name: 'OrgNode' });
 
 defineProps<{ node: OrgNodeModel }>();
 
 const emit = defineEmits<{ (event: 'select', positionId: number): void }>();
-
-const meStore = useMeStore();
-const isSysAdmin = computed(() => (meStore.ME.roles ?? []).includes('SysAdmin'));
 
 function initials(name: string): string {
     return name
