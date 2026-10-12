@@ -322,8 +322,33 @@ namespace DS.Website.Controllers
             if (parentPositionId == null) return false;
 
             var userId = userManager.GetUserId(User);
+            var positionIds = await GetAncestorPositionIdsAsync(parentPositionId.Value);
+
             return await dataDb.OrgPositionHolders
-                .AnyAsync(holder => holder.UserId == userId && holder.PositionId == parentPositionId.Value);
+                .AnyAsync(holder => holder.UserId == userId && positionIds.Contains(holder.PositionId));
+        }
+
+        private async Task<List<int>> GetAncestorPositionIdsAsync(int positionId)
+        {
+            var result = new List<int> { positionId };
+
+            var parents = await dataDb.OrgPositions
+                .Where(position => position.DeletedAt == null && position.ParentPositionId != null)
+                .ToDictionaryAsync(
+                    position => position.Id,
+                    position => position.ParentPositionId.Value);
+
+            var current = positionId;
+            var visited = new HashSet<int>();
+            while (parents.TryGetValue(current, out var parentId))
+            {
+                if (!visited.Add(parentId)) break;
+
+                result.Add(parentId);
+                current = parentId;
+            }
+
+            return result;
         }
 
         private async Task<bool> CanManagePositionAsync(OrgPosition position)

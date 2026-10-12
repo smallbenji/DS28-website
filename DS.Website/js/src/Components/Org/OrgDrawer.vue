@@ -186,7 +186,8 @@ const hasPa = computed(
     () => position.value !== null && props.positions.some((candidate) => candidate.paForPositionId === position.value!.id)
 );
 const canCreateChild = computed(
-    () => position.value !== null && canCreateChildPosition(position.value, props.currentUserId, props.isSysAdmin)
+    () => position.value !== null
+        && canCreateChildPosition(position.value, props.positions, props.currentUserId, props.isSysAdmin)
 );
 const canRemoveHolder = computed(() => !position.value?.isSystem || (position.value?.holders.length ?? 0) > 1);
 

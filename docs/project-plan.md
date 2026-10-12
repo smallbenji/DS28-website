@@ -288,6 +288,11 @@ Implementeringsnoter (2026-10-12):
   under en af sine egne understillinger. Grupperne ændres ikke ved flytning, så
   adgangen påvirkes ikke. Overstillingen vælges i en flyt-modal, hvor
   understillinger af den aktuelle stilling er filtreret fra.
+- Autoritet følger hele undertræet rekursivt: at beklæde en overstilling giver
+  håndteringsret til stillinger på alle niveauer under den. `CanManageParentAsync`
+  og frontend-guardet i `orgAccess.ts` accepterer en indehaver af en hvilken som
+  helst stilling i forældrekæden, ikke kun af den umiddelbare overstilling.
+  SysAdmin kan håndtere hele træet; rodstillinger håndteres kun af SysAdmin.
 - Diagrammet tegnes af en rekursiv `OrgNode.vue`; der bruges ingen ekstern
   org-chart-komponent. Hver node er et klikbart kort, og redigering, grupper,
   indehavere, invitation, flytning, oprettelse af understillinger og sletning
