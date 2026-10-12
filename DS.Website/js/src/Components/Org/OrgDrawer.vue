@@ -4,7 +4,7 @@
             <header class="org-drawer-head">
                 <p class="org-drawer-title">
                     {{ position.title }}
-                    <b-tag v-if="position.isSystem" type="is-dark" size="is-small">System</b-tag>
+                    <b-tag v-if="position.isSystem && !isSysAdmin" type="is-dark" size="is-small">System</b-tag>
                 </p>
                 <button type="button" class="delete" aria-label="Luk" @click="open = false" />
             </header>
