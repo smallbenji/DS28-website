@@ -110,6 +110,11 @@ const routes: RouteRecordRaw[] = [
         meta: { requiresAuth: true, requiredRole: "AdminAccess", pageTitle: "Admin", pageIcon: "gear" }
     },
     {
+        path: "/org",
+        component: () => import("@/Views/OrgChart.vue"),
+        meta: { requiresAuth: true, requiredRole: "OrgView", pageTitle: "Organisation", pageIcon: "sitemap" }
+    },
+    {
         path: "/exports",
         component: () => import("@/Views/Exports.vue"),
         meta: { requiresAuth: true, requiredRole: "ExportsView", pageTitle: "Dataudtræk", pageIcon: "file-arrow-down" }

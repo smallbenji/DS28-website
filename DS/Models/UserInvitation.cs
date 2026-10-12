@@ -11,6 +11,8 @@ public class UserInvitation : IAuditableEntity, ISoftDeleteable
     public bool IsAdmin { get; set; }
     public int? GroupId { get; set; }
     public Group Group { get; set; }
+    public int? OrgPositionId { get; set; }
+    public OrgPosition OrgPosition { get; set; }
 
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }

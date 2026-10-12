@@ -140,6 +140,8 @@ builder.Services.ConfigureApplicationCookie(options =>
 
 builder.Services.AddMemoryCache();
 
+builder.Services.AddHttpContextAccessor();
+
 builder.Services.AddScoped<IClaimsTransformation, ClaimsTransformer>();
 
 builder.Services.Configure<IdentityPasskeyOptions>(options =>

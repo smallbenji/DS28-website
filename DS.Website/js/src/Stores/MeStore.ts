@@ -1,10 +1,12 @@
 import MeService from "@/Services/MeService";
+import ImpersonationService from "@/Services/ImpersonationService";
 import { defineStore } from "pinia";
 import { computed, ref } from "vue";
 import type { HomeViewModelDto, MeDto } from "@/types";
 
 export const useMeStore = defineStore("me", () => {
   const meService = new MeService();
+  const impersonationService = new ImpersonationService();
   const Me = ref<MeDto>({
     name: "",
     id: "",
@@ -13,6 +15,7 @@ export const useMeStore = defineStore("me", () => {
     title: "",
     phone: "",
     mustEnableTwoFactor: false,
+    isImpersonating: false,
     roles: [],
     appRoles: [],
     isAuthenticated: false,
@@ -47,6 +50,24 @@ export const useMeStore = defineStore("me", () => {
     return ok;
   }
 
+  async function START_IMPERSONATION(group: string) {
+    const ok = await impersonationService.start(group);
+    if (ok) {
+      await GET_ME();
+      await GET_HQ();
+    }
+    return ok;
+  }
+
+  async function STOP_IMPERSONATION() {
+    const ok = await impersonationService.stop();
+    if (ok) {
+      await GET_ME();
+      await GET_HQ();
+    }
+    return ok;
+  }
+
   return {
     Me,
     Hq,
@@ -56,5 +77,7 @@ export const useMeStore = defineStore("me", () => {
     GET_HQ,
     UPDATE_PROFILE_PICTURE,
     UPDATE_PHONE,
+    START_IMPERSONATION,
+    STOP_IMPERSONATION,
   }
 });

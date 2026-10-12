@@ -21,11 +21,23 @@
                 <template #trigger>
                     <UserMenuTrigger />
                 </template>
+                <b-dropdown-item v-if="ME.isImpersonating" disabled>
+                    <b-icon pack="fas" icon="user-shield" size="is-small" />
+                    Viser som {{ ME.title || ME.roles[0] }}
+                </b-dropdown-item>
+                <b-dropdown-item v-if="ME.isImpersonating" @click="stopImpersonation">
+                    <b-icon pack="fas" icon="xmark" size="is-small" />
+                    Stop visning
+                </b-dropdown-item>
+                <b-dropdown-item v-else-if="ME.roles.includes('SysAdmin')" @click="pickerOpen = true">
+                    <b-icon pack="fas" icon="user-shield" size="is-small" />
+                    Vis som …
+                </b-dropdown-item>
+                <hr class="dropdown-divider" />
                 <b-dropdown-item @click="goToProfile">
                     <b-icon pack="fas" icon="user" size="is-small" />
                     Min profil
                 </b-dropdown-item>
-                <hr class="dropdown-divider" />
                 <b-dropdown-item custom>
                     <b-button
                         type="is-danger is-light"
@@ -36,15 +48,24 @@
                     />
                 </b-dropdown-item>
             </b-dropdown>
+            <ImpersonationPicker v-model:open="pickerOpen" />
         </div>
     </div>
 </template>
 <script lang="ts" setup>
 import { BButton, BDropdown, BDropdownItem } from 'buefy';
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { storeToRefs } from 'pinia';
 import AuthService from '@/Services/AuthService';
 import UserMenuTrigger from '@/Components/User/UserMenuTrigger.vue';
+import ImpersonationPicker from '@/Components/ImpersonationPicker.vue';
+import { useMeStore } from '@/Stores/MeStore';
+
+const meStore = useMeStore();
+const { ME } = storeToRefs(meStore);
+
+const pickerOpen = ref(false);
 
 const authService = new AuthService();
 
@@ -68,6 +89,9 @@ function goToProfile() {
     router.push('/profile');
 }
 
+async function stopImpersonation() {
+    await meStore.STOP_IMPERSONATION();
+}
 
 async function logout() {
     await authService.logout();

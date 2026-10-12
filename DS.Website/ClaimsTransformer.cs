@@ -1,12 +1,20 @@
+using DS.Data;
 using DS.Models;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 
 namespace DS.Website;
 
-public class ClaimsTransformer(UserManager<User> userManager, IMemoryCache memoryCache) : IClaimsTransformation
+public class ClaimsTransformer(
+    UserManager<User> userManager,
+    DataDbContext dataDb,
+    IMemoryCache memoryCache,
+    IHttpContextAccessor httpContextAccessor,
+    IDataProtectionProvider dataProtectionProvider) : IClaimsTransformation
 {
     public static readonly string RoleCachePrefix = "user-roles:";
 
@@ -33,12 +41,27 @@ public class ClaimsTransformer(UserManager<User> userManager, IMemoryCache memor
             .Where(claim => claim.Type != identity.RoleClaimType)
             .ToList();
 
-        foreach (var role in roles.UserRoles)
+        foreach (var realGroup in roles.UserRoles)
         {
-            claims.Add(new Claim(identity.RoleClaimType, role));
+            claims.Add(new Claim(Impersonation.OriginClaimType, realGroup));
         }
 
-        foreach (var appRole in roles.AppRoles)
+        var effectiveGroups = roles.UserRoles;
+
+        var cookieValue = httpContextAccessor.HttpContext?.Request.Cookies[Impersonation.CookieName];
+        var impersonatedGroups = Impersonation.ResolveCookieGroups(dataProtectionProvider, cookieValue);
+        if (impersonatedGroups != null)
+        {
+            effectiveGroups = impersonatedGroups;
+            claims.Add(new Claim(Impersonation.ActiveClaimType, string.Join(',', impersonatedGroups)));
+        }
+
+        foreach (var group in effectiveGroups)
+        {
+            claims.Add(new Claim(identity.RoleClaimType, group));
+        }
+
+        foreach (var appRole in AppAccess.ResolveAppRoles(effectiveGroups))
         {
             claims.Add(new Claim(identity.RoleClaimType, appRole));
         }
@@ -66,12 +89,26 @@ public class ClaimsTransformer(UserManager<User> userManager, IMemoryCache memor
 
         var userRoles = (await userManager.GetRolesAsync(user)).ToList();
 
+        var positionGroups = await dataDb.OrgPositionHolders
+            .Where(holder => holder.UserId == userId && holder.Position.DeletedAt == null)
+            .SelectMany(holder => holder.Position.Groups)
+            .Select(group => group.GroupName)
+            .Distinct()
+            .ToListAsync();
+
+        userRoles = userRoles.Concat(positionGroups).Distinct().ToList();
+
         var appRoles = AppAccess.ResolveAppRoles(userRoles);
 
         var entry = new UserRolesCache(userRoles, appRoles);
         memoryCache.Set(cacheKey, entry, TimeSpan.FromMinutes(5));
 
         return entry;
+    }
+
+    public static void Evict(IMemoryCache memoryCache, string userId)
+    {
+        memoryCache.Remove($"{RoleCachePrefix}{userId}");
     }
 
     private sealed record UserRolesCache(List<string> UserRoles, List<string> AppRoles);

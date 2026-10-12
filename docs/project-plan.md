@@ -159,6 +159,135 @@ De to tal har forskellige kilder og er ikke koblet til hinanden:
 Uafklaret: sidebaren skal på sigende og senere rumme de åb/luk-funktioner, der
 hidtil ligger på `/camp-settings`.
 
+### Rollevisning (SysAdmin-impersonation)
+
+**Beslutning 2026-10-12:** En systemadministrator kan skifte til en anden
+`AppGroups`-gruppe ("Vis som …") for at se og fornemme, hvad den pågældende rolle
+har adgang til – både til egen kontrol og som demo over for udvalgene. Det er
+ægte impersonation, ikke kun en UI-preview: den valgte gruppe anvendes server-side
+i hele appen, så `[Authorize(Roles=…)]`, `IsInRole` (herunder HQ-fliser,
+Hangfire og eksport) og `/api/v1/me` alle opfører sig som den valgte gruppe.
+
+- Skifteren ligger i brugermenuen i `Back.vue` ("Vis som …") og vises kun for
+  SysAdmin. Alle `AppGroups` er valgbare.
+- Mekanismen: `ClaimsTransformer` erstatter på hvert request gruppe-/approlclaims
+  med en "act-as"-gruppe fra en HttpOnly-, SameSite=Strict- og
+  DataProtection-krypteret cookie (`DS.Impersonation`), som sættes af
+  `POST /api/v1/impersonation/start` og fjernes af `stop`. De reelle grupper
+  lagres som `ds28:imp:origin`-claims, så start/stop altid kan verificeres mod
+  den ægte SysAdmin-identitet, uanset hvad der impersoneres.
+- En aktiv visning vises i selve brugermenuen i `Back.vue`: mens man viser
+  som en rolle, står der "Viser som …" med rollens titel plus et "Stop visning"-
+  punkt. Der er bevidst ikke et globalt topbanner.
+- Cookies er kun til "rolleoverlay" – identiteten (user-id, navn, billede, 2FA-krav)
+  ændres ikke. Impersonation berører heller ikke databaserettigheder: der findes
+  endnu ingen record-baseret scoping i datalejet, så f.eks. en Lejrchef-impersonation
+  kan stadig se al data, som en reel SysAdmin-adgang ville vise.
+
+Afsluttet beslutning: brugeren ønskede eksplicit **ægte impersonation** frem for en
+frontend-only preview; valgte **alle grupper** som target og **brugermenuen** som
+placering.
+
+### Stillinger og organisationsdiagram
+
+**Beslutning 2026-10-12 (implementeret).** Benjamin ønsker et
+organisationsdiagram bygget ud fra brugerne. I stedet for at koble personer
+direkte sammen er noderne **stillinger**: en stilling har en titel, ligger under
+en anden stilling og kan beklædes af flere brugere, ligesom en bruger kan
+beklæde flere stillinger.
+
+Diagrammet omfatter kun brugere, der beklæder en stilling. Brugere der
+udelukkende er knyttet til en spejdergruppe (`User.Group`, `AppGroups.User`)
+indgår ikke i hierarkiet, og spejdergrupper er ikke noder i træet. En bruger med
+både gruppetilknytning og en stilling optræder alene på grund af stillingen.
+
+Begreberne holdes adskilt:
+
+- `AppRoles` er fortsat de fine-grained rettigheder.
+- `AppGroups` er fortsat kode-ejede adgangsbundter og Identity-rolle-enheden.
+  Gruppernes danske visningstitler (`GetGroupTitle`) flyttes i stedet til
+  stillingen, så `AppGroups` kun betyder adgang.
+- En stilling er data-ejet: titel, placering i træet og en liste af `AppGroups`
+  (0..N). To stillinger kan dele samme gruppe, og stillingens titel behøver ikke
+  matche gruppens.
+
+Model (implementeret):
+
+| Tabel | Indhold |
+| --- | --- |
+| `org_position` | `id`, `title`, `parent_position_id` (nullable), `is_system` |
+| `org_position_group` | `position_id`, `group_name` (et `AppGroups`-navn) |
+| `org_position_holder` | `position_id`, `user_id` |
+| `user_invitation` | nyt `org_position_id` (nullable) |
+
+Adgang opløses **dynamisk**: effektive grupper = direkte tildelte Identity-roller
+∪ `AppGroups` fra alle stillinger brugeren beklæder. Opløsningen sker i
+`ClaimsTransformer` og `AppClaimsPrincipalFactory`; en ændring af en stillings
+grupper slår dermed straks igennem for alle indehavere, og
+`user-roles:{id}`-cachen skal ryddes for de berørte brugere. Direkte
+rolletildeling via `UserApiController` består uændret.
+
+Autoritet følger træet: at beklæde en stilling giver ret til at oprette
+børnestillinger under den og til at invitere eller tildele i det undertræ.
+Rodstillinger (`parent_position_id` er null) oprettes kun af SysAdmin.
+
+**Invariant:** ingen må tildele flere rettigheder, end man selv besidder — med
+SysAdmin som undtagelse. Når en ikke-SysAdmin sætter en stillings `AppGroups`
+eller inviterer til en stilling, skal de tildelte grupper være en delmængde af
+ens egne effektive grupper (direkte roller ∪ egne stillinger). Det forhindrer, at
+en indehaver eskalerer ved at oprette et barn med flere rettigheder og invitere
+sig selv, og spejler `CanAssignRole`. En SysAdmin kan derimod give en stilling
+vilkårlige `AppGroups`, også flere end forældrestillingen har; stillinger er
+derfor ikke strukturelt begrænset til deres forælder.
+
+SysAdmin er en reserveret systemstilling (`is_system`): den kan ikke slettes,
+omdøbes eller tømmes for sin sidste indehaver, og dens grupper kan ikke
+redigeres. Kun en nuværende SysAdmin må tildele eller fjerne den. Den kan
+derimod flyttes i træet af en SysAdmin, fx så den organisatorisk placeres under
+lejrchefen; men uanset hvor den ligger, forbliver det kun en nuværende SysAdmin,
+der må tildele eller fjerne dens indehavere. Direkte
+`AppGroups.SysAdmin`-tildeling ad den eksisterende beskyttede vej forbliver
+roden af tillid, så en fejlredigeret stilling ikke kan låse systemet ude.
+
+Implementeringsnoter (2026-10-12):
+- Nye `AppRoles`: `OrgView` og `OrgManage`. De tildeles via matricen til alle
+  grupper undtagen `FoodAdmin` og `User`.
+  Visning af `/api/v1/org` kræver `OrgView`; mutationer afgøres af
+  stillingsautoriteten.
+- `AppGroups.SysAdmin` må ikke indgå i en almindelig stillings grupper; den
+  findes kun på systemstillingen.
+- En stilling med understillinger eller indehavere kan ikke slettes, før den er
+  tømt.
+- En stillingsinvitation gælder kun nye brugere; eksisterende brugere tilknyttes
+  stillingen direkte. Ved accept oprettes `org_position_holder`, og rollernes
+  cache ryddes.
+- `MeDto.Title` viser stillingens titel, hvis brugeren beklæder en stilling, og
+  falder ellers tilbage til `ResolveGroupTitle`.
+- En stilling kan flyttes til en anden overstilling via
+  `PUT /api/v1/org/{id}/parent`. Flytning kræver autoritet over både den
+  nuværende og den nye overstilling; en rodstilling (ny overstilling = null)
+  kræver SysAdmin. Også systemstillingen kan flyttes, men kun af en SysAdmin.
+  Der er cirkelkontrol, så en stilling ikke kan sættes under sig selv eller
+  under en af sine egne understillinger. Grupperne ændres ikke ved flytning, så
+  adgangen påvirkes ikke. Overstillingen vælges i en flyt-modal, hvor
+  understillinger af den aktuelle stilling er filtreret fra.
+- Diagrammet tegnes af en rekursiv `OrgNode.vue`; der bruges ingen ekstern
+  org-chart-komponent. Hver node er et klikbart kort, og redigering, grupper,
+  indehavere, invitation, flytning, oprettelse af understillinger og sletning
+  sker i en fælles skuffe (`OrgDrawer.vue`) baseret på `BSidebar`, der glider
+  ind fra højre, i stedet for knapper på hver node. Siden ligger på `/org` med
+  en "Organisation"-flis på hjemmesiden for brugere med `OrgView` og er ikke
+  længere en del af adminområdet.
+- Migration `011_org_positions.sql` seeder systemstillingen
+  "Systemadministrator" med gruppen `SysAdmin`.
+
+Ubesluttede punkter:
+- Skal tildeling af en stilling kunne give adgang til at redigere selve træet
+  uden `OrgView`/`OrgManage`, altså udelukkende ud fra placeringen?
+- Skal en stilling kunne beklædes af en bruger uden en tilknyttet konto?
+- Er der behov for at vise stillinger uden `AppGroups` (rene
+  organisationsnoder)?
+
 ### Aktiviteter
 
 - Registrerede aktiviteter kan udgives i et katalog.

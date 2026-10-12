@@ -9,6 +9,7 @@ const emptyMe: MeDto = {
     lastName: "",
     title: "",
     mustEnableTwoFactor: false,
+    isImpersonating: false,
     roles: [],
     appRoles: [],
     isAuthenticated: false,

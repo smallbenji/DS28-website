@@ -17,6 +17,11 @@ public class UserInvitationConfiguration : IEntityTypeConfiguration<UserInvitati
             .HasForeignKey(x => x.GroupId)
             .OnDelete(DeleteBehavior.Restrict);
 
+        builder.HasOne(x => x.OrgPosition)
+            .WithMany()
+            .HasForeignKey(x => x.OrgPositionId)
+            .OnDelete(DeleteBehavior.Restrict);
+
         builder.HasIndex(x => x.InvitationId)
             .IsUnique();
 

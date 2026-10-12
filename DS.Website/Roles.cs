@@ -27,6 +27,9 @@ namespace DS.Website
         GroupsDelete,
         PreSignupManage,
 
+        OrgView,
+        OrgManage,
+
         ActivityView,
         ActivityAdmin,
 
@@ -59,6 +62,9 @@ namespace DS.Website
                     nameof(AppRoles.GroupsDelete),
                     nameof(AppRoles.PreSignupManage),
 
+                    nameof(AppRoles.OrgView),
+                    nameof(AppRoles.OrgManage),
+
                     nameof(AppRoles.WordPressAdmin),
 
                     nameof(AppRoles.ActivityView),
@@ -74,7 +80,10 @@ namespace DS.Website
             {
                 AppGroups.PRAdmin,
                 [
-                    nameof(AppRoles.WordPressAdmin)
+                    nameof(AppRoles.WordPressAdmin),
+
+                    nameof(AppRoles.OrgView),
+                    nameof(AppRoles.OrgManage),
                 ]
             },
             {
@@ -85,6 +94,9 @@ namespace DS.Website
 
                     nameof(AppRoles.GroupsView),
                     nameof(AppRoles.GroupsCreate),
+
+                    nameof(AppRoles.OrgView),
+                    nameof(AppRoles.OrgManage),
 
                     nameof(AppRoles.WordPressEditor),
                     nameof(AppRoles.PreSignupManage),
@@ -102,6 +114,9 @@ namespace DS.Website
                     nameof(AppRoles.ActivityView),
                     nameof(AppRoles.ActivityAdmin),
                     nameof(AppRoles.WordPressEditor),
+
+                    nameof(AppRoles.OrgView),
+                    nameof(AppRoles.OrgManage),
                 ]
             },
             {
@@ -110,18 +125,27 @@ namespace DS.Website
                     nameof(AppRoles.ActivityView),
                     nameof(AppRoles.ActivityAdmin),
                     nameof(AppRoles.WordPressEditor),
+
+                    nameof(AppRoles.OrgView),
+                    nameof(AppRoles.OrgManage),
                 ]
             },
             {
                 AppGroups.FinanceAdmin,
                 [
                     nameof(AppRoles.WordPressEditor),
+
+                    nameof(AppRoles.OrgView),
+                    nameof(AppRoles.OrgManage),
                 ]
             },
             {
                 AppGroups.ActivityUser,
                 [
                     nameof(AppRoles.ActivityView),
+
+                    nameof(AppRoles.OrgView),
+                    nameof(AppRoles.OrgManage),
                 ]
             },
             {

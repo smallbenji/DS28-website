@@ -1,18 +1,24 @@
+using DS.Data;
 using DS.Models;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
 namespace DS.Website;
 
 public class AppClaimsPrincipalFactory : UserClaimsPrincipalFactory<User, Role>
 {
+    private readonly DataDbContext dataDb;
+
     public AppClaimsPrincipalFactory(
         UserManager<User> userManager,
         RoleManager<Role> roleManager,
-        IOptions<IdentityOptions> optionsAccessor)
+        IOptions<IdentityOptions> optionsAccessor,
+        DataDbContext dataDb)
         : base(userManager, roleManager, optionsAccessor)
     {
+        this.dataDb = dataDb;
     }
 
     protected override async Task<ClaimsIdentity> GenerateClaimsAsync(User user)
@@ -27,8 +33,24 @@ public class AppClaimsPrincipalFactory : UserClaimsPrincipalFactory<User, Role>
             identity.AddClaim(new Claim("full_name", fullName));
         }
 
-        var userRoles = await UserManager.GetRolesAsync(user);
-        foreach (var subRole in AppAccess.ResolveAppRoles(userRoles))
+        var userRoles = (await UserManager.GetRolesAsync(user)).ToList();
+
+        var positionGroups = await dataDb.OrgPositionHolders
+            .Where(holder => holder.UserId == user.Id && holder.Position.DeletedAt == null)
+            .SelectMany(holder => holder.Position.Groups)
+            .Select(group => group.GroupName)
+            .Distinct()
+            .ToListAsync();
+
+        foreach (var group in positionGroups)
+        {
+            if (!identity.HasClaim(identity.RoleClaimType, group))
+            {
+                identity.AddClaim(new Claim(identity.RoleClaimType, group));
+            }
+        }
+
+        foreach (var subRole in AppAccess.ResolveAppRoles(userRoles.Concat(positionGroups)))
         {
             if (!identity.HasClaim(identity.RoleClaimType, subRole))
             {

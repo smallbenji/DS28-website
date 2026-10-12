@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 
 namespace DS.Website.Controllers
 {
@@ -24,9 +25,15 @@ namespace DS.Website.Controllers
             var user = await userManager.GetUserAsync(HttpContext.User);
             if (user == null) return NotFound();
 
-            var roles = (await userManager.GetRolesAsync(user)).ToList();
+            var roles = GetEffectiveGroups(HttpContext.User);
             var appRoles = AppAccess.ResolveAppRoles(roles);
             var passkeys = (await userManager.GetPasskeysAsync(user)).ToDtoList();
+
+            var positionTitle = await dataDb.OrgPositionHolders
+                .Where(holder => holder.UserId == user.Id && holder.Position.DeletedAt == null)
+                .OrderBy(holder => holder.PositionId)
+                .Select(holder => holder.Position.Title)
+                .FirstOrDefaultAsync();
 
             var profilePicture = user.ProfilePictureFileId.HasValue
                 ? await dataDb.StoredFiles
@@ -43,7 +50,7 @@ namespace DS.Website.Controllers
                 Name = user.GetFullName(),
                 FirstName = user.FirstName ?? string.Empty,
                 LastName = user.LastName ?? string.Empty,
-                Title = AppAccess.ResolveGroupTitle(roles),
+                Title = positionTitle ?? AppAccess.ResolveGroupTitle(roles),
                 Phone = user.PhoneNumber ?? string.Empty,
                 MustEnableTwoFactor = await userManager.IsInRoleAsync(
                     user,
@@ -51,6 +58,7 @@ namespace DS.Website.Controllers
                 ) && !user.TwoFactorEnabled,
                 Roles = roles,
                 AppRoles = appRoles,
+                IsImpersonating = HttpContext.User.HasClaim(claim => claim.Type == Impersonation.ActiveClaimType),
                 Passkeys = passkeys,
                 ProfilePicture = profilePicture != null ? new ImageReferenceDto(profilePicture) : null
             };
@@ -114,7 +122,7 @@ namespace DS.Website.Controllers
             var user = await userManager.GetUserAsync(HttpContext.User);
             if (user == null) return NotFound();
 
-            var roles = await userManager.GetRolesAsync(user);
+            var roles = GetEffectiveGroups(HttpContext.User);
             var appRoles = AppAccess.ResolveAppRoles(roles);
 
             var subscribed = await dataDb.NotificationPreferences
@@ -142,7 +150,7 @@ namespace DS.Website.Controllers
             var user = await userManager.GetUserAsync(HttpContext.User);
             if (user == null) return NotFound();
 
-            var roles = await userManager.GetRolesAsync(user);
+            var roles = GetEffectiveGroups(HttpContext.User);
             var appRoles = AppAccess.ResolveAppRoles(roles);
 
             var requested = new List<NotificationType>();
@@ -173,6 +181,18 @@ namespace DS.Website.Controllers
             await dataDb.SaveChangesAsync();
 
             return Ok();
+        }
+
+        private static List<string> GetEffectiveGroups(ClaimsPrincipal user)
+        {
+            var roleClaimType = user.Identity is ClaimsIdentity identity
+                ? identity.RoleClaimType
+                : ClaimTypes.Role;
+
+            return user.FindAll(roleClaimType)
+                .Select(claim => claim.Value)
+                .Where(value => Enum.TryParse<AppGroups>(value, out _))
+                .ToList();
         }
     }
 }

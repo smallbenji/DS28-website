@@ -31,6 +31,10 @@ public class DataDbContext : IdentityDbContext<User, Role, string>
 
     public DbSet<StoredFile> StoredFiles { get; set; }
 
+    public DbSet<OrgPosition> OrgPositions { get; set; }
+    public DbSet<OrgPositionGroup> OrgPositionGroups { get; set; }
+    public DbSet<OrgPositionHolder> OrgPositionHolders { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);

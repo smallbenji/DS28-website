@@ -289,6 +289,7 @@ erDiagram
         int activity_team_id FK "RESTRICT"
         bool is_admin
         int group_id FK "RESTRICT"
+        int org_position_id FK "RESTRICT"
         timestamptz created_at
         timestamptz updated_at
         timestamptz deleted_at
@@ -299,6 +300,37 @@ erDiagram
         bool is_pre_signup_open
         bool is_signup_open
     }
+```
+
+## Organisation
+
+```mermaid
+erDiagram
+    org_position {
+        int id PK
+        varchar title
+        int parent_position_id FK "RESTRICT, self"
+        bool is_system
+        timestamptz created_at
+        timestamptz updated_at
+        timestamptz deleted_at
+    }
+
+    org_position_group {
+        int position_id PK,FK "CASCADE"
+        varchar group_name PK "AppGroups-navn"
+    }
+
+    org_position_holder {
+        int position_id PK,FK "CASCADE"
+        text user_id PK,FK "CASCADE"
+    }
+
+    org_position ||--o{ org_position_group : "giver adgang via"
+    org_position ||--o{ org_position_holder : "beklædes af"
+    asp_net_users ||--o{ org_position_holder : "beklæder"
+    org_position ||--o{ org_position : "har understillinger"
+    org_position ||--o{ user_invitation : "inviterer til"
 ```
 
 ## OpenIddict
@@ -513,3 +545,13 @@ mindst syv dage gamle. Det er ren dataoprydning uden skemaændring.
   bl.a. `scout_group.name`, `scout.name` og `activity.name`.
 - `scout_activity_timeslot` findes i databasen, men har ingen tilsvarende
   entitet i `DataDbContext`.
+- `org_position` danner et træ via `parent_position_id` (selvreference,
+  `RESTRICT`). `org_position_group` giver stillingens `AppGroups`-adgang, og
+  `org_position_holder` binder brugere til stillinger (mange-til-mange).
+  Migration `011_org_positions.sql` seeder systemstillingen
+  "Systemadministrator" med gruppen `SysAdmin`; den er beskyttet i koden.
+  Stillingernes grupper kopieres ikke til `asp_net_user_roles`: effektiv adgang
+  opløses dynamisk som Identity-roller ∪ stillingernes grupper.
+  `user_invitation.org_position_id` peger på den stilling en invitation gælder.
+  Sletning af en stilling sker som hård sletning; `org_position_group` og
+  `org_position_holder` ryddes via `ON DELETE CASCADE`.

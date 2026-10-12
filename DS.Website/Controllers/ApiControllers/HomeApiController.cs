@@ -33,6 +33,14 @@ namespace DS.Website.Controllers
                     RequiredRole = nameof(AppRoles.ActivityView)
                 },
 
+                new()
+                {
+                    Title = "Organisation",
+                    Url = "/org",
+                    Icon = ["sitemap"],
+                    RequiredRole = nameof(AppRoles.OrgView)
+                },
+
                 // No roles needed
                 new()
                 {

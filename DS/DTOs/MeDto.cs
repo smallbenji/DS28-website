@@ -14,6 +14,7 @@ namespace DS.DTOs
         public List<string> Roles { get; set; } = [];
         public List<string> AppRoles { get; set; } = [];
         public bool MustEnableTwoFactor { get; set; }
+        public bool IsImpersonating { get; set; }
 
         public List<PasskeyDto> Passkeys { get; set;} = [];
         public ImageReferenceDto ProfilePicture { get; set; }

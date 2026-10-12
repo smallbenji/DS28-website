@@ -5,12 +5,13 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace DS.Website.Controllers
 {
     [AllowAnonymous]
     [Route("api/v1/invitation")]
-    public class InvitationApiController(DataDbContext dataDb, UserManager<User> userManager) : Controller
+    public class InvitationApiController(DataDbContext dataDb, UserManager<User> userManager, IMemoryCache memoryCache) : Controller
     {
         [HttpGet("{id}")]
         public async Task<IActionResult> GetInvitation(string id)
@@ -72,10 +73,21 @@ namespace DS.Website.Controllers
                 });
             }
 
+            if (invitation.OrgPositionId != null && user != null)
+            {
+                dataDb.OrgPositionHolders.Add(new OrgPositionHolder
+                {
+                    PositionId = invitation.OrgPositionId.Value,
+                    UserId = user.Id
+                });
+            }
+
             invitation.Used = true;
 
             dataDb.Invitations.Update(invitation);
             await dataDb.SaveChangesAsync();
+
+            if (user != null) ClaimsTransformer.Evict(memoryCache, user.Id);
 
             return Ok();
         }

@@ -10,8 +10,14 @@ export interface MeDto {
   title: string;
   phone: string;
   mustEnableTwoFactor: boolean;
+  isImpersonating: boolean;
   roles: string[];
   appRoles: string[];
   passkeys: PasskeyDto[]
   profilePicture: ImageReferenceDto | null;
+}
+
+export interface ImpersonationGroupDto {
+  name: string;
+  title: string;
 }
