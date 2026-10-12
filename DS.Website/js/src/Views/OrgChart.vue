@@ -44,6 +44,16 @@
                     <BField label="Titel">
                         <BInput v-model="rootTitle" placeholder="Fx Lejrchef" />
                     </BField>
+                    <BField label="Farve">
+                        <div class="org-drawer-add">
+                            <span class="org-color-swatch" :style="swatchStyle(rootColor)" />
+                            <BSelect v-model="rootColor" expanded>
+                                <option v-for="color in ORG_COLORS" :key="color.value ?? 'none'" :value="color.value">
+                                    {{ color.label }}
+                                </option>
+                            </BSelect>
+                        </div>
+                    </BField>
                     <BField label="Grupper">
                         <BSelect v-model="rootGroups" multiple expanded>
                             <option v-for="group in assignableGroups" :key="group" :value="group">
@@ -72,6 +82,7 @@ import OrgService from '@/Services/OrgService';
 import UserService from '@/Services/UserService';
 import OrgNode from '@/Components/Org/OrgNode.vue';
 import OrgDrawer from '@/Components/Org/OrgDrawer.vue';
+import { ORG_COLORS } from '@/Components/Org/orgPalette';
 import { useMeStore } from '@/Stores/MeStore';
 
 const service = new OrgService();
@@ -86,6 +97,7 @@ const saving = ref(false);
 const rootOpen = ref(false);
 const rootTitle = ref('');
 const rootGroups = ref<string[]>([]);
+const rootColor = ref<string | null>(null);
 const selectedId = ref<number | null>(null);
 const drawerOpen = ref(false);
 
@@ -94,6 +106,10 @@ const isSysAdmin = computed(() => (meStore.ME.roles ?? []).includes('SysAdmin'))
 const selectedPosition = computed(
     () => positions.value.find((position) => position.id === selectedId.value) ?? null
 );
+
+function swatchStyle(color: string | null): Record<string, string> {
+    return color ? { backgroundColor: color } : {};
+}
 
 const roots = computed<OrgNodeModel[]>(() => {
     const paByOwner = new Map<number, OrgPositionDto>();
@@ -161,12 +177,14 @@ async function createRoot() {
         const success = await service.createPosition({
             title: rootTitle.value.trim(),
             parentPositionId: null,
-            groups: rootGroups.value
+            groups: rootGroups.value,
+            color: rootColor.value
         });
         if (success) {
             rootOpen.value = false;
             rootTitle.value = '';
             rootGroups.value = [];
+            rootColor.value = null;
             await loadOrg();
         }
     } finally {
@@ -218,5 +236,19 @@ onMounted(load);
 
 .org-tree :deep(> .org-node) {
     align-items: center;
+}
+
+.org-drawer-add {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.org-color-swatch {
+    width: 1rem;
+    height: 1rem;
+    border-radius: 0.25rem;
+    border: 1px solid hsl(0, 0%, 74%);
+    flex-shrink: 0;
 }
 </style>

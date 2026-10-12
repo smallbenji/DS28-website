@@ -14,6 +14,16 @@
                     <BField label="Titel">
                         <BInput v-model="editTitle" />
                     </BField>
+                    <BField label="Farve">
+                        <div class="org-drawer-add">
+                            <span class="org-color-swatch" :style="swatchStyle(editColor)" />
+                            <BSelect v-model="editColor" expanded>
+                                <option v-for="color in ORG_COLORS" :key="color.value ?? 'none'" :value="color.value">
+                                    {{ color.label }}
+                                </option>
+                            </BSelect>
+                        </div>
+                    </BField>
                     <BField label="Grupper">
                         <BSelect v-model="editGroups" multiple expanded>
                             <option v-for="group in assignableGroups" :key="group" :value="group">
@@ -91,6 +101,16 @@
                 <BField label="Titel">
                     <BInput v-model="createChildTitle" placeholder="Fx Økonomiansvarlig" />
                 </BField>
+                <BField label="Farve">
+                    <div class="org-drawer-add">
+                        <span class="org-color-swatch" :style="swatchStyle(createChildColor)" />
+                        <BSelect v-model="createChildColor" expanded>
+                            <option v-for="color in ORG_COLORS" :key="color.value ?? 'none'" :value="color.value">
+                                {{ color.label }}
+                            </option>
+                        </BSelect>
+                    </div>
+                </BField>
                 <BField label="Grupper">
                     <BSelect v-model="createChildGroups" multiple expanded>
                         <option v-for="group in assignableGroups" :key="group" :value="group">
@@ -117,6 +137,7 @@ import type { OrgPositionDto, UserDto } from '@/types';
 import { groupTitle } from '@/types';
 import OrgService from '@/Services/OrgService';
 import { canCreateChild as canCreateChildPosition, canManagePosition } from './orgAccess';
+import { ORG_COLORS } from './orgPalette';
 
 const props = defineProps<{
     modelValue: boolean;
@@ -140,11 +161,13 @@ const Dialog = useDialog();
 const loading = ref(false);
 const editTitle = ref('');
 const editGroups = ref<string[]>([]);
+const editColor = ref<string | null>(null);
 const moveParentId = ref<number | null>(null);
 const inviteEmail = ref('');
 const selectedUserId = ref<string | undefined>(undefined);
 const createChildTitle = ref('');
 const createChildGroups = ref<string[]>([]);
+const createChildColor = ref<string | null>(null);
 
 const open = computed({
     get: () => props.modelValue,
@@ -208,11 +231,13 @@ watch(
         const current = position.value;
         editTitle.value = current?.title ?? '';
         editGroups.value = current ? [...current.groups] : [];
+        editColor.value = current?.color ?? null;
         moveParentId.value = current?.parentPositionId ?? null;
         inviteEmail.value = '';
         selectedUserId.value = undefined;
         createChildTitle.value = '';
         createChildGroups.value = [];
+        createChildColor.value = null;
     },
     { immediate: true }
 );
@@ -223,6 +248,10 @@ function report(success: boolean, message: string) {
     return success;
 }
 
+function swatchStyle(color: string | null): Record<string, string> {
+    return color ? { backgroundColor: color } : {};
+}
+
 async function saveEdit() {
     if (!editTitle.value.trim()) return report(false, 'Titel er påkrævet.');
 
@@ -230,7 +259,8 @@ async function saveEdit() {
     try {
         const success = await service.updatePosition(position.value!.id, {
             title: editTitle.value.trim(),
-            groups: editGroups.value
+            groups: editGroups.value,
+            color: editColor.value
         });
         if (report(success, success ? 'Stilling opdateret.' : 'Kunne ikke opdatere stillingen.')) {
             emit('refresh');
@@ -313,11 +343,13 @@ async function createChild() {
         const success = await service.createPosition({
             title: createChildTitle.value.trim(),
             parentPositionId: position.value!.id,
-            groups: createChildGroups.value
+            groups: createChildGroups.value,
+            color: createChildColor.value
         });
         if (report(success, success ? 'Stilling oprettet.' : 'Kunne ikke oprette stillingen.')) {
             createChildTitle.value = '';
             createChildGroups.value = [];
+            createChildColor.value = null;
             emit('refresh');
         }
     } finally {
@@ -405,5 +437,13 @@ async function removePosition() {
     align-items: center;
     gap: 0.5rem;
     margin-top: 0.5rem;
+}
+
+.org-color-swatch {
+    width: 1rem;
+    height: 1rem;
+    border-radius: 0.25rem;
+    border: 1px solid hsl(0, 0%, 74%);
+    flex-shrink: 0;
 }
 </style>

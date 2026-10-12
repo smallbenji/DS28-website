@@ -6,6 +6,7 @@ export interface OrgPositionDto {
     parentPositionId: number | null;
     paForPositionId: number | null;
     isSystem: boolean;
+    color: string | null;
     groups: string[];
     holders: OrgPositionHolderDto[];
 }
@@ -19,11 +20,13 @@ export interface OrgPositionHolderDto {
 export interface OrgPositionCreateDto {
     title: string;
     parentPositionId: number | null;
+    color: string | null;
     groups: string[];
 }
 
 export interface OrgPositionUpdateDto {
     title: string;
+    color: string | null;
     groups: string[];
 }
 

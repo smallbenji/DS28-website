@@ -4,6 +4,7 @@
             <div
                 class="org-card"
                 :class="{ 'is-system': node.position.isSystem }"
+                :style="cardStyle"
                 role="button"
                 tabindex="0"
                 @click="emit('select', node.position.id)"
@@ -35,6 +36,7 @@
             <div
                 v-if="node.pa"
                 class="org-pa"
+                :style="paStyle"
                 role="button"
                 tabindex="0"
                 @click="emit('select', node.pa.id)"
@@ -68,15 +70,27 @@
 </template>
 
 <script lang="ts" setup>
+import { computed } from 'vue';
 import { BTaglist, BTag } from 'buefy';
 import type { OrgNodeModel } from '@/types';
 import { groupTitle } from '@/types';
+import { tintHex } from './orgPalette';
 
 defineOptions({ name: 'OrgNode' });
 
-defineProps<{ node: OrgNodeModel }>();
+const props = defineProps<{ node: OrgNodeModel }>();
 
 const emit = defineEmits<{ (event: 'select', positionId: number): void }>();
+
+const cardStyle = computed(() => {
+    const color = tintHex(props.node.position.color);
+    return color ? { backgroundColor: color } : undefined;
+});
+
+const paStyle = computed(() => {
+    const color = tintHex(props.node.position.color);
+    return color ? { backgroundColor: color } : undefined;
+});
 
 function initials(name: string): string {
     return name

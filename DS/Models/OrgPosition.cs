@@ -9,6 +9,7 @@ public class OrgPosition : IAuditableEntity, ISoftDeleteable
     public int? PaForPositionId { get; set; }
     public OrgPosition PaForPosition { get; set; }
     public bool IsSystem { get; set; }
+    public string Color { get; set; }
     public List<OrgPositionGroup> Groups { get; set; } = [];
     public List<OrgPositionHolder> Holders { get; set; } = [];
 

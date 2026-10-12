@@ -312,6 +312,7 @@ erDiagram
         int parent_position_id FK "RESTRICT, self"
         int pa_for_position_id FK "CASCADE, self, unik pr. stilling"
         bool is_system
+        varchar color "nullable, hex fra fast palette"
         timestamptz created_at
         timestamptz updated_at
         timestamptz deleted_at
@@ -567,3 +568,6 @@ mindst syv dage gamle. Det er ren dataoprydning uden skemaændring.
 - `ix_org_position_deleted_at` er et partielt index over ikke-slettede
   `org_position`-rækker (`WHERE deleted_at IS NULL`), der understøtter
   listen over aktive stillinger.
+- `org_position.color` (nullable) holder en hex-værdi fra en fast palette på
+  maksimalt 16 tegn. Farven vises som en lys baggrundstone på kortet i
+  organisationsdiagrammet; værdiækvivalensen håndhæves i `OrgApiController`.

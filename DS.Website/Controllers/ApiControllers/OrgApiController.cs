@@ -66,10 +66,13 @@ namespace DS.Website.Controllers
             if (groups.Contains(nameof(AppGroups.SysAdmin))) return BadRequest("SysAdmin kan ikke tildeles en almindelig stilling.");
             if (!await CanAssignGroupsAsync(groups)) return Forbid();
 
+            if (!TryNormalizeColor(data.Color, out var color)) return BadRequest("Ugyldig farve.");
+
             var position = new OrgPosition
             {
                 Title = data.Title.Trim(),
                 ParentPositionId = data.ParentPositionId,
+                Color = color,
                 Groups = groups.Select(group => new OrgPositionGroup { GroupName = group }).ToList(),
             };
 
@@ -123,7 +126,10 @@ namespace DS.Website.Controllers
             if (groups.Contains(nameof(AppGroups.SysAdmin))) return BadRequest("SysAdmin kan ikke tildeles en almindelig stilling.");
             if (!await CanAssignGroupsAsync(groups)) return Forbid();
 
+            if (!TryNormalizeColor(data.Color, out var color)) return BadRequest("Ugyldig farve.");
+
             position.Title = data.Title.Trim();
+            position.Color = color;
             position.UpdatedAt = DateTime.UtcNow;
 
             await dataDb.OrgPositionGroups
@@ -373,6 +379,35 @@ namespace DS.Website.Controllers
             }
         }
 
+        private static readonly HashSet<string> AllowedColors = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "#1f6fb2",
+            "#2f9e44",
+            "#e0a51c",
+            "#d95740",
+            "#8e5bd1",
+            "#0f9d9d",
+        };
+
+        private static bool TryNormalizeColor(string color, out string result)
+        {
+            if (string.IsNullOrWhiteSpace(color))
+            {
+                result = null;
+                return true;
+            }
+
+            var normalized = color.Trim().ToLowerInvariant();
+            if (!AllowedColors.Contains(normalized))
+            {
+                result = null;
+                return false;
+            }
+
+            result = normalized;
+            return true;
+        }
+
         private static List<string> NormalizeGroups(IEnumerable<string> groups)
         {
             if (groups == null) return [];
@@ -393,6 +428,7 @@ namespace DS.Website.Controllers
                 ParentPositionId = position.ParentPositionId,
                 PaForPositionId = position.PaForPositionId,
                 IsSystem = position.IsSystem,
+                Color = position.Color,
                 Groups = position.Groups
                     .Select(group => group.GroupName)
                     .OrderBy(group => group)

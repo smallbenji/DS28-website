@@ -24,6 +24,9 @@ public class OrgPositionConfiguration : IEntityTypeConfiguration<OrgPosition>
             .HasDefaultValueSql("FALSE")
             .HasSentinel(false);
 
+        builder.Property(x => x.Color)
+            .HasMaxLength(16);
+
         builder.HasOne(x => x.Parent)
             .WithMany()
             .HasForeignKey(x => x.ParentPositionId)

@@ -7,6 +7,7 @@ namespace DS.DTOs
         public int? ParentPositionId { get; set; }
         public int? PaForPositionId { get; set; }
         public bool IsSystem { get; set; }
+        public string Color { get; set; }
         public List<string> Groups { get; set; } = [];
         public List<OrgPositionHolderDto> Holders { get; set; } = [];
     }
@@ -22,12 +23,14 @@ namespace DS.DTOs
     {
         public string Title { get; set; }
         public int? ParentPositionId { get; set; }
+        public string Color { get; set; }
         public List<string> Groups { get; set; } = [];
     }
 
     public class OrgPositionUpdateDto
     {
         public string Title { get; set; }
+        public string Color { get; set; }
         public List<string> Groups { get; set; } = [];
     }
 

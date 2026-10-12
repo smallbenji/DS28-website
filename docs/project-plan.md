@@ -215,7 +215,7 @@ Model (implementeret):
 
 | Tabel | Indhold |
 | --- | --- |
-| `org_position` | `id`, `title`, `parent_position_id` (nullable), `pa_for_position_id` (nullable, unik), `is_system` |
+| `org_position` | `id`, `title`, `parent_position_id` (nullable), `pa_for_position_id` (nullable, unik), `is_system`, `color` (nullable) |
 | `org_position_group` | `position_id`, `group_name` (et `AppGroups`-navn) |
 | `org_position_holder` | `position_id`, `user_id` |
 | `user_invitation` | nyt `org_position_id` (nullable) |
@@ -265,6 +265,10 @@ Implementeringsnoter (2026-10-12):
   understillinger, kan ikke ændres eller flyttes, og slettes sammen med
   ejerstillingen (`ON DELETE CASCADE`). Den kan dog give invitationer og
   beklædes af brugere.
+- Stillinger kan farves med en fast palette (hex-værdi på `org_position.color`).
+  Farven vises som en lys baggrundstone på kortet og vælges i draweren eller
+  ved oprettelse. Personlige assistenter har ingen egen farve, men arver
+  ejerstillingens tone.
 - `AppGroups.SysAdmin` må ikke indgå i en almindelig stillings grupper; den
   findes kun på systemstillingen.
 - En stilling med understillinger eller indehavere kan ikke slettes, før den er
