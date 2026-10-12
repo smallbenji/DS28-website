@@ -52,6 +52,7 @@
                     </div>
                     <div class="column">
                         <UserRoles class="column is-half" v-if="selectedUser" :selected-user="selectedUser" />
+                        <UserPositions v-if="selectedUser" :selected-user="selectedUser" />
                     </div>
                 </div>
             </WorkspaceContent>
@@ -68,6 +69,7 @@ import { useUserStore } from '@/Stores/UserStore';
 import { storeToRefs } from 'pinia';
 import { BButton, BInput, useToast } from 'buefy';
 import UserRoles from '@/Components/User/UserRoles.vue';
+import UserPositions from '@/Components/User/UserPositions.vue';
 import UserCreateUser from '@/Components/User/UserCreateUser.vue';
 import UserInviteUser from '@/Components/User/UserInviteUser.vue';
 import UserMetadata from '@/Components/User/UserMetadata.vue';

@@ -24,12 +24,34 @@ namespace DS.Website.Controllers
                 .Include(x => x.ProfilePicture)
                 .ToListAsync();
 
+            var positionsByUser = await dataDb.OrgPositionHolders
+                .AsNoTracking()
+                .Where(holder => holder.Position.DeletedAt == null)
+                .Select(holder => new
+                {
+                    holder.UserId,
+                    PositionId = holder.Position.Id,
+                    PositionTitle = holder.Position.Title
+                })
+                .ToListAsync();
+
+            var positionsLookup = positionsByUser
+                .GroupBy(entry => entry.UserId)
+                .ToDictionary(group => group.Key, group => group
+                    .Select(entry => new OrgPositionDto
+                    {
+                        Id = entry.PositionId,
+                        Title = entry.PositionTitle
+                    })
+                    .ToList());
+
             var retval = new List<UserDto>();
             foreach (var user in users)
             {
                 var dto = new UserDto(user)
                 {
-                    Roles = (await userManager.GetRolesAsync(user)).ToList()
+                    Roles = (await userManager.GetRolesAsync(user)).ToList(),
+                    Positions = positionsLookup.TryGetValue(user.Id, out var positions) ? positions : []
                 };
 
                 retval.Add(dto);

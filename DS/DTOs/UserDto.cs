@@ -32,6 +32,7 @@ namespace DS.DTOs
         public DateTimeOffset? LockoutEnd { get; set; }
         public ImageReferenceDto ProfilePicture { get; set; }
         public List<string> Roles { get; set; } = [];
+        public List<OrgPositionDto> Positions { get; set; } = [];
 
         public void ApplyTo(User user)
         {

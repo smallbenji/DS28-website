@@ -263,6 +263,8 @@ Implementeringsnoter (2026-10-12):
   cache ryddes.
 - `MeDto.Title` viser stillingens titel, hvis brugeren beklæder en stilling, og
   falder ellers tilbage til `ResolveGroupTitle`.
+- Brugeradministrationen viser en brugers stillinger via `UserDto.Positions`
+  (stillings-ID og titel).
 - En stilling kan flyttes til en anden overstilling via
   `PUT /api/v1/org/{id}/parent`. Flytning kræver autoritet over både den
   nuværende og den nye overstilling; en rodstilling (ny overstilling = null)
