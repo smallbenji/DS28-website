@@ -17,6 +17,7 @@
                 Fjern
             </BButton>
         </div>
+        <p v-if="!selectedUser.roles.length" class="panel-block has-text-grey">Ingen roller</p>
     </nav>
     <BModal v-model="open" has-modal-card>
         <div class="modal-card">
