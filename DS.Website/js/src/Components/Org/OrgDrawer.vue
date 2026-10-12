@@ -326,7 +326,7 @@ async function createChild() {
 }
 
 function confirmDelete() {
-    Dialog.open({
+    Dialog.confirm({
         title: isPa.value ? 'Slet personlig assistent' : 'Slet stilling',
         message: `Slet "${position.value!.title}"?`,
         confirmText: 'Slet',
