@@ -294,6 +294,7 @@ DS.Website/certs/
 *.pem
 
 # Custom
+.opencode/
 .env
 files
 DS.Website/files
