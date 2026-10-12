@@ -221,7 +221,7 @@ namespace DS.Website
             {
                 AppGroups.SysAdmin => "Systemadministrator",
                 AppGroups.CampAdmin => "Lejrchef",
-                AppGroups.EventAdmin => "Arrangementsansvarlig",
+                AppGroups.EventAdmin => "Eventansvarlig",
                 AppGroups.ActivityAdmin => "Aktivitetsansvarlig",
                 AppGroups.ActivityUser => "Aktivitets-teammedlem",
                 AppGroups.FinanceAdmin => "Kasserer",
