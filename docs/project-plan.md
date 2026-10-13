@@ -176,6 +176,9 @@ Hangfire og eksport) og `/api/v1/me` alle opfører sig som den valgte gruppe.
   `POST /api/v1/impersonation/start` og fjernes af `stop`. De reelle grupper
   lagres som `ds28:imp:origin`-claims, så start/stop altid kan verificeres mod
   den ægte SysAdmin-identitet, uanset hvad der impersoneres.
+- Fra 2026-10-14 anvendes cookien kun, hvis brugerens reelle grupper fortsat
+  indeholder `SysAdmin`; mister man rollen, holder en allerede udstedt cookie op
+  med at virke, i stedet for at virke til den udløber.
 - En aktiv visning vises i selve brugermenuen i `Back.vue`: mens man viser
   som en rolle, står der "Viser som …" med rollens titel plus et "Stop visning"-
   punkt. Der er bevidst ikke et globalt topbanner.
@@ -461,6 +464,48 @@ adgang er begrænset til systemadministrator og lejrchef.
 **Beslutning 2026-09-29:** `AuditLogView` er nu tildelt systemadministrator og
 lejrchef, så adgangen matcher den planlagte. Auditloggen er endnu hverken
 implementeret eller synlig i adminområdet.
+
+## Sikkerhed og auth-hærdning
+
+**Beslutning 2026-10-14:** Fire konkrete fund fra en hurtig gennemgang blev
+gennemgået. Tre blev rettet, og PKCE blev vurderet og forkastet.
+
+- **Forwarded headers:** `UseForwardedHeaders` kørte efter `UseHttpsRedirection`
+  og `UseRouting`, og `KnownProxies`/`KnownIPNetworks` indeholdt kun loopback, så
+  Traefiks `X-Forwarded-Proto`/`-For` blev ignoreret. `Request.IsHttps`,
+  `Request.Scheme` og `Request.Host` var derfor upålidelige bag proxyen, hvilket
+  bl.a. kunne give redirect-loop i `UseHttpsRedirection` og forkerte links i
+  admin-genererede nulstillingslinks. Middlewaren er flyttet til toppen af
+  pipelinen, og proxyen stoles på ved at tømme `KnownProxies` og
+  `KnownIPNetworks`. Det er forsvarligt, fordi app-porten kun eksponeres via
+  Traefik på det interne Docker-netværk; eksponeres porten direkte, kan klienter
+  spoofe headerne.
+- **Login-brute force:** `PasswordSignInAsync` blev kaldt med
+  `lockoutOnFailure: false`, så fejlede forsøg aldrig talte, og `IsLockedOut`
+  kunne ikke udløses. Slået til, så Identitys standard (5 forsøg / 5 min.)
+  gælder. Derudover er der tilføjet rate limiting: en fast 20/min-pr.-IP-politik
+  ("auth") på `AuthApiController`, som dækker login, registrering,
+  glemt-adgangskode og 2FA. `LockoutEnabled` sættes til `true` af
+  `UserManager.CreateAsync` for nye brugere.
+- **Impersonation:** `ClaimsTransformer` anvendte impersonation-cookien, så snart
+  den kunne dekrypteres, uden at kontrollere den ægte identitet. Cookien
+  anvendes nu kun, hvis brugerens reelle grupper indeholder `SysAdmin`.
+- **PKCE:** `RequireProofKeyForCodeExchange()` var udkommenteret. Et forsøg på at
+  slå kravet til globalt blev forkastet igen, fordi den eneste registrerede
+  OIDC-klient (WordPress) ikke sender `code_challenge`, og et globalt krav derfor
+  ville bryde WordPress-login. Kravet bør i stedet sættes pr. klient via
+  `OpenIddictConstants.Requirements.Features.ProofKeyForCodeExchange` på de
+  applikationer, der understøtter PKCE, når der kommer flere klienter. Indtil da
+  accepteres afvejningen, fordi WordPress-klienten er konfidentiel (hemmelighed),
+  så et opsnappet authorization code ikke kan indløses uden den.
+
+Ubesluttede punkter:
+- Ingen klient understøtter PKCE i dag. Kravet bør tilføjes på klient-niveau, når
+  en ny klient, der kan det, tages i brug.
+- Rate-limit-politikken er pr.-IP; brugere bag samme NAT deler kvote. Grænsen
+  (20/min) er et forsigtigt udgangspunkt og kan justeres.
+- Adgangskodepolitikken (`RequiredLength = 4`, ingen kompleksitetskrav) er
+  bevidst uændret her, da den kan være et bevidst valg for deltagere.
 
 ## Teknologi og planlagt drift
 

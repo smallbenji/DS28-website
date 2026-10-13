@@ -6,10 +6,12 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace DS.Website.Controllers
 {
     [AllowAnonymous]
+    [EnableRateLimiting("auth")]
     [Route("/api/v1/auth")]
     public class AuthApiController(UserManager<User> userManager, SignInManager<User> signInManager, EmailService emailService) : Controller
     {
@@ -30,7 +32,7 @@ namespace DS.Website.Controllers
                 user.UserName!,
                 data.Password,
                 isPersistent: true,
-                lockoutOnFailure: false
+                lockoutOnFailure: true
             );
             if (result.Succeeded) return Ok(new AuthResultDto { ReturnUrl = ResolveReturnUrl(data.ReturnUrl) });
 

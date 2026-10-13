@@ -48,12 +48,15 @@ public class ClaimsTransformer(
 
         var effectiveGroups = roles.UserRoles;
 
-        var cookieValue = httpContextAccessor.HttpContext?.Request.Cookies[Impersonation.CookieName];
-        var impersonatedGroups = Impersonation.ResolveCookieGroups(dataProtectionProvider, cookieValue);
-        if (impersonatedGroups != null)
+        if (roles.UserRoles.Contains(nameof(AppGroups.SysAdmin)))
         {
-            effectiveGroups = impersonatedGroups;
-            claims.Add(new Claim(Impersonation.ActiveClaimType, string.Join(',', impersonatedGroups)));
+            var cookieValue = httpContextAccessor.HttpContext?.Request.Cookies[Impersonation.CookieName];
+            var impersonatedGroups = Impersonation.ResolveCookieGroups(dataProtectionProvider, cookieValue);
+            if (impersonatedGroups != null)
+            {
+                effectiveGroups = impersonatedGroups;
+                claims.Add(new Claim(Impersonation.ActiveClaimType, string.Join(',', impersonatedGroups)));
+            }
         }
 
         foreach (var group in effectiveGroups)
