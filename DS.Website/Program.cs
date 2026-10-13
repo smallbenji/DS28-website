@@ -2,6 +2,7 @@ using DS.Models;
 using DS.Data;
 using System.Security.Cryptography.X509Certificates;
 using System.Text.Json.Serialization;
+using System.Threading.RateLimiting;
 using DS;
 using DS.Website;
 using DS.Website.Exports;
@@ -11,6 +12,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using OpenIddict.Abstractions;
 using OpenIddict.Server;
@@ -88,7 +90,6 @@ builder.Services.AddOpenIddict()
             .SetUserInfoEndpointUris("/connect/userinfo");
 
         options.AllowAuthorizationCodeFlow();
-        // .RequireProofKeyForCodeExchange();
 
         options.RemoveEventHandler(OpenIddictServerHandlers.Exchange.ValidateScopeParameter.Descriptor);
 	    options.RegisterScopes(
@@ -140,6 +141,20 @@ builder.Services.ConfigureApplicationCookie(options =>
 
 builder.Services.AddMemoryCache();
 
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.AddPolicy("auth", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 20,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0,
+            }));
+});
+
 builder.Services.AddHttpContextAccessor();
 
 builder.Services.AddScoped<IClaimsTransformation, ClaimsTransformer>();
@@ -177,6 +192,15 @@ builder.Services.AddScoped<DataExport, GroupPreSignupExport>();
 
 var app = builder.Build();
 
+var forwardedHeadersOptions = new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto,
+};
+forwardedHeadersOptions.KnownIPNetworks.Clear();
+forwardedHeadersOptions.KnownProxies.Clear();
+
+app.UseForwardedHeaders(forwardedHeadersOptions);
+
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
 {
@@ -186,11 +210,7 @@ if (!app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseRouting();
-
-app.UseForwardedHeaders(new ForwardedHeadersOptions
-{
-    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
-});
+app.UseRateLimiter();
 
 app.UseAuthentication();
 app.UseAuthorization();
