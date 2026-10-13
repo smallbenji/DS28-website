@@ -135,6 +135,18 @@ namespace DS.Website.Controllers
 The frontend uses Vue and Buefy. Use existing Buefy components and surrounding
 project patterns for forms, buttons, tables, notifications, and step flows.
 
+## Deployment
+
+The project uses GitHub Actions for CI/CD (see `.github/workflows/deploy.yml`).
+
+- **Trigger**: Runs only on semantic version git tags matching `v[0-9]+.[0-9]+.[0-9]+*` (e.g., `v0.1.21`, `v1.2.3-rc1`). Also supports manual runs via `workflow_dispatch`.
+- **Registry**: Images are published to GitHub Container Registry (`ghcr.io`) as `ghcr.io/smallbenji/ds28-website`.
+- **Build**: Uses Docker Buildx with Docker driver to build from `Containerfile.Website` in the repo root (`context: .`), targeting `linux/amd64`. 
+- **Tags**: Automatically generated from the SemVer tag - exact (`{{version}}`), minor (`{{major}}.{{minor}}`), major (`{{major}}`), and `latest` (for all semver tag pushes).
+- **Push**: Images are pushed on tag triggers (manual runs still build but the workflow pushes as configured; see workflow for details).
+
+To deploy a new version: bump the version in `DS/DSVersion.cs`, create a commit with message "Bump version", tag that commit with `vX.Y.Z`, and push the commit and the tag. The workflow triggers on tag pushes; pushes to master are allowed but the deploy only runs for semver tags. The current version is exposed via the API (`/api/version`) from `DSVersion`.
+
 ## Verification
 
 - Review formatting against this section and use
