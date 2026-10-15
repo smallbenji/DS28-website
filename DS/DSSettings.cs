@@ -17,5 +17,9 @@ namespace DS
         public bool NotificationsEnabled { get; set; }
         public string FileStoragePath { get; set; }
         public long MaxUploadBytes { get; set; } = 10 * 1024 * 1024;
+        public string GoogleClientId { get; set; }
+        public string GoogleClientSecret { get; set; }
+        public string GoogleRedirectUri { get; set; }
+        public string GoogleDriveBaseFolderId { get; set; }
     }
 }

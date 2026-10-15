@@ -6,6 +6,7 @@ export * from './export.types';
 export * from './file.types';
 export * from './group.types';
 export * from './groups.types';
+export * from './google.types';
 export * from './home.types';
 export * from './invitation.types';
 export * from './me.types';

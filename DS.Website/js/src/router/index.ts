@@ -110,6 +110,11 @@ const routes: RouteRecordRaw[] = [
         meta: { requiresAuth: true, requiredRole: "AdminAccess", pageTitle: "Admin", pageIcon: "gear" }
     },
     {
+        path: "/admin/google",
+        component: () => import("@/Views/GoogleAdmin.vue"),
+        meta: { requiresAuth: true, requiredRole: "AdminAccess", pageTitle: "Google Drev", pageIcon: "globe" }
+    },
+    {
         path: "/org",
         component: () => import("@/Views/OrgChart.vue"),
         meta: { requiresAuth: true, requiredRole: "OrgView", pageTitle: "Organisation", pageIcon: "sitemap" }

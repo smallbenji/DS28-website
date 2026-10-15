@@ -212,5 +212,70 @@ namespace DS.Website.Repositories
             await dataDb.SaveChangesAsync();
             return invitation.InvitationId;
         }
+
+        public async Task<List<ActivityFile>> GetFilesAsync(int activityId)
+        {
+            return await dataDb.ActivityFiles
+                .AsNoTracking()
+                .Include(f => f.CreatedBy)
+                .Where(f => f.ActivityId == activityId && f.DeletedAt == null)
+                .ToListAsync();
+        }
+
+        public async Task<ActivityFile> AddFileAsync(int activityId, string driveFileId, string title, string userId)
+        {
+            var file = new ActivityFile
+            {
+                ActivityId = activityId,
+                DriveFileId = driveFileId,
+                Title = title,
+                CreatedByUserId = userId,
+            };
+
+            dataDb.ActivityFiles.Add(file);
+            await dataDb.SaveChangesAsync();
+
+            return file;
+        }
+
+        public async Task<string> GetDriveFolderIdAsync(int activityId)
+        {
+            return await dataDb.ActivityDriveFolders
+                .AsNoTracking()
+                .Where(f => f.ActivityId == activityId)
+                .Select(f => f.DriveFolderId)
+                .FirstOrDefaultAsync();
+        }
+
+        public async Task SaveDriveFolderIdAsync(int activityId, string driveFolderId)
+        {
+            var folder = await dataDb.ActivityDriveFolders.FirstOrDefaultAsync(f => f.ActivityId == activityId);
+
+            if (folder == null)
+            {
+                dataDb.ActivityDriveFolders.Add(new ActivityDriveFolder
+                {
+                    ActivityId = activityId,
+                    DriveFolderId = driveFolderId,
+                });
+            }
+            else
+            {
+                folder.DriveFolderId = driveFolderId;
+                folder.UpdatedAt = DateTime.UtcNow;
+            }
+
+            await dataDb.SaveChangesAsync();
+        }
+
+        public async Task RemoveDriveFolderIdAsync(int activityId)
+        {
+            var folder = await dataDb.ActivityDriveFolders.FirstOrDefaultAsync(f => f.ActivityId == activityId);
+
+            if (folder == null) return;
+
+            dataDb.ActivityDriveFolders.Remove(folder);
+            await dataDb.SaveChangesAsync();
+        }
     }
 }

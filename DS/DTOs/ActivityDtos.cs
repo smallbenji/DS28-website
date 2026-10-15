@@ -93,4 +93,21 @@ namespace DS.DTOs
         public string Link { get; set; }
         public string Email { get; set; }
     }
+
+    public class ActivityFileDto
+    {
+        public string Id { get; set; }
+        public string Name { get; set; }
+        public string Kind { get; set; }
+        public string Url { get; set; }
+        public DateTime? ModifiedAt { get; set; }
+        public string CreatedBy { get; set; }
+        public DateTime? CreatedAt { get; set; }
+    }
+
+    public class ActivityFileCreateDto
+    {
+        public string Title { get; set; }
+        public string Kind { get; set; }
+    }
 }

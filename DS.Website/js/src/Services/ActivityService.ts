@@ -1,6 +1,6 @@
 import type { AxiosResponse } from "axios";
 import axios from "axios";
-import type { ActivityDto, ActivityTeamDto, ActivityTeamInviteDto, ActivityTeamInviteLinkDto, ActivityTeamMembershipDto, UserDto } from "@/types";
+import type { ActivityFileCreateDto, ActivityFileDto, ActivityDto, ActivityTeamDto, ActivityTeamInviteDto, ActivityTeamInviteLinkDto, ActivityTeamMembershipDto, UserDto } from "@/types";
 
 export default class ActivityService {
     public async getTeams(): Promise<ActivityTeamDto[]> {
@@ -116,5 +116,22 @@ export default class ActivityService {
         } catch {
             return false;
         }
+    }
+
+    public async getFiles(activityId: number): Promise<ActivityFileDto[]> {
+        const response: AxiosResponse<ActivityFileDto[]> = await axios({
+            url: `/api/v1/activity/activity/${activityId}/files`,
+            method: "GET"
+        });
+        return response.data ? response.data : [];
+    }
+
+    public async addFile(activityId: number, data: ActivityFileCreateDto): Promise<ActivityFileDto> {
+        const response: AxiosResponse<ActivityFileDto> = await axios({
+            url: `/api/v1/activity/activity/${activityId}/file/add`,
+            method: "POST",
+            data
+        });
+        return response.data;
     }
 }

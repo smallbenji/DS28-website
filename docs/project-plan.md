@@ -426,6 +426,127 @@ Ubesluttede punkter:
   `waitUntilReady` i `FileService` poller fil-endpointet, fordi der ikke findes
   et status-endpoint.
 
+### Google Drive-filer
+
+**Beslutning 2026-10-15:** Aktivitetsteams kan oprette Google Docs-dokumenter
+til en aktivitet direkte fra HQ. Dokumenterne oprettes via **bruger-OAuth**: en
+HQ-administrator forbinder én gang en Google-konto på `/admin/google`, og
+dokumenterne oprettes derefter på vegne af den konto. Ejerskabet følger den
+forbundne Google-bruger — ikke en service account og ikke den HQ-bruger, der
+klikker "Opret". Refresh-tokenet gemmes krypteret med ASP.NET Core Data
+Protection i `google_connection`. Indstillingerne er `DS:GoogleClientId`,
+`DS:GoogleClientSecret`, `DS:GoogleRedirectUri` og `DS:GoogleDriveBaseFolderId`
+(lejrmappen).
+
+**Beslutning 2026-10-15 (udvidet):** Oprettelse omfatter Docs, Sheets og
+Slides, og fanen viser hele aktivitetens mappe i Drive — ikke kun de filer, der
+er oprettet fra HQ. Listen hentes live fra Drive med 30 sekunders cache i
+`IMemoryCache`, som ryddes ved oprettelse, så den, der lige har oprettet en fil,
+ser den med det samme. Et planlagt Hangfire-syncjob blev overvejet og fravalgt
+for nu: et fanebesøg koster ét Drive-kald, hvilket er langt under kvoten, og et
+job ville give en forsinkelse og selv skulle håndtere omdøbninger og
+sletninger. Jobbet bliver først relevant ved søgning på tværs af aktiviteter
+eller notifikationer.
+
+**Verificeret 2026-10-15 (service account):** En service account med
+skriverettighed på en mappe i et almindeligt My Drive kan oprette **undermapper**
+(mapper optager ingen lagerplads), men **ikke** dokumenter eller andre filer.
+Google svarer `403 storageQuotaExceeded` med beskeden "Service Accounts do not
+have storage quota. Leverage shared drives, or use OAuth delegation instead",
+fordi den oprettede fil ville blive ejet af service accounten, som ikke har
+lagerplads.
+
+**Beslutning 2026-10-15 (ændret):** Service account med domain-wide delegation
+blev først valgt, men er droppet, fordi det kræver en
+Workspace-superadministrator, som ikke er tilgængelig. Delt drev blev også
+overvejet og droppet, fordi det ville kræve, at lejrmappen flyttes, og fordi
+organisationen kan spærre for eksterne medlemmer. Bruger-OAuth er valgt, fordi
+det kun kræver adgang til Google Cloud-projektet (til OAuth-klienten), som
+projektet allerede administrerer. Service account-nøglen,
+`DS:GoogleServiceAccountPath` og `DS:GoogleDriveImpersonateUser` er derfor ikke
+længere i brug.
+
+**Verificeret 2026-10-15 (bruger-OAuth):** Forbindelsen blev oprettet mod
+lejrmappen, og et dokument oprettet fra HQ åbner direkte i Google Docs.
+
+**Beslutning 2026-10-15 (ændret):** Den indlejrede visning er droppet igen.
+Den krævede, at browseren var logget på en Google-konto med adgang til filen;
+filerne ejes af den forbundne Google-bruger og deles ikke med HQ-brugerne, så
+andre brugere fik Googles login-/adgangsside i stedet for selve dokumentet.
+Fanen viser derfor kun en liste, hvor hver række åbner filen i Google i en ny
+fane. `PreviewUrl` er fjernet fra både `GoogleFileTypes`, `ActivityFileDto` og
+frontend-typen.
+
+- Ved oprettelse sørger `GoogleDriveService` for en undermappe pr. aktivitet
+  under basemappen. Mappen mærkes med `appProperties.activity_id`, og ID'et
+  gemmes i `activity_drive_folder`, så mappen kan flyttes frit i Drev uden at
+  forbindelsen brydes. Efterfølgende opslag bruger det gemte ID og rører ikke
+  basemappen.
+- Findes der intet gemt ID — fx for aktiviteter, der fik en mappe før denne
+  ændring — findes mappen ved at søge på `appProperties.activity_id` i hele
+  Drev, uafhængigt af hvor mappen ligger, og ID'et gemmes, så det kun sker én
+  gang. Basemappen bruges derfor kun, når der skal oprettes en ny mappe.
+- På visningsstien oprettes der ikke en mappe; mangler den helt, er listen tom.
+- Er en gemt mappe slettet eller flyttet til papirkurven i Drev, glemmer HQ
+  ID'et: visningen bliver tom i stedet for at fejle, og næste oprettelse danner
+  en ny mappe.
+- Filerne er tomme Google-filer med aktivitetens navn som standardtitel. `kind`
+  er `doc`, `sheet` eller `slides` og oversættes til MIME-typen
+  `application/vnd.google-apps.document|spreadsheet|presentation`. Skabeloner,
+  der kopieres og udfyldes ved oprettelsen, er en senere udvidelse;
+  `activity_file` har derfor ingen skabelonreference.
+- Listen sammensættes af Drive-mappens indhold og beriges med rækkerne i
+  `activity_file` (matchet på `drive_file_id`), så "Oprettet af" kun vises for
+  filer oprettet fra HQ. Titlen kommer fra Drive, fordi filer kan omdøbes der.
+  Andre filtyper end Docs, Sheets og Slides vises også, med et generisk ikon og
+  link til Drive.
+- Rettigheder følger aktiviteten: oprettelse kræver samme adgang som
+  redigering af aktiviteten (`HasAccessAsync(teamId, true)`), og læsning følger
+  visningsadgang. Endpoints er `GET /api/v1/activity/activity/{id}/files` og
+  `POST /api/v1/activity/activity/{id}/file/add` med `{ title, kind }`.
+- Selve Google-forbindelsen styres af `GoogleApiController`.
+  `GET /api/v1/google/status` kan læses af alle brugere, mens
+  `GET /api/v1/google/connect`, `GET /api/v1/google/callback` og
+  `POST /api/v1/google/disconnect` kræver `AdminAccess`. Connect bruger en
+  kortlivet state-cookie som CSRF-værn, og OAuth-scopet er
+  `https://www.googleapis.com/auth/drive`.
+- Er Google-integrationen ikke konfigureret, svarer både listen og oprettelsen
+  `503`. Er den konfigureret, men uden en forbundet Google-konto, svarer begge
+  også `503`. Svarer Google ikke inden for 20 sekunder, eller fejler kaldet,
+  svarer de `502`.
+- Frontend viser en "Filer"-fane i aktivitetsdetaljen med en liste over
+  aktivitetens filer i en tabel over hele fanens bredde med typeikon, titel,
+  "Oprettet af" og "Sidst ændret". Filnavnet er et link til Google i en ny
+  fane, hvor både visning og redigering foregår. Oprettelsen ligger i en
+  separat, kompakt formular med besked om, at filer gemmes straks; knappen
+  "Gem aktivitet" gemmer aktivitetens øvrige oplysninger. Udfyldningsstatus
+  angiver, om Aktivitet eller Katalog mangler indhold. Dette ændrer ikke
+  reglerne for, hvornår en aktivitet regnes som udfyldt.
+- Forbindelsen oprettes og afbrydes på `/admin/google`, som er linket fra
+  adminområdet. Fanen viser en advarsel og skjuler opret-formularen, indtil der
+  er en forbundet konto.
+- Filer slettes ikke i Drive, når aktiviteten slettes; rækken i `activity_file`
+  soft-slettes/cascades, så Drive er kilden til sandhed for selve filen.
+- Drive-klienten er `Google.Apis.Drive.v3`. Pakken trækker
+  `System.Security.Cryptography.Pkcs`, hvis standardversion (10.0.0) havde kendte
+  sårbarheder; den er derfor pinnet til 10.0.13 i `DS.Website.csproj`, så
+  restore er uden advisories.
+
+Ubesluttede punkter:
+- Om OAuth-klient-ID, klienthemmelighed og redirect-URI i containeren skal
+  komme fra miljøvariabler eller mount i stedet for `.env`/repoet.
+- Hvilke skabeloner der skal kunne oprettes ud fra, og hvordan felter udfyldes.
+- Om filer skal kunne omdøbes, slettes eller flyttes fra HQ.
+- Om Drive-mappen skal omdøbes, når aktiviteten omdøbes i HQ; navnet sættes i
+  dag kun ved oprettelsen.
+- Om filer skal deles med aktivitetsteamet i Google (fx "alle med linket"), så
+  linket virker for brugere uden adgang til den forbundne Google-konto, og
+  hvilke adgangsregler der i så fald gælder.
+- Om der skal vises advarsel, når refresh-tokenet er udløbet eller tilbagekaldt,
+  så forbindelsen kan fornyes i tide.
+- Om der senere skal tilføjes et syncjob, så søgning på tværs af aktiviteter og
+  notifikationer kan bygges på databasen i stedet for Drive.
+
 ### Dataudtræk
 
 Planen under Økonomi nævner eksport af deltagerantal pr. dag og pr. gruppe, men

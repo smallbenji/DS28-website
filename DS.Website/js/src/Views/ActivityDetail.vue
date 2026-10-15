@@ -9,7 +9,7 @@
                 <i class="fas fa-check"></i> Udfyldt
             </span>
             <span class="tag is-danger is-light is-medium" v-else>
-                <i class="fas fa-circle-exclamation"></i> Mangler udfyldning
+                <i class="fas fa-circle-exclamation"></i> Mangler: {{ missingTabs.join(', ') }}
             </span>
         </div>
         <div class="activity-detail-body">
@@ -47,21 +47,80 @@
                         <BInput v-model="form.catalog.description" type="textarea" placeholder="Beskrivelse" />
                     </BField>
                 </div>
+                <div class="activity-detail-form activity-detail-files" v-else-if="activeTab === 2">
+                    <h2 class="title is-5 mb-0">Filer</h2>
+                    <BNotification v-if="!googleConnected" type="is-warning" :closable="false">
+                        Google Drev er ikke forbundet.
+                        <router-link v-if="canManageGoogle" to="/admin/google">Forbind Google Drev</router-link>
+                    </BNotification>
+                    <template v-else>
+                        <section class="activity-detail-files-creation">
+                            <h3 class="has-text-weight-semibold mb-2">Opret fil</h3>
+                            <p class="activity-detail-files-help mb-4">Filen gemmes med det samme i Google Drev. Brug Gem aktivitet til ændringer på de øvrige faner.</p>
+                            <form class="activity-detail-files-create" @submit.prevent="createFile">
+                                <BField class="activity-detail-files-name" label="Navn">
+                                    <BInput v-model="fileTitle" :placeholder="form.name || 'Navn'" />
+                                </BField>
+                                <BField class="activity-detail-files-kind" label="Type">
+                                    <BSelect v-model="fileKind" expanded>
+                                        <option value="doc">Dokument</option>
+                                        <option value="sheet">Regneark</option>
+                                        <option value="slides">Præsentation</option>
+                                    </BSelect>
+                                </BField>
+                                <BButton
+                                    type="is-primary"
+                                    icon-left="plus"
+                                    :loading="creatingFile"
+                                    :disabled="creatingFile"
+                                    native-type="submit"
+                                >
+                                    Opret fil
+                                </BButton>
+                            </form>
+                        </section>
+                        <section class="activity-detail-files-body">
+                            <h3 class="has-text-weight-semibold mb-3">Eksisterende filer ({{ files.length }})</h3>
+                            <BTable :data="files" hoverable>
+                                <BTableColumn field="name" label="Navn" v-slot="props">
+                                    <a class="activity-detail-files-link" :href="props.row.url" target="_blank" rel="noopener" :title="`Åbn ${props.row.name} i Google (ny fane)`">
+                                        <i :class="fileIcon(props.row.kind)" aria-hidden="true"></i>
+                                        <span>{{ props.row.name }}</span>
+                                        <i class="fas fa-arrow-up-right-from-square" aria-hidden="true"></i>
+                                        <span class="is-sr-only">(åbner i ny fane)</span>
+                                    </a>
+                                </BTableColumn>
+                                <BTableColumn field="createdBy" label="Oprettet af" v-slot="props">
+                                    <span class="activity-detail-files-meta">{{ props.row.createdBy || '—' }}</span>
+                                </BTableColumn>
+                                <BTableColumn field="modifiedAt" label="Sidst ændret" v-slot="props">
+                                    <span class="activity-detail-files-meta">{{ props.row.modifiedAt ? formatDate(props.row.modifiedAt) : '—' }}</span>
+                                </BTableColumn>
+                                <template #empty>
+                                    <p class="activity-detail-files-empty">Der er endnu ingen filer til aktiviteten. Opret den første fil ovenfor.</p>
+                                </template>
+                            </BTable>
+                        </section>
+                    </template>
+                </div>
             </div>
         </div>
         <div class="activity-detail-actions">
             <BButton type="is-success" icon-left="check" :loading="saving" :disabled="saving" @click="saveActivity">
-                Gem
+                Gem aktivitet
             </BButton>
         </div>
     </div>
 </template>
 <script lang="ts" setup>
 import { useActivityStore } from '@/Stores/ActivityStore';
-import { BButton, BField, BInput, useToast } from 'buefy';
+import { useMeStore } from '@/Stores/MeStore';
+import GoogleService from '@/Services/GoogleService';
+import { formatDate } from '@/lib/util';
+import { BButton, BField, BInput, BNotification, BSelect, BTable, BTableColumn, useToast } from 'buefy';
 import { storeToRefs } from 'pinia';
 import { reactive, ref, computed, watch } from 'vue';
-import type { CatalogDataDto } from '@/types';
+import type { ActivityFileKind, CatalogDataDto } from '@/types';
 
 interface ActivityFormDto {
     id: number;
@@ -72,10 +131,18 @@ interface ActivityFormDto {
 
 const Toast = useToast();
 const activityStore = useActivityStore();
-const { SelectedActivity } = storeToRefs(activityStore);
+const meStore = useMeStore();
+const googleService = new GoogleService();
+const { SelectedActivity, FILES } = storeToRefs(activityStore);
 
 const activeTab = ref(0);
 const saving = ref(false);
+const creatingFile = ref(false);
+const fileTitle = ref('');
+const fileKind = ref<ActivityFileKind>('doc');
+const googleConnected = ref(true);
+
+const canManageGoogle = computed(() => meStore.ME.appRoles.includes('AdminAccess'));
 
 const form = reactive<ActivityFormDto>({
     id: 0,
@@ -84,6 +151,28 @@ const form = reactive<ActivityFormDto>({
     catalog: { id: 0, name: '', summary: '', description: '' }
 });
 
+const activity = SelectedActivity;
+const files = FILES;
+
+const loadFiles = async (activityId: number) => {
+    const status = await googleService.getStatus().catch(() => null);
+
+    if (status) {
+        googleConnected.value = status.connected;
+    }
+
+    if (!googleConnected.value) return;
+
+    try {
+        await activityStore.GET_FILES(activityId);
+    } catch {
+        Toast.open({
+            message: 'Filerne kunne ikke hentes fra Google Drev',
+            type: 'is-danger'
+        });
+    }
+};
+
 watch(SelectedActivity, (activity) => {
     if (!activity) return;
 
@@ -91,9 +180,17 @@ watch(SelectedActivity, (activity) => {
     form.name = activity.name;
     form.budget = activity.budget;
     form.catalog = activity.catalog ?? { id: 0, name: '', summary: '', description: '' };
+    fileTitle.value = '';
+    loadFiles(activity.id);
 }, { immediate: true });
 
-const activity = SelectedActivity;
+const fileIcon = (kind: ActivityFileKind) => {
+    if (kind === 'sheet') return 'fas fa-table';
+    if (kind === 'slides') return 'fas fa-display';
+    if (kind === 'doc') return 'far fa-file-lines';
+
+    return 'far fa-file';
+};
 
 const activityTabFilled = computed(() => form.name.trim().length > 0);
 
@@ -103,10 +200,53 @@ const catalogTabFilled = computed(
         || form.catalog.description.trim().length > 0
 );
 
+const missingTabs = computed(() => [
+    ...(!activityTabFilled.value ? ['Aktivitet'] : []),
+    ...(!catalogTabFilled.value ? ['Katalog'] : [])
+]);
+
 const tabs = computed(() => [
     { key: 'activity', label: 'Aktivitet', icon: 'fas fa-calendar-days', filled: activityTabFilled.value },
-    { key: 'catalog', label: 'Katalog', icon: 'fas fa-globe', filled: catalogTabFilled.value }
+    { key: 'catalog', label: 'Katalog', icon: 'fas fa-globe', filled: catalogTabFilled.value },
+    { key: 'files', label: 'Filer', icon: 'fas fa-folder-open', filled: files.value.length > 0 }
 ]);
+
+const createFile = async () => {
+    if (!activity.value || creatingFile.value) return;
+
+    creatingFile.value = true;
+    try {
+        await activityStore.ADD_FILE(activity.value.id, {
+            title: fileTitle.value.trim() || null,
+            kind: fileKind.value
+        });
+
+        fileTitle.value = '';
+
+        Toast.open({
+            message: 'Filen er oprettet',
+            type: 'is-success'
+        });
+    } catch (error: any) {
+        const status = error?.response?.status;
+        const message = typeof error?.response?.data === 'string' && error.response.data
+            ? error.response.data
+            : status === 403
+                ? 'Du har ikke rettigheder til at oprette filer til aktiviteten'
+                : 'Der skete en fejl ved oprettelse af filen';
+
+        if (status === 503) {
+            googleConnected.value = false;
+        }
+
+        Toast.open({
+            message,
+            type: 'is-danger'
+        });
+    } finally {
+        creatingFile.value = false;
+    }
+};
 
 const saveActivity = async () => {
     saving.value = true;
@@ -235,6 +375,111 @@ const saveActivity = async () => {
         .input,
         .textarea {
             font-size: 1.05rem;
+        }
+    }
+
+    &-files {
+        max-width: none;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+
+        &-creation {
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+        }
+
+        &-help,
+        &-meta {
+            color: #666;
+            font-size: 0.95rem;
+        }
+
+        &-create {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: flex-end;
+            gap: 1rem;
+            max-width: 56rem;
+
+            .field {
+                margin-bottom: 0;
+            }
+        }
+
+        &-name {
+            flex: 1 1 18rem;
+            min-width: 0;
+        }
+
+        &-kind {
+            flex: 0 1 12rem;
+        }
+
+        &-body {
+            min-width: 0;
+
+            .table {
+                width: 100%;
+            }
+
+            td {
+                vertical-align: middle;
+            }
+        }
+
+        &-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.35rem 0;
+            overflow-wrap: anywhere;
+
+            .fa-arrow-up-right-from-square {
+                font-size: 0.8rem;
+            }
+        }
+
+        &-empty {
+            color: #666;
+            padding: 1.5rem 0;
+        }
+    }
+
+    @media (max-width: 768px) {
+        width: auto;
+        margin: 1rem;
+        padding: 1rem;
+
+        &-header {
+            flex-wrap: wrap;
+
+            .tag {
+                height: auto;
+                white-space: normal;
+            }
+        }
+
+        &-body {
+            flex-direction: column;
+            gap: 1rem;
+            min-height: 0;
+        }
+
+        &-nav {
+            flex: 0 0 auto;
+            border-right: 0;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+            padding: 0 0 1rem;
+
+            &-item {
+                padding: 0.75rem;
+                font-size: 1rem;
+            }
+        }
+
+        &-files-kind {
+            flex: 1 1 12rem;
         }
     }
 

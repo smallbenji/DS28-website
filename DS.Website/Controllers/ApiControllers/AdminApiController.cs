@@ -72,6 +72,13 @@ namespace DS.Website.Controllers
                             Icon = ["fa", "h"],
                             Mvc = true,
                             RequiredRole = nameof(AppRoles.HangfireView)
+                        },
+                        new HQPanelEntryDto
+                        {
+                            Title = "Google Drev",
+                            Url = "/admin/google",
+                            Icon = ["globe"],
+                            RequiredRole = nameof(AppRoles.AdminAccess)
                         }
                     ]
                 }

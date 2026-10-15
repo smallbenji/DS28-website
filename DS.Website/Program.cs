@@ -39,11 +39,12 @@ builder.Services.AddControllersWithViews()
 });
 
 var dataProtectionKeysPath = builder.Configuration["DataProtection:KeysPath"];
+var dataProtection = builder.Services.AddDataProtection()
+    .SetApplicationName("ds28-website");
+
 if (!string.IsNullOrWhiteSpace(dataProtectionKeysPath))
 {
-    builder.Services.AddDataProtection()
-        .SetApplicationName("ds28-website")
-        .PersistKeysToFileSystem(new DirectoryInfo(dataProtectionKeysPath));
+    dataProtection.PersistKeysToFileSystem(new DirectoryInfo(dataProtectionKeysPath));
 }
 
 builder.Services.AddScoped<IUserClaimsPrincipalFactory<User>, AppClaimsPrincipalFactory>();
@@ -179,6 +180,8 @@ builder.Services.AddTransient<MailJobs>();
 builder.Services.AddTransient<OpenIddictJobs>();
 builder.Services.AddTransient<FileProcessingJobs>();
 builder.Services.AddSingleton<IFileStorage, LocalFileStorage>();
+builder.Services.AddTransient<IGoogleAuthService, GoogleAuthService>();
+builder.Services.AddTransient<IGoogleDriveService, GoogleDriveService>();
 builder.Services.AddHangfire(config => config.UsePostgreSqlStorage(
     storage => storage.UseNpgsqlConnection(dssettings.ConnectionString),
     new PostgreSqlStorageOptions

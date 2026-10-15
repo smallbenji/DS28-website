@@ -25,6 +25,11 @@ public class DataDbContext : IdentityDbContext<User, Role, string>
     public DbSet<ActivityTimeslot> ActivityTimeslots { get; set; }
     public DbSet<ActivityBudget> ActivityBudgets { get; set; }
     public DbSet<CatalogData> CatalogData { get; set; }
+    public DbSet<ActivityFile> ActivityFiles { get; set; }
+
+    public DbSet<ActivityDriveFolder> ActivityDriveFolders { get; set; }
+
+    public DbSet<GoogleConnection> GoogleConnections { get; set; }
 
     public DbSet<Material> Materials { get; set; }
     public DbSet<MaterialOrder> MaterialOrders { get; set; }

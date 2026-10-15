@@ -299,6 +299,9 @@ DS.Website/certs/
 files
 DS.Website/files
 
+# Google service account keys
+ds28-hq-*.json
+
 dist
 node_modules
 *.lscache

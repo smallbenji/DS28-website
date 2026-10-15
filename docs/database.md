@@ -162,6 +162,24 @@ erDiagram
         timestamptz deleted_at
     }
 
+    activity_file {
+        int id PK
+        int activity_id FK "CASCADE"
+        text drive_file_id
+        text title
+        text created_by_user_id FK "SET NULL"
+        timestamptz created_at
+        timestamptz updated_at
+        timestamptz deleted_at
+    }
+
+    activity_drive_folder {
+        int activity_id PK "FK, CASCADE"
+        text drive_folder_id
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
     scout_group ||--o{ scout : "har medlemmer"
     scout_group ||--o{ patrol : "har patruljer"
     scout_group ||--o| group_pre_signup : "har forudtilmelding"
@@ -182,6 +200,8 @@ erDiagram
     activity_category ||--o{ catalog_data_category : "indeholder"
     material ||--o{ material_order : "bestilles i"
     catalog_data ||--o| stored_file : "har billede"
+    activity ||--o{ activity_file : "har filer"
+    activity ||--o| activity_drive_folder : "har Google-mappe"
 ```
 
 ## Brugere og roller
@@ -300,6 +320,17 @@ erDiagram
         bool is_pre_signup_open
         bool is_signup_open
     }
+
+    google_connection {
+        int id PK
+        text account_email
+        text refresh_token "Data Protection-krypteret"
+        text connected_by_user_id FK "SET NULL"
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    asp_net_users ||--o{ google_connection : "forbandt"
 ```
 
 ## Organisation
@@ -546,6 +577,25 @@ mindst syv dage gamle. Det er ren dataoprydning uden skemaændring.
   samme regel.
 - Migration `006a_relax_legacy_nullable.sql` gør flere kolonner nullable,
   bl.a. `scout_group.name`, `scout.name` og `activity.name`.
+- `activity_file` gemmer de filer, som systemet har oprettet i Google Drive for
+  en aktivitet, og bruges til at vise "Oprettet af" i fillisten. `drive_file_id`
+  er Drive-filens ID, og `title` er titlen ved oprettelsen. `activity_id` har
+  `ON DELETE CASCADE`, så rækkerne følger aktiviteten, og `created_by_user_id`
+  har `ON DELETE SET NULL`. Soft delete via `deleted_at`. Filen i Drive slettes
+  eller flyttes ikke af en soft delete; kolonnen findes, men ingen kode sætter
+  den endnu. Den viste titel og filtype kommer fra Drive, ikke fra denne tabel.
+- `activity_drive_folder` husker ID'et på den Google-mappe, HQ har oprettet for
+  en aktivitet, så mappen kan flyttes frit i Drev uden at forbindelsen brydes.
+  `activity_id` er både primærnøgle og foreign key med `ON DELETE CASCADE`, så
+  der højst er én mappe pr. aktivitet. Rækken oprettes første gang mappen slås
+  op eller dannes, og slettes igen, hvis mappen ikke længere findes i Drev, så
+  der kan dannes en ny.
+- `google_connection` holder den ene Google-konto, HQ bruger til at oprette
+  Google-filer. `refresh_token` indeholder det OAuth-refresh-token, som er
+  krypteret med ASP.NET Core Data Protection, så værdien kun kan læses af en
+  app-instans med den rigtige nøglering. Der holdes højst én række ad gangen:
+  ved en ny forbindelse slettes den gamle, og `connected_by_user_id` har
+  `ON DELETE SET NULL`, så en slettet bruger ikke fjerner forbindelsen.
 - `scout_activity_timeslot` findes i databasen, men har ingen tilsvarende
   entitet i `DataDbContext`.
 - `org_position` danner et træ via `parent_position_id` (selvreference,

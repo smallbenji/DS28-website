@@ -23,6 +23,9 @@ TODO.md
 # Runtime-only files (mounted via volume in docker-compose)
 certs
 
+# Google service account keys (mounted at runtime, never baked into the image)
+ds28-hq-*.json
+
 # Editor/OS artifacts
 .DS_Store
 Thumbs.db

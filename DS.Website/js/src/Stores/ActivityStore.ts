@@ -1,7 +1,7 @@
 import ActivityService from "@/Services/ActivityService";
 import { defineStore } from "pinia";
 import { computed, ref } from "vue";
-import type { ActivityDto, ActivityTeamDto, ActivityTeamInviteLinkDto, ActivityWithTeamDto, UserDto } from "@/types";
+import type { ActivityFileCreateDto, ActivityFileDto, ActivityDto, ActivityTeamDto, ActivityTeamInviteLinkDto, ActivityWithTeamDto, UserDto } from "@/types";
 
 export const useActivityStore = defineStore("activity", () => {
     const activityService = new ActivityService();
@@ -9,10 +9,12 @@ export const useActivityStore = defineStore("activity", () => {
     const SearchResults = ref<UserDto[]>([]);
     const SelectedTeamId = ref<number | null>(null);
     const SelectedActivity = ref<ActivityDto | null>(null);
+    const Files = ref<ActivityFileDto[]>([]);
     const TEAMS = computed(() => Teams.value);
     const SEARCH_RESULTS = computed(() => SearchResults.value);
     const SELECTED_TEAM_ID = computed(() => SelectedTeamId.value);
     const SELECTED_ACTIVITY = computed(() => SelectedActivity.value);
+    const FILES = computed(() => Files.value);
     const ALL_ACTIVITIES = computed<ActivityWithTeamDto[]>(() =>
         Teams.value.flatMap((team) =>
             team.activities.map((activity) => ({ ...activity, teamName: team.name }))
@@ -32,6 +34,23 @@ export const useActivityStore = defineStore("activity", () => {
         const data = await activityService.getActivity(id);
         SelectedActivity.value = data;
         return data;
+    }
+
+    async function GET_FILES(activityId: number) {
+        const data = await activityService.getFiles(activityId);
+        Files.value = data;
+        return data;
+    }
+
+    async function ADD_FILE(activityId: number, data: ActivityFileCreateDto) {
+        const file = await activityService.addFile(activityId, data);
+        await GET_FILES(activityId);
+
+        if (!Files.value.some((existing) => existing.id === file.id)) {
+            Files.value = [file, ...Files.value];
+        }
+
+        return file;
     }
 
     async function UPDATE_ACTIVITY(data: ActivityDto) {
@@ -99,8 +118,12 @@ export const useActivityStore = defineStore("activity", () => {
         SelectedActivity,
         SELECTED_ACTIVITY,
         ALL_ACTIVITIES,
+        Files,
+        FILES,
         GET_TEAMS,
         GET_ACTIVITY,
+        GET_FILES,
+        ADD_FILE,
         UPDATE_ACTIVITY,
         SEARCH_USERS,
         ADD_MEMBER,

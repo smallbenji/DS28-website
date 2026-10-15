@@ -44,3 +44,20 @@ export interface ActivityTeamInviteLinkDto {
 export interface ActivityWithTeamDto extends ActivityDto {
     teamName: string;
 }
+
+export type ActivityFileKind = 'doc' | 'sheet' | 'slides' | 'file';
+
+export interface ActivityFileDto {
+    id: string;
+    name: string;
+    kind: ActivityFileKind;
+    url: string;
+    modifiedAt: string | null;
+    createdBy: string | null;
+    createdAt: string | null;
+}
+
+export interface ActivityFileCreateDto {
+    title: string | null;
+    kind: ActivityFileKind;
+}

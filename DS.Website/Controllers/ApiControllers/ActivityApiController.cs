@@ -1,6 +1,7 @@
 using DS.DTOs;
 using DS.Models;
 using DS.Website.Repositories;
+using DS.Website.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -9,7 +10,12 @@ namespace DS.Website.Controllers
 {
     [Authorize(Roles = nameof(AppRoles.ActivityView))]
     [Route("api/v1/activity")]
-    public class ActivityApiController(ActivityRepository activityRepository, UserManager<User> userManager) : Controller
+    public class ActivityApiController(
+        ActivityRepository activityRepository,
+        UserManager<User> userManager,
+        IGoogleAuthService googleAuth,
+        IGoogleDriveService googleDrive,
+        ILogger<ActivityApiController> logger) : Controller
     {
         private bool IsActivityAdmin()
         {
@@ -139,6 +145,98 @@ namespace DS.Website.Controllers
             {
                 Link = link,
                 Email = data.Email.Trim()
+            });
+        }
+
+        [HttpGet("activity/{activityId:int}/files")]
+        public async Task<IActionResult> GetFiles(int activityId)
+        {
+            var activity = await activityRepository.GetActivityAsync(activityId);
+            if (activity == null) return NotFound();
+
+            if (!await HasAccessAsync(activity.ActivityTeamId, false)) return StatusCode(StatusCodes.Status403Forbidden);
+
+            if (!googleAuth.IsConfigured) return StatusCode(StatusCodes.Status503ServiceUnavailable, "Google Drive er ikke konfigureret.");
+            if (!await googleAuth.IsConnectedAsync()) return StatusCode(StatusCodes.Status503ServiceUnavailable, "Google Drev er ikke forbundet.");
+
+            List<DriveFileInfo> files;
+            try
+            {
+                using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(20));
+                files = await googleDrive.GetActivityFilesAsync(activityId, timeout.Token);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Hentning af filer fra Google Drive fejlede for aktivitet {ActivityId}.", activityId);
+                return StatusCode(StatusCodes.Status502BadGateway, "Filerne kunne ikke hentes fra Google Drive.");
+            }
+
+            var created = await activityRepository.GetFilesAsync(activityId);
+            var result = new List<ActivityFileDto>();
+
+            foreach (var file in files)
+            {
+                var record = created.FirstOrDefault(f => f.DriveFileId == file.Id);
+
+                result.Add(new ActivityFileDto
+                {
+                    Id = file.Id,
+                    Name = file.Name,
+                    Kind = GoogleFileTypes.KindForMimeType(file.MimeType),
+                    Url = GoogleFileTypes.OpenUrl(file.MimeType, file.Id),
+                    ModifiedAt = file.ModifiedAt,
+                    CreatedBy = record?.CreatedBy?.GetFullName(),
+                    CreatedAt = record?.CreatedAt,
+                });
+            }
+
+            return Ok(result);
+        }
+
+        [HttpPost("activity/{activityId:int}/file/add")]
+        public async Task<IActionResult> AddFile([FromBody] ActivityFileCreateDto data, int activityId)
+        {
+            var activity = await activityRepository.GetActivityAsync(activityId);
+            if (activity == null) return NotFound();
+
+            if (!await HasAccessAsync(activity.ActivityTeamId, true)) return StatusCode(StatusCodes.Status403Forbidden);
+
+            if (!googleAuth.IsConfigured) return StatusCode(StatusCodes.Status503ServiceUnavailable, "Google Drive er ikke konfigureret.");
+            if (!await googleAuth.IsConnectedAsync()) return StatusCode(StatusCodes.Status503ServiceUnavailable, "Google Drev er ikke forbundet.");
+
+            var kind = string.IsNullOrWhiteSpace(data?.Kind) ? GoogleFileTypes.DocumentKind : data.Kind.Trim().ToLowerInvariant();
+            if (!GoogleFileTypes.IsSupportedKind(kind)) return BadRequest("Ukendt filtype.");
+
+            var title = string.IsNullOrWhiteSpace(data?.Title) ? activity.Name : data.Title.Trim();
+            if (string.IsNullOrWhiteSpace(title)) return BadRequest("Filen mangler et navn.");
+            if (title.Length > 200) return BadRequest("Navnet må højst være 200 tegn.");
+
+            var userId = userManager.GetUserId(User);
+
+            string driveFileId;
+            try
+            {
+                using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(20));
+                driveFileId = await googleDrive.CreateActivityFileAsync(activityId, activity.Name, kind, title, timeout.Token);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Oprettelse af Google-fil fejlede for aktivitet {ActivityId}.", activityId);
+                return StatusCode(StatusCodes.Status502BadGateway, "Filen kunne ikke oprettes i Google Drive.");
+            }
+
+            var file = await activityRepository.AddFileAsync(activityId, driveFileId, title, userId);
+            var createdBy = await userManager.FindByIdAsync(userId);
+            var mimeType = GoogleFileTypes.MimeTypeForKind(kind);
+
+            return Ok(new ActivityFileDto
+            {
+                Id = file.DriveFileId,
+                Name = file.Title,
+                Kind = kind,
+                Url = GoogleFileTypes.OpenUrl(mimeType, file.DriveFileId),
+                CreatedBy = createdBy?.GetFullName(),
+                CreatedAt = file.CreatedAt,
             });
         }
     }
