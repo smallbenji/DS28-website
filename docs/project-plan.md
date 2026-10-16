@@ -673,6 +673,16 @@ Implementeringsnoter (2026-10-15, frontend):
   tavleindstillinger (titel, beskrivelse, adgang, arkivering) i en modal.
 - Træk og slip er implementeret med native HTML5-drag (ingen ekstra
   afhængighed).
+- Visuelt justeret 2026-10-16: tavlen har en lys baggrund, og kolonnerne
+  følger indholdets højde med "Tilføj kort" direkte under kortene.
+  Kolonnehandlinger er dæmpede og fremhæves ved hover eller tastaturfokus;
+  på touchskærme er de fuldt synlige. Færdig-kolonner markeres med en grøn
+  prik i overskriften frem for en hel grøn flade.
+- Kortene har lettere titler, mere luft og højst to linjers beskrivelse.
+  Metadata samles nederst: prioritet som pil med forklarende tekst ved hover,
+  ansvarlig som initialavatar med navn ved hover eller tastaturfokus og
+  deadline i kort dansk datoformat. Overskredne datoer fremhæves kun for
+  kort uden for færdig-kolonner; dagsgrænsen følger Europe/Copenhagen.
 
 Implementeringsnoter (2026-10-16, ansvarlig-vælger):
 - Kortets ansvarlige bruger sættes i kortpanelet via en debounceret søgning
@@ -757,7 +767,7 @@ Implementeringsnoter (2026-10-16, kort på flere tavler):
 - Placeringen kræver `BoardsManage` og adgang til både den tavle, kortet kommer
   fra, og måltavlen. Den unikke nøgle `(work_item_id, board_id)` afvises i koden
   med en pæn fejl, hvis kortet allerede ligger på tavlen.
-- Kortpanelets sidekolonne har en "Tavler"-sektion: placeringerne listes med
+- Kortpanelets sidekolonne har en "Tavler og status"-sektion: placeringerne listes med
   tavle og kolonne (færdig-kolonner markeret med flueben), og der kan tilføjes en
   tavle med tilhørende kolonne eller fjernes en enkelt placering. "Fjern" skjules,
   når kortet kun ligger på én tavle; dér bruges "Slet kort". Placering kan først
@@ -765,6 +775,16 @@ Implementeringsnoter (2026-10-16, kort på flere tavler):
   panelet; fjernes det fra en anden tavle, genindlæses den aktuelle tavle, så
   listen opdateres. Læsetilstand viser "Tavler" som en ren liste, og kun når
   kortet ligger på mere end én tavle.
+
+Implementeringsnote (2026-10-16, statusvælger):
+- Hver eksisterende tavleplacering har en statusknap, der åbner tavlens
+  kolonner som valgmuligheder. Den aktuelle kolonne markeres, og færdige
+  statusser vises med en grøn markering. Valget flytter kortet til slutningen
+  af målkolonnen via det eksisterende flytte-API og opdaterer den aktuelle
+  tavle uden at lukke kortdialogen. Status på øvrige tavler bevares.
+- Status og tavleplaceringer gemmes straks, som UI'et oplyser; Annuller
+  fortryder kun ikke-gemte ændringer i kortets øvrige felter. Læsetilstand
+  har fortsat ingen redigeringshandlinger. Der er ingen skemaændring.
 
 Ubesluttede punkter:
 - Hvem må rydde døde links, og skal et kort blokere sletning af et

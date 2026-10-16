@@ -54,7 +54,7 @@
             <p v-if="cards.length === 0" class="board-column-empty">Ingen kort</p>
         </div>
 
-        <BButton v-if="canManage" size="is-small" class="board-column-add" @click="emit('addCard', column.id)">
+        <BButton v-if="canManage" size="is-small" class="board-column-add is-ghost" @click="emit('addCard', column.id)">
             <font-awesome-icon icon="plus" />
             <span>Tilføj kort</span>
         </BButton>
@@ -120,15 +120,24 @@ function onDrop(event: DragEvent) {
     flex: 0 0 18rem;
     width: 18rem;
     max-height: 100%;
-    background: hsl(0, 0%, 96%);
-    border: 1px solid hsl(0, 0%, 90%);
+    background: #f0f2f5;
+    border: 1px solid transparent;
     border-radius: 8px;
     overflow: hidden;
 }
 
 .board-column.is-done {
-    background: hsl(141, 53%, 96%);
-    border-color: hsl(141, 53%, 85%);
+    background: #f0f2f5;
+}
+
+.board-column.is-done .board-column-title::before {
+    content: '';
+    display: inline-block;
+    width: 0.45rem;
+    height: 0.45rem;
+    margin-right: 0.5rem;
+    border-radius: 50%;
+    background: #48a879;
 }
 
 .board-column.is-dragging {
@@ -155,11 +164,12 @@ function onDrop(event: DragEvent) {
     align-items: center;
     gap: 0.5rem;
     padding: 0.6rem 0.75rem;
-    border-bottom: 1px solid hsl(0, 0%, 90%);
+    border-bottom: 0;
 }
 
 .board-column-title {
     font-weight: 600;
+    font-size: 0.9rem;
     overflow-wrap: anywhere;
 }
 
@@ -172,6 +182,19 @@ function onDrop(event: DragEvent) {
     margin-left: auto;
     display: flex;
     gap: 0.15rem;
+    opacity: 0.35;
+    transition: opacity 0.15s ease;
+}
+
+.board-column:hover .board-column-actions,
+.board-column:focus-within .board-column-actions {
+    opacity: 1;
+}
+
+@media (hover: none) {
+    .board-column-actions {
+        opacity: 1;
+    }
 }
 
 .board-icon-button {
@@ -179,7 +202,7 @@ function onDrop(event: DragEvent) {
     background: transparent;
     color: rgba(0, 0, 0, 0.5);
     cursor: pointer;
-    padding: 0.25rem;
+    padding: 0.4rem;
     border-radius: 4px;
     line-height: 1;
 }
@@ -196,18 +219,37 @@ function onDrop(event: DragEvent) {
     padding: 0.5rem;
     overflow-y: auto;
     min-height: 3rem;
-    flex: 1;
+    flex: 0 1 auto;
 }
 
 .board-column-empty {
     color: rgba(0, 0, 0, 0.4);
     font-size: 0.85rem;
-    text-align: center;
-    padding: 0.75rem 0;
+    padding: 0.5rem 0.35rem;
 }
 
 .board-column-add {
     margin: 0 0.5rem 0.5rem;
+    justify-content: flex-start;
+    border: 0;
+    box-shadow: none;
+    background: transparent;
+    color: #68717d;
+    text-decoration: none;
+    flex-shrink: 0;
+}
+
+.board-column-add:hover {
+    background: #e5e8ed;
+    color: #363636;
+    text-decoration: none;
+}
+
+.board-column-handle:focus-visible,
+.board-icon-button:focus-visible,
+.board-column-add:focus-visible {
+    outline: 2px solid hsl(217, 71%, 53%);
+    outline-offset: 2px;
 }
 
 .board-column-add svg {

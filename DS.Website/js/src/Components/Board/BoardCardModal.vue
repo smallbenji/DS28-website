@@ -87,7 +87,7 @@
                             </section>
 
                             <section v-if="!isNew" class="board-card-section">
-                                <h3 class="board-card-heading">Tavler</h3>
+                                <h3 class="board-card-heading">Tavler og status</h3>
 
                                 <ul class="board-card-placements">
                                     <li v-for="placement in placements" :key="placement.boardId" class="board-card-placement">
@@ -95,10 +95,26 @@
                                             <span class="board-card-placement-board">
                                                 {{ placement.boardTitle }}<span v-if="isCurrentBoard(placement)" class="board-card-placement-current"> · denne tavle</span>
                                             </span>
-                                            <span class="board-card-placement-column">
-                                                <font-awesome-icon v-if="placement.isDoneColumn" icon="check" />
-                                                {{ placement.columnTitle }}
-                                            </span>
+                                            <BDropdown position="is-top-left" aria-role="list" @active-change="loadStatusColumns(placement, $event)">
+                                                <template #trigger>
+                                                    <BButton size="is-small" class="board-card-status" :class="{ 'is-complete': placement.isDoneColumn }" :disabled="saving" :loading="statusLoading[placement.boardId]" :aria-label="`Skift status på ${placement.boardTitle}: ${placement.columnTitle}`">
+                                                        <font-awesome-icon v-if="placement.isDoneColumn" icon="check" />
+                                                        <span>{{ placement.columnTitle }}</span>
+                                                        <i class="fas fa-chevron-down" aria-hidden="true"></i>
+                                                    </BButton>
+                                                </template>
+                                                <BDropdownItem v-if="statusLoading[placement.boardId]" disabled>Henter statusser…</BDropdownItem>
+                                                <BDropdownItem v-else-if="!statusColumns[placement.boardId]?.length" @click="loadStatusColumns(placement, true)">
+                                                    Kunne ikke hente statusser. Prøv igen
+                                                </BDropdownItem>
+                                                <BDropdownItem v-for="column in statusColumns[placement.boardId] || []" :key="column.id" aria-role="listitem" :disabled="saving || String(column.id) === String(placement.columnId)" @click="changePlacementStatus(placement, column)">
+                                                    <span class="board-card-status-option">
+                                                        <span>{{ column.title }}</span>
+                                                        <span v-if="column.isDoneColumn" class="board-card-status-done">Færdig</span>
+                                                        <font-awesome-icon v-if="String(column.id) === String(placement.columnId)" icon="check" />
+                                                    </span>
+                                                </BDropdownItem>
+                                            </BDropdown>
                                         </div>
                                         <BButton
                                             v-if="placements.length > 1"
@@ -111,6 +127,7 @@
                                         </BButton>
                                     </li>
                                 </ul>
+                                <p class="board-card-status-help">Status og tavleplaceringer gemmes med det samme.</p>
 
                                 <template v-if="availableBoards.length > 0">
                                     <BSelect v-model="placementBoardId" expanded>
@@ -256,6 +273,8 @@ const orgPositions = ref<OrgPositionDto[]>([]);
 const placementBoardId = ref<string | null>(null);
 const placementColumnId = ref<string | null>(null);
 const placementColumns = ref<BoardColumnDto[]>([]);
+const statusColumns = ref<Record<number, BoardColumnDto[]>>({});
+const statusLoading = ref<Record<number, boolean>>({});
 let searchTimeout: ReturnType<typeof setTimeout> | null = null;
 
 const form = reactive({
@@ -308,6 +327,7 @@ watch(
         placementBoardId.value = null;
         placementColumnId.value = null;
         placementColumns.value = [];
+        statusColumns.value = {};
 
         void loadOrgPositions();
         void loadBoards();
@@ -366,6 +386,38 @@ async function loadPlacementColumns() {
 
 function isCurrentBoard(placement: WorkItemPlacementDto) {
     return String(placement.boardId) === String(props.boardId);
+}
+
+async function loadStatusColumns(placement: WorkItemPlacementDto, active: boolean) {
+    if (!active || statusLoading.value[placement.boardId]) return;
+
+    statusLoading.value[placement.boardId] = true;
+    try {
+        statusColumns.value[placement.boardId] = await boardService.getColumns(Number(placement.boardId));
+    } finally {
+        statusLoading.value[placement.boardId] = false;
+    }
+}
+
+async function changePlacementStatus(placement: WorkItemPlacementDto, column: BoardColumnDto) {
+    if (!props.card || saving.value || String(placement.columnId) === String(column.id)) return;
+
+    saving.value = true;
+    try {
+        const success = await boardService.moveCard(Number(placement.boardId), Number(props.card.id), {
+            columnId: Number(column.id),
+            position: 2147483647
+        });
+        if (!success) {
+            Toast.open({ message: 'Status kunne ikke ændres. Prøv igen.', type: 'is-danger' });
+            return;
+        }
+
+        await store.GET_BOARD(props.boardId);
+        Toast.open({ message: `Status på ${placement.boardTitle} er ændret til ${column.title}.`, type: 'is-success' });
+    } finally {
+        saving.value = false;
+    }
 }
 
 async function addPlacement() {
@@ -810,6 +862,7 @@ async function doRemove() {
     min-width: 0;
     display: flex;
     flex-direction: column;
+    gap: 0.3rem;
 }
 
 .board-card-placement-board {
@@ -831,6 +884,52 @@ async function doRemove() {
 .board-card-placement-column svg {
     margin-right: 0.2rem;
     color: #48c774;
+}
+
+.board-card-side :deep(.board-card-status) {
+    height: auto;
+    min-height: 1.8rem;
+    padding: 0.25rem 0.5rem;
+    border: 0;
+    background: #edf0f4;
+    color: #596575;
+    box-shadow: none;
+    white-space: normal;
+    text-align: left;
+}
+
+.board-card-side :deep(.board-card-status.is-complete) {
+    background: #e8f5ed;
+    color: #287b4e;
+}
+
+.board-card-status :deep(.icon),
+.board-card-status svg {
+    margin-right: 0.35rem;
+}
+
+.board-card-status .fa-chevron-down {
+    margin-left: 0.5rem;
+    font-size: 0.6rem;
+}
+
+.board-card-status-option {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    white-space: normal;
+}
+
+.board-card-status-done {
+    color: #287b4e;
+    font-size: 0.7rem;
+    margin-left: auto;
+}
+
+.board-card-status-help {
+    margin: 0 0 1rem;
+    font-size: 0.72rem;
+    color: #737b86;
 }
 
 .board-card-placement-column-select {

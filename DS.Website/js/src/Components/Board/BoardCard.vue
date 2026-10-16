@@ -13,20 +13,25 @@
         <p class="board-card-title">{{ card.title }}</p>
         <p v-if="descriptionPreview" class="board-card-description">{{ descriptionPreview }}</p>
 
-        <div class="board-card-meta">
-            <span v-if="card.dueDate" class="board-card-due">
-                <font-awesome-icon icon="calendar-day" />
-                {{ card.dueDate }}
+        <div v-if="card.dueDate || Number(card.priority) !== 0 || card.assigneeName" class="board-card-meta">
+            <span v-if="card.dueDate" class="board-card-due" :class="{ 'is-overdue': isOverdue }" :title="deadlineLabel">
+                <font-awesome-icon icon="calendar-day" aria-hidden="true" />
+                <span class="is-sr-only">{{ isOverdue ? 'Overskredet deadline:' : 'Deadline:' }}</span>
+                {{ formattedDueDate }}
             </span>
-            <span v-if="Number(card.priority) > 0" class="tag is-warning is-light">Høj</span>
-            <span v-else-if="Number(card.priority) < 0" class="tag is-light">Lav</span>
-            <span v-if="card.assigneeName" class="board-card-assignee">{{ card.assigneeName }}</span>
+            <span v-if="Number(card.priority) !== 0" class="board-card-priority" :class="{ 'is-high': Number(card.priority) > 0 }" :title="priorityLabel" role="img" :aria-label="priorityLabel">
+                <i class="fas" :class="Number(card.priority) > 0 ? 'fa-arrow-up' : 'fa-arrow-down'" aria-hidden="true"></i>
+            </span>
+            <BTooltip v-if="card.assigneeName" class="board-card-assignee" :label="card.assigneeName" :triggers="['hover', 'focus']" position="is-left">
+                <span class="board-card-avatar" tabindex="0" role="img" :aria-label="`Ansvarlig: ${card.assigneeName}`">{{ assigneeInitials }}</span>
+            </BTooltip>
         </div>
     </article>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, onMounted, onBeforeUnmount, ref } from 'vue';
+import { BTooltip } from 'buefy';
 import type { WorkItemDto } from '@/types';
 import { htmlToPlainText } from '@/lib/util';
 
@@ -37,6 +42,33 @@ const props = defineProps<{
 }>();
 
 const descriptionPreview = computed(() => htmlToPlainText(props.card.description));
+
+const today = ref(currentDate());
+let dateRefresh: ReturnType<typeof setInterval> | undefined;
+const shortDateFormat = new Intl.DateTimeFormat('da-DK', { day: 'numeric', month: 'short' });
+const fullDateFormat = new Intl.DateTimeFormat('da-DK', { day: 'numeric', month: 'long', year: 'numeric' });
+const dueDate = computed(() => props.card.dueDate ? new Date(`${props.card.dueDate}T12:00:00`) : null);
+const formattedDueDate = computed(() => dueDate.value ? shortDateFormat.format(dueDate.value) : '');
+const isOverdue = computed(() => !props.isDoneColumn && !!props.card.dueDate && props.card.dueDate < today.value);
+const deadlineLabel = computed(() => dueDate.value ? `${isOverdue.value ? 'Overskredet deadline' : 'Deadline'}: ${fullDateFormat.format(dueDate.value)}` : '');
+const priorityLabel = computed(() => Number(props.card.priority) > 0 ? 'Høj prioritet' : 'Lav prioritet');
+const assigneeInitials = computed(() => {
+    const names = props.card.assigneeName?.trim().split(/\s+/) ?? [];
+    return [names[0]?.[0], names.length > 1 ? names[names.length - 1]?.[0] : ''].join('').toLocaleUpperCase('da-DK');
+});
+
+function currentDate() {
+    return new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Copenhagen' }).format(new Date());
+}
+
+onMounted(() => {
+    dateRefresh = setInterval(() => { today.value = currentDate(); }, 60000);
+});
+
+onBeforeUnmount(() => {
+    clearInterval(dateRefresh);
+});
+
 
 const emit = defineEmits<{
     open: [card: WorkItemDto];
@@ -67,16 +99,17 @@ function onDrop(event: DragEvent) {
 <style scoped>
 .board-card {
     background: #fff;
-    border: 1px solid hsl(0, 0%, 90%);
+    border: 1px solid #e8ebef;
     border-radius: 6px;
-    padding: 0.6rem 0.7rem;
+    padding: 0.85rem 0.9rem;
     cursor: pointer;
-    box-shadow: 0 1px 2px rgba(10, 10, 10, 0.06);
-    transition: box-shadow 0.15s ease, transform 0.15s ease;
+    box-shadow: none;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .board-card:hover {
-    box-shadow: 0 2px 6px rgba(10, 10, 10, 0.12);
+    border-color: #cfd5dd;
+    box-shadow: 0 2px 4px rgba(10, 10, 10, 0.04);
 }
 
 .board-card:focus-visible {
@@ -90,17 +123,18 @@ function onDrop(event: DragEvent) {
 }
 
 .board-card-title {
-    font-weight: 600;
-    line-height: 1.3;
+    font-weight: 500;
+    font-size: 0.95rem;
+    line-height: 1.45;
     overflow-wrap: anywhere;
 }
 
 .board-card-description {
     margin-top: 0.25rem;
-    color: rgba(0, 0, 0, 0.6);
+    color: #7b818a;
     font-size: 0.85rem;
     display: -webkit-box;
-    -webkit-line-clamp: 3;
+    -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
     overflow-wrap: anywhere;
@@ -108,10 +142,10 @@ function onDrop(event: DragEvent) {
 
 .board-card-meta {
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     align-items: center;
-    gap: 0.35rem;
-    margin-top: 0.5rem;
+    gap: 0.65rem;
+    margin-top: 0.75rem;
     font-size: 0.75rem;
     color: rgba(0, 0, 0, 0.55);
 }
@@ -120,6 +154,39 @@ function onDrop(event: DragEvent) {
     display: inline-flex;
     align-items: center;
     gap: 0.25rem;
+}
+
+.board-card-due.is-overdue {
+    color: #b83c47;
+}
+
+.board-card-priority {
+    display: inline-flex;
+    align-items: center;
+    color: #8b929c;
+    font-size: 0.7rem;
+}
+
+.board-card-priority.is-high {
+    color: #a77b28;
+}
+
+.board-card-avatar {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.5rem;
+    height: 1.5rem;
+    border-radius: 50%;
+    background: #edf0f5;
+    color: #5c687a;
+    font-size: 0.6rem;
+    font-weight: 600;
+}
+
+.board-card-avatar:focus-visible {
+    outline: 2px solid hsl(217, 71%, 53%);
+    outline-offset: 2px;
 }
 
 .board-card-assignee {

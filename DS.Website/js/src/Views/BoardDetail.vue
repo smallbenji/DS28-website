@@ -7,11 +7,11 @@
                 <p v-if="board?.isArchived" class="tag is-warning is-light">Arkiveret</p>
             </div>
             <div v-if="canManage" class="board-detail-actions">
-                <BButton size="is-small" @click="openColumnCreate">
+                <BButton size="is-small" class="is-ghost" @click="openColumnCreate">
                     <font-awesome-icon icon="plus" />
                     <span>Kolonne</span>
                 </BButton>
-                <BButton size="is-small" @click="openSettings">Indstillinger</BButton>
+                <BButton size="is-small" class="is-ghost" @click="openSettings">Indstillinger</BButton>
             </div>
         </header>
 
@@ -283,7 +283,10 @@ onMounted(async () => {
     flex-direction: column;
     flex: 1;
     min-height: 0;
-    padding: 0 1rem 1rem;
+    padding: 1rem;
+    background: #fafbfc;
+    border-radius: 8px;
+    margin: 0 0.5rem 0.5rem;
 }
 
 .board-detail-head {
@@ -311,6 +314,17 @@ onMounted(async () => {
     gap: 0.5rem;
 }
 
+.board-detail-actions .button {
+    color: #68717d;
+    text-decoration: none;
+    box-shadow: none;
+}
+
+.board-detail-actions .button:hover {
+    background: #edf0f3;
+    color: #363636;
+}
+
 .board-detail-actions .button svg {
     margin-right: 0.35rem;
 }
@@ -318,7 +332,7 @@ onMounted(async () => {
 .board-columns {
     display: flex;
     gap: 1rem;
-    align-items: stretch;
+    align-items: flex-start;
     overflow-x: auto;
     padding-bottom: 0.5rem;
     flex: 1;
