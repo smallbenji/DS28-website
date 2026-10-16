@@ -536,7 +536,7 @@ namespace DS.Website.Controllers
             return await dataDb.BoardCards
                 .AsNoTracking()
                 .Where(card => card.BoardId == boardId && card.WorkItem.DeletedAt == null)
-                .Include(card => card.WorkItem).ThenInclude(item => item.Assignee)
+                .Include(card => card.WorkItem).ThenInclude(item => item.Assignee).ThenInclude(user => user.ProfilePicture)
                 .Include(card => card.WorkItem).ThenInclude(item => item.OwnerPosition)
                 .Include(card => card.WorkItem).ThenInclude(item => item.Links)
                 .AsSplitQuery()
@@ -771,6 +771,9 @@ namespace DS.Website.Controllers
                 Position = card.Position,
                 AssigneeUserId = item.AssigneeUserId,
                 AssigneeName = item.Assignee?.GetFullName(),
+                AssigneeProfilePicture = item.Assignee?.ProfilePicture is { Status: StoredFileStatus.Ready, DeletedAt: null } picture
+                    ? new ImageReferenceDto(picture)
+                    : null,
                 OwnerPositionId = item.OwnerPositionId,
                 OwnerPositionTitle = item.OwnerPosition?.Title,
                 DueDate = item.DueDate,

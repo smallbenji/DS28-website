@@ -45,6 +45,7 @@ namespace DS.DTOs
         public int Position { get; set; }
         public string AssigneeUserId { get; set; }
         public string AssigneeName { get; set; }
+        public ImageReferenceDto AssigneeProfilePicture { get; set; }
         public int? OwnerPositionId { get; set; }
         public string OwnerPositionTitle { get; set; }
         public DateOnly? DueDate { get; set; }

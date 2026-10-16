@@ -1,3 +1,5 @@
+import type { ImageReferenceDto } from './file.types';
+
 export interface BoardSummaryDto {
     id: number;
     key: string;
@@ -39,6 +41,7 @@ export interface WorkItemDto {
     position: number;
     assigneeUserId: string | null;
     assigneeName: string | null;
+    assigneeProfilePicture: ImageReferenceDto | null;
     ownerPositionId: number | null;
     ownerPositionTitle: string | null;
     dueDate: string | null;

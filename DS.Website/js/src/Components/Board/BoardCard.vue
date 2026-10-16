@@ -23,14 +23,17 @@
                 <i class="fas" :class="Number(card.priority) > 0 ? 'fa-arrow-up' : 'fa-arrow-down'" aria-hidden="true"></i>
             </span>
             <BTooltip v-if="card.assigneeName" class="board-card-assignee" :label="card.assigneeName" :triggers="['hover', 'focus']" position="is-left">
-                <span class="board-card-avatar" tabindex="0" role="img" :aria-label="`Ansvarlig: ${card.assigneeName}`">{{ assigneeInitials }}</span>
+                <span class="board-card-avatar" tabindex="0" role="img" :aria-label="`Ansvarlig: ${card.assigneeName}`">
+                    <img v-if="assigneePictureUrl && !assigneePictureFailed" :src="assigneePictureUrl" alt="" loading="lazy" draggable="false" @error="assigneePictureFailed = true" />
+                    <span v-else aria-hidden="true">{{ assigneeInitials }}</span>
+                </span>
             </BTooltip>
         </div>
     </article>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onBeforeUnmount, ref } from 'vue';
+import { computed, onMounted, onBeforeUnmount, ref, watch } from 'vue';
 import { BTooltip } from 'buefy';
 import type { WorkItemDto } from '@/types';
 import { htmlToPlainText } from '@/lib/util';
@@ -52,6 +55,9 @@ const formattedDueDate = computed(() => dueDate.value ? shortDateFormat.format(d
 const isOverdue = computed(() => !props.isDoneColumn && !!props.card.dueDate && props.card.dueDate < today.value);
 const deadlineLabel = computed(() => dueDate.value ? `${isOverdue.value ? 'Overskredet deadline' : 'Deadline'}: ${fullDateFormat.format(dueDate.value)}` : '');
 const priorityLabel = computed(() => Number(props.card.priority) > 0 ? 'Høj prioritet' : 'Lav prioritet');
+const assigneePictureUrl = computed(() => props.card.assigneeProfilePicture?.url ?? null);
+const assigneePictureFailed = ref(false);
+watch(assigneePictureUrl, () => { assigneePictureFailed.value = false; });
 const assigneeInitials = computed(() => {
     const names = props.card.assigneeName?.trim().split(/\s+/) ?? [];
     return [names[0]?.[0], names.length > 1 ? names[names.length - 1]?.[0] : ''].join('').toLocaleUpperCase('da-DK');
@@ -178,10 +184,17 @@ function onDrop(event: DragEvent) {
     width: 1.5rem;
     height: 1.5rem;
     border-radius: 50%;
+    overflow: hidden;
     background: #edf0f5;
     color: #5c687a;
     font-size: 0.6rem;
     font-weight: 600;
+}
+
+.board-card-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
 }
 
 .board-card-avatar:focus-visible {

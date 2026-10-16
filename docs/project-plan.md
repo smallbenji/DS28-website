@@ -759,9 +759,14 @@ Implementeringsnoter (2026-10-15, frontend):
   prik i overskriften frem for en hel grøn flade.
 - Kortene har lettere titler, mere luft og højst to linjers beskrivelse.
   Metadata samles nederst: prioritet som pil med forklarende tekst ved hover,
-  ansvarlig som initialavatar med navn ved hover eller tastaturfokus og
+  ansvarlig som profilbillede (initialer som fallback) med navn ved hover
+  eller tastaturfokus og
   deadline i kort dansk datoformat. Overskredne datoer fremhæves kun for
   kort uden for færdig-kolonner; dagsgrænsen følger Europe/Copenhagen.
+- Tavle-API’et medsender den ansvarliges eksisterende profilbillede som
+  `assigneeProfilePicture`, når filen er klar og ikke slettet. Kortet bruger
+  den eksisterende private fil-URL og viser initialer, hvis billedet mangler
+  eller ikke kan indlæses. Dette kræver ingen skemaændring.
 
 Implementeringsnoter (2026-10-16, ansvarlig-vælger):
 - Kortets ansvarlige bruger sættes i kortpanelet via en debounceret søgning
