@@ -40,6 +40,12 @@ public class DataDbContext : IdentityDbContext<User, Role, string>
     public DbSet<OrgPositionGroup> OrgPositionGroups { get; set; }
     public DbSet<OrgPositionHolder> OrgPositionHolders { get; set; }
 
+    public DbSet<Board> Boards { get; set; }
+    public DbSet<BoardColumn> BoardColumns { get; set; }
+    public DbSet<WorkItem> WorkItems { get; set; }
+    public DbSet<BoardCard> BoardCards { get; set; }
+    public DbSet<WorkItemLink> WorkItemLinks { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);

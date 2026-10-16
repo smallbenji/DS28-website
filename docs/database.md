@@ -367,6 +367,72 @@ erDiagram
     org_position ||--o{ user_invitation : "inviterer til"
 ```
 
+## Projektstyring
+
+```mermaid
+erDiagram
+    board {
+        int id PK
+        varchar key UK
+        varchar title
+        text description
+        varchar icon
+        varchar color "nullable"
+        bool is_archived
+        varchar required_role "nullable, AppRole"
+        text created_by_user_id FK "SET NULL"
+        timestamptz created_at
+        timestamptz updated_at
+        timestamptz deleted_at
+    }
+
+    board_column {
+        int id PK
+        int board_id FK "CASCADE"
+        varchar title
+        int position
+        int wip_limit "nullable, CHECK >= 1"
+        bool is_done_column
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    work_item {
+        int id PK
+        varchar title
+        text description
+        text assignee_user_id FK "SET NULL"
+        int owner_position_id FK "SET NULL"
+        date due_date
+        int priority
+        text created_by_user_id FK "SET NULL"
+        timestamptz created_at
+        timestamptz updated_at
+        timestamptz deleted_at
+    }
+
+    board_card {
+        int id PK
+        int board_id FK "CASCADE"
+        int column_id FK "RESTRICT"
+        int work_item_id FK "CASCADE"
+        int position
+    }
+
+    work_item_link {
+        int id PK
+        int work_item_id FK "CASCADE"
+        varchar entity_type
+        int entity_id
+    }
+
+    board ||--o{ board_column : "har kolonner"
+    board ||--o{ board_card : "placerer"
+    board_column ||--o{ board_card : "indeholder"
+    work_item ||--o{ board_card : "placeres på"
+    work_item ||--o{ work_item_link : "linker til"
+```
+
 ## OpenIddict
 
 ```mermaid
@@ -623,3 +689,26 @@ mindst syv dage gamle. Det er ren dataoprydning uden skemaændring.
 - `org_position.color` (nullable) holder en hex-værdi fra en fast palette på
   maksimalt 16 tegn. Farven vises som en lys baggrundstone på kortet i
   organisationsdiagrammet; værdiækvivalensen håndhæves i `OrgApiController`.
+
+## Projektstyring
+
+- `board.required_role` (nullable) er navnet på en `AppRole`. Er den sat,
+  kræves rollen for at se boardet; er den tom, kan alle loggede brugere se det.
+  Rollen håndhæves i koden, ikke af databasen.
+- `board_card` er en placering af et `work_item` på et board. Et kort kan
+  optræde på flere boards (én række pr. board, unik på
+  `(work_item_id, board_id)`), men ejes kun ét sted i `work_item`. `column_id`
+  peger på en kolonne i samme board; at kolonnen tilhører boardet håndhæves i
+  koden.
+- Kortets status er placeringsbestemt og er lig kortets kolonne på det
+  pågældende board. `board_column.is_done_column` markerer de kolonner, der
+  tæller som færdige, så "færdig" gælder pr. board. Der findes ikke et globalt
+  færdig-flag på `work_item`.
+- `work_item_link` kobler et kort til et domæneobjekt via `entity_type` +
+  `entity_id` (for eksempel `Activity`). Der er ingen fremmednøgle på
+  `entity_id`, da koblingen er polymorf; døde links ryddes i koden. Unikhed på
+  `(work_item_id, entity_type, entity_id)` forhindrer dobbelte links, og
+  indekset `(entity_type, entity_id)` gør opslag fra domænesiden billigt.
+- `work_item` og `board` har soft delete via `deleted_at`. `board_column`,
+  `board_card` og `work_item_link` slettes hårdt; sletning af et board eller et
+  kort fjerner de tilhørende rækker via `ON DELETE CASCADE`.

@@ -586,6 +586,67 @@ adgang er begrænset til systemadministrator og lejrchef.
 lejrchef, så adgangen matcher den planlagte. Auditloggen er endnu hverken
 implementeret eller synlig i adminområdet.
 
+### Projektstyring og Kanban-board
+
+**Beslutning 2026-10-14:** HQ skal ikke kun være en database, men også et
+projektstyringsværktøj. Der indføres et generisk board/kanban, som kobler sig
+til de øvrige domæner gennem én snæver samlingsflade i stedet for at være endnu
+et isoleret modul. Beslutningen fastlægger retningen; intet er implementeret
+endnu.
+
+- Kernen er generisk og ved intet om aktiviteter, materialer eller tilmelding:
+  boards, kolonner og arbejdskort. Kanban er en visning over arbejdskortene.
+- Et **arbejdskort** (`work_item`) ejes ét sted: titel, beskrivelse, ansvarlig
+  bruger eller stilling, deadline og prioritet. Kortet kan **placeres på flere
+  boards** gennem én `board_card`-række pr. board, så et fælles "mine
+  opgaver"-overblik bliver muligt på tværs af tavler. Status hører til
+  placeringen, ikke til kortet: den er kortets kolonne på det pågældende board,
+  og `board_column.is_done_column` markerer de kolonner, der tæller som færdige.
+- Koblingen til domænet sker udelukkende via `work_item_link`
+  (`entity_type`, `entity_id`). Et kort kan pege på 0..N domæneobjekter, og et
+  domæneobjekt kan have 0..N kort. PostgreSQL kan ikke håndhæve polymorfe
+  fremmednøgler; oprydning af døde links håndteres i kode, eventuelt af et
+  Hangfire-oprydningsjob.
+- Integrationen er et backend-interface, `IWorkItemSource`, der registreres som
+  scoped service ligesom `DataExport` i `Program.cs`. Et nyt domæne bliver
+  dermed linkbart uden ændringer i board-koden.
+- **Første version er bevidst minimal:** boards, kolonner, frie kort, træk og
+  slip, én kildetype (aktivitet) og rollegated adgang. Kommentarer, checklister,
+  labels, vedhæftninger og tidslinje udskydes.
+- Et kort **seedes én gang** fra sin kilde og redigeres derefter frit. Der er
+  ingen to-vejs synkronisering i første version; status på kortet følger ikke
+  automatisk domæneobjektet.
+- Board-adgang gates i første version af én påkrævet `AppRole` pr. board, som i
+  `DataExports`/Admin. Finere adgang (board × `AppGroups`/stilling/team) kan
+  tilføjes senere.
+- Nye `AppRoles`: `BoardsView` (se tavler) og `BoardsManage` (oprette og
+  administrere tavler). Fordelingen følger matricen: `BoardsManage` til
+  SysAdmin, Lejrchef, Eventansvarlig og Aktivitetsansvarlig; `BoardsView`
+  derudover til Aktivitets-teammedlem, Kasserer og PR-ansvarlig. Den endelige
+  rollefordeling kan justeres senere.
+
+Implementeringsnoter (2026-10-14):
+- Migration `015_boards.sql` opretter `board`, `board_column`, `work_item`,
+  `board_card` og `work_item_link`; entiteter og `IEntityTypeConfiguration`-
+  klasser er tilføjet, og tabellerne er registreret i `DataDbContext`.
+- Portalens `BoardApiController` (`/api/v1/boards`) og DTO'er er tilføjet:
+  boards (liste/opret/ret/slet), kolonner (opret/ret/slet) og kort
+  (opret/ret/flyt/fjern). Visning kræver `BoardsView` plus boardets eventuelle
+  `required_role`; ændringer kræver `BoardsManage`.
+- Et kort oprettes som et `work_item` med én `board_card`-placering. Fjernes
+  kortet fra dets sidste board, soft-slettes `work_item` også. Der er endnu
+  ingen UI til at placere samme kort på flere boards.
+- Kolonneombytning er løst uden schema-ændring: `board_column` har et unikt krav
+  på `(board_id, position)`, så ombytningen sker i to faser inden for én
+  transaktion — først midlertidige negative positioner, derefter de endelige.
+- Endnu ikke implementeret: `IWorkItemSource` og seed af boards.
+
+Implementeringsnoter (2026-10-16, backend):
+- Migration `020_drop_work_item_is_done.sql` fjerner det globale færdig-flag;
+  færdig-status bestemmes af kolonnen for hver placering.
+- API'et understøtter brugersøgning, kolonneombytning og placering af samme
+  kort på flere tavler. Placeringer filtreres efter brugerens tavleadgang.
+
 ## Sikkerhed og auth-hærdning
 
 **Beslutning 2026-10-14:** Fire konkrete fund fra en hurtig gennemgang blev
