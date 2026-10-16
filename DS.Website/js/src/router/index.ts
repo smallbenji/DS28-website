@@ -6,6 +6,7 @@ import { useMeStore } from "@/Stores/MeStore";
 import { useGroupStore } from "@/Stores/GroupStore";
 import { useActivityStore } from "@/Stores/ActivityStore";
 import { useVersionStore } from "@/Stores/VersionStore";
+import { useBoardStore } from "@/Stores/BoardStore";
 
 const routes: RouteRecordRaw[] = [
     {
@@ -123,6 +124,16 @@ const routes: RouteRecordRaw[] = [
         path: "/exports",
         component: () => import("@/Views/Exports.vue"),
         meta: { requiresAuth: true, requiredRole: "ExportsView", pageTitle: "Dataudtræk", pageIcon: "file-arrow-down" }
+    },
+    {
+        path: "/board",
+        component: () => import("@/Views/Board.vue"),
+        meta: { requiresAuth: true, requiresBoardsData: true, requiredRole: "BoardsView", pageTitle: "Tavler", pageIcon: "table-columns" }
+    },
+    {
+        path: "/board/:id",
+        component: () => import("@/Views/BoardDetail.vue"),
+        meta: { requiresAuth: true, requiresBoardData: true, requiredRole: "BoardsView", pageTitle: "Tavle", pageIcon: "table-columns" }
     }
 ];
 
@@ -143,6 +154,7 @@ router.beforeEach(async (to) => {
     const groupStore = useGroupStore();
     const activityStore = useActivityStore();
     const versionStore = useVersionStore();
+    const boardStore = useBoardStore();
 
     const promises = [];
 
@@ -181,6 +193,17 @@ router.beforeEach(async (to) => {
             const id = Array.isArray(to.params.id) ? to.params.id[0] : to.params.id;
             if (id) {
                 promises.push(activityStore.GET_ACTIVITY(Number(id)));
+            }
+        }
+
+        if (to.meta.requiresBoardsData) {
+            promises.push(boardStore.GET_BOARDS());
+        }
+
+        if (to.meta.requiresBoardData) {
+            const id = Array.isArray(to.params.id) ? to.params.id[0] : to.params.id;
+            if (id) {
+                promises.push(boardStore.GET_BOARD(Number(id)));
             }
         }
 

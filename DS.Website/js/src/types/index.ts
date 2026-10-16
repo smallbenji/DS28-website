@@ -1,5 +1,6 @@
 export * from './account.types';
 export * from './activity.types';
+export * from './board.types';
 export * from './admin.types';
 export * from './auth.types';
 export * from './export.types';

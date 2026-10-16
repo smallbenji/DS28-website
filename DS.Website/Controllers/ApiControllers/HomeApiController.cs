@@ -41,6 +41,14 @@ namespace DS.Website.Controllers
                     RequiredRole = nameof(AppRoles.OrgView)
                 },
 
+                new()
+                {
+                    Title = "Tavler",
+                    Url = "/board",
+                    Icon = ["table-columns"],
+                    RequiredRole = nameof(AppRoles.BoardsView)
+                },
+
                 // No roles needed
                 new()
                 {

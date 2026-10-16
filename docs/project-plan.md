@@ -641,11 +641,120 @@ Implementeringsnoter (2026-10-14):
   transaktion — først midlertidige negative positioner, derefter de endelige.
 - Endnu ikke implementeret: `IWorkItemSource` og seed af boards.
 
-Implementeringsnoter (2026-10-16, backend):
-- Migration `020_drop_work_item_is_done.sql` fjerner det globale færdig-flag;
-  færdig-status bestemmes af kolonnen for hver placering.
-- API'et understøtter brugersøgning, kolonneombytning og placering af samme
-  kort på flere tavler. Placeringer filtreres efter brugerens tavleadgang.
+Implementeringsnoter (2026-10-15, frontend):
+- `/board` viser en liste over tavler med kortantal, og `/board/:id` viser selve
+  kanban-tavlen. Begge ruter kræver `BoardsView` og henter data via
+  `BoardStore`/`BoardService` efter samme mønster som aktivitetsmodulet.
+- Der er tilføjet en HQ-flis "Tavler" (ikon `table-columns`) med
+  `RequiredRole = BoardsView`.
+- Tavlelisten kan oprette et board ud fra titel, beskrivelse og adgang. Nøglen
+  udledes automatisk af titlen (unikgjort med et suffiks ved sammenfald), og nye
+  tavler får standardkolonnerne Backlog, I gang og Færdig. Brugeren sendes videre
+  til den nye tavle.
+- Kanban-visningen kan trække og slippe kort mellem kolonner og omordne inden
+  for en kolonne. Flytningen sender den beregnede position til API'et, som selv
+  omnummererer. Kolonner redigeres i et sidepanel, kort i en modal, og
+  tavleindstillinger (titel, beskrivelse, adgang, arkivering) i en modal.
+- Træk og slip er implementeret med native HTML5-drag (ingen ekstra
+  afhængighed).
+
+Implementeringsnoter (2026-10-16, ansvarlig-vælger):
+- Kortets ansvarlige bruger sættes i kortpanelet via en debounceret søgning
+  (`GET /api/v1/boards/assignees`). Søgningen begrænses til brugere i de
+  grupper, der har `BoardsView`, og kræver selv `BoardsManage`. Ansvarlig
+  stilling vælges blandt organisationsstillingerne (`GET /api/v1/org`).
+- Brugere med kun `BoardsView` kan fortsat åbne kortpanelet, men i læsetilstand
+  uden redigeringsfelter. Flytning af kort med træk og slip er fortsat kun
+  muligt for `BoardsManage`.
+- Kolonner kan ombyttes med træk i håndtaget i kolonnens top. At slippe på en
+  kolonne placerer den før målkolonnen, og at slippe i den tomme del af tavlen
+  placerer den sidst. Kun `BoardsManage` kan ombytte kolonner.
+
+**Beslutning 2026-10-16 (implementeret):** Kortet åbnes i en modal i stedet
+for et sidepanel, og beskrivelsen redigeres med en rigtig teksteditor i stedet
+for et almindeligt tekstfelt. `work_item.description` gemmer dermed HTML.
+
+Implementeringsnoter (2026-10-16, modal og rig tekst):
+- Kortpanelet hedder nu `BoardCardModal` og er en `BModal` med plads til
+  redigeringsfeltet. Indholdet har titel og beskrivelse til venstre og en fast sidekolonne med
+  deadline, prioritet, ansvarlig, stilling og koblinger til højre; på smalle
+  skærme stables kolonnerne. Kolonner redigeres fortsat i et sidepanel, da det
+  er en kort formular; tavleindstillinger er fortsat en modal.
+- Visuelt forslag implementeret 2026-10-15: modalen er op til 64rem bred,
+  korttitlen redigeres som et stort titelfelt, og egenskaberne ligger i en lys
+  sidekolonne på 16rem. Dette erstatter den tidligere 70/30-fordeling.
+  Ansvarlig-søgningen åbnes via "Tilføj ansvarlig"/"Skift ansvarlig".
+  Slet ligger i kortmenuen øverst, og bunden har Annuller og eksplicit Gem.
+  Dette visuelle forslag er justeret 2026-10-16 efter ønsket om et mere
+  minimalistisk udtryk inspireret af Favro: egenskaberne vises uden faste
+  feltrammer, med markering ved hover og fokus, og sekundære handlinger er
+  diskrete tekstknapper. Beskrivelsen har ingen fast synlig ramme; ramme og
+  værktøjslinje vises, når editoren har fokus (inklusive tastaturfokus).
+  Gem er fortsat eksplicit, og felter og rettigheder er uændrede.
+- Beskrivelsen redigeres med Tiptap (`@tiptap/vue-3` + `starter-kit`):
+  overskrifter (H1, H2 og H3 som separate knapper), fed, kursiv, punkt- og
+  nummereret liste, citat og fjern formatering. Tiptap er begrænset til
+  niveauerne h1–h3, så alt indhold i dokumentet kan slås fra igen fra
+  værktøjslinjen. Det er frontendens første editor og første `v-html`.
+- HTML gennemvises altid via `RichTextViewer`, som kører DOMPurify før
+  `v-html`; Tiptaps output er skemabegrænset, så begge lag begrænser XSS.
+  Kortvisningen på tavlen viser beskrivelsen som ren tekst (tags fjernes), så
+  kortene forbliver enkle og hurtige.
+- En beskrivelse uden tekst gemmes som `NULL` frem for tom HTML.
+- Tiptap monteres, når modalen åbnes, og afmonteres igen ved lukning, så
+  editoren aldrig sidder skjult i et skjult element.
+
+**Beslutning 2026-10-16 (implementeret):** Færdig-status er **placeringsbestemt**,
+ikke global. Det globale `work_item.is_done` er droppet; "færdig" betyder, at
+kortets kolonne på den pågældende tavle er markeret som færdig-kolonne
+(`board_column.is_done_column`). Dermed kan samme kort være i gang på én tavle og
+færdigt på en anden. Beslutningen afløser det tidligere udkast, hvor et globalt
+`is_done`-flag gjaldt på tværs af alle placeringer.
+
+Implementeringsnoter (2026-10-16, status pr. placering):
+- Migration `020_drop_work_item_is_done.sql` dropper kolonnen. `work_item` har
+  ikke længere et færdig-flag, og `WorkItemDto`/`WorkItemUpdateDto` har ikke
+  længere `IsDone`.
+- Checkboksen "Færdig" i kortpanelet er fjernet. Man markerer et kort færdigt ved
+  at trække det til en færdig-kolonne, og kortet vises gennemstreget i alle
+  færdig-kolonner. `BoardColumn` giver kolonnens `isDoneColumn` videre til
+  `BoardCard`.
+- Færdig-kolonne-markeringen i kolonne-panelet (som hidtil kun styrede farven)
+  er nu den funktionelle definition af færdig.
+
+**Beslutning 2026-10-16 (implementeret):** Et kort kan placeres på flere tavler
+fra kortpanelet, og en enkelt placering kan fjernes igen uden at slette kortet.
+Kortet ejes fortsat ét sted, og hver placering har sin egen kolonne og dermed sin
+egen status.
+
+Implementeringsnoter (2026-10-16, kort på flere tavler):
+- `WorkItemDto` har nu `placements`: en liste pr. kort med tavle, kolonne og om
+  kolonnen er en færdig-kolonne. Listen bygges i `LoadPlacementsAsync` med ét
+  opslag for alle kort på tavlen og filtreres på tavlens `required_role` i koden,
+  så et kort på en tavle, brugeren ikke har adgang til, ikke afsløres.
+- To nye endpoints: `GET /api/v1/boards/{id}/columns` giver en let kolonneliste
+  til tavle-vælgeren, og
+  `POST /api/v1/boards/{id}/cards/{workItemId}/placements` placerer et
+  eksisterende kort på tavlen i en valgt kolonne. At fjerne en enkelt placering
+  genbruger `DELETE /api/v1/boards/{id}/cards/{workItemId}`, som allerede
+  soft-sletter kortet, hvis det var den sidste placering.
+- Placeringen kræver `BoardsManage` og adgang til både den tavle, kortet kommer
+  fra, og måltavlen. Den unikke nøgle `(work_item_id, board_id)` afvises i koden
+  med en pæn fejl, hvis kortet allerede ligger på tavlen.
+- Kortpanelets sidekolonne har en "Tavler"-sektion: placeringerne listes med
+  tavle og kolonne (færdig-kolonner markeret med flueben), og der kan tilføjes en
+  tavle med tilhørende kolonne eller fjernes en enkelt placering. "Fjern" skjules,
+  når kortet kun ligger på én tavle; dér bruges "Slet kort". Placering kan først
+  ske, når kortet er oprettet. Fjernes kortet fra den tavle, man står på, lukkes
+  panelet; fjernes det fra en anden tavle, genindlæses den aktuelle tavle, så
+  listen opdateres. Læsetilstand viser "Tavler" som en ren liste, og kun når
+  kortet ligger på mere end én tavle.
+
+Ubesluttede punkter:
+- Hvem må rydde døde links, og skal et kort blokere sletning af et
+  domæneobjekt eller blot miste linket?
+- Skal et board senere kunne generere kort automatisk fra en forespørgsel
+  ("smart board"), fx aktiviteter uden budget, via domænehændelser/Hangfire?
 
 ## Sikkerhed og auth-hærdning
 
