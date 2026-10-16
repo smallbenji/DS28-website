@@ -149,7 +149,7 @@ namespace DS.Website.Controllers
         }
 
         [HttpGet("activity/{activityId:int}/files")]
-        public async Task<IActionResult> GetFiles(int activityId)
+        public async Task<IActionResult> GetFiles(int activityId, [FromQuery] string folderId)
         {
             var activity = await activityRepository.GetActivityAsync(activityId);
             if (activity == null) return NotFound();
@@ -163,13 +163,15 @@ namespace DS.Website.Controllers
             try
             {
                 using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(20));
-                files = await googleDrive.GetActivityFilesAsync(activityId, timeout.Token);
+                files = await googleDrive.GetActivityFilesAsync(activityId, folderId, timeout.Token);
             }
             catch (Exception ex)
             {
                 logger.LogError(ex, "Hentning af filer fra Google Drive fejlede for aktivitet {ActivityId}.", activityId);
                 return StatusCode(StatusCodes.Status502BadGateway, "Filerne kunne ikke hentes fra Google Drive.");
             }
+
+            if (files == null) return NotFound("Mappen findes ikke.");
 
             var created = await activityRepository.GetFilesAsync(activityId);
             var result = new List<ActivityFileDto>();
@@ -207,8 +209,9 @@ namespace DS.Website.Controllers
             var kind = string.IsNullOrWhiteSpace(data?.Kind) ? GoogleFileTypes.DocumentKind : data.Kind.Trim().ToLowerInvariant();
             if (!GoogleFileTypes.IsSupportedKind(kind)) return BadRequest("Ukendt filtype.");
 
-            var title = string.IsNullOrWhiteSpace(data?.Title) ? activity.Name : data.Title.Trim();
-            if (string.IsNullOrWhiteSpace(title)) return BadRequest("Filen mangler et navn.");
+            var fallbackTitle = kind == GoogleFileTypes.FolderKind ? "Ny mappe" : activity.Name;
+            var title = string.IsNullOrWhiteSpace(data?.Title) ? fallbackTitle : data.Title.Trim();
+            if (string.IsNullOrWhiteSpace(title)) return BadRequest("Navnet mangler.");
             if (title.Length > 200) return BadRequest("Navnet må højst være 200 tegn.");
 
             var userId = userManager.GetUserId(User);
@@ -217,13 +220,15 @@ namespace DS.Website.Controllers
             try
             {
                 using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(20));
-                driveFileId = await googleDrive.CreateActivityFileAsync(activityId, activity.Name, kind, title, timeout.Token);
+                driveFileId = await googleDrive.CreateActivityFileAsync(activityId, activity.Name, kind, title, data?.FolderId, timeout.Token);
             }
             catch (Exception ex)
             {
                 logger.LogError(ex, "Oprettelse af Google-fil fejlede for aktivitet {ActivityId}.", activityId);
-                return StatusCode(StatusCodes.Status502BadGateway, "Filen kunne ikke oprettes i Google Drive.");
+                return StatusCode(StatusCodes.Status502BadGateway, "Filen eller mappen kunne ikke oprettes i Google Drive.");
             }
+
+            if (driveFileId == null) return NotFound("Mappen findes ikke.");
 
             var file = await activityRepository.AddFileAsync(activityId, driveFileId, title, userId);
             var createdBy = await userManager.FindByIdAsync(userId);

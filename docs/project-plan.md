@@ -477,6 +477,14 @@ Fanen viser derfor kun en liste, hvor hver række åbner filen i Google i en ny
 fane. `PreviewUrl` er fjernet fra både `GoogleFileTypes`, `ActivityFileDto` og
 frontend-typen.
 
+**Beslutning 2026-10-16 (udvidet):** Mapper er tilføjet som en fjerde `kind`
+(`folder`), så aktivitetens filer kan organiseres. Der kan oprettes mapper i
+aktivitetsmappen og i dens undermapper, og fanen viser den aktuelle mappe med en
+brødkrumme til at gå op igen. Antallet af niveauer er ikke begrænset i sig selv,
+men valideringen af, at en vist eller angivet mappe hører til aktiviteten, går
+opad i forældrekæden og opgiver efter 20 led. Mapper gemmes i `activity_file` på
+samme måde som filer, så "Oprettet af" også vises for mapper.
+
 - Ved oprettelse sørger `GoogleDriveService` for en undermappe pr. aktivitet
   under basemappen. Mappen mærkes med `appProperties.activity_id`, og ID'et
   gemmes i `activity_drive_folder`, så mappen kan flyttes frit i Drev uden at
@@ -490,20 +498,28 @@ frontend-typen.
 - Er en gemt mappe slettet eller flyttet til papirkurven i Drev, glemmer HQ
   ID'et: visningen bliver tom i stedet for at fejle, og næste oprettelse danner
   en ny mappe.
-- Filerne er tomme Google-filer med aktivitetens navn som standardtitel. `kind`
-  er `doc`, `sheet` eller `slides` og oversættes til MIME-typen
-  `application/vnd.google-apps.document|spreadsheet|presentation`. Skabeloner,
-  der kopieres og udfyldes ved oprettelsen, er en senere udvidelse;
+- Filerne er tomme Google-filer med aktivitetens navn som standardtitel, mens
+  mapper hedder "Ny mappe", hvis navnet udelades. `kind` er `doc`, `sheet`,
+  `slides` eller `folder` og oversættes til MIME-typen
+  `application/vnd.google-apps.document|spreadsheet|presentation|folder`.
+  Skabeloner, der kopieres og udfyldes ved oprettelsen, er en senere udvidelse;
   `activity_file` har derfor ingen skabelonreference.
-- Listen sammensættes af Drive-mappens indhold og beriges med rækkerne i
+- Listen sammensættes af indholdet i den aktuelle mappe og beriges med rækkerne i
   `activity_file` (matchet på `drive_file_id`), så "Oprettet af" kun vises for
-  filer oprettet fra HQ. Titlen kommer fra Drive, fordi filer kan omdøbes der.
-  Andre filtyper end Docs, Sheets og Slides vises også, med et generisk ikon og
-  link til Drive.
+  filer og mapper oprettet fra HQ. Titlen kommer fra Drive, fordi filer kan
+  omdøbes der. Mapper vises øverst med mappeikon, og andre filtyper end Docs,
+  Sheets og Slides vises også, med et generisk ikon og link til Drive.
 - Rettigheder følger aktiviteten: oprettelse kræver samme adgang som
   redigering af aktiviteten (`HasAccessAsync(teamId, true)`), og læsning følger
   visningsadgang. Endpoints er `GET /api/v1/activity/activity/{id}/files` og
-  `POST /api/v1/activity/activity/{id}/file/add` med `{ title, kind }`.
+  `POST /api/v1/activity/activity/{id}/file/add`; begge tager en valgfri
+  `folderId` i forespørgslen, hvor udeladt betyder aktivitetsmappen. En
+  `folderId`, der ikke ligger i aktivitetsmappen, giver `404`, så en klient ikke
+  kan læse eller skrive i vilkårlige Drev-mapper.
+- I fanen åbner en filrække filen i Google i en ny fane, mens en mapperække går
+  ind i mappen i HQ. Brødkrummen viser placeringen og kan bruges til at gå op
+  igen. Fanemarkøren for "Filer" tændes ud fra aktivitetsmappen, ikke den viste
+  undermappe.
 - Selve Google-forbindelsen styres af `GoogleApiController`.
   `GET /api/v1/google/status` kan læses af alle brugere, mens
   `GET /api/v1/google/connect`, `GET /api/v1/google/callback` og

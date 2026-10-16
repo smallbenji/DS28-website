@@ -2,9 +2,9 @@ namespace DS.Website.Services
 {
     public interface IGoogleDriveService
     {
-        Task<List<DriveFileInfo>> GetActivityFilesAsync(int activityId, CancellationToken cancellationToken = default);
+        Task<List<DriveFileInfo>> GetActivityFilesAsync(int activityId, string folderId, CancellationToken cancellationToken = default);
 
-        Task<string> CreateActivityFileAsync(int activityId, string activityName, string kind, string title, CancellationToken cancellationToken = default);
+        Task<string> CreateActivityFileAsync(int activityId, string activityName, string kind, string title, string folderId, CancellationToken cancellationToken = default);
     }
 
     public class DriveFileInfo

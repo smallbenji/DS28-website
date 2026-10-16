@@ -45,7 +45,7 @@ export interface ActivityWithTeamDto extends ActivityDto {
     teamName: string;
 }
 
-export type ActivityFileKind = 'doc' | 'sheet' | 'slides' | 'file';
+export type ActivityFileKind = 'doc' | 'sheet' | 'slides' | 'folder' | 'file';
 
 export interface ActivityFileDto {
     id: string;
@@ -60,4 +60,5 @@ export interface ActivityFileDto {
 export interface ActivityFileCreateDto {
     title: string | null;
     kind: ActivityFileKind;
+    folderId: string | null;
 }

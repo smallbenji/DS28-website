@@ -118,10 +118,11 @@ export default class ActivityService {
         }
     }
 
-    public async getFiles(activityId: number): Promise<ActivityFileDto[]> {
+    public async getFiles(activityId: number, folderId?: string | null): Promise<ActivityFileDto[]> {
         const response: AxiosResponse<ActivityFileDto[]> = await axios({
             url: `/api/v1/activity/activity/${activityId}/files`,
-            method: "GET"
+            method: "GET",
+            params: folderId ? { folderId } : {}
         });
         return response.data ? response.data : [];
     }

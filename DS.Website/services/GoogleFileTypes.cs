@@ -5,6 +5,7 @@ namespace DS.Website.Services
         public const string DocumentKind = "doc";
         public const string SpreadsheetKind = "sheet";
         public const string PresentationKind = "slides";
+        public const string FolderKind = "folder";
         public const string OtherKind = "file";
 
         public const string FolderMimeType = "application/vnd.google-apps.folder";
@@ -15,7 +16,7 @@ namespace DS.Website.Services
 
         public static bool IsSupportedKind(string kind)
         {
-            return kind == DocumentKind || kind == SpreadsheetKind || kind == PresentationKind;
+            return kind == DocumentKind || kind == SpreadsheetKind || kind == PresentationKind || kind == FolderKind;
         }
 
         public static string MimeTypeForKind(string kind)
@@ -25,6 +26,7 @@ namespace DS.Website.Services
                 DocumentKind => DocumentMimeType,
                 SpreadsheetKind => SpreadsheetMimeType,
                 PresentationKind => PresentationMimeType,
+                FolderKind => FolderMimeType,
                 _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, "Ukendt filtype."),
             };
         }
@@ -36,12 +38,15 @@ namespace DS.Website.Services
                 DocumentMimeType => DocumentKind,
                 SpreadsheetMimeType => SpreadsheetKind,
                 PresentationMimeType => PresentationKind,
+                FolderMimeType => FolderKind,
                 _ => OtherKind,
             };
         }
 
         public static string OpenUrl(string mimeType, string fileId)
         {
+            if (mimeType == FolderMimeType) return $"https://drive.google.com/drive/folders/{fileId}";
+
             var editorPath = EditorPathForMimeType(mimeType);
 
             return editorPath == null

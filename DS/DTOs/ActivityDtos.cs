@@ -109,5 +109,6 @@ namespace DS.DTOs
     {
         public string Title { get; set; }
         public string Kind { get; set; }
+        public string FolderId { get; set; }
     }
 }

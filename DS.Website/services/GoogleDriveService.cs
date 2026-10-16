@@ -14,11 +14,15 @@ namespace DS.Website.Services
         ActivityRepository activityRepository,
         IMemoryCache cache) : IGoogleDriveService
     {
+        private const string ActivityRootFolderKey = "root";
+        private const int MaxFolderDepth = 20;
+
         private static readonly TimeSpan FilesCacheDuration = TimeSpan.FromSeconds(30);
 
-        public async Task<List<DriveFileInfo>> GetActivityFilesAsync(int activityId, CancellationToken cancellationToken = default)
+        public async Task<List<DriveFileInfo>> GetActivityFilesAsync(int activityId, string folderId, CancellationToken cancellationToken = default)
         {
-            var cacheKey = FilesCacheKey(activityId);
+            var folderKey = string.IsNullOrWhiteSpace(folderId) ? ActivityRootFolderKey : folderId;
+            var cacheKey = FilesCacheKey(activityId, folderKey);
 
             if (cache.TryGetValue(cacheKey, out List<DriveFileInfo> cached) && cached != null)
             {
@@ -26,9 +30,17 @@ namespace DS.Website.Services
             }
 
             var service = await googleAuth.GetDriveServiceAsync(cancellationToken);
-            var folderId = await ResolveActivityFolderAsync(service, activityId, cancellationToken);
+            var rootId = await ResolveActivityFolderAsync(service, activityId, cancellationToken);
+            var targetId = rootId;
 
-            if (folderId == null)
+            if (!string.IsNullOrWhiteSpace(folderId))
+            {
+                if (rootId == null || !await IsInsideFolderAsync(service, rootId, folderId, cancellationToken)) return null;
+
+                targetId = folderId;
+            }
+
+            if (targetId == null)
             {
                 cache.Set(cacheKey, new List<DriveFileInfo>(), FilesCacheDuration);
 
@@ -38,11 +50,15 @@ namespace DS.Website.Services
             List<DriveFileInfo> files;
             try
             {
-                files = await ListFilesAsync(service, folderId, cancellationToken);
+                files = await ListFilesAsync(service, targetId, cancellationToken);
             }
             catch (GoogleApiException ex) when (ex.HttpStatusCode == HttpStatusCode.NotFound)
             {
-                await activityRepository.RemoveDriveFolderIdAsync(activityId);
+                if (targetId == rootId)
+                {
+                    await activityRepository.RemoveDriveFolderIdAsync(activityId);
+                }
+
                 files = [];
             }
 
@@ -51,16 +67,27 @@ namespace DS.Website.Services
             return files;
         }
 
-        public async Task<string> CreateActivityFileAsync(int activityId, string activityName, string kind, string title, CancellationToken cancellationToken = default)
+        public async Task<string> CreateActivityFileAsync(int activityId, string activityName, string kind, string title, string folderId, CancellationToken cancellationToken = default)
         {
             var service = await googleAuth.GetDriveServiceAsync(cancellationToken);
-            var folderId = await EnsureActivityFolderAsync(service, activityId, activityName, cancellationToken);
+            var rootId = await EnsureActivityFolderAsync(service, activityId, activityName, cancellationToken);
+
+            var targetId = rootId;
+            var folderKey = ActivityRootFolderKey;
+
+            if (!string.IsNullOrWhiteSpace(folderId))
+            {
+                if (!await IsInsideFolderAsync(service, rootId, folderId, cancellationToken)) return null;
+
+                targetId = folderId;
+                folderKey = folderId;
+            }
 
             var file = new Google.Apis.Drive.v3.Data.File
             {
                 Name = title,
                 MimeType = GoogleFileTypes.MimeTypeForKind(kind),
-                Parents = [folderId],
+                Parents = [targetId],
             };
 
             var request = service.Files.Create(file);
@@ -69,9 +96,41 @@ namespace DS.Website.Services
 
             var created = await request.ExecuteAsync(cancellationToken);
 
-            cache.Remove(FilesCacheKey(activityId));
+            cache.Remove(FilesCacheKey(activityId, folderKey));
 
             return created.Id;
+        }
+
+        private static async Task<bool> IsInsideFolderAsync(DriveService service, string rootId, string folderId, CancellationToken cancellationToken)
+        {
+            var current = folderId;
+
+            for (var depth = 0; depth <= MaxFolderDepth; depth++)
+            {
+                if (current == rootId) return true;
+
+                Google.Apis.Drive.v3.Data.File folder;
+                try
+                {
+                    var request = service.Files.Get(current);
+                    request.Fields = "id, mimeType, parents, trashed";
+                    request.SupportsAllDrives = true;
+
+                    folder = await request.ExecuteAsync(cancellationToken);
+                }
+                catch (GoogleApiException ex) when (ex.HttpStatusCode == HttpStatusCode.NotFound)
+                {
+                    return false;
+                }
+
+                if (folder == null || folder.MimeType != GoogleFileTypes.FolderMimeType || folder.Trashed == true) return false;
+
+                current = folder.Parents?.FirstOrDefault();
+
+                if (string.IsNullOrEmpty(current)) return false;
+            }
+
+            return false;
         }
 
         private async Task<string> ResolveActivityFolderAsync(DriveService service, int activityId, CancellationToken cancellationToken)
@@ -115,7 +174,7 @@ namespace DS.Website.Services
             return folderId;
         }
 
-        private async Task<List<DriveFileInfo>> ListFilesAsync(DriveService service, string folderId, CancellationToken cancellationToken)
+        private static async Task<List<DriveFileInfo>> ListFilesAsync(DriveService service, string folderId, CancellationToken cancellationToken)
         {
             var files = new List<DriveFileInfo>();
             string pageToken = null;
@@ -123,7 +182,7 @@ namespace DS.Website.Services
             do
             {
                 var request = service.Files.List();
-                request.Q = $"'{folderId}' in parents and mimeType != '{GoogleFileTypes.FolderMimeType}' and trashed = false";
+                request.Q = $"'{folderId}' in parents and trashed = false";
                 request.OrderBy = "modifiedTime desc";
                 request.PageSize = 200;
                 request.PageToken = pageToken;
@@ -142,7 +201,15 @@ namespace DS.Website.Services
             }
             while (!string.IsNullOrEmpty(pageToken));
 
-            return files;
+            var folders = files.Where(IsFolder);
+            var others = files.Where(file => !IsFolder(file));
+
+            return folders.Concat(others).ToList();
+        }
+
+        private static bool IsFolder(DriveFileInfo file)
+        {
+            return file.MimeType == GoogleFileTypes.FolderMimeType;
         }
 
         private static async Task<bool> FolderExistsAsync(DriveService service, string folderId, CancellationToken cancellationToken)
@@ -211,9 +278,9 @@ namespace DS.Website.Services
             };
         }
 
-        private static string FilesCacheKey(int activityId)
+        private static string FilesCacheKey(int activityId, string folderKey)
         {
-            return $"activity-files:{activityId}";
+            return $"activity-files:{activityId}:{folderKey}";
         }
     }
 }

@@ -36,15 +36,15 @@ export const useActivityStore = defineStore("activity", () => {
         return data;
     }
 
-    async function GET_FILES(activityId: number) {
-        const data = await activityService.getFiles(activityId);
+    async function GET_FILES(activityId: number, folderId?: string | null) {
+        const data = await activityService.getFiles(activityId, folderId);
         Files.value = data;
         return data;
     }
 
     async function ADD_FILE(activityId: number, data: ActivityFileCreateDto) {
         const file = await activityService.addFile(activityId, data);
-        await GET_FILES(activityId);
+        await GET_FILES(activityId, data.folderId);
 
         if (!Files.value.some((existing) => existing.id === file.id)) {
             Files.value = [file, ...Files.value];

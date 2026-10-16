@@ -55,17 +55,18 @@
                     </BNotification>
                     <template v-else>
                         <section class="activity-detail-files-creation">
-                            <h3 class="has-text-weight-semibold mb-2">Opret fil</h3>
-                            <p class="activity-detail-files-help mb-4">Filen gemmes med det samme i Google Drev. Brug Gem aktivitet til ændringer på de øvrige faner.</p>
+                            <h3 class="has-text-weight-semibold mb-2">Opret fil eller mappe</h3>
+                            <p class="activity-detail-files-help mb-4">Filen eller mappen gemmes med det samme i Google Drev. Brug Gem aktivitet til ændringer på de øvrige faner.</p>
                             <form class="activity-detail-files-create" @submit.prevent="createFile">
                                 <BField class="activity-detail-files-name" label="Navn">
-                                    <BInput v-model="fileTitle" :placeholder="form.name || 'Navn'" />
+                                    <BInput v-model="fileTitle" :placeholder="fileTitlePlaceholder" />
                                 </BField>
                                 <BField class="activity-detail-files-kind" label="Type">
                                     <BSelect v-model="fileKind" expanded>
                                         <option value="doc">Dokument</option>
                                         <option value="sheet">Regneark</option>
                                         <option value="slides">Præsentation</option>
+                                        <option value="folder">Mappe</option>
                                     </BSelect>
                                 </BField>
                                 <BButton
@@ -75,15 +76,32 @@
                                     :disabled="creatingFile"
                                     native-type="submit"
                                 >
-                                    Opret fil
+                                    Opret
                                 </BButton>
                             </form>
                         </section>
                         <section class="activity-detail-files-body">
-                            <h3 class="has-text-weight-semibold mb-3">Eksisterende filer ({{ files.length }})</h3>
+                            <nav class="activity-detail-files-path" v-if="folderPath.length > 0" aria-label="Mappeplacering">
+                                <button type="button" class="activity-detail-files-crumb" @click="goToFolder(0)">
+                                    <i class="far fa-folder-open"></i>
+                                    <span>{{ activity?.name || 'Aktiviteten' }}</span>
+                                </button>
+                                <template v-for="(folder, index) in folderPath" :key="folder.id">
+                                    <i class="fas fa-chevron-right activity-detail-files-crumb-separator"></i>
+                                    <button type="button" class="activity-detail-files-crumb" :disabled="index === folderPath.length - 1" @click="goToFolder(index + 1)">
+                                        <span>{{ folder.name }}</span>
+                                    </button>
+                                </template>
+                            </nav>
+                            <h3 class="has-text-weight-semibold mb-3">Filer og mapper ({{ files.length }})</h3>
                             <BTable :data="files" hoverable>
                                 <BTableColumn field="name" label="Navn" v-slot="props">
-                                    <a class="activity-detail-files-link" :href="props.row.url" target="_blank" rel="noopener" :title="`Åbn ${props.row.name} i Google (ny fane)`">
+                                    <button v-if="props.row.kind === 'folder'" type="button" class="activity-detail-files-link activity-detail-files-folder" :title="`Åbn mappen ${props.row.name}`" @click="openFolder(props.row)">
+                                        <i class="far fa-folder" aria-hidden="true"></i>
+                                        <span>{{ props.row.name }}</span>
+                                        <i class="fas fa-chevron-right" aria-hidden="true"></i>
+                                    </button>
+                                    <a v-else class="activity-detail-files-link" :href="props.row.url" target="_blank" rel="noopener" :title="`Åbn ${props.row.name} i Google (ny fane)`">
                                         <i :class="fileIcon(props.row.kind)" aria-hidden="true"></i>
                                         <span>{{ props.row.name }}</span>
                                         <i class="fas fa-arrow-up-right-from-square" aria-hidden="true"></i>
@@ -97,7 +115,7 @@
                                     <span class="activity-detail-files-meta">{{ props.row.modifiedAt ? formatDate(props.row.modifiedAt) : '—' }}</span>
                                 </BTableColumn>
                                 <template #empty>
-                                    <p class="activity-detail-files-empty">Der er endnu ingen filer til aktiviteten. Opret den første fil ovenfor.</p>
+                                    <p class="activity-detail-files-empty">Der er endnu ingen filer eller mapper her. Opret den første ovenfor.</p>
                                 </template>
                             </BTable>
                         </section>
@@ -120,7 +138,7 @@ import { formatDate } from '@/lib/util';
 import { BButton, BField, BInput, BNotification, BSelect, BTable, BTableColumn, useToast } from 'buefy';
 import { storeToRefs } from 'pinia';
 import { reactive, ref, computed, watch } from 'vue';
-import type { ActivityFileKind, CatalogDataDto } from '@/types';
+import type { ActivityFileDto, ActivityFileKind, CatalogDataDto } from '@/types';
 
 interface ActivityFormDto {
     id: number;
@@ -141,6 +159,8 @@ const creatingFile = ref(false);
 const fileTitle = ref('');
 const fileKind = ref<ActivityFileKind>('doc');
 const googleConnected = ref(true);
+const folderPath = ref<{ id: string; name: string }[]>([]);
+const hasFiles = ref(false);
 
 const canManageGoogle = computed(() => meStore.ME.appRoles.includes('AdminAccess'));
 
@@ -154,6 +174,28 @@ const form = reactive<ActivityFormDto>({
 const activity = SelectedActivity;
 const files = FILES;
 
+const currentFolderId = computed(() => folderPath.value.length > 0 ? folderPath.value[folderPath.value.length - 1].id : null);
+
+const fileTitlePlaceholder = computed(() => fileKind.value === 'folder' ? 'Mappens navn' : form.name || 'Navn');
+
+const loadFolder = async (activityId: number) => {
+    try {
+        await activityStore.GET_FILES(activityId, currentFolderId.value);
+    } catch {
+        Toast.open({
+            message: 'Filerne kunne ikke hentes fra Google Drev',
+            type: 'is-danger'
+        });
+        return false;
+    }
+
+    if (folderPath.value.length === 0) {
+        hasFiles.value = files.value.length > 0;
+    }
+
+    return true;
+};
+
 const loadFiles = async (activityId: number) => {
     const status = await googleService.getStatus().catch(() => null);
 
@@ -163,13 +205,28 @@ const loadFiles = async (activityId: number) => {
 
     if (!googleConnected.value) return;
 
-    try {
-        await activityStore.GET_FILES(activityId);
-    } catch {
-        Toast.open({
-            message: 'Filerne kunne ikke hentes fra Google Drev',
-            type: 'is-danger'
-        });
+    await loadFolder(activityId);
+};
+
+const openFolder = async (file: ActivityFileDto) => {
+    if (!activity.value || file.kind !== 'folder') return;
+
+    const previous = folderPath.value;
+    folderPath.value = [...previous, { id: file.id, name: file.name }];
+
+    if (!await loadFolder(activity.value.id)) {
+        folderPath.value = previous;
+    }
+};
+
+const goToFolder = async (depth: number) => {
+    if (!activity.value || depth === folderPath.value.length) return;
+
+    const previous = folderPath.value;
+    folderPath.value = previous.slice(0, depth);
+
+    if (!await loadFolder(activity.value.id)) {
+        folderPath.value = previous;
     }
 };
 
@@ -181,12 +238,15 @@ watch(SelectedActivity, (activity) => {
     form.budget = activity.budget;
     form.catalog = activity.catalog ?? { id: 0, name: '', summary: '', description: '' };
     fileTitle.value = '';
+    folderPath.value = [];
+    hasFiles.value = false;
     loadFiles(activity.id);
 }, { immediate: true });
 
 const fileIcon = (kind: ActivityFileKind) => {
     if (kind === 'sheet') return 'fas fa-table';
     if (kind === 'slides') return 'fas fa-display';
+    if (kind === 'folder') return 'far fa-folder';
     if (kind === 'doc') return 'far fa-file-lines';
 
     return 'far fa-file';
@@ -208,7 +268,7 @@ const missingTabs = computed(() => [
 const tabs = computed(() => [
     { key: 'activity', label: 'Aktivitet', icon: 'fas fa-calendar-days', filled: activityTabFilled.value },
     { key: 'catalog', label: 'Katalog', icon: 'fas fa-globe', filled: catalogTabFilled.value },
-    { key: 'files', label: 'Filer', icon: 'fas fa-folder-open', filled: files.value.length > 0 }
+    { key: 'files', label: 'Filer', icon: 'fas fa-folder-open', filled: hasFiles.value }
 ]);
 
 const createFile = async () => {
@@ -218,13 +278,20 @@ const createFile = async () => {
     try {
         await activityStore.ADD_FILE(activity.value.id, {
             title: fileTitle.value.trim() || null,
-            kind: fileKind.value
+            kind: fileKind.value,
+            folderId: currentFolderId.value
         });
+
+        const createdFolder = fileKind.value === 'folder';
 
         fileTitle.value = '';
 
+        if (folderPath.value.length === 0) {
+            hasFiles.value = files.value.length > 0;
+        }
+
         Toast.open({
-            message: 'Filen er oprettet',
+            message: createdFolder ? 'Mappen er oprettet' : 'Filen er oprettet',
             type: 'is-success'
         });
     } catch (error: any) {
@@ -232,8 +299,8 @@ const createFile = async () => {
         const message = typeof error?.response?.data === 'string' && error.response.data
             ? error.response.data
             : status === 403
-                ? 'Du har ikke rettigheder til at oprette filer til aktiviteten'
-                : 'Der skete en fejl ved oprettelse af filen';
+                ? 'Du har ikke rettigheder til at oprette filer og mapper til aktiviteten'
+                : 'Der skete en fejl ved oprettelse af filen eller mappen';
 
         if (status === 503) {
             googleConnected.value = false;
@@ -433,11 +500,55 @@ const saveActivity = async () => {
             align-items: center;
             gap: 0.75rem;
             padding: 0.35rem 0;
+            border: 0;
+            background: none;
+            color: #485fc7;
+            font: inherit;
+            text-align: left;
+            cursor: pointer;
             overflow-wrap: anywhere;
 
-            .fa-arrow-up-right-from-square {
+            .fa-arrow-up-right-from-square,
+            .fa-chevron-right {
                 font-size: 0.8rem;
             }
+        }
+
+        &-path {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 0.35rem;
+            margin-bottom: 0.75rem;
+            color: #666;
+            font-size: 0.95rem;
+        }
+
+        &-crumb {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.1rem 0.35rem;
+            border: 0;
+            border-radius: 6px;
+            background: none;
+            color: #485fc7;
+            font: inherit;
+            cursor: pointer;
+
+            &:hover:not(:disabled) {
+                background-color: #f2f2f2;
+            }
+
+            &:disabled {
+                color: #363636;
+                cursor: default;
+            }
+        }
+
+        &-crumb-separator {
+            color: #999;
+            font-size: 0.7rem;
         }
 
         &-empty {

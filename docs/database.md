@@ -643,13 +643,14 @@ mindst syv dage gamle. Det er ren dataoprydning uden skemaændring.
   samme regel.
 - Migration `006a_relax_legacy_nullable.sql` gør flere kolonner nullable,
   bl.a. `scout_group.name`, `scout.name` og `activity.name`.
-- `activity_file` gemmer de filer, som systemet har oprettet i Google Drive for
-  en aktivitet, og bruges til at vise "Oprettet af" i fillisten. `drive_file_id`
-  er Drive-filens ID, og `title` er titlen ved oprettelsen. `activity_id` har
-  `ON DELETE CASCADE`, så rækkerne følger aktiviteten, og `created_by_user_id`
-  har `ON DELETE SET NULL`. Soft delete via `deleted_at`. Filen i Drive slettes
-  eller flyttes ikke af en soft delete; kolonnen findes, men ingen kode sætter
-  den endnu. Den viste titel og filtype kommer fra Drive, ikke fra denne tabel.
+- `activity_file` gemmer de filer og mapper, som systemet har oprettet i Google
+  Drive for en aktivitet, og bruges til at vise "Oprettet af" i fillisten.
+  `drive_file_id` er Drive-filens ID, og `title` er titlen ved oprettelsen.
+  `activity_id` har `ON DELETE CASCADE`, så rækkerne følger aktiviteten, og
+  `created_by_user_id` har `ON DELETE SET NULL`. Soft delete via `deleted_at`.
+  Filen i Drive slettes eller flyttes ikke af en soft delete; kolonnen findes,
+  men ingen kode sætter den endnu. Den viste titel og filtype kommer fra Drive,
+  ikke fra denne tabel.
 - `activity_drive_folder` husker ID'et på den Google-mappe, HQ har oprettet for
   en aktivitet, så mappen kan flyttes frit i Drev uden at forbindelsen brydes.
   `activity_id` er både primærnøgle og foreign key med `ON DELETE CASCADE`, så
