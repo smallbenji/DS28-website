@@ -19,6 +19,15 @@ public class Activity : IAuditableEntity, ISoftDeleteable
     public ActivityBudget Budget { get; set; }
     public CatalogData Catalog { get; set; }
 
+    public ActivityReviewStatus ReviewStatus { get; set; } = ActivityReviewStatus.Draft;
+    public int ReviewVersion { get; set; }
+    public DateTime? SubmittedAt { get; set; }
+    public DateTime? ReviewedAt { get; set; }
+    public string ReviewedByUserId { get; set; }
+    public User ReviewedBy { get; set; }
+    public string ReviewFeedback { get; set; }
+
+
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
     public DateTime? DeletedAt { get; set; }

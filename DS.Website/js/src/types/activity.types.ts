@@ -1,8 +1,26 @@
+export type ActivityReviewStatus = 'Draft' | 'Submitted' | 'ChangesRequested' | 'Approved';
+export type ActivityReviewAction = 'submit' | 'approve' | 'request-changes';
+
+export interface ActivityUpdateDto {
+    id: number;
+    name: string;
+    catalog: CatalogDataDto | null;
+    reviewVersion: number;
+}
+
 export interface ActivityDto {
     id: number;
     name: string;
     budget: number;
     catalog: CatalogDataDto | null;
+    reviewStatus: ActivityReviewStatus;
+    reviewVersion: number;
+    submittedAt: string | null;
+    reviewedAt: string | null;
+    reviewedByName: string | null;
+    reviewFeedback: string | null;
+    reviewMissingFields: string[];
+    canEdit: boolean;
 }
 
 export interface CatalogDataDto {

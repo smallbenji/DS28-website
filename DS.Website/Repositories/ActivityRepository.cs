@@ -13,6 +13,7 @@ namespace DS.Website.Repositories
                 .AsNoTracking()
                 .Where(m => m.User.Id == userId)
                 .SelectMany(m => m.ActivityTeam.Activities)
+                .Include(a => a.ReviewedBy)
                 .Include(a => a.Budget)
                 .Include(a => a.Catalog)
                     .ThenInclude(c => c.ImageFile)
@@ -34,9 +35,12 @@ namespace DS.Website.Repositories
             return await dataDb.ActivityTeams
                 .AsNoTracking()
                 .Where(filter)
+                .Where(t => t.DeletedAt == null)
                 .Include(t => t.Memberships)
                     .ThenInclude(m => m.User)
-                .Include(t => t.Activities)
+                .Include(t => t.Activities.Where(a => a.DeletedAt == null)).ThenInclude(a => a.Catalog)
+                .Include(t => t.Activities.Where(a => a.DeletedAt == null)).ThenInclude(a => a.Budget)
+                .Include(t => t.Activities.Where(a => a.DeletedAt == null)).ThenInclude(a => a.ReviewedBy)
                 .ToListAsync();
         }
 
@@ -53,51 +57,81 @@ namespace DS.Website.Repositories
         {
             return await dataDb.Activities
                 .AsNoTracking()
+                .Include(a => a.ReviewedBy)
                 .Include(a => a.Budget)
                 .Include(a => a.Catalog)
                     .ThenInclude(c => c.ImageFile)
-                .FirstOrDefaultAsync(a => a.Id == activityId);
+                .FirstOrDefaultAsync(a => a.Id == activityId && a.DeletedAt == null);
         }
 
-        public async Task<bool> UpdateActivityAsync(int activityId, ActivityDto data, string userId)
+        public async Task<ActivityChangeResult> UpdateActivityAsync(int activityId, ActivityUpdateDto data, string userId)
         {
             var activity = await dataDb.Activities
-                .Include(a => a.Budget)
                 .Include(a => a.Catalog)
-                .FirstOrDefaultAsync(a => a.Id == activityId);
+                .FirstOrDefaultAsync(a => a.Id == activityId && a.DeletedAt == null);
+            if (activity == null) return ActivityChangeResult.NotFound;
+            if (activity.ReviewVersion != data.ReviewVersion) return ActivityChangeResult.Conflict;
 
-            if (activity == null)
+            var contentChanged = activity.Name != data.Name
+                || (data.Catalog != null && (activity.Catalog?.Name != data.Catalog.Name
+                    || activity.Catalog?.Summary != data.Catalog.Summary
+                    || activity.Catalog?.Description != data.Catalog.Description));
+
+            int? newImageId = null;
+            if (data.Catalog?.Image != null)
             {
-                return false;
+                var image = await dataDb.StoredFiles
+                    .FirstOrDefaultAsync(f => f.PublicId == data.Catalog.Image.PublicId
+                        && f.Purpose == FilePurpose.CatalogImage
+                        && f.Status == StoredFileStatus.Ready
+                        && f.DeletedAt == null);
+                if (image == null || (image.Id != activity.Catalog?.ImageFileId && image.UploadedByUserId != userId)) return ActivityChangeResult.InvalidImage;
+
+                newImageId = image.Id;
+                contentChanged |= activity.Catalog?.ImageFileId != newImageId;
             }
 
-            activity.Name = data.Name;
-            activity.Budget ??= new ActivityBudget();
-            activity.Budget.Budget = data.Budget;
+            if (!contentChanged) return ActivityChangeResult.Success;
 
+            activity.Name = data.Name;
             if (data.Catalog != null)
             {
                 activity.Catalog ??= new CatalogData();
                 activity.Catalog.Name = data.Catalog.Name;
                 activity.Catalog.Summary = data.Catalog.Summary;
                 activity.Catalog.Description = data.Catalog.Description;
-
-                if (data.Catalog.Image != null)
-                {
-                    var image = await dataDb.StoredFiles
-                        .FirstOrDefaultAsync(f => f.PublicId == data.Catalog.Image.PublicId
-                            && f.Purpose == FilePurpose.CatalogImage
-                            && f.Status == StoredFileStatus.Ready
-                            && f.DeletedAt == null
-                            && f.UploadedByUserId == userId);
-                    if (image == null) return false;
-
-                    activity.Catalog.ImageFileId = image.Id;
-                }
+                if (newImageId.HasValue) activity.Catalog.ImageFileId = newImageId;
             }
 
-            await dataDb.SaveChangesAsync();
-            return true;
+            ActivityReview.ContentChanged(activity);
+            return await SaveActivityChangeAsync();
+        }
+
+        public async Task<ActivityChangeResult> ReviewActivityAsync(int activityId, int version, ActivityReviewAction action, string userId, string feedback = null)
+        {
+            var activity = await dataDb.Activities
+                .Include(a => a.Catalog)
+                .FirstOrDefaultAsync(a => a.Id == activityId && a.DeletedAt == null);
+            if (activity == null) return ActivityChangeResult.NotFound;
+            if (activity.ReviewVersion != version) return ActivityChangeResult.Conflict;
+
+            var result = ActivityReview.Apply(activity, action, userId, feedback, DateTime.UtcNow);
+            if (result != ActivityChangeResult.Success) return result;
+
+            return await SaveActivityChangeAsync();
+        }
+
+        private async Task<ActivityChangeResult> SaveActivityChangeAsync()
+        {
+            try
+            {
+                await dataDb.SaveChangesAsync();
+                return ActivityChangeResult.Success;
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                return ActivityChangeResult.Conflict;
+            }
         }
 
         public async Task AddTeamAsync(string name, string userId)

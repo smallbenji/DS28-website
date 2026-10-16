@@ -1,6 +1,6 @@
 import type { AxiosResponse } from "axios";
 import axios from "axios";
-import type { ActivityFileCreateDto, ActivityFileDto, ActivityDto, ActivityTeamDto, ActivityTeamInviteDto, ActivityTeamInviteLinkDto, ActivityTeamMembershipDto, UserDto } from "@/types";
+import type { ActivityReviewAction, ActivityUpdateDto, ActivityFileCreateDto, ActivityFileDto, ActivityDto, ActivityTeamDto, ActivityTeamInviteDto, ActivityTeamInviteLinkDto, ActivityTeamMembershipDto, UserDto } from "@/types";
 
 export default class ActivityService {
     public async getTeams(): Promise<ActivityTeamDto[]> {
@@ -79,17 +79,13 @@ export default class ActivityService {
         }
     }
 
-    public async updateActivity(id: number, data: ActivityDto): Promise<boolean> {
-        try {
-            await axios({
-                url: `/api/v1/activity/activity/${id}`,
-                method: "PUT",
-                data
-            });
-            return true;
-        } catch {
-            return false;
-        }
+    public async updateActivity(id: number, data: ActivityUpdateDto): Promise<boolean> {
+        await axios.put(`/api/v1/activity/activity/${id}`, data);
+        return true;
+    }
+
+    public async reviewActivity(id: number, action: ActivityReviewAction, reviewVersion: number, feedback?: string): Promise<void> {
+        await axios.post(`/api/v1/activity/activity/${id}/${action}`, { reviewVersion, feedback });
     }
 
     public async addActivity(teamId: number, name: string): Promise<boolean> {

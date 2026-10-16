@@ -72,6 +72,12 @@ erDiagram
         int id PK
         text name
         int activity_team_id FK "RESTRICT"
+        varchar review_status "required, default Draft"
+        int review_version "required, default 0, concurrency token"
+        timestamptz submitted_at "nullable"
+        timestamptz reviewed_at "nullable"
+        text reviewed_by_user_id FK "nullable, SET NULL"
+        varchar review_feedback "nullable, max 4000"
         timestamptz created_at
         timestamptz updated_at
         timestamptz deleted_at
@@ -432,6 +438,26 @@ erDiagram
     work_item ||--o{ board_card : "placeres på"
     work_item ||--o{ work_item_link : "linker til"
 ```
+
+## Aktivitetsgodkendelse
+
+Godkendelsen ligger på `activity`; der er ingen separat historiktabel.
+`review_status` er en påkrævet `varchar(32)` med standardværdien `Draft` og et
+CHECK-krav, som kun tillader `Draft`, `Submitted`, `ChangesRequested` og
+`Approved`. `review_version` er et påkrævet heltal med standardværdien 0 og
+bruges som EF-concurrency-token ved redigering og godkendelseshandlinger.
+
+`submitted_at` og `reviewed_at` er nullable `timestamptz`-kolonner.
+`reviewed_by_user_id` er nullable `text` med fremmednøgle til
+`asp_net_users.id` og `ON DELETE SET NULL`. `review_feedback` er nullable
+`varchar(4000)` og indeholder seneste tilbagesendelsesbegrundelse. Den
+bevares under rettelser og genindsendelse og ryddes ved en ny godkendelse.
+Der gemmes seneste vurdering, ikke et fuldt revisionsspor. At der kræves en
+begrundelse ved tilbagesendelse, håndhæves i applikationen.
+
+Der er et sammensat ikke-unikt indeks på `(review_status, submitted_at)` og
+et ikke-unikt fremmednøgleindeks på `reviewed_by_user_id`. Katalogets
+eksisterende relation til aktiviteten og budgettabellen er uændrede.
 
 ## OpenIddict
 

@@ -321,11 +321,90 @@ Ubesluttede punkter:
 
 ### Aktiviteter
 
+**Beslutning 2026-10-16 (implementeret):** Aktivitetsdetaljen starter med et
+aktivitetsdashboard frem for en formular. Overblikket viser katalogtitel,
+resumé og et uddrag af beskrivelsen, tildelt budget som dansk kronebeløb samt
+op til seks direkte genveje til filer og mapper i aktivitetens hovedmappe.
+Overblik, Katalog og Filer tilgås via kompakte vandrette faner. Navnet
+redigeres direkte ved sidetitlen via blyanten; Anvend overfører navnet til
+den lokale formular, og Annuller lukker navnefeltet uden at ændre navnet.
+Der er ingen separat Aktivitet-fane. Budgettet er fortsat skrivebeskyttet
+og vises kompakt ved sidetitlen. Katalogkortet viser, om resumé eller
+beskrivelse mangler, med en genvej til redigering; dette ændrer ikke
+reglerne for udfyldningsstatus. Filgenveje vises som en kompakt liste ved
+siden af kataloget og under kataloget på smalle skærme. Den tidligere venstremenu og det deaktiverede
+budgetinput er erstattet af dette layout.
+
+Navn og katalogtekst redigeres lokalt, indtil brugeren vælger "Gem aktivitet".
+Knappen og en besked om ikke-gemte ændringer vises kun, når disse felter er
+ændret, også hvis brugeren skifter tilbage til overblikket. Filer og mapper
+oprettes fortsat med øjeblikkelig lagring. Overblikkets filliste har særskilte
+tilstande for indlæsning, fejl, manglende Google-forbindelse og ingen filer.
+Der ændres ikke på rettigheder eller reglerne for udfyldningsstatus.
+**Opgaver på aktivitetsdashboardet udskydes** efter brugerens ønske; der
+implementeres ingen kobling til tavlekort i denne ændring.
+
+
 - Registrerede aktiviteter kan udgives i et katalog.
 - Grupper kan tilmelde sig, når aktivitetstilmeldingen åbner.
 - En patrulje må ikke tilmeldes aktiviteter på dage, hvor den ikke er på lejren.
 - Aktivitetens materialebehov og øvrige metadata registreres her og bruges af
   de andre dele af systemet.
+
+**Beslutning 2026-10-16 (implementeret):** Aktivitetsoversigten udbygges til
+arbejdsbord for aktivitetsadministratorer med indsendelse, godkendelse og
+begrundet tilbagesendelse. Dette udvider aktivitetsdashboardet ovenfor.
+Godkendelse og katalogudgivelse er adskilt: der implementeres ingen
+udgivelseshandling eller automatisk offentliggørelse i denne version.
+
+- Statusforløbet er `Draft` (Kladde) → `Submitted` (Afventer godkendelse) →
+  `Approved` (Godkendt). En indsendt aktivitet kan i stedet sendes retur som
+  `ChangesRequested` (Ændringer ønskes) og senere genindsendes.
+- Indsendelse kræver navn, katalognavn, resumé og beskrivelse. Serveren
+  validerer kravene. Filer er valgfrie. Den tidligere enkle kontrol af, om
+  noget katalogindhold er tilføjet, er fortsat kun en indholdsindikator:
+  mærket hedder nu "Indhold tilføjet" og er ikke en godkendelse.
+- Godkendelse og tilbagesendelse kræver den eksisterende globale approlle
+  `ActivityAdmin`. Der er ingen ændring i rollematricen. Indsendelse kræver
+  samme teamadgang som redigering: et teammedlemskab med `IsAdmin` eller
+  global `ActivityAdmin`. Øvrige teammedlemmer har læseadgang og kan se
+  status og feedback; de får ingen nye redigeringsrettigheder.
+- Tilbagesendelse kræver en begrundelse på højst 4.000 tegn. Seneste
+  vurdering gemmes med tidspunkt, bruger og feedback. Feedback bevares
+  under rettelser og genindsendelse og ryddes ved godkendelse. Der er endnu
+  ingen fuld historik eller notifikationsmail.
+- En faktisk ændring af navn eller katalogindhold (også katalogbillede)
+  sender en godkendt eller indsendt aktivitet tilbage til Kladde og rydder
+  indsendelsestidspunktet. Der kræves derefter ny eksplicit indsendelse.
+  Rettelser i en tilbagesendt aktivitet bevarer status Ændringer ønskes.
+  En gemning uden indholdsændringer bevarer status. Ændringer i Google-filer
+  påvirker ikke godkendelsen; den gælder oplysningerne i HQ.
+- `review_version` kontrolleres ved gemning og alle statusændringer, også
+  som database-concurrency-token. En gammel version giver HTTP 409 frem
+  for at overskrive eller godkende indhold, der er ændret af en anden.
+- Adminoversigten viser tællere for afventende, tilbagesendte, godkendte og
+  alle aktiviteter samt søgning, team- og statusfiltre. Listen viser
+  aktivitet, team, godkendelsesstatus, budget og indsendelsesdato. Teamets
+  egen liste viser også den nye godkendelsesstatus.
+- Aktivitetens dashboard har et godkendelsespanel med indsend/genindsend og
+  for administratorer Godkend/Send retur. Ikke-gemte lokale ændringer skal
+  gemmes før en statusændring. Kataloget og dokumentlinks bruges til
+  gennemgang. Eksisterende aktiviteter starter som Kladde.
+- Budget er skrivebeskyttet i denne arbejdsgang og indgår ikke i det nye
+  aktivitetsopdaterings-DTO. Den tidligere generelle aktivitetsopdatering
+  kunne også ændre budgettet; dette er erstattet af indholdsredigering.
+  Et egentligt interface til budgettildeling er fortsat udskudt, ligesom
+  massehandlinger, fuld historik og notifikationer. Opgaver på aktivitetens
+  dashboard er fortsat udskudt.
+
+Implementeringsnoter:
+- `021_activity_review.sql` tilføjer status, versionskontrol og seneste
+  vurdering på `activity`. Der ændres ikke på budget- eller katalogskemaet.
+- `POST /api/v1/activity/activity/{id}/submit`, `/approve` og
+  `/request-changes` modtager den forventede `reviewVersion`; den sidste
+  handling modtager også `feedback`. `PUT` til aktiviteten kræver nu også
+  `reviewVersion`. Reviewfelter kan ikke sættes gennem den almindelige
+  indholdsopdatering.
 
 ### Økonomi
 
@@ -536,7 +615,7 @@ samme måde som filer, så "Oprettet af" også vises for mapper.
   fane, hvor både visning og redigering foregår. Oprettelsen ligger i en
   separat, kompakt formular med besked om, at filer gemmes straks; knappen
   "Gem aktivitet" gemmer aktivitetens øvrige oplysninger. Udfyldningsstatus
-  angiver, om Aktivitet eller Katalog mangler indhold. Dette ændrer ikke
+  angiver, om navn eller Katalog mangler indhold. Dette ændrer ikke
   reglerne for, hvornår en aktivitet regnes som udfyldt.
 - Forbindelsen oprettes og afbrydes på `/admin/google`, som er linket fra
   adminområdet. Fanen viser en advarsel og skjuler opret-formularen, indtil der
@@ -552,7 +631,7 @@ Ubesluttede punkter:
 - Om OAuth-klient-ID, klienthemmelighed og redirect-URI i containeren skal
   komme fra miljøvariabler eller mount i stedet for `.env`/repoet.
 - Hvilke skabeloner der skal kunne oprettes ud fra, og hvordan felter udfyldes.
-- Om filer skal kunne omdøbes, slettes eller flyttes fra HQ.
+- Om filer og mapper skal kunne omdøbes, slettes eller flyttes fra HQ.
 - Om Drive-mappen skal omdøbes, når aktiviteten omdøbes i HQ; navnet sættes i
   dag kun ved oprettelsen.
 - Om filer skal deles med aktivitetsteamet i Google (fx "alle med linket"), så

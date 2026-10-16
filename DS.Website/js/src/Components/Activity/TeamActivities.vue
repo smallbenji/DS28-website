@@ -36,12 +36,7 @@
                                 <td class="has-text-weight-medium">{{ activity.name }}</td>
                                 <td>{{ activity.budget }}</td>
                                 <td class="has-text-right">
-                                    <span class="tag is-success is-light" v-if="isFilled(activity)">
-                                        <i class="fas fa-check"></i> Udfyldt
-                                    </span>
-                                    <span class="tag is-danger is-light" v-else>
-                                        <i class="fas fa-circle-exclamation"></i> Mangler
-                                    </span>
+                                    <span class="tag" :class="activityReviewStatus(activity.reviewStatus).type">{{ activityReviewStatus(activity.reviewStatus).label }}</span>
                                 </td>
                             </tr>
                         </tbody>
@@ -82,7 +77,8 @@ import { BButton, BField, BInput, BModal, useToast } from 'buefy';
 import { storeToRefs } from 'pinia';
 import { computed, ref } from 'vue';
 import { useRouter } from 'vue-router';
-import type { ActivityDto, ActivityTeamDto } from '@/types';
+import { activityReviewStatus } from '@/lib/activityReview';
+import type { ActivityTeamDto } from '@/types';
 
 const Toast = useToast();
 const router = useRouter();
@@ -103,13 +99,6 @@ const canManageActivities = computed(() => {
         (member) => member.userId === meStore.ME.id && member.isAdmin
     ) ?? false;
 });
-
-const isFilled = (activity: ActivityDto): boolean => {
-    const nameFilled = activity.name.trim().length > 0;
-    const catalog = activity.catalog;
-    const catalogFilled = !!(catalog?.name?.trim() || catalog?.summary?.trim() || catalog?.description?.trim());
-    return nameFilled && catalogFilled;
-};
 
 const openActivity = (id: number) => {
     router.push(`/activity/${id}`);

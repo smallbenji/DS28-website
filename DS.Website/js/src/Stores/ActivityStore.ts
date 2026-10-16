@@ -1,7 +1,7 @@
 import ActivityService from "@/Services/ActivityService";
 import { defineStore } from "pinia";
 import { computed, ref } from "vue";
-import type { ActivityFileCreateDto, ActivityFileDto, ActivityDto, ActivityTeamDto, ActivityTeamInviteLinkDto, ActivityWithTeamDto, UserDto } from "@/types";
+import type { ActivityUpdateDto, ActivityFileCreateDto, ActivityFileDto, ActivityDto, ActivityTeamDto, ActivityTeamInviteLinkDto, ActivityWithTeamDto, UserDto } from "@/types";
 
 export const useActivityStore = defineStore("activity", () => {
     const activityService = new ActivityService();
@@ -53,7 +53,7 @@ export const useActivityStore = defineStore("activity", () => {
         return file;
     }
 
-    async function UPDATE_ACTIVITY(data: ActivityDto) {
+    async function UPDATE_ACTIVITY(data: ActivityUpdateDto) {
         const success = await activityService.updateActivity(data.id, data);
         if (success) {
             await GET_ACTIVITY(data.id);

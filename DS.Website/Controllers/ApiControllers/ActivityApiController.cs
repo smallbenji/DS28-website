@@ -106,23 +106,86 @@ namespace DS.Website.Controllers
 
             if (!await HasAccessAsync(activity.ActivityTeamId, false)) return StatusCode(StatusCodes.Status403Forbidden);
 
-            return Ok(new ActivityDto(activity));
+            var result = new ActivityDto(activity)
+            {
+                CanEdit = await HasAccessAsync(activity.ActivityTeamId, true)
+            };
+
+            return Ok(result);
         }
 
         [HttpPut("activity/{activityId:int}")]
-        public async Task<IActionResult> UpdateActivity([FromBody] ActivityDto data, int activityId)
+        public async Task<IActionResult> UpdateActivity([FromBody] ActivityUpdateDto data, int activityId)
         {
             var activity = await activityRepository.GetActivityAsync(activityId);
             if (activity == null) return NotFound();
 
             if (!await HasAccessAsync(activity.ActivityTeamId, true)) return StatusCode(StatusCodes.Status403Forbidden);
 
-            if (data == null || string.IsNullOrWhiteSpace(data.Name)) return BadRequest("Invalid request body.");
+            if (data == null || string.IsNullOrWhiteSpace(data.Name) || data.ReviewVersion == null) return BadRequest("Navn og version skal angives.");
 
             var userId = userManager.GetUserId(User);
-            if (!await activityRepository.UpdateActivityAsync(activityId, data, userId)) return BadRequest("Billedet findes ikke.");
+            var result = await activityRepository.UpdateActivityAsync(activityId, data, userId);
 
-            return Ok();
+            return ActivityChangeResponse(result);
+        }
+
+        [HttpPost("activity/{activityId:int}/submit")]
+        public async Task<IActionResult> SubmitActivity([FromBody] ActivityReviewRequestDto data, int activityId)
+        {
+            var activity = await activityRepository.GetActivityAsync(activityId);
+            if (activity == null) return NotFound();
+
+            if (!await HasAccessAsync(activity.ActivityTeamId, true)) return Forbid();
+
+            if (data?.ReviewVersion == null) return BadRequest("Version skal angives.");
+
+            var result = await activityRepository.ReviewActivityAsync(activityId, data.ReviewVersion.Value, ActivityReviewAction.Submit, userManager.GetUserId(User));
+
+            return ActivityChangeResponse(result);
+        }
+
+        [Authorize(Roles = nameof(AppRoles.ActivityAdmin))]
+        [HttpPost("activity/{activityId:int}/approve")]
+        public async Task<IActionResult> ApproveActivity([FromBody] ActivityReviewRequestDto data, int activityId)
+        {
+            if (data?.ReviewVersion == null) return BadRequest("Version skal angives.");
+
+            var result = await activityRepository.ReviewActivityAsync(activityId, data.ReviewVersion.Value, ActivityReviewAction.Approve, userManager.GetUserId(User));
+
+            return ActivityChangeResponse(result);
+        }
+
+        [Authorize(Roles = nameof(AppRoles.ActivityAdmin))]
+        [HttpPost("activity/{activityId:int}/request-changes")]
+        public async Task<IActionResult> RequestActivityChanges([FromBody] ActivityReviewRequestDto data, int activityId)
+        {
+            if (data?.ReviewVersion == null) return BadRequest("Version skal angives.");
+
+            var result = await activityRepository.ReviewActivityAsync(activityId, data.ReviewVersion.Value, ActivityReviewAction.RequestChanges, userManager.GetUserId(User), data.Feedback);
+
+            return ActivityChangeResponse(result);
+        }
+
+        private IActionResult ActivityChangeResponse(ActivityChangeResult result)
+        {
+            switch (result)
+            {
+                case ActivityChangeResult.Success:
+                    return Ok();
+                case ActivityChangeResult.NotFound:
+                    return NotFound();
+                case ActivityChangeResult.Conflict:
+                    return Conflict("Aktiviteten er ændret af en anden. Genindlæs og gennemgå den nyeste version, før du fortsætter.");
+                case ActivityChangeResult.InvalidState:
+                    return Conflict("Handlingen er ikke mulig med aktivitetens nuværende status. Genindlæs aktiviteten.");
+                case ActivityChangeResult.Incomplete:
+                    return BadRequest("Udfyld navn, katalognavn, resumé og beskrivelse før indsendelse eller godkendelse.");
+                case ActivityChangeResult.InvalidFeedback:
+                    return BadRequest("Skriv en begrundelse på højst 4.000 tegn, når aktiviteten sendes retur.");
+                default:
+                    return BadRequest("Billedet findes ikke, eller du har ikke adgang til at bruge det.");
+            }
         }
 
         [HttpPost("team/{teamId:int}/invite")]

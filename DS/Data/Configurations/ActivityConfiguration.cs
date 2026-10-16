@@ -12,6 +12,26 @@ public class ActivityConfiguration : IEntityTypeConfiguration<Activity>
 
         builder.HasKey(x => x.Id);
 
+        builder.Property(x => x.ReviewStatus)
+            .HasConversion<string>()
+            .HasMaxLength(32)
+            .IsRequired()
+            .HasDefaultValue(ActivityReviewStatus.Draft);
+
+        builder.Property(x => x.ReviewVersion)
+            .IsConcurrencyToken()
+            .HasDefaultValue(0);
+
+        builder.Property(x => x.ReviewFeedback)
+            .HasMaxLength(4000);
+
+        builder.HasOne(x => x.ReviewedBy)
+            .WithMany()
+            .HasForeignKey(x => x.ReviewedByUserId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasIndex(x => new { x.ReviewStatus, x.SubmittedAt });
+
         builder.HasOne(x => x.ActivityTeam)
             .WithMany(x => x.Activities)
             .HasForeignKey(x => x.ActivityTeamId)

@@ -12,12 +12,40 @@ namespace DS.DTOs
             Name = model.Name;
             Budget = model.Budget?.Budget ?? 0;
             Catalog = model.Catalog != null ? new CatalogDataDto(model.Catalog) : null;
+            ReviewStatus = model.ReviewStatus.ToString();
+            ReviewVersion = model.ReviewVersion;
+            SubmittedAt = model.SubmittedAt;
+            ReviewedAt = model.ReviewedAt;
+            ReviewedByName = model.ReviewedBy?.GetFullName();
+            ReviewFeedback = model.ReviewFeedback;
+            ReviewMissingFields = ActivityReview.MissingFields(model);
         }
 
         public int Id { get; set; }
         public string Name { get; set; }
         public int Budget { get; set; }
         public CatalogDataDto Catalog { get; set; }
+        public string ReviewStatus { get; set; }
+        public int ReviewVersion { get; set; }
+        public DateTime? SubmittedAt { get; set; }
+        public DateTime? ReviewedAt { get; set; }
+        public string ReviewedByName { get; set; }
+        public string ReviewFeedback { get; set; }
+        public List<string> ReviewMissingFields { get; set; }
+        public bool CanEdit { get; set; }
+    }
+
+    public class ActivityUpdateDto
+    {
+        public string Name { get; set; }
+        public CatalogDataDto Catalog { get; set; }
+        public int? ReviewVersion { get; set; }
+    }
+
+    public class ActivityReviewRequestDto
+    {
+        public int? ReviewVersion { get; set; }
+        public string Feedback { get; set; }
     }
 
     public class CatalogDataDto
