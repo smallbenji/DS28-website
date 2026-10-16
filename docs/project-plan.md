@@ -683,6 +683,12 @@ implementeret eller synlig i adminområdet.
 
 ### Projektstyring og Kanban-board
 
+**Beslutning 2026-10-17 (implementeret):** Arbejdskort vises med nummeret
+`DS-<id>`, hvor `id` er kortets eksisterende `work_item.id` i databasen.
+Nummeret vises på tavlens kort og i kortdialogens overskrift og er det samme
+på tværs af tavler. Nye kort får først et nummer, når de er oprettet.
+Nummeret afledes ved visning og kræver ingen ekstra kolonne eller migration.
+
 **Beslutning 2026-10-14:** HQ skal ikke kun være en database, men også et
 projektstyringsværktøj. Der indføres et generisk board/kanban, som kobler sig
 til de øvrige domæner gennem én snæver samlingsflade i stedet for at være endnu

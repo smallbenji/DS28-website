@@ -2,7 +2,7 @@
     <BModal v-model="open" has-modal-card :width="1024" custom-content-class="board-card-modal-container" :can-cancel="['escape', 'outside']">
         <div v-if="open" class="modal-card board-card-modal">
             <header class="modal-card-head">
-                <div class="board-card-context">{{ store.SELECTED_BOARD?.title ?? 'Tavle' }} / {{ isNew ? 'Nyt kort' : 'Kort' }}</div>
+                <div class="board-card-context">{{ store.SELECTED_BOARD?.title ?? 'Tavle' }} / {{ isNew ? 'Nyt kort' : `DS-${card?.id}` }}</div>
                 <div class="board-card-header-actions">
                     <BDropdown v-if="canManage && !isNew" position="is-bottom-left" aria-role="list">
                         <template #trigger>

@@ -10,6 +10,7 @@
         @dragover.prevent
         @drop.stop.prevent="onDrop"
     >
+        <p class="board-card-number">DS-{{ card.id }}</p>
         <p class="board-card-title">{{ card.title }}</p>
         <p v-if="descriptionPreview" class="board-card-description">{{ descriptionPreview }}</p>
 
@@ -126,6 +127,12 @@ function onDrop(event: DragEvent) {
 .board-card.is-done .board-card-title {
     text-decoration: line-through;
     color: rgba(0, 0, 0, 0.45);
+}
+
+.board-card-number {
+    margin-bottom: 0.25rem;
+    color: #68717d;
+    font-size: 0.75rem;
 }
 
 .board-card-title {
