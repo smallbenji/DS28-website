@@ -12,7 +12,7 @@ import '@fortawesome/fontawesome-free/css/all.css'
 import { library } from "@fortawesome/fontawesome-svg-core";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 
-import { faArrowLeft, faUser, faUsers, faHouse, faDiceD6, faUserPlus, faSearch, faMagnifyingGlass, faPlus, faUserPen, faUsersGear, faNewspaper, faGlobe, faSliders, faInbox, faGear, faChartSimple, faFileArrowDown, faDownload, faH, faSitemap } from "@fortawesome/free-solid-svg-icons";
+import { faArrowLeft, faUser, faUsers, faHouse, faDiceD6, faUserPlus, faSearch, faMagnifyingGlass, faPlus, faUserPen, faUsersGear, faNewspaper, faGlobe, faSliders, faInbox, faGear, faChartSimple, faFileArrowDown, faDownload, faH, faSitemap, faTableColumns, faPen, faTrash, faCalendarDay, faGripVertical, faBold, faItalic, faListUl, faListOl, faQuoteLeft, faTextSlash, faCheck } from "@fortawesome/free-solid-svg-icons";
 import { faWordpress } from "@fortawesome/free-brands-svg-icons";
 
 library.add(
@@ -37,7 +37,19 @@ library.add(
     faFileArrowDown,
     faH,
     faSitemap,
-    faDownload
+    faDownload,
+    faTableColumns,
+    faPen,
+    faTrash,
+    faCalendarDay,
+    faGripVertical,
+    faBold,
+    faItalic,
+    faListUl,
+    faListOl,
+    faQuoteLeft,
+    faTextSlash,
+    faCheck
 );
 
 app.component("font-awesome-icon", FontAwesomeIcon);

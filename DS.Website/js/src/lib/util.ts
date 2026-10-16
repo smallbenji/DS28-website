@@ -44,3 +44,12 @@ export function formatDate(dateString: string) {
   
   return `${day}/${month}/${year}`
 }
+
+export function htmlToPlainText(html: string | null | undefined) {
+  if (!html) return '';
+
+  const element = document.createElement('div');
+  element.innerHTML = html;
+
+  return (element.textContent ?? '').replace(/\s+/g, ' ').trim();
+}
