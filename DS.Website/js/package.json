@@ -37,7 +37,7 @@
     "@vue/tsconfig": "^0.9.1",
     "typescript": "^7.0.2",
     "vite": "^8.3.4",
-    "vue-tsc": "^3.3.12"
+    "vue-tsc": "^3.3.13"
   },
   "volta": {
     "node": "24.19.0"
