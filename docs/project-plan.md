@@ -1241,3 +1241,16 @@ Den oprindelige historik bevares uændret. `EmailOutbox` kontrolleres for det
 præcise sæt kolonner, PostgreSQL-datatyper og nullability før overgangen.
 Den tidligere migrationsfil er ikke fundet i Git-historikken; understøttelsen
 er derfor betinget af skemakontrollen, ikke af en antagelse om identisk kode.
+
+
+## Containerbyg og publicering
+
+**Beslutning 2026-10-16:** Frontendens build-stage bruger det officielle
+`docker.io/library/node:24` direkte fra Docker Hub. Det erstatter
+`public.ecr.aws/docker/library/node:24`, fordi ECR Public afviste hentningen
+med HTTP 429 (Data limit exceeded) under releasebygget af v0.1.23.
+Node-versionen og frontendens buildkommandoer er uændrede. Backendens
+.NET 10-images hentes fortsat fra Microsoft Container Registry, og
+releaseimages publiceres fortsat i GitHub Container Registry via
+versionstags. Et eksisterende versionstag flyttes ikke ved buildrettelser;
+rettelsen udgives som en ny patch-version.
