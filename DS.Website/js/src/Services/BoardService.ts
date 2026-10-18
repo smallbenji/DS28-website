@@ -8,7 +8,7 @@ import type {
     BoardDetailDto,
     BoardSummaryDto,
     BoardUpdateDto,
-    UserDto,
+    BoardMemberDto,
     WorkItemCreateDto,
     WorkItemMoveDto,
     WorkItemPlacementCreateDto,
@@ -28,12 +28,12 @@ export default class BoardService {
         }
     }
 
-    public async searchAssignees(search: string): Promise<UserDto[]> {
+    public async searchAssignees(search: string, boardId: number): Promise<BoardMemberDto[]> {
         try {
-            const response: AxiosResponse<UserDto[]> = await axios({
+            const response: AxiosResponse<BoardMemberDto[]> = await axios({
                 url: "/api/v1/boards/assignees",
                 method: "GET",
-                params: { search }
+                params: { search, boardId }
             });
             return Array.isArray(response.data) ? response.data : [];
         } catch {
@@ -51,6 +51,15 @@ export default class BoardService {
         } catch {
             return null;
         }
+    }
+
+    public async getMembers(boardId: number): Promise<BoardMemberDto[]> {
+        const response = await axios.get<BoardMemberDto[]>(`/api/v1/boards/${boardId}/members`);
+        return response.data;
+    }
+
+    public async addMember(boardId: number, userId: string): Promise<void> {
+        await axios.post(`/api/v1/boards/${boardId}/members`, { userId });
     }
 
     public async getColumns(boardId: number): Promise<BoardColumnDto[]> {

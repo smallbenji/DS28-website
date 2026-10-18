@@ -46,7 +46,7 @@ namespace DS.Website.Controllers
                     Title = "Tavler",
                     Url = "/board",
                     Icon = ["table-columns"],
-                    RequiredRole = nameof(AppRoles.BoardsView)
+                    RequiredRole = null
                 },
 
                 // No roles needed

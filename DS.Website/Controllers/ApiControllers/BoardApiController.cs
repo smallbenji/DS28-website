@@ -16,11 +16,8 @@ namespace DS.Website.Controllers
         [HttpGet]
         public async Task<IActionResult> GetBoards()
         {
-            if (!CanView()) return Forbid();
-
-            var boards = await dataDb.Boards
+            var boards = await VisibleBoards()
                 .AsNoTracking()
-                .Where(board => board.DeletedAt == null)
                 .OrderBy(board => board.Title)
                 .Select(board => new BoardSummaryDto
                 {
@@ -31,25 +28,22 @@ namespace DS.Website.Controllers
                     Icon = board.Icon,
                     Color = board.Color,
                     IsArchived = board.IsArchived,
-                    RequiredRole = board.RequiredRole,
                     CardCount = dataDb.BoardCards.Count(card => card.BoardId == board.Id),
                 })
                 .ToListAsync();
 
-            return Ok(boards.Where(CanSeeBoard).ToList());
+            return Ok(boards);
         }
 
         [HttpGet("{id:int}")]
         public async Task<IActionResult> GetBoard(int id)
         {
-            if (!CanView()) return Forbid();
-
             var board = await dataDb.Boards
                 .AsNoTracking()
                 .Include(board => board.Columns)
                 .FirstOrDefaultAsync(board => board.Id == id && board.DeletedAt == null);
             if (board == null) return NotFound();
-            if (!CanSeeBoard(board)) return Forbid();
+            if (!await CanSeeBoardAsync(board)) return Forbid();
 
             var cards = await LoadCardsAsync(id);
             var placements = await LoadPlacementsAsync(cards.Select(card => card.WorkItemId).Distinct().ToList());
@@ -60,11 +54,9 @@ namespace DS.Website.Controllers
         [HttpGet("{id:int}/columns")]
         public async Task<IActionResult> GetColumns(int id)
         {
-            if (!CanView()) return Forbid();
-
             var board = await GetBoardAsync(id);
             if (board == null) return NotFound();
-            if (!CanSeeBoard(board)) return Forbid();
+            if (!await CanSeeBoardAsync(board)) return Forbid();
 
             var columns = await dataDb.BoardColumns
                 .AsNoTracking()
@@ -84,30 +76,14 @@ namespace DS.Website.Controllers
         }
 
         [HttpGet("assignees")]
-        public async Task<IActionResult> SearchAssignees([FromQuery] string search)
+        public async Task<IActionResult> SearchAssignees([FromQuery] string search, [FromQuery] int boardId)
         {
-            if (!CanManage()) return Forbid();
-            if (string.IsNullOrWhiteSpace(search)) return Ok(new List<UserDto>());
+            if (!await VisibleBoards().AnyAsync(board => board.Id == boardId)) return Forbid();
+            if (string.IsNullOrWhiteSpace(search)) return Ok(new List<BoardMemberDto>());
 
             var searchTerm = search.Trim();
-            var boardGroups = AppAccess.Matrix
-                .Where(entry => entry.Value.Contains(nameof(AppRoles.BoardsView)))
-                .Select(entry => entry.Key.ToString())
-                .ToList();
-
-            var roleIds = dataDb.Roles
-                .Where(role => boardGroups.Contains(role.Name))
-                .Select(role => role.Id)
-                .ToList();
-
-            var userIds = dataDb.UserRoles
-                .Where(userRole => roleIds.Contains(userRole.RoleId))
-                .Select(userRole => userRole.UserId)
-                .ToList();
-
             var users = await dataDb.Users
                 .AsNoTracking()
-                .Where(user => userIds.Contains(user.Id))
                 .Where(user => EF.Functions.ILike(user.FirstName + " " + user.LastName, $"%{searchTerm}%")
                     || EF.Functions.ILike(user.Email, $"%{searchTerm}%"))
                 .OrderBy(user => user.FirstName)
@@ -115,16 +91,44 @@ namespace DS.Website.Controllers
                 .Take(10)
                 .ToListAsync();
 
-            return Ok(users.Select(user => new UserDto(user)).ToList());
+            return Ok(users.Select(ToMemberDto).ToList());
+        }
+
+        [HttpGet("{id:int}/members")]
+        public async Task<IActionResult> GetMembers(int id)
+        {
+            if (!await VisibleBoards().AnyAsync(board => board.Id == id)) return Forbid();
+
+            var users = await dataDb.BoardMembers
+                .AsNoTracking()
+                .Where(member => member.BoardId == id)
+                .Select(member => member.User)
+                .OrderBy(user => user.FirstName).ThenBy(user => user.LastName)
+                .ToListAsync();
+
+            return Ok(users.Select(ToMemberDto).ToList());
+        }
+
+        [HttpPost("{id:int}/members")]
+        public async Task<IActionResult> AddMember([FromBody] BoardMemberCreateDto data, int id)
+        {
+            if (!await VisibleBoards().AnyAsync(board => board.Id == id)) return Forbid();
+
+            if (data == null || string.IsNullOrWhiteSpace(data.UserId)) return BadRequest("Vælg en bruger.");
+
+            var user = await userManager.FindByIdAsync(data.UserId.Trim());
+            if (user == null) return NotFound();
+
+            await dataDb.Database.ExecuteSqlInterpolatedAsync($"INSERT INTO ds28.board_member (board_id, user_id) VALUES ({id}, {user.Id}) ON CONFLICT DO NOTHING");
+
+            return Ok();
         }
 
         [HttpPost]
         public async Task<IActionResult> CreateBoard([FromBody] BoardCreateDto data)
         {
-            if (!CanManage()) return Forbid();
             if (data == null || string.IsNullOrWhiteSpace(data.Title)) return BadRequest("Titel er påkrævet.");
 
-            if (!TryNormalizeRequiredRole(data.RequiredRole, out var requiredRole)) return BadRequest("Ukendt rolle.");
             if (!TryNormalizeShortText(data.Icon, 64, out var icon)) return BadRequest("Ikonet er for langt.");
             if (!TryNormalizeShortText(data.Color, 16, out var color)) return BadRequest("Farven er for lang.");
 
@@ -137,8 +141,8 @@ namespace DS.Website.Controllers
                 Description = data.Description,
                 Icon = icon,
                 Color = color,
-                RequiredRole = requiredRole,
                 CreatedByUserId = userManager.GetUserId(User),
+                Members = [new BoardMember { UserId = userManager.GetUserId(User) }],
             };
 
             var columns = NormalizeColumnTitles(data.Columns);
@@ -161,14 +165,12 @@ namespace DS.Website.Controllers
         [HttpPut("{id:int}")]
         public async Task<IActionResult> UpdateBoard([FromBody] BoardUpdateDto data, int id)
         {
-            if (!CanManage()) return Forbid();
             if (data == null || string.IsNullOrWhiteSpace(data.Title)) return BadRequest("Titel er påkrævet.");
 
             var board = await dataDb.Boards.FirstOrDefaultAsync(board => board.Id == id && board.DeletedAt == null);
             if (board == null) return NotFound();
-            if (!CanSeeBoard(board)) return Forbid();
+            if (!await CanSeeBoardAsync(board)) return Forbid();
 
-            if (!TryNormalizeRequiredRole(data.RequiredRole, out var requiredRole)) return BadRequest("Ukendt rolle.");
             if (!TryNormalizeShortText(data.Icon, 64, out var icon)) return BadRequest("Ikonet er for langt.");
             if (!TryNormalizeShortText(data.Color, 16, out var color)) return BadRequest("Farven er for lang.");
 
@@ -176,7 +178,6 @@ namespace DS.Website.Controllers
             board.Description = data.Description;
             board.Icon = icon;
             board.Color = color;
-            board.RequiredRole = requiredRole;
             board.IsArchived = data.IsArchived;
             board.UpdatedAt = DateTime.UtcNow;
 
@@ -188,11 +189,9 @@ namespace DS.Website.Controllers
         [HttpDelete("{id:int}")]
         public async Task<IActionResult> DeleteBoard(int id)
         {
-            if (!CanManage()) return Forbid();
-
             var board = await dataDb.Boards.FirstOrDefaultAsync(board => board.Id == id && board.DeletedAt == null);
             if (board == null) return NotFound();
-            if (!CanSeeBoard(board)) return Forbid();
+            if (!await CanSeeBoardAsync(board)) return Forbid();
 
             board.DeletedAt = DateTime.UtcNow;
             board.UpdatedAt = DateTime.UtcNow;
@@ -204,12 +203,11 @@ namespace DS.Website.Controllers
         [HttpPost("{id:int}/columns")]
         public async Task<IActionResult> CreateColumn([FromBody] BoardColumnCreateDto data, int id)
         {
-            if (!CanManage()) return Forbid();
             if (data == null || string.IsNullOrWhiteSpace(data.Title)) return BadRequest("Titel er påkrævet.");
 
             var board = await GetBoardAsync(id);
             if (board == null) return NotFound();
-            if (!CanSeeBoard(board)) return Forbid();
+            if (!await CanSeeBoardAsync(board)) return Forbid();
             if (!IsValidWipLimit(data.WipLimit)) return BadRequest("WIP-grænsen skal være mindst 1.");
 
             var lastPosition = await dataDb.BoardColumns
@@ -235,12 +233,11 @@ namespace DS.Website.Controllers
         [HttpPut("{id:int}/columns/{columnId:int}")]
         public async Task<IActionResult> UpdateColumn([FromBody] BoardColumnUpdateDto data, int id, int columnId)
         {
-            if (!CanManage()) return Forbid();
             if (data == null || string.IsNullOrWhiteSpace(data.Title)) return BadRequest("Titel er påkrævet.");
 
             var board = await GetBoardAsync(id);
             if (board == null) return NotFound();
-            if (!CanSeeBoard(board)) return Forbid();
+            if (!await CanSeeBoardAsync(board)) return Forbid();
             if (!IsValidWipLimit(data.WipLimit)) return BadRequest("WIP-grænsen skal være mindst 1.");
 
             var column = await dataDb.BoardColumns.FirstOrDefaultAsync(column => column.Id == columnId && column.BoardId == id);
@@ -259,11 +256,9 @@ namespace DS.Website.Controllers
         [HttpDelete("{id:int}/columns/{columnId:int}")]
         public async Task<IActionResult> DeleteColumn(int id, int columnId)
         {
-            if (!CanManage()) return Forbid();
-
             var board = await GetBoardAsync(id);
             if (board == null) return NotFound();
-            if (!CanSeeBoard(board)) return Forbid();
+            if (!await CanSeeBoardAsync(board)) return Forbid();
 
             var column = await dataDb.BoardColumns.FirstOrDefaultAsync(column => column.Id == columnId && column.BoardId == id);
             if (column == null) return NotFound();
@@ -283,11 +278,9 @@ namespace DS.Website.Controllers
         [HttpPut("{id:int}/columns/reorder")]
         public async Task<IActionResult> ReorderColumns([FromBody] List<int> columnOrder, int id)
         {
-            if (!CanManage()) return Forbid();
-
             var board = await GetBoardAsync(id);
             if (board == null) return NotFound();
-            if (!CanSeeBoard(board)) return Forbid();
+            if (!await CanSeeBoardAsync(board)) return Forbid();
 
             if (columnOrder == null || columnOrder.Count == 0) return BadRequest("Rækkefølgen må ikke være tom.");
 
@@ -327,12 +320,11 @@ namespace DS.Website.Controllers
         [HttpPost("{id:int}/cards")]
         public async Task<IActionResult> CreateCard([FromBody] WorkItemCreateDto data, int id)
         {
-            if (!CanManage()) return Forbid();
             if (data == null || string.IsNullOrWhiteSpace(data.Title)) return BadRequest("Titel er påkrævet.");
 
             var board = await GetBoardAsync(id);
             if (board == null) return NotFound();
-            if (!CanSeeBoard(board)) return Forbid();
+            if (!await CanSeeBoardAsync(board)) return Forbid();
 
             var columnExists = await dataDb.BoardColumns.AnyAsync(column => column.Id == data.ColumnId && column.BoardId == id);
             if (!columnExists) return BadRequest("Kolonnen findes ikke på boardet.");
@@ -375,12 +367,11 @@ namespace DS.Website.Controllers
         [HttpPut("{id:int}/cards/{workItemId:int}")]
         public async Task<IActionResult> UpdateCard([FromBody] WorkItemUpdateDto data, int id, int workItemId)
         {
-            if (!CanManage()) return Forbid();
             if (data == null || string.IsNullOrWhiteSpace(data.Title)) return BadRequest("Titel er påkrævet.");
 
             var board = await GetBoardAsync(id);
             if (board == null) return NotFound();
-            if (!CanSeeBoard(board)) return Forbid();
+            if (!await CanSeeBoardAsync(board)) return Forbid();
 
             var card = await dataDb.BoardCards
                 .Include(card => card.WorkItem)
@@ -407,12 +398,11 @@ namespace DS.Website.Controllers
         [HttpPut("{id:int}/cards/{workItemId:int}/move")]
         public async Task<IActionResult> MoveCard([FromBody] WorkItemMoveDto data, int id, int workItemId)
         {
-            if (!CanManage()) return Forbid();
             if (data == null) return BadRequest();
 
             var board = await GetBoardAsync(id);
             if (board == null) return NotFound();
-            if (!CanSeeBoard(board)) return Forbid();
+            if (!await CanSeeBoardAsync(board)) return Forbid();
 
             var card = await dataDb.BoardCards
                 .FirstOrDefaultAsync(card => card.BoardId == id && card.WorkItemId == workItemId);
@@ -460,11 +450,9 @@ namespace DS.Website.Controllers
         [HttpDelete("{id:int}/cards/{workItemId:int}")]
         public async Task<IActionResult> RemoveCard(int id, int workItemId)
         {
-            if (!CanManage()) return Forbid();
-
             var board = await GetBoardAsync(id);
             if (board == null) return NotFound();
-            if (!CanSeeBoard(board)) return Forbid();
+            if (!await CanSeeBoardAsync(board)) return Forbid();
 
             var card = await dataDb.BoardCards
                 .FirstOrDefaultAsync(card => card.BoardId == id && card.WorkItemId == workItemId);
@@ -491,21 +479,19 @@ namespace DS.Website.Controllers
         [HttpPost("{id:int}/cards/{workItemId:int}/placements")]
         public async Task<IActionResult> AddCardPlacement([FromBody] WorkItemPlacementCreateDto data, int id, int workItemId)
         {
-            if (!CanManage()) return Forbid();
             if (data == null) return BadRequest();
 
             var board = await GetBoardAsync(id);
             if (board == null) return NotFound();
-            if (!CanSeeBoard(board)) return Forbid();
+            if (!await CanSeeBoardAsync(board)) return Forbid();
 
             var item = await dataDb.WorkItems.FirstOrDefaultAsync(candidate => candidate.Id == workItemId && candidate.DeletedAt == null);
             if (item == null) return NotFound();
 
-            var sourceBoards = await dataDb.BoardCards
-                .Where(card => card.WorkItemId == workItemId)
-                .Select(card => card.Board)
-                .ToListAsync();
-            if (!sourceBoards.Any(CanSeeBoard)) return Forbid();
+            var visibleBoardIds = VisibleBoards().Select(candidate => candidate.Id);
+            var canSeeSource = await dataDb.BoardCards
+                .AnyAsync(card => card.WorkItemId == workItemId && visibleBoardIds.Contains(card.BoardId));
+            if (!canSeeSource) return Forbid();
 
             var columnExists = await dataDb.BoardColumns.AnyAsync(column => column.Id == data.ColumnId && column.BoardId == id);
             if (!columnExists) return BadRequest("Kolonnen findes ikke på boardet.");
@@ -548,9 +534,10 @@ namespace DS.Website.Controllers
         {
             if (workItemIds.Count == 0) return [];
 
+            var visibleBoardIds = VisibleBoards().Select(board => board.Id);
             var placements = await dataDb.BoardCards
                 .AsNoTracking()
-                .Where(card => workItemIds.Contains(card.WorkItemId) && card.Board.DeletedAt == null)
+                .Where(card => workItemIds.Contains(card.WorkItemId) && visibleBoardIds.Contains(card.BoardId))
                 .OrderBy(card => card.Board.Title).ThenBy(card => card.Column.Position).ThenBy(card => card.Id)
                 .Select(card => new
                 {
@@ -558,7 +545,6 @@ namespace DS.Website.Controllers
                     card.BoardId,
                     BoardTitle = card.Board.Title,
                     BoardIcon = card.Board.Icon,
-                    card.Board.RequiredRole,
                     card.ColumnId,
                     ColumnTitle = card.Column.Title,
                     card.Column.IsDoneColumn,
@@ -566,7 +552,6 @@ namespace DS.Website.Controllers
                 .ToListAsync();
 
             return placements
-                .Where(placement => CanSeeRole(placement.RequiredRole))
                 .GroupBy(placement => placement.WorkItemId)
                 .ToDictionary(
                     group => group.Key,
@@ -643,49 +628,29 @@ namespace DS.Website.Controllers
             return await dataDb.OrgPositions.AnyAsync(position => position.Id == positionId && position.DeletedAt == null);
         }
 
-        private bool CanView()
+        private async Task<bool> CanSeeBoardAsync(Board board)
         {
-            return User.IsInRole(nameof(AppRoles.BoardsView));
+            return await VisibleBoards().AnyAsync(candidate => candidate.Id == board.Id);
         }
 
-        private bool CanManage()
+        private IQueryable<Board> VisibleBoards()
         {
-            return User.IsInRole(nameof(AppRoles.BoardsManage));
+            var boards = dataDb.Boards.Where(board => board.DeletedAt == null);
+            if (User.IsInRole(nameof(AppGroups.SysAdmin)) || User.IsInRole(nameof(AppGroups.CampAdmin))) return boards;
+
+            var userId = userManager.GetUserId(User);
+            return boards.Where(board => board.Members.Any(member => member.UserId == userId));
         }
 
-        private bool CanSeeBoard(Board board)
+        private static BoardMemberDto ToMemberDto(User user)
         {
-            return CanSeeRole(board.RequiredRole);
-        }
-
-        private bool CanSeeBoard(BoardSummaryDto board)
-        {
-            return CanSeeRole(board.RequiredRole);
-        }
-
-        private bool CanSeeRole(string requiredRole)
-        {
-            return CanView() && (requiredRole == null || User.IsInRole(requiredRole));
-        }
-
-        private static bool TryNormalizeRequiredRole(string role, out string result)
-        {
-            if (string.IsNullOrWhiteSpace(role))
+            return new BoardMemberDto
             {
-                result = null;
-                return true;
-            }
-
-            var match = Enum.GetNames<AppRoles>()
-                .FirstOrDefault(name => string.Equals(name, role.Trim(), StringComparison.OrdinalIgnoreCase));
-            if (match == null)
-            {
-                result = null;
-                return false;
-            }
-
-            result = match;
-            return true;
+                Id = user.Id,
+                FirstName = user.FirstName,
+                LastName = user.LastName,
+                Email = user.Email,
+            };
         }
 
         private static bool TryNormalizeShortText(string value, int maxLength, out string result)
@@ -742,7 +707,6 @@ namespace DS.Website.Controllers
                 Icon = board.Icon,
                 Color = board.Color,
                 IsArchived = board.IsArchived,
-                RequiredRole = board.RequiredRole,
                 Columns = board.Columns
                     .OrderBy(column => column.Position).ThenBy(column => column.Id)
                     .Select(column => new BoardColumnDto

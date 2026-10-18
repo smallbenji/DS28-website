@@ -128,12 +128,12 @@ const routes: RouteRecordRaw[] = [
     {
         path: "/board",
         component: () => import("@/Views/Board.vue"),
-        meta: { requiresAuth: true, requiresBoardsData: true, requiredRole: "BoardsView", pageTitle: "Tavler", pageIcon: "table-columns" }
+        meta: { requiresAuth: true, requiresBoardsData: true, pageTitle: "Tavler", pageIcon: "table-columns" }
     },
     {
         path: "/board/:id",
         component: () => import("@/Views/BoardDetail.vue"),
-        meta: { requiresAuth: true, requiresBoardData: true, requiredRole: "BoardsView", pageTitle: "Tavle", pageIcon: "table-columns" }
+        meta: { requiresAuth: true, requiresBoardData: true, pageTitle: "Tavle", pageIcon: "table-columns" }
     }
 ];
 

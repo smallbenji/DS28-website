@@ -385,11 +385,15 @@ erDiagram
         varchar icon
         varchar color "nullable"
         bool is_archived
-        varchar required_role "nullable, AppRole"
         text created_by_user_id FK "SET NULL"
         timestamptz created_at
         timestamptz updated_at
         timestamptz deleted_at
+    }
+
+    board_member {
+        int board_id PK,FK "required, CASCADE"
+        text user_id PK,FK "required, CASCADE"
     }
 
     board_column {
@@ -433,6 +437,8 @@ erDiagram
     }
 
     board ||--o{ board_column : "har kolonner"
+    board ||--o{ board_member : "har medlemmer"
+    asp_net_users ||--o{ board_member : "er medlem"
     board ||--o{ board_card : "placerer"
     board_column ||--o{ board_card : "indeholder"
     work_item ||--o{ board_card : "placeres på"
@@ -719,9 +725,14 @@ mindst syv dage gamle. Det er ren dataoprydning uden skemaændring.
 
 ## Projektstyring
 
-- `board.required_role` (nullable) er navnet på en `AppRole`. Er den sat,
-  kræves rollen for at se boardet; er den tom, kan alle loggede brugere se det.
-  Rollen håndhæves i koden, ikke af databasen.
+- `board_member` giver medlemsadgang til en tavle. Begge kolonner er påkrævede;
+  den sammensatte primærnøgle `(board_id, user_id)` forhindrer dobbelt medlemskab.
+  `board_id` refererer til `board.id`, og `user_id` refererer til
+  `asp_net_users.id`, begge med `ON DELETE CASCADE`. Et indeks på `user_id`
+  understøtter opslag af brugerens tavler. Der er ingen medlemsroller.
+- Tavler har ikke længere `required_role`. Adgang håndhæves i koden:
+  medlemmer kan læse, redigere og invitere eksisterende brugere; SysAdmin og
+  CampAdmin har samme adgang til alle ikke-slettede tavler uden medlemskab.
 - `board_card` er en placering af et `work_item` på et board. Et kort kan
   optræde på flere boards (én række pr. board, unik på
   `(work_item_id, board_id)`), men ejes kun ét sted i `work_item`. `column_id`
@@ -736,6 +747,6 @@ mindst syv dage gamle. Det er ren dataoprydning uden skemaændring.
   `entity_id`, da koblingen er polymorf; døde links ryddes i koden. Unikhed på
   `(work_item_id, entity_type, entity_id)` forhindrer dobbelte links, og
   indekset `(entity_type, entity_id)` gør opslag fra domænesiden billigt.
-- `work_item` og `board` har soft delete via `deleted_at`. `board_column`,
+- `work_item` og `board` har soft delete via `deleted_at`. `board_member`, `board_column`,
   `board_card` og `work_item_link` slettes hårdt; sletning af et board eller et
   kort fjerner de tilhørende rækker via `ON DELETE CASCADE`.

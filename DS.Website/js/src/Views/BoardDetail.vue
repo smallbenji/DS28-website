@@ -7,6 +7,7 @@
                 <p v-if="board?.isArchived" class="tag is-warning is-light">Arkiveret</p>
             </div>
             <div v-if="canManage" class="board-detail-actions">
+                <BButton size="is-small" class="is-ghost" @click="membersOpen = true">Medlemmer og invitation</BButton>
                 <BButton size="is-small" class="is-ghost" @click="openColumnCreate">
                     <font-awesome-icon icon="plus" />
                     <span>Kolonne</span>
@@ -63,13 +64,6 @@
                     <BField label="Beskrivelse">
                         <BInput v-model="settings.description" type="textarea" :rows="3" />
                     </BField>
-                    <BField label="Adgang">
-                        <BSelect v-model="settings.requiredRole" expanded>
-                            <option v-for="role in boardRoleOptions" :key="role.value" :value="role.value">
-                                {{ role.label }}
-                            </option>
-                        </BSelect>
-                    </BField>
                     <BCheckbox v-model="settings.isArchived">Arkiveret</BCheckbox>
                 </section>
                 <footer class="modal-card-foot">
@@ -80,23 +74,23 @@
                 </footer>
             </div>
         </BModal>
+        <BoardMembersModal v-model="membersOpen" :board-id="boardId" />
     </div>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
-import { BButton, BCheckbox, BField, BInput, BModal, BSelect, useDialog, useToast } from 'buefy';
-import { boardRoleOptions, type BoardColumnDto, type WorkItemDto } from '@/types';
+import { BButton, BCheckbox, BField, BInput, BModal, useDialog, useToast } from 'buefy';
+import type { BoardColumnDto, WorkItemDto } from '@/types';
 import { useBoardStore } from '@/Stores/BoardStore';
-import { useMeStore } from '@/Stores/MeStore';
+import BoardMembersModal from '@/Components/Board/BoardMembersModal.vue';
 import BoardColumn from '@/Components/Board/BoardColumn.vue';
 import BoardCardModal from '@/Components/Board/BoardCardModal.vue';
 import BoardColumnDrawer from '@/Components/Board/BoardColumnDrawer.vue';
 
 const route = useRoute();
 const store = useBoardStore();
-const meStore = useMeStore();
 const Toast = useToast();
 const Dialog = useDialog();
 
@@ -111,11 +105,12 @@ const columnDrawerOpen = ref(false);
 const editingColumn = ref<BoardColumnDto | null>(null);
 
 const settingsOpen = ref(false);
+const membersOpen = ref(false);
 const savingSettings = ref(false);
-const settings = ref({ title: '', description: '', requiredRole: '', isArchived: false });
+const settings = ref({ title: '', description: '', isArchived: false });
 
 const board = computed(() => store.SELECTED_BOARD);
-const canManage = computed(() => meStore.ME.appRoles.includes('BoardsManage'));
+const canManage = computed(() => board.value !== null);
 
 function cardsFor(columnId: number): WorkItemDto[] {
     return (board.value?.cards ?? []).filter((card) => String(card.columnId) === String(columnId));
@@ -170,7 +165,6 @@ function openSettings() {
     settings.value = {
         title: board.value?.title ?? '',
         description: board.value?.description ?? '',
-        requiredRole: board.value?.requiredRole ?? '',
         isArchived: board.value?.isArchived ?? false
     };
     settingsOpen.value = true;
@@ -191,7 +185,6 @@ async function saveSettings() {
             description: settings.value.description.trim() ? settings.value.description.trim() : null,
             icon: board.value?.icon ?? null,
             color: board.value?.color ?? null,
-            requiredRole: settings.value.requiredRole ? settings.value.requiredRole : null,
             isArchived: settings.value.isArchived
         });
 

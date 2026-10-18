@@ -31,9 +31,6 @@ namespace DS.Website
         OrgView,
         OrgManage,
 
-        BoardsView,
-        BoardsManage,
-
         ActivityView,
         ActivityAdmin,
 
@@ -69,9 +66,6 @@ namespace DS.Website
                     nameof(AppRoles.OrgView),
                     nameof(AppRoles.OrgManage),
 
-                    nameof(AppRoles.BoardsView),
-                    nameof(AppRoles.BoardsManage),
-
                     nameof(AppRoles.WordPressAdmin),
 
                     nameof(AppRoles.ActivityView),
@@ -91,7 +85,6 @@ namespace DS.Website
 
                     nameof(AppRoles.OrgView),
                     nameof(AppRoles.OrgManage),
-                    nameof(AppRoles.BoardsView),
                 ]
             },
             {
@@ -105,9 +98,6 @@ namespace DS.Website
 
                     nameof(AppRoles.OrgView),
                     nameof(AppRoles.OrgManage),
-
-                    nameof(AppRoles.BoardsView),
-                    nameof(AppRoles.BoardsManage),
 
                     nameof(AppRoles.WordPressEditor),
                     nameof(AppRoles.PreSignupManage),
@@ -128,8 +118,6 @@ namespace DS.Website
 
                     nameof(AppRoles.OrgView),
                     nameof(AppRoles.OrgManage),
-                    nameof(AppRoles.BoardsView),
-                    nameof(AppRoles.BoardsManage),
                 ]
             },
             {
@@ -141,8 +129,6 @@ namespace DS.Website
 
                     nameof(AppRoles.OrgView),
                     nameof(AppRoles.OrgManage),
-                    nameof(AppRoles.BoardsView),
-                    nameof(AppRoles.BoardsManage),
                 ]
             },
             {
@@ -152,7 +138,6 @@ namespace DS.Website
 
                     nameof(AppRoles.OrgView),
                     nameof(AppRoles.OrgManage),
-                    nameof(AppRoles.BoardsView),
                 ]
             },
             {
@@ -162,7 +147,6 @@ namespace DS.Website
 
                     nameof(AppRoles.OrgView),
                     nameof(AppRoles.OrgManage),
-                    nameof(AppRoles.BoardsView),
                 ]
             },
             {

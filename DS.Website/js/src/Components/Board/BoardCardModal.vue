@@ -239,7 +239,7 @@ import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue';
 import { BButton, BDropdown, BDropdownItem, BField, BInput, BModal, BSelect, useDialog, useToast } from 'buefy';
 import BoardService from '@/Services/BoardService';
 import OrgService from '@/Services/OrgService';
-import { boardPriorityLabel, boardPriorityOptions, type BoardColumnDto, type OrgPositionDto, type UserDto, type WorkItemDto, type WorkItemPlacementDto } from '@/types';
+import { boardPriorityLabel, boardPriorityOptions, type BoardColumnDto, type OrgPositionDto, type BoardMemberDto, type WorkItemDto, type WorkItemPlacementDto } from '@/types';
 import { useBoardStore } from '@/Stores/BoardStore';
 import RichTextEditor from '@/Components/RichText/RichTextEditor.vue';
 import RichTextViewer from '@/Components/RichText/RichTextViewer.vue';
@@ -268,7 +268,7 @@ const saving = ref(false);
 const assigneeSearch = ref('');
 const assigneePickerOpen = ref(false);
 const assigneeSearching = ref(false);
-const assigneeResults = ref<UserDto[]>([]);
+const assigneeResults = ref<BoardMemberDto[]>([]);
 const orgPositions = ref<OrgPositionDto[]>([]);
 const placementBoardId = ref<string | null>(null);
 const placementColumnId = ref<string | null>(null);
@@ -350,7 +350,7 @@ watch(assigneeSearch, (value) => {
 
     assigneeSearching.value = true;
     searchTimeout = setTimeout(async () => {
-        assigneeResults.value = await boardService.searchAssignees(value.trim());
+        assigneeResults.value = await boardService.searchAssignees(value.trim(), props.boardId);
         assigneeSearching.value = false;
     }, 300);
 });
@@ -485,7 +485,7 @@ async function doRemovePlacement(placement: WorkItemPlacementDto) {
     }
 }
 
-function selectAssignee(user: UserDto) {
+function selectAssignee(user: BoardMemberDto) {
     assigneePickerOpen.value = false;
     form.assigneeUserId = user.id;
     form.assigneeName = `${user.firstName} ${user.lastName}`.trim();

@@ -8,7 +8,6 @@ export interface BoardSummaryDto {
     icon: string | null;
     color: string | null;
     isArchived: boolean;
-    requiredRole: string | null;
     cardCount: number;
 }
 
@@ -20,7 +19,6 @@ export interface BoardDetailDto {
     icon: string | null;
     color: string | null;
     isArchived: boolean;
-    requiredRole: string | null;
     columns: BoardColumnDto[];
     cards: WorkItemDto[];
 }
@@ -69,7 +67,6 @@ export interface BoardCreateDto {
     description: string | null;
     icon: string | null;
     color: string | null;
-    requiredRole: string | null;
     columns: string[];
 }
 
@@ -78,7 +75,6 @@ export interface BoardUpdateDto {
     description: string | null;
     icon: string | null;
     color: string | null;
-    requiredRole: string | null;
     isArchived: boolean;
 }
 
@@ -133,11 +129,9 @@ export function boardPriorityLabel(priority: string | number): string {
     return boardPriorityOptions.find((option) => option.value === String(priority))?.label ?? 'Normal';
 }
 
-export const boardRoleOptions: { value: string; label: string }[] = [
-    { value: '', label: 'Alle med tavle-adgang' },
-    { value: 'BoardsManage', label: 'Tavle-administratorer' },
-    { value: 'AdminAccess', label: 'Administratorer' },
-    { value: 'ActivityView', label: 'Aktivitetsmodulet' },
-    { value: 'OrgView', label: 'Organisationen' },
-    { value: 'ExportsView', label: 'Dataudtræk' },
-];
+export interface BoardMemberDto {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+}

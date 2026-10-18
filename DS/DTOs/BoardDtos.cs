@@ -9,7 +9,6 @@ namespace DS.DTOs
         public string Icon { get; set; }
         public string Color { get; set; }
         public bool IsArchived { get; set; }
-        public string RequiredRole { get; set; }
         public int CardCount { get; set; }
     }
 
@@ -22,7 +21,6 @@ namespace DS.DTOs
         public string Icon { get; set; }
         public string Color { get; set; }
         public bool IsArchived { get; set; }
-        public string RequiredRole { get; set; }
         public List<BoardColumnDto> Columns { get; set; } = [];
         public List<WorkItemDto> Cards { get; set; } = [];
     }
@@ -76,7 +74,6 @@ namespace DS.DTOs
         public string Description { get; set; }
         public string Icon { get; set; }
         public string Color { get; set; }
-        public string RequiredRole { get; set; }
         public List<string> Columns { get; set; }
     }
 
@@ -86,8 +83,20 @@ namespace DS.DTOs
         public string Description { get; set; }
         public string Icon { get; set; }
         public string Color { get; set; }
-        public string RequiredRole { get; set; }
         public bool IsArchived { get; set; }
+    }
+
+    public class BoardMemberDto
+    {
+        public string Id { get; set; }
+        public string FirstName { get; set; }
+        public string LastName { get; set; }
+        public string Email { get; set; }
+    }
+
+    public class BoardMemberCreateDto
+    {
+        public string UserId { get; set; }
     }
 
     public class BoardColumnCreateDto

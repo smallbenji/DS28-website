@@ -32,9 +32,6 @@ public class BoardConfiguration : IEntityTypeConfiguration<Board>
         builder.Property(x => x.Color)
             .HasMaxLength(16);
 
-        builder.Property(x => x.RequiredRole)
-            .HasMaxLength(64);
-
         builder.Property(x => x.IsArchived)
             .IsRequired()
             .HasDefaultValueSql("FALSE")

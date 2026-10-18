@@ -3,7 +3,7 @@
         <div class="container">
             <div class="board-list-head">
                 <h1 class="title is-4">Tavler</h1>
-                <BButton v-if="canManage" type="is-primary" @click="openCreate">
+                <BButton type="is-primary" @click="openCreate">
                     <font-awesome-icon icon="plus" />
                     <span>Ny tavle</span>
                 </BButton>
@@ -48,13 +48,7 @@
                         <BField label="Beskrivelse">
                             <BInput v-model="form.description" type="textarea" :rows="3" />
                         </BField>
-                        <BField label="Adgang">
-                            <BSelect v-model="form.requiredRole" expanded>
-                                <option v-for="role in boardRoleOptions" :key="role.value" :value="role.value">
-                                    {{ role.label }}
-                                </option>
-                            </BSelect>
-                        </BField>
+                        <p class="help">Kun inviterede medlemmer samt systemadministratorer og lejrchefer har adgang. Du bliver selv medlem.</p>
                     </section>
                     <footer class="modal-card-foot">
                         <div class="buttons">
@@ -71,30 +65,27 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { BButton, BField, BInput, BModal, BSelect, useToast } from 'buefy';
-import { boardRoleOptions, type BoardSummaryDto } from '@/types';
+import { BButton, BField, BInput, BModal, useToast } from 'buefy';
+import type { BoardSummaryDto } from '@/types';
 import { useBoardStore } from '@/Stores/BoardStore';
-import { useMeStore } from '@/Stores/MeStore';
 
 const router = useRouter();
 const store = useBoardStore();
-const meStore = useMeStore();
 const Toast = useToast();
 
 const loading = ref(false);
 const saving = ref(false);
 const createOpen = ref(false);
-const form = ref({ title: '', description: '', requiredRole: '' });
+const form = ref({ title: '', description: '' });
 
 const boards = computed(() => store.BOARDS);
-const canManage = computed(() => meStore.ME.appRoles.includes('BoardsManage'));
 
 function tileStyle(board: BoardSummaryDto): Record<string, string> {
     return board.color ? { borderTop: `3px solid ${board.color}` } : {};
 }
 
 function openCreate() {
-    form.value = { title: '', description: '', requiredRole: '' };
+    form.value = { title: '', description: '' };
     createOpen.value = true;
 }
 
@@ -113,7 +104,6 @@ async function createBoard() {
             description: form.value.description.trim() ? form.value.description.trim() : null,
             icon: null,
             color: null,
-            requiredRole: form.value.requiredRole ? form.value.requiredRole : null,
             columns: []
         });
 

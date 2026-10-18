@@ -183,9 +183,10 @@ Hangfire og eksport) og `/api/v1/me` alle opfører sig som den valgte gruppe.
   som en rolle, står der "Viser som …" med rollens titel plus et "Stop visning"-
   punkt. Der er bevidst ikke et globalt topbanner.
 - Cookies er kun til "rolleoverlay" – identiteten (user-id, navn, billede, 2FA-krav)
-  ændres ikke. Impersonation berører heller ikke databaserettigheder: der findes
-  endnu ingen record-baseret scoping i datalejet, så f.eks. en Lejrchef-impersonation
-  kan stadig se al data, som en reel SysAdmin-adgang ville vise.
+  ændres ikke. Fra 2026-10-18 scopes tavler efter medlemskab og de effektive
+  SysAdmin/CampAdmin-claims: "Vis som" en anden rolle fjerner derfor den globale
+  tavleadgang, men bevarer den virkelige brugers personlige medlemskaber.
+  En Lejrchef-impersonation har fortsat adgang til alle tavler.
 
 Afsluttet beslutning: brugeren ønskede eksplicit **ægte impersonation** frem for en
 frontend-only preview; valgte **alle grupper** som target og **brugermenuen** som
@@ -682,6 +683,35 @@ lejrchef, så adgangen matcher den planlagte. Auditloggen er endnu hverken
 implementeret eller synlig i adminområdet.
 
 ### Projektstyring og Kanban-board
+
+**Beslutning 2026-10-18 (implementeret):** Tavleadgang er medlemsbaseret i
+stedet for rollegated. Dette afløser `required_role`, `BoardsView` og
+`BoardsManage` samt adgangsbeskrivelserne i noterne fra 2026-10-14–16 nedenfor.
+
+- Alle indloggede brugere kan åbne tavleoversigten og oprette en tavle.
+  Opretteren bliver automatisk medlem. Almindelige brugere ser kun tavler,
+  de er medlem af; SysAdmin og CampAdmin har læse- og redigeringsadgang til alle
+  tavler. Andre globale roller giver ikke længere tavleadgang i sig selv.
+- Alle medlemmer har lige adgang til tavlens kort, kolonner og indstillinger
+  samt til at invitere andre. Der indføres ingen tavleadministrator eller
+  særskilt læserolle. Sletning følger samme medlemsadgang.
+- Invitation gælder **eksisterende brugere** og tilføjer dem direkte uden
+  accepttrin eller mail. Nye konti via mailinvitation er ikke del af opgaven.
+  Tavlen har en dialog "Medlemmer og invitation" med medlemsliste og søgning
+  efter navn/mail. Søgningen kræver adgang til den konkrete tavle og returnerer
+  kun id, navn og mail, ikke den fulde administrationsprofil.
+- `board_member` gemmer medlemskaber. Migration `022_board_members.sql`
+  tilføjer eksisterende tavlers opretter som medlem og fjerner `required_role`.
+  Tidligere rolleberettigede brugere bliver ikke automatisk medlemmer;
+  opretteren eller en SysAdmin/CampAdmin kan invitere dem. Tavler uden en
+  bevaret opretter kan fortsat administreres af SysAdmin/CampAdmin.
+- Samme adgangskontrol bruges til læsning, ændringer, kortplaceringer på andre
+  tavler og søgning efter brugere. Skjulte tavlers navne og placeringer sendes
+  ikke med kortene. Et delt kort redigeres stadig fælles på tværs af dets
+  placeringer; medlemskab af én tavle giver ikke adgang til de øvrige tavler.
+- `BoardsView` og `BoardsManage` er fjernet fra rollematricen. HQ-flisen og
+  frontendruterne kræver nu kun login. Stillingsvælgeren følger fortsat
+  organisationens eksisterende adgang og udvider ikke `OrgView`.
 
 **Beslutning 2026-10-17 (implementeret):** Arbejdskort vises med nummeret
 `DS-<id>`, hvor `id` er kortets eksisterende `work_item.id` i databasen.

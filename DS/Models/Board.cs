@@ -9,15 +9,23 @@ public class Board : IAuditableEntity, ISoftDeleteable
     public string Icon { get; set; }
     public string Color { get; set; }
     public bool IsArchived { get; set; }
-    public string RequiredRole { get; set; }
 
     public string CreatedByUserId { get; set; }
     public User CreatedBy { get; set; }
     public List<BoardColumn> Columns { get; set; } = [];
+    public List<BoardMember> Members { get; set; } = [];
 
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
     public DateTime? DeletedAt { get; set; }
+}
+
+public class BoardMember
+{
+    public int BoardId { get; set; }
+    public Board Board { get; set; }
+    public string UserId { get; set; }
+    public User User { get; set; }
 }
 
 public class BoardColumn : IAuditableEntity
