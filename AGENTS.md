@@ -17,7 +17,7 @@ specification or a request to implement every listed feature**.
   behavior and surface discrepancies relevant to the task.
 - Keycloak has been explicitly dropped from the plan. ASP.NET Core Identity
   and OpenIddict are the current authentication foundation
-  (`DS.Website/Program.cs`). Do not reintroduce Keycloak based on old planning
+  (`DS.Website/Extensions/ServiceExtensions.cs`). Do not reintroduce Keycloak based on old planning
   material.
 - Current global permissions are defined in `DS.Website/Roles.cs`. `AppGroups`
   denotes global identity roles, not scout groups. The draft role descriptions

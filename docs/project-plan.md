@@ -29,6 +29,14 @@ tilmeldingsmodulet. Flere brugere skal kunne tilhøre samme spejdergruppe.
 Der skal desuden være et materialesystem og en offentlig hjemmeside baseret
 på et CMS, så andre end IT kan vedligeholde indhold.
 
+### Applikationsopstart
+
+**Beslutning 2026-10-19 (implementeret):** Service-registrering og tilhørende
+konfiguration samles i `DS.Website/Extensions/ServiceExtensions.cs` og kaldes
+via `builder.ConfigureDS()`. `Program.cs` beholder HTTP-pipeline, routing,
+DbUp-migrering og rolleseeding. Flytningen ændrer ikke autentifikationsregler
+eller databaseskema.
+
 ## Roller i den oprindelige plan
 
 | Rolle | Ønsket adgang og ansvar |
@@ -650,7 +658,7 @@ beskriver ikke hvordan udtræk skal defineres eller hvem der må hente dem.
 
 **Beslutning 2026-09-29:** Dataudtræk defineres udelukkende i backend. Hvert
 udtræk er en `DataExport`-klasse under `DS.Website/Exports/`, som registreres som
-scoped service i `Program.cs`. Frontend henter listen fra `GET /api/v1/exports`
+scoped service i `ServiceExtensions.AddDSServices`. Frontend henter listen fra `GET /api/v1/exports`
 og renderer den, så et nyt udtræk kræver ingen frontend-ændring. Siden ligger
 på `/exports` og linkes fra adminområdet.
 
