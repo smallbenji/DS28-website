@@ -8,6 +8,7 @@
             </div>
             <div v-if="canManage" class="board-detail-actions">
                 <BButton size="is-small" class="is-ghost" @click="membersOpen = true">Medlemmer og invitation</BButton>
+                <BButton size="is-small" class="is-ghost" @click="colorsOpen = true">Farver</BButton>
                 <BButton size="is-small" class="is-ghost" @click="openColumnCreate">
                     <font-awesome-icon icon="plus" />
                     <span>Kolonne</span>
@@ -75,6 +76,7 @@
             </div>
         </BModal>
         <BoardMembersModal v-model="membersOpen" :board-id="boardId" />
+        <BoardColorsModal v-model="colorsOpen" :board-id="boardId" />
     </div>
 </template>
 
@@ -85,6 +87,7 @@ import { BButton, BCheckbox, BField, BInput, BModal, useDialog, useToast } from 
 import type { BoardColumnDto, WorkItemDto } from '@/types';
 import { useBoardStore } from '@/Stores/BoardStore';
 import BoardMembersModal from '@/Components/Board/BoardMembersModal.vue';
+import BoardColorsModal from '@/Components/Board/BoardColorsModal.vue';
 import BoardColumn from '@/Components/Board/BoardColumn.vue';
 import BoardCardModal from '@/Components/Board/BoardCardModal.vue';
 import BoardColumnDrawer from '@/Components/Board/BoardColumnDrawer.vue';
@@ -106,6 +109,7 @@ const editingColumn = ref<BoardColumnDto | null>(null);
 
 const settingsOpen = ref(false);
 const membersOpen = ref(false);
+const colorsOpen = ref(false);
 const savingSettings = ref(false);
 const settings = ref({ title: '', description: '', isArchived: false });
 

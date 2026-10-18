@@ -2,6 +2,7 @@
     <article
         class="board-card"
         :class="{ 'is-done': isDoneColumn }"
+        :style="{ backgroundColor: card.color ? `color-mix(in srgb, ${card.color} 40%, white)` : undefined }"
         :draggable="canManage"
         tabindex="0"
         @click="emit('open', card)"

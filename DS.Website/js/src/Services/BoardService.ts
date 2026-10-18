@@ -2,6 +2,7 @@ import type { AxiosResponse } from "axios";
 import axios from "axios";
 import type {
     BoardColumnCreateDto,
+    BoardColorUpdateDto,
     BoardColumnDto,
     BoardColumnUpdateDto,
     BoardCreateDto,
@@ -56,6 +57,18 @@ export default class BoardService {
     public async getMembers(boardId: number): Promise<BoardMemberDto[]> {
         const response = await axios.get<BoardMemberDto[]>(`/api/v1/boards/${boardId}/members`);
         return response.data;
+    }
+
+    public async createColor(boardId: number, data: BoardColorUpdateDto): Promise<void> {
+        await axios.post(`/api/v1/boards/${boardId}/colors`, data);
+    }
+
+    public async updateColor(boardId: number, colorId: number, data: BoardColorUpdateDto): Promise<void> {
+        await axios.put(`/api/v1/boards/${boardId}/colors/${colorId}`, data);
+    }
+
+    public async deleteColor(boardId: number, colorId: number): Promise<void> {
+        await axios.delete(`/api/v1/boards/${boardId}/colors/${colorId}`);
     }
 
     public async addMember(boardId: number, userId: string): Promise<void> {

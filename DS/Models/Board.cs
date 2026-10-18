@@ -14,10 +14,20 @@ public class Board : IAuditableEntity, ISoftDeleteable
     public User CreatedBy { get; set; }
     public List<BoardColumn> Columns { get; set; } = [];
     public List<BoardMember> Members { get; set; } = [];
+    public List<BoardColor> Colors { get; set; } = [];
 
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
     public DateTime? DeletedAt { get; set; }
+}
+
+public class BoardColor
+{
+    public int Id { get; set; }
+    public int BoardId { get; set; }
+    public Board Board { get; set; }
+    public string Name { get; set; }
+    public string Color { get; set; }
 }
 
 public class BoardMember
@@ -47,6 +57,7 @@ public class WorkItem : IAuditableEntity, ISoftDeleteable
     public int Id { get; set; }
     public string Title { get; set; }
     public string Description { get; set; }
+    public string Color { get; set; }
 
     public string AssigneeUserId { get; set; }
     public User Assignee { get; set; }

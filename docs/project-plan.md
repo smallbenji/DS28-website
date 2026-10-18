@@ -684,6 +684,34 @@ implementeret eller synlig i adminområdet.
 
 ### Projektstyring og Kanban-board
 
+**Beslutning 2026-10-18 (implementeret, kortfarver, udvidet samme dag):** Hver
+tavle har sin egen palette af navngivne kortfarver. Dette erstatter den først
+implementerede fælles palette med seks faste farver.
+
+- Tavlens "Farver"-dialog lader alle medlemmer samt SysAdmin/CampAdmin tilføje,
+  omdøbe, ændre og slette palettefarver. Navnet er påkrævet, højst 64 tegn,
+  og farven vælges frit med en farvevælger (`#rrggbb`). Der er ingen fast grænse
+  på antallet af farver. Paletten starter med ti farver: blå, grøn, gul, rød,
+  lilla, turkis, orange, pink, grå og brun. Hele paletten kan også tømmes.
+- Farven vælges fra den aktuelle tavles palette i kortdialogen og gemmes først
+  med "Opret kort"/"Gem ændringer". Annuller gemmer ikke kortets farvevalg.
+  Paletteændringer har deres egne eksplicitte gemme-/slettehandlinger.
+- **Kortets farve forbliver fælles på tværs af tavler** efter brugerens
+  udtrykkelige valg: `work_item.color` gemmer selve hex-værdien, ikke en reference
+  til en palettefarve. Palettens navn er lokalt for tavlen og er ikke en label
+  på kortet. Omdøbning, farveændring eller sletning i paletten påvirker ikke
+  allerede farvede kort. En eksisterende farve uden for den aktuelle palette
+  kan bevares eller fjernes i kortdialogen; adgang til andre tavlers paletter
+  gives ikke gennem et delt kort.
+- Kortet viser farven som en lys baggrundstone for at bevare læsbar tekst,
+  også når brugeren vælger en mørk farve. Farven er rent visuel og ændrer
+  ikke prioritet, status eller adgang. "Ingen farve" viser et hvidt kort.
+- `023_work_item_color.sql` tilføjer nullable `work_item.color`;
+  `024_board_colors.sql` tilføjer `board_color`, seeder eksisterende tavlers
+  paletter og udvider kortets CHECK-constraint til vilkårlig lowercase
+  sekscifret hex. Eksisterende kortfarver bevares. API'et normaliserer hex og
+  afviser andre farveformater. Nye tavler får samme standardpalette i kode.
+
 **Beslutning 2026-10-18 (implementeret):** Tavleadgang er medlemsbaseret i
 stedet for rollegated. Dette afløser `required_role`, `BoardsView` og
 `BoardsManage` samt adgangsbeskrivelserne i noterne fra 2026-10-14–16 nedenfor.

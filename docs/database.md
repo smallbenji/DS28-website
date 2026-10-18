@@ -391,6 +391,13 @@ erDiagram
         timestamptz deleted_at
     }
 
+    board_color {
+        int id PK
+        int board_id FK "required, CASCADE"
+        varchar name "required, max 64"
+        varchar color "required, #rrggbb"
+    }
+
     board_member {
         int board_id PK,FK "required, CASCADE"
         text user_id PK,FK "required, CASCADE"
@@ -411,6 +418,7 @@ erDiagram
         int id PK
         varchar title
         text description
+        varchar color "nullable, #rrggbb"
         text assignee_user_id FK "SET NULL"
         int owner_position_id FK "SET NULL"
         date due_date
@@ -438,6 +446,7 @@ erDiagram
 
     board ||--o{ board_column : "har kolonner"
     board ||--o{ board_member : "har medlemmer"
+    board ||--o{ board_color : "har palettefarver"
     asp_net_users ||--o{ board_member : "er medlem"
     board ||--o{ board_card : "placerer"
     board_column ||--o{ board_card : "indeholder"
@@ -725,6 +734,17 @@ mindst syv dage gamle. Det er ren dataoprydning uden skemaændring.
 
 ## Projektstyring
 
+- `work_item.color` er en nullable `varchar(7)` uden standardværdi. `NULL`
+  betyder ingen farve. En CHECK-constraint kræver lowercase sekscifret hex
+  (`^#[0-9a-f]{6}$`). Farven tilhører kortet, ikke dets tavleplacering, og
+  refererer ikke til `board_color`. En paletteændring ændrer derfor ikke
+  eksisterende kort. Kolonnen har ingen ekstra indeks eller relationer.
+- `board_color` er tavlens navngivne palette. `id` er en identity-primærnøgle,
+  `board_id` er påkrævet og refererer til `board.id` med `ON DELETE CASCADE`
+  og et ikke-unikt indeks. `name` er påkrævet `varchar(64)` med CHECK mod
+  tomt/blankt navn. `color` er påkrævet `varchar(7)` med samme lowercase
+  hex-CHECK som kortets farve. Der er ingen unikhedskrav på navn eller farve,
+  ingen fast grænse på antallet af rækker og ingen relation til arbejdskort.
 - `board_member` giver medlemsadgang til en tavle. Begge kolonner er påkrævede;
   den sammensatte primærnøgle `(board_id, user_id)` forhindrer dobbelt medlemskab.
   `board_id` refererer til `board.id`, og `user_id` refererer til
@@ -747,6 +767,6 @@ mindst syv dage gamle. Det er ren dataoprydning uden skemaændring.
   `entity_id`, da koblingen er polymorf; døde links ryddes i koden. Unikhed på
   `(work_item_id, entity_type, entity_id)` forhindrer dobbelte links, og
   indekset `(entity_type, entity_id)` gør opslag fra domænesiden billigt.
-- `work_item` og `board` har soft delete via `deleted_at`. `board_member`, `board_column`,
+- `work_item` og `board` har soft delete via `deleted_at`. `board_color`, `board_member`, `board_column`,
   `board_card` og `work_item_link` slettes hårdt; sletning af et board eller et
   kort fjerner de tilhørende rækker via `ON DELETE CASCADE`.

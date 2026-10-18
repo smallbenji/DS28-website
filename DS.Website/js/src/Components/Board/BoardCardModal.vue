@@ -28,6 +28,23 @@
                         </div>
 
                         <div class="board-card-side">
+                            <BField label="Farve" :message="selectedColorLabel">
+                                <div class="board-card-color-options" role="group" aria-label="Kortets farve">
+                                    <BButton
+                                        v-for="color in cardColorOptions"
+                                        :key="color.key"
+                                        class="board-card-color-option"
+                                        :style="{ backgroundColor: color.value ? `color-mix(in srgb, ${color.value} 40%, white)` : '#fff' }"
+                                        :aria-label="color.label"
+                                        :title="color.label"
+                                        :aria-pressed="form.color === color.value"
+                                        @click="form.color = color.value"
+                                    >
+                                        <span aria-hidden="true">{{ form.color === color.value ? '✓' : color.value === null ? '×' : '' }}</span>
+                                    </BButton>
+                                </div>
+                            </BField>
+
                             <BField label="Deadline">
                                 <BInput v-model="form.dueDate" type="date" />
                             </BField>
@@ -280,6 +297,7 @@ let searchTimeout: ReturnType<typeof setTimeout> | null = null;
 const form = reactive({
     title: '',
     description: '',
+    color: null as string | null,
     dueDate: '',
     priority: '0',
     assigneeUserId: null as string | null,
@@ -293,6 +311,18 @@ const open = computed({
 });
 
 const isNew = computed(() => props.card === null);
+
+const cardColorOptions = computed(() => {
+    const options: { key: string; value: string | null; label: string }[] = [
+        { key: 'none', value: null, label: 'Ingen farve' },
+        ...(store.SELECTED_BOARD?.colors ?? []).map((color) => ({ key: String(color.id), value: color.color, label: color.name }))
+    ];
+    if (form.color && !options.some((color) => color.value === form.color)) {
+        options.push({ key: 'current', value: form.color, label: 'Nuværende farve (uden for tavlens palette)' });
+    }
+    return options;
+});
+const selectedColorLabel = computed(() => cardColorOptions.value.find((color) => color.value === form.color)?.label ?? 'Ingen farve');
 
 const placements = computed<WorkItemPlacementDto[]>(() => {
     const cardId = props.card?.id;
@@ -313,6 +343,7 @@ watch(
 
         form.title = props.card?.title ?? '';
         form.description = props.card?.description ?? '';
+        form.color = props.card?.color ?? null;
         form.dueDate = props.card?.dueDate ?? '';
         form.priority = String(props.card?.priority ?? 0);
         form.assigneeUserId = props.card?.assigneeUserId ?? null;
@@ -511,6 +542,7 @@ async function save() {
         const base = {
             title: form.title.trim(),
             description: htmlToPlainText(form.description) ? form.description : null,
+            color: form.color,
             assigneeUserId: form.assigneeUserId,
             ownerPositionId: form.ownerPositionId,
             dueDate: form.dueDate ? form.dueDate : null,
@@ -572,6 +604,26 @@ async function doRemove() {
 </script>
 
 <style scoped>
+.board-card-color-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+
+.board-card-color-option.button {
+    width: 1.75rem;
+    height: 1.75rem;
+    padding: 0;
+    border: 1px solid #cfd5dd;
+    border-radius: 50%;
+    color: #363636;
+}
+
+.board-card-color-option[aria-pressed="true"] {
+    outline: 2px solid #68717d;
+    outline-offset: 2px;
+}
+
 .board-card-modal {
     width: 100%;
     max-width: 64rem;

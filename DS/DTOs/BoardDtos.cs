@@ -23,6 +23,20 @@ namespace DS.DTOs
         public bool IsArchived { get; set; }
         public List<BoardColumnDto> Columns { get; set; } = [];
         public List<WorkItemDto> Cards { get; set; } = [];
+        public List<BoardColorDto> Colors { get; set; } = [];
+    }
+
+    public class BoardColorDto
+    {
+        public int Id { get; set; }
+        public string Name { get; set; }
+        public string Color { get; set; }
+    }
+
+    public class BoardColorUpdateDto
+    {
+        public string Name { get; set; }
+        public string Color { get; set; }
     }
 
     public class BoardColumnDto
@@ -39,6 +53,7 @@ namespace DS.DTOs
         public int Id { get; set; }
         public string Title { get; set; }
         public string Description { get; set; }
+        public string Color { get; set; }
         public int ColumnId { get; set; }
         public int Position { get; set; }
         public string AssigneeUserId { get; set; }
@@ -118,6 +133,7 @@ namespace DS.DTOs
         public int ColumnId { get; set; }
         public string Title { get; set; }
         public string Description { get; set; }
+        public string Color { get; set; }
         public string AssigneeUserId { get; set; }
         public int? OwnerPositionId { get; set; }
         public DateOnly? DueDate { get; set; }
@@ -129,6 +145,7 @@ namespace DS.DTOs
     {
         public string Title { get; set; }
         public string Description { get; set; }
+        public string Color { get; set; }
         public string AssigneeUserId { get; set; }
         public int? OwnerPositionId { get; set; }
         public DateOnly? DueDate { get; set; }

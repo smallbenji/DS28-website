@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace DS.Website.Controllers
 {
@@ -41,6 +42,8 @@ namespace DS.Website.Controllers
             var board = await dataDb.Boards
                 .AsNoTracking()
                 .Include(board => board.Columns)
+                .Include(board => board.Colors)
+                .AsSplitQuery()
                 .FirstOrDefaultAsync(board => board.Id == id && board.DeletedAt == null);
             if (board == null) return NotFound();
             if (!await CanSeeBoardAsync(board)) return Forbid();
@@ -143,6 +146,7 @@ namespace DS.Website.Controllers
                 Color = color,
                 CreatedByUserId = userManager.GetUserId(User),
                 Members = [new BoardMember { UserId = userManager.GetUserId(User) }],
+                Colors = CreateDefaultColors(),
             };
 
             var columns = NormalizeColumnTitles(data.Columns);
@@ -160,6 +164,53 @@ namespace DS.Website.Controllers
             await dataDb.SaveChangesAsync();
 
             return Ok(board.Id);
+        }
+
+        [HttpPost("{id:int}/colors")]
+        public async Task<IActionResult> CreateColor([FromBody] BoardColorUpdateDto data, int id)
+        {
+            if (!await VisibleBoards().AnyAsync(board => board.Id == id)) return Forbid();
+
+            if (data == null || !TryNormalizeShortText(data.Name, 64, out var name) || name == null) return BadRequest("Farven skal have et navn på højst 64 tegn.");
+            if (!TryNormalizeCardColor(data.Color, out var color) || color == null) return BadRequest("Vælg en gyldig farve.");
+
+            var boardColor = new BoardColor { BoardId = id, Name = name, Color = color };
+            dataDb.BoardColors.Add(boardColor);
+            await dataDb.SaveChangesAsync();
+
+            return Ok(boardColor.Id);
+        }
+
+        [HttpPut("{id:int}/colors/{colorId:int}")]
+        public async Task<IActionResult> UpdateColor([FromBody] BoardColorUpdateDto data, int id, int colorId)
+        {
+            if (!await VisibleBoards().AnyAsync(board => board.Id == id)) return Forbid();
+
+            if (data == null || !TryNormalizeShortText(data.Name, 64, out var name) || name == null) return BadRequest("Farven skal have et navn på højst 64 tegn.");
+            if (!TryNormalizeCardColor(data.Color, out var color) || color == null) return BadRequest("Vælg en gyldig farve.");
+
+            var boardColor = await dataDb.BoardColors.FirstOrDefaultAsync(candidate => candidate.Id == colorId && candidate.BoardId == id);
+            if (boardColor == null) return NotFound();
+
+            boardColor.Name = name;
+            boardColor.Color = color;
+            await dataDb.SaveChangesAsync();
+
+            return Ok();
+        }
+
+        [HttpDelete("{id:int}/colors/{colorId:int}")]
+        public async Task<IActionResult> DeleteColor(int id, int colorId)
+        {
+            if (!await VisibleBoards().AnyAsync(board => board.Id == id)) return Forbid();
+
+            var boardColor = await dataDb.BoardColors.FirstOrDefaultAsync(candidate => candidate.Id == colorId && candidate.BoardId == id);
+            if (boardColor == null) return NotFound();
+
+            dataDb.BoardColors.Remove(boardColor);
+            await dataDb.SaveChangesAsync();
+
+            return Ok();
         }
 
         [HttpPut("{id:int}")]
@@ -329,6 +380,7 @@ namespace DS.Website.Controllers
             var columnExists = await dataDb.BoardColumns.AnyAsync(column => column.Id == data.ColumnId && column.BoardId == id);
             if (!columnExists) return BadRequest("Kolonnen findes ikke på boardet.");
 
+            if (!TryNormalizeCardColor(data.Color, out var color)) return BadRequest("Ugyldig kortfarve.");
             if (!await IsValidAssigneeAsync(data.AssigneeUserId)) return BadRequest("Den ansvarlige bruger findes ikke.");
             if (!await IsValidOwnerPositionAsync(data.OwnerPositionId)) return BadRequest("Stillingen findes ikke.");
 
@@ -336,6 +388,7 @@ namespace DS.Website.Controllers
             {
                 Title = data.Title.Trim(),
                 Description = data.Description,
+                Color = color,
                 AssigneeUserId = NormalizeUserId(data.AssigneeUserId),
                 OwnerPositionId = data.OwnerPositionId,
                 DueDate = data.DueDate,
@@ -378,12 +431,14 @@ namespace DS.Website.Controllers
                 .FirstOrDefaultAsync(card => card.BoardId == id && card.WorkItemId == workItemId && card.WorkItem.DeletedAt == null);
             if (card == null) return NotFound();
 
+            if (!TryNormalizeCardColor(data.Color, out var color)) return BadRequest("Ugyldig kortfarve.");
             if (!await IsValidAssigneeAsync(data.AssigneeUserId)) return BadRequest("Den ansvarlige bruger findes ikke.");
             if (!await IsValidOwnerPositionAsync(data.OwnerPositionId)) return BadRequest("Stillingen findes ikke.");
 
             var item = card.WorkItem;
             item.Title = data.Title.Trim();
             item.Description = data.Description;
+            item.Color = color;
             item.AssigneeUserId = NormalizeUserId(data.AssigneeUserId);
             item.OwnerPositionId = data.OwnerPositionId;
             item.DueDate = data.DueDate;
@@ -665,6 +720,29 @@ namespace DS.Website.Controllers
             return result.Length <= maxLength;
         }
 
+        private static bool TryNormalizeCardColor(string value, out string result)
+        {
+            result = string.IsNullOrWhiteSpace(value) ? null : value.Trim().ToLowerInvariant();
+            return result == null || Regex.IsMatch(result, "^#[0-9a-f]{6}$");
+        }
+
+        private static List<BoardColor> CreateDefaultColors()
+        {
+            return
+            [
+                new() { Name = "Blå", Color = "#dbeafe" },
+                new() { Name = "Grøn", Color = "#dcfce7" },
+                new() { Name = "Gul", Color = "#fef3c7" },
+                new() { Name = "Rød", Color = "#fee2e2" },
+                new() { Name = "Lilla", Color = "#ede9fe" },
+                new() { Name = "Turkis", Color = "#ccfbf1" },
+                new() { Name = "Orange", Color = "#ffedd5" },
+                new() { Name = "Pink", Color = "#fce7f3" },
+                new() { Name = "Grå", Color = "#e5e7eb" },
+                new() { Name = "Brun", Color = "#e7d5c5" },
+            ];
+        }
+
         private static bool IsValidWipLimit(int? wipLimit)
         {
             return wipLimit == null || wipLimit >= 1;
@@ -719,6 +797,9 @@ namespace DS.Website.Controllers
                     })
                     .ToList(),
                 Cards = cards.Select(card => ToCardDto(card, placements)).ToList(),
+                Colors = board.Colors.OrderBy(color => color.Id)
+                    .Select(color => new BoardColorDto { Id = color.Id, Name = color.Name, Color = color.Color })
+                    .ToList(),
             };
         }
 
@@ -731,6 +812,7 @@ namespace DS.Website.Controllers
                 Id = item.Id,
                 Title = item.Title,
                 Description = item.Description,
+                Color = item.Color,
                 ColumnId = card.ColumnId,
                 Position = card.Position,
                 AssigneeUserId = item.AssigneeUserId,

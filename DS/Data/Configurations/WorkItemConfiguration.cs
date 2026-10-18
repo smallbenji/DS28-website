@@ -22,6 +22,9 @@ public class WorkItemConfiguration : IEntityTypeConfiguration<WorkItem>
         builder.Property(x => x.DueDate)
             .HasColumnType("date");
 
+        builder.Property(x => x.Color)
+            .HasMaxLength(7);
+
         builder.Property(x => x.Priority)
             .IsRequired()
             .HasDefaultValueSql("0");

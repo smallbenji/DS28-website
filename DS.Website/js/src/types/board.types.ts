@@ -21,6 +21,18 @@ export interface BoardDetailDto {
     isArchived: boolean;
     columns: BoardColumnDto[];
     cards: WorkItemDto[];
+    colors: BoardColorDto[];
+}
+
+export interface BoardColorDto {
+    id: number;
+    name: string;
+    color: string;
+}
+
+export interface BoardColorUpdateDto {
+    name: string;
+    color: string;
 }
 
 export interface BoardColumnDto {
@@ -35,6 +47,7 @@ export interface WorkItemDto {
     id: number;
     title: string;
     description: string | null;
+    color: string | null;
     columnId: number;
     position: number;
     assigneeUserId: string | null;
@@ -94,6 +107,7 @@ export interface WorkItemCreateDto {
     columnId: number;
     title: string;
     description: string | null;
+    color: string | null;
     assigneeUserId: string | null;
     ownerPositionId: number | null;
     dueDate: string | null;
@@ -104,6 +118,7 @@ export interface WorkItemCreateDto {
 export interface WorkItemUpdateDto {
     title: string;
     description: string | null;
+    color: string | null;
     assigneeUserId: string | null;
     ownerPositionId: number | null;
     dueDate: string | null;
