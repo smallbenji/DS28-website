@@ -1,4 +1,4 @@
-namespace DS.Website.Services
+namespace DS.Application.FileStorage
 {
     public interface IFileStorage
     {

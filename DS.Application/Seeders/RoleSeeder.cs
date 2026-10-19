@@ -1,8 +1,9 @@
 using DS.Domain;
 using DS.Domain.Models;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Logging;
 
-namespace DS.Website.Services
+namespace DS.Application.Seeders
 {
     public class RoleSeeder(ILogger<RoleSeeder> logger, RoleManager<Role> roleManager)
     {

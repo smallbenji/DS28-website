@@ -1,4 +1,6 @@
+using DS.Application.Jobs;
 using Hangfire;
+using Microsoft.Extensions.Hosting;
 
 namespace DS.Website.Services
 {

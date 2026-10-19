@@ -1,7 +1,7 @@
 using System.Security.Cryptography;
 using SkiaSharp;
 
-namespace DS.Website.Services
+namespace DS.Application.FileStorage
 {
     public record ProcessedImage(byte[] Content, long SizeBytes, int Width, int Height, string Sha256);
 

@@ -7,6 +7,7 @@ using DbUp;
 using Hangfire;
 using DS.Website.Extensions;
 using DS.Domain;
+using DS.Application.Seeders;
 
 var builder = WebApplication.CreateBuilder(args);
 

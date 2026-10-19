@@ -68,13 +68,8 @@ public static class ServiceExtensions
         var dsSettings = builder.Configuration.GetSection("DS").Get<DSSettings>();
 
         services.AddScoped<IUserClaimsPrincipalFactory<User>, AppClaimsPrincipalFactory>();
-        services.AddTransient<RoleSeeder>();
         services.AddTransient<CampSettings>();
-        services.AddTransient<EmailService>();
-        services.AddTransient<MailJobs>();
-        services.AddTransient<OpenIddictJobs>();
-        services.AddTransient<FileProcessingJobs>();
-        services.AddTransient<IFileStorage, LocalFileStorage>();
+
         services.AddTransient<IGoogleAuthService, GoogleAuthService>();
         services.AddTransient<IGoogleDriveService, GoogleDriveService>();
         services.AddHangfire(config => config.UsePostgreSqlStorage(
@@ -86,7 +81,6 @@ public static class ServiceExtensions
             }));
 
         services.AddHangfireServer(options => options.WorkerCount = 5);
-        services.AddHostedService<RecurringJobRegistrar>();
 
         services.AddExporters();
 

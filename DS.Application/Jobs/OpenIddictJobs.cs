@@ -1,7 +1,8 @@
 using Hangfire;
+using Microsoft.Extensions.Logging;
 using OpenIddict.Abstractions;
 
-namespace DS.Website.Services
+namespace DS.Application.Jobs
 {
     public class OpenIddictJobs(
         IOpenIddictTokenManager tokenManager,

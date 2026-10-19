@@ -1,11 +1,13 @@
+using DS.Application.Jobs;
 using DS.Domain;
 using DS.Domain.Data;
 using DS.Domain.Models;
 using Hangfire;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using MimeKit;
 
-namespace DS.Website.Services
+namespace DS.Application.Services
 {
     public class EmailService(IOptions<DSSettings> options, IBackgroundJobClient backgroundJobs, DataDbContext dataDb, ILogger<EmailService> logger)
     {

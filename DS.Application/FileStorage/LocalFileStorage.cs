@@ -2,7 +2,7 @@ using DS;
 using DS.Domain;
 using Microsoft.Extensions.Options;
 
-namespace DS.Website.Services
+namespace DS.Application.FileStorage
 {
     public class LocalFileStorage : IFileStorage
     {

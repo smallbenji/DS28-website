@@ -1,9 +1,7 @@
-using System.Linq.Expressions;
 using DS.Domain.Data;
 using DS.Domain.DTOs;
 using DS.Domain.Models;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 
 namespace DS.Application.Services;
 

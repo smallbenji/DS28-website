@@ -1,12 +1,12 @@
 using DS.Domain;
 using Hangfire;
-using MailKit;
 using MailKit.Net.Smtp;
 using MailKit.Security;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using MimeKit;
 
-namespace DS.Website.Services
+namespace DS.Application.Jobs
 {
     public record MailData(string ToEmail, string ToName, string Subject, string Body);
 
