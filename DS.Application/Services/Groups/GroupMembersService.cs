@@ -16,10 +16,10 @@ namespace DS.Application.Services.Groups
                 .SingleOrDefaultAsync(u => u.Id == userId);
         }
 
-        public async Task<GroupResult> InviteAsync(string userId, InviteGroupMemberDto data)
+        public async Task<ServiceResult<object>> InviteAsync(string userId, InviteGroupMemberDto data)
         {
             var currentUser = await GetCurrentUserAsync(userId);
-            if (currentUser?.Group == null) return new GroupResult(GroupOutcome.Forbidden);
+            if (currentUser?.Group == null) return new ServiceResult(ServiceOutcome.Forbidden);
 
             var email = data.Email.Trim();
             var existingUser = await userManager.Users
@@ -28,7 +28,7 @@ namespace DS.Application.Services.Groups
                     u.NormalizedEmail == userManager.NormalizeEmail(email));
             if (existingUser?.Group != null)
             {
-                return new GroupResult(GroupOutcome.Invalid, "Brugeren er allerede tilknyttet en gruppe.");
+                return new ServiceResult(ServiceOutcome.Invalid, "Brugeren er allerede tilknyttet en gruppe.");
             }
 
             var invitation = new UserInvitation
@@ -44,24 +44,24 @@ namespace DS.Application.Services.Groups
 
             emailService.QueueInvitationMail(invitation);
 
-            return new GroupResult(GroupOutcome.Success, new { Path = $"/group-invitation/{invitation.InvitationId}" });
+            return new ServiceResult<object>(ServiceOutcome.Success, new { Path = $"/group-invitation/{invitation.InvitationId}" });
         }
 
-        public async Task<GroupResult> GetInvitationsAsync(string userId)
+        public async Task<ServiceResult<object>> GetInvitationsAsync(string userId)
         {
             var currentUser = await GetCurrentUserAsync(userId);
-            if (currentUser?.Group == null) return new GroupResult(GroupOutcome.Forbidden);
+            if (currentUser?.Group == null) return new ServiceResult(ServiceOutcome.Forbidden);
 
-            return new GroupResult(GroupOutcome.Success, await dataDb.Invitations
+            return new ServiceResult<object>(ServiceOutcome.Success, await dataDb.Invitations
                 .Where(i => i.GroupId == currentUser.Group.Id && !i.Used)
                 .Select(i => new { i.InvitationId, i.Email })
                 .ToListAsync());
         }
 
-        public async Task<GroupResult> RevokeAsync(string userId, Guid id)
+        public async Task<ServiceResult> RevokeAsync(string userId, Guid id)
         {
             var currentUser = await GetCurrentUserAsync(userId);
-            if (currentUser?.Group == null) return new GroupResult(GroupOutcome.Forbidden);
+            if (currentUser?.Group == null) return new ServiceResult(ServiceOutcome.Forbidden);
 
             var updatedCount = await dataDb.Invitations
                 .Where(i =>
@@ -70,17 +70,17 @@ namespace DS.Application.Services.Groups
                     !i.Used)
                 .ExecuteUpdateAsync(s => s.SetProperty(i => i.Used, true));
 
-            return updatedCount == 0 ? new GroupResult(GroupOutcome.NotFound) : new GroupResult(GroupOutcome.Success);
+            return updatedCount == 0 ? new ServiceResult(ServiceOutcome.NotFound) : new ServiceResult(ServiceOutcome.Success);
         }
 
-        public async Task<GroupResult> RemoveAsync(string userId, string id)
+        public async Task<ServiceResult> RemoveAsync(string userId, string id)
         {
             var currentUser = await GetCurrentUserAsync(userId);
-            if (currentUser?.Group == null) return new GroupResult(GroupOutcome.Forbidden);
+            if (currentUser?.Group == null) return new ServiceResult(ServiceOutcome.Forbidden);
 
             if (currentUser.Id == id)
             {
-                return new GroupResult(GroupOutcome.Invalid, "Du kan ikke fjerne dig selv fra gruppen.");
+                return new ServiceResult(ServiceOutcome.Invalid, "Du kan ikke fjerne dig selv fra gruppen.");
             }
 
             await using var transaction = await dataDb.Database.BeginTransactionAsync();
@@ -91,7 +91,7 @@ namespace DS.Application.Services.Groups
                 u.Id == currentUser.Id &&
                 u.Group.Id == currentUser.Group.Id))
             {
-                return new GroupResult(GroupOutcome.Forbidden);
+                return new ServiceResult(ServiceOutcome.Forbidden);
             }
 
             var member = await userManager.Users
@@ -101,7 +101,7 @@ namespace DS.Application.Services.Groups
                     u.Group.Id == currentUser.Group.Id);
             if (member == null)
             {
-                return new GroupResult(GroupOutcome.NotFound, "Brugeren er ikke medlem af din gruppe.");
+                return new ServiceResult(ServiceOutcome.NotFound, "Brugeren er ikke medlem af din gruppe.");
             }
 
             member.Group = null;
@@ -109,7 +109,7 @@ namespace DS.Application.Services.Groups
             await dataDb.SaveChangesAsync();
             await transaction.CommitAsync();
 
-            return new GroupResult(GroupOutcome.Success);
+            return new ServiceResult(ServiceOutcome.Success);
         }
     }
 }

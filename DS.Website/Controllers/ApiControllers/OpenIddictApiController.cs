@@ -1,6 +1,7 @@
 using DS.Application.Services.OpenIddict;
 using DS.Domain;
 using DS.Domain.DTOs;
+using DS.Website.Extensions;
 using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -30,7 +31,7 @@ namespace DS.Website.Controllers
         {
             var result = await clientService.GetClients(cancellationToken);
 
-            return Respond(result);
+            return this.ToActionResult(result);
         }
 
         [HttpPost]
@@ -41,7 +42,7 @@ namespace DS.Website.Controllers
 
             var result = await clientService.CreateClient(data, cancellationToken);
 
-            return Respond(result);
+            return this.ToActionResult(result);
         }
 
         [HttpPut("{id}")]
@@ -52,7 +53,7 @@ namespace DS.Website.Controllers
 
             var result = await clientService.UpdateClient(id, data, cancellationToken);
 
-            return Respond(result);
+            return this.ToActionResult(result);
         }
 
         [HttpPost("{id}/rotate-secret")]
@@ -61,7 +62,7 @@ namespace DS.Website.Controllers
         {
             var result = await clientService.RotateSecret(id, cancellationToken);
 
-            return Respond(result);
+            return this.ToActionResult(result);
         }
 
         [HttpDelete("{id}")]
@@ -70,24 +71,7 @@ namespace DS.Website.Controllers
         {
             var result = await clientService.DeleteClient(id, cancellationToken);
 
-            return Respond(result, true);
-        }
-
-        private IActionResult Respond(OpenIddictClientResult result, bool noContent = false)
-        {
-            switch (result.Outcome)
-            {
-                case OpenIddictClientOutcome.Success:
-                    if (noContent) return NoContent();
-
-                    return Ok(result.Value);
-                case OpenIddictClientOutcome.Invalid:
-                    return BadRequest(result.Value);
-                case OpenIddictClientOutcome.NotFound:
-                    return NotFound();
-                default:
-                    return Conflict(result.Value);
-            }
+            return this.ToActionResult(result, noContent: true);
         }
     }
 }

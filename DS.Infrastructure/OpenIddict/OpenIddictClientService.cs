@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using System.Text.Json;
+using DS.Application.Services;
 using DS.Application.Services.OpenIddict;
 using DS.Domain.DTOs;
 using Microsoft.EntityFrameworkCore;
@@ -12,7 +13,7 @@ namespace DS.Infrastructure.OpenIddict
     {
         private static readonly string[] EditableScopes = [Scopes.Email, Scopes.Profile, Scopes.Roles];
 
-        public async Task<OpenIddictClientResult> GetClients(CancellationToken cancellationToken)
+        public async Task<ServiceResult<List<OpenIddictClientDto>>> GetClients(CancellationToken cancellationToken)
         {
             var clients = new List<OpenIddictClientDto>();
             await foreach (var application in applications.ListAsync(cancellationToken: cancellationToken))
@@ -20,15 +21,15 @@ namespace DS.Infrastructure.OpenIddict
                 clients.Add(await GetClientAsync(application, cancellationToken));
             }
 
-            return new OpenIddictClientResult(OpenIddictClientOutcome.Success, clients.OrderBy(client => client.ClientId).ToList());
+            return new ServiceResult<List<OpenIddictClientDto>>(ServiceOutcome.Success, clients.OrderBy(client => client.ClientId).ToList());
         }
 
-        public async Task<OpenIddictClientResult> CreateClient(OpenIddictClientUpdateDto data, CancellationToken cancellationToken)
+        public async Task<ServiceResult<OpenIddictClientSavedDto>> CreateClient(OpenIddictClientUpdateDto data, CancellationToken cancellationToken)
         {
             var error = ValidateClient(data);
-            if (error != null) return new OpenIddictClientResult(OpenIddictClientOutcome.Invalid, error);
+            if (error != null) return new ServiceResult(ServiceOutcome.Invalid, error);
 
-            if (await applications.FindByClientIdAsync(data.ClientId.Trim(), cancellationToken) != null) return new OpenIddictClientResult(OpenIddictClientOutcome.Conflict, "Client ID er allerede i brug.");
+            if (await applications.FindByClientIdAsync(data.ClientId.Trim(), cancellationToken) != null) return new ServiceResult(ServiceOutcome.Conflict, "Client ID er allerede i brug.");
 
             return await ExecuteChangeAsync(async () =>
             {
@@ -49,7 +50,7 @@ namespace DS.Infrastructure.OpenIddict
                 descriptor.ClientSecret = secret;
                 var application = await applications.CreateAsync(descriptor, cancellationToken);
 
-                return new OpenIddictClientResult(OpenIddictClientOutcome.Success, new OpenIddictClientSavedDto
+                return new ServiceResult<OpenIddictClientSavedDto>(ServiceOutcome.Success, new OpenIddictClientSavedDto
                 {
                     Client = await GetClientAsync(application, cancellationToken),
                     ClientSecret = secret
@@ -57,16 +58,16 @@ namespace DS.Infrastructure.OpenIddict
             });
         }
 
-        public async Task<OpenIddictClientResult> UpdateClient(string id, OpenIddictClientUpdateDto data, CancellationToken cancellationToken)
+        public async Task<ServiceResult<OpenIddictClientSavedDto>> UpdateClient(string id, OpenIddictClientUpdateDto data, CancellationToken cancellationToken)
         {
             var error = ValidateClient(data);
-            if (error != null) return new OpenIddictClientResult(OpenIddictClientOutcome.Invalid, error);
+            if (error != null) return new ServiceResult(ServiceOutcome.Invalid, error);
 
             var application = await applications.FindByIdAsync(id, cancellationToken);
-            if (application == null) return new OpenIddictClientResult(OpenIddictClientOutcome.NotFound);
+            if (application == null) return new ServiceResult(ServiceOutcome.NotFound);
 
             var duplicate = await applications.FindByClientIdAsync(data.ClientId.Trim(), cancellationToken);
-            if (duplicate != null && await applications.GetIdAsync(duplicate, cancellationToken) != id) return new OpenIddictClientResult(OpenIddictClientOutcome.Conflict, "Client ID er allerede i brug.");
+            if (duplicate != null && await applications.GetIdAsync(duplicate, cancellationToken) != id) return new ServiceResult(ServiceOutcome.Conflict, "Client ID er allerede i brug.");
 
             return await ExecuteChangeAsync(async () =>
             {
@@ -88,7 +89,7 @@ namespace DS.Infrastructure.OpenIddict
 
                 await applications.UpdateAsync(application, descriptor, cancellationToken);
 
-                return new OpenIddictClientResult(OpenIddictClientOutcome.Success, new OpenIddictClientSavedDto
+                return new ServiceResult<OpenIddictClientSavedDto>(ServiceOutcome.Success, new OpenIddictClientSavedDto
                 {
                     Client = await GetClientAsync(application, cancellationToken),
                     ClientSecret = secret
@@ -96,32 +97,32 @@ namespace DS.Infrastructure.OpenIddict
             });
         }
 
-        public async Task<OpenIddictClientResult> RotateSecret(string id, CancellationToken cancellationToken)
+        public async Task<ServiceResult<OpenIddictClientSecretDto>> RotateSecret(string id, CancellationToken cancellationToken)
         {
             var application = await applications.FindByIdAsync(id, cancellationToken);
-            if (application == null) return new OpenIddictClientResult(OpenIddictClientOutcome.NotFound);
+            if (application == null) return new ServiceResult(ServiceOutcome.NotFound);
 
-            if (await applications.GetClientTypeAsync(application, cancellationToken) != ClientTypes.Confidential) return new OpenIddictClientResult(OpenIddictClientOutcome.Invalid, "Public-klienter har ikke et client secret.");
+            if (await applications.GetClientTypeAsync(application, cancellationToken) != ClientTypes.Confidential) return new ServiceResult(ServiceOutcome.Invalid, "Public-klienter har ikke et client secret.");
 
             return await ExecuteChangeAsync(async () =>
             {
                 var secret = GenerateSecret();
                 await applications.UpdateAsync(application, secret, cancellationToken);
 
-                return new OpenIddictClientResult(OpenIddictClientOutcome.Success, new { clientSecret = secret });
+                return new ServiceResult<OpenIddictClientSecretDto>(ServiceOutcome.Success, new OpenIddictClientSecretDto { ClientSecret = secret });
             });
         }
 
-        public async Task<OpenIddictClientResult> DeleteClient(string id, CancellationToken cancellationToken)
+        public async Task<ServiceResult> DeleteClient(string id, CancellationToken cancellationToken)
         {
             var application = await applications.FindByIdAsync(id, cancellationToken);
-            if (application == null) return new OpenIddictClientResult(OpenIddictClientOutcome.NotFound);
+            if (application == null) return new ServiceResult(ServiceOutcome.NotFound);
 
-            return await ExecuteChangeAsync(async () =>
+            return await ExecuteChangeAsync<object>(async () =>
             {
                 await applications.DeleteAsync(application, cancellationToken);
 
-                return new OpenIddictClientResult(OpenIddictClientOutcome.Success);
+                return new ServiceResult(ServiceOutcome.Success);
             });
         }
 
@@ -195,23 +196,24 @@ namespace DS.Infrastructure.OpenIddict
             return Convert.ToHexStringLower(RandomNumberGenerator.GetBytes(32));
         }
 
-        private async Task<OpenIddictClientResult> ExecuteChangeAsync(Func<Task<OpenIddictClientResult>> change)
+        private async Task<ServiceResult> ExecuteChangeAsync<T>(Func<Task<ServiceResult<T>>> change)
         {
             try
             {
-                return await change();
+                var result = await change();
+                return new ServiceResult(result.Outcome, result.Error);
             }
             catch (OpenIddictExceptions.ValidationException)
             {
-                return new OpenIddictClientResult(OpenIddictClientOutcome.Invalid, "Klientens indstillinger kunne ikke valideres. Kontrollér Client ID, klienttype og redirect-URL'er.");
+                return new ServiceResult(ServiceOutcome.Invalid, "Klientens indstillinger kunne ikke valideres. Kontrollér Client ID, klienttype og redirect-URL'er.");
             }
             catch (OpenIddictExceptions.ConcurrencyException)
             {
-                return new OpenIddictClientResult(OpenIddictClientOutcome.Conflict, "Klienten er ændret af en anden. Genindlæs listen, og prøv igen.");
+                return new ServiceResult(ServiceOutcome.Conflict, "Klienten er ændret af en anden. Genindlæs listen, og prøv igen.");
             }
             catch (DbUpdateException)
             {
-                return new OpenIddictClientResult(OpenIddictClientOutcome.Conflict, "Klienten kunne ikke gemmes. Genindlæs listen, og kontrollér, at Client ID er unikt.");
+                return new ServiceResult(ServiceOutcome.Conflict, "Klienten kunne ikke gemmes. Genindlæs listen, og kontrollér, at Client ID er unikt.");
             }
         }
     }

@@ -2,6 +2,7 @@ using DS.Application.Services.Profile;
 using DS.Domain;
 using DS.Domain.DTOs;
 using DS.Domain.Models;
+using DS.Website.Extensions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -16,7 +17,7 @@ namespace DS.Website.Controllers
         {
             var result = await service.Index(GetActor());
 
-            return Respond(result);
+            return this.ToActionResult(result);
         }
 
         [HttpPut("phone")]
@@ -26,7 +27,7 @@ namespace DS.Website.Controllers
 
             var result = await service.UpdatePhone(GetActor(), data);
 
-            return Respond(result);
+            return this.ToActionResult(result);
         }
 
         [HttpPut("profile-picture")]
@@ -36,7 +37,7 @@ namespace DS.Website.Controllers
 
             var result = await service.UpdateProfilePicture(GetActor(), data);
 
-            return Respond(result);
+            return this.ToActionResult(result);
         }
 
         [HttpGet("notifications")]
@@ -44,7 +45,7 @@ namespace DS.Website.Controllers
         {
             var result = await service.GetNotifications(GetActor());
 
-            return Respond(result);
+            return this.ToActionResult(result);
         }
 
         [HttpPut("notifications")]
@@ -54,7 +55,7 @@ namespace DS.Website.Controllers
 
             var result = await service.UpdateNotifications(GetActor(), data);
 
-            return Respond(result);
+            return this.ToActionResult(result);
         }
 
         private MeActor GetActor()
@@ -73,21 +74,6 @@ namespace DS.Website.Controllers
                 .Select(claim => claim.Value)
                 .Where(value => Enum.TryParse<AppGroups>(value, out _))
                 .ToList();
-        }
-
-        private IActionResult Respond(MeResult result)
-        {
-            switch (result.Outcome)
-            {
-                case MeOutcome.Success:
-                    return result.Value == null ? Ok() : Ok(result.Value);
-                case MeOutcome.Invalid:
-                    return result.Value == null ? BadRequest() : BadRequest(result.Value);
-                case MeOutcome.NotFound:
-                    return NotFound();
-                default:
-                    return Forbid();
-            }
         }
     }
 }

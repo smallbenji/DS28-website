@@ -2,6 +2,7 @@ using DS.Application.Services.Users;
 using DS.Domain;
 using DS.Domain.DTOs;
 using DS.Domain.Models;
+using DS.Website.Extensions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -17,7 +18,7 @@ namespace DS.Website.Controllers
         {
             var result = await userService.GetUsers();
 
-            return Respond(result);
+            return this.ToActionResult(result);
         }
 
         [HttpPost]
@@ -29,7 +30,7 @@ namespace DS.Website.Controllers
 
             var result = await userService.CreateUser(data);
 
-            return Respond(result);
+            return this.ToActionResult(result);
         }
 
         [HttpPut]
@@ -41,7 +42,7 @@ namespace DS.Website.Controllers
 
             var result = await userService.UpdateUser(data);
 
-            return Respond(result);
+            return this.ToActionResult(result);
         }
 
         [HttpPut("{id}/profile-picture")]
@@ -52,7 +53,7 @@ namespace DS.Website.Controllers
 
             var result = await userService.UpdateProfilePicture(userManager.GetUserId(User), id, data);
 
-            return Respond(result);
+            return this.ToActionResult(result);
         }
 
         [HttpPut("{id}/role/add")]
@@ -62,7 +63,7 @@ namespace DS.Website.Controllers
 
             var result = await userService.AddUserToRole(userManager.GetUserId(User), role, id);
 
-            return Respond(result);
+            return this.ToActionResult(result);
         }
 
         [HttpPut("{id}/role/remove")]
@@ -72,7 +73,7 @@ namespace DS.Website.Controllers
 
             var result = await userService.RemoveUserToRole(userManager.GetUserId(User), role, id);
 
-            return Respond(result);
+            return this.ToActionResult(result);
         }
 
         [HttpDelete("{id}")]
@@ -81,7 +82,7 @@ namespace DS.Website.Controllers
         {
             var result = await userService.DeleteUser(id);
 
-            return Respond(result);
+            return this.ToActionResult(result);
         }
 
         [HttpPut("{id}/lock")]
@@ -90,7 +91,7 @@ namespace DS.Website.Controllers
         {
             var result = await userService.LockUser(id);
 
-            return Respond(result);
+            return this.ToActionResult(result);
         }
 
         [HttpPut("{id}/unlock")]
@@ -99,7 +100,7 @@ namespace DS.Website.Controllers
         {
             var result = await userService.UnlockUser(id);
 
-            return Respond(result);
+            return this.ToActionResult(result);
         }
 
         [HttpGet("assignable-groups")]
@@ -107,7 +108,7 @@ namespace DS.Website.Controllers
         {
             var result = await userService.GetAssignableGroups(userManager.GetUserId(User));
 
-            return Respond(result);
+            return this.ToActionResult(result);
         }
 
         [HttpGet("groups")]
@@ -115,7 +116,7 @@ namespace DS.Website.Controllers
         {
             var result = await userService.GetGroups();
 
-            return Respond(result);
+            return this.ToActionResult(result);
         }
 
         [HttpPost("{id}/reset-password-link")]
@@ -124,7 +125,7 @@ namespace DS.Website.Controllers
         {
             var result = await userService.CreateResetPasswordLink($"{Request.Scheme}://{Request.Host}", id);
 
-            return Respond(result);
+            return this.ToActionResult(result);
         }
 
         [HttpPost("invite")]
@@ -134,22 +135,7 @@ namespace DS.Website.Controllers
 
             var result = await userService.InviteUser(userManager.GetUserId(User), data);
 
-            return Respond(result);
-        }
-
-        private IActionResult Respond(UserResult result)
-        {
-            switch (result.Outcome)
-            {
-                case UserOutcome.Success:
-                    return result.Value == null ? Ok() : Ok(result.Value);
-                case UserOutcome.Invalid:
-                    return BadRequest(result.Value);
-                case UserOutcome.NotFound:
-                    return NotFound();
-                default:
-                    return Forbid();
-            }
+            return this.ToActionResult(result);
         }
     }
 }

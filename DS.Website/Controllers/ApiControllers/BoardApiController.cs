@@ -2,6 +2,7 @@ using DS.Application.Services.Boards;
 using DS.Domain;
 using DS.Domain.DTOs;
 using DS.Domain.Models;
+using DS.Website.Extensions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -17,7 +18,7 @@ namespace DS.Website.Controllers
         {
             var result = await service.GetBoards(GetActor());
 
-            return Respond(result);
+            return this.ToActionResult(result);
         }
 
         [HttpGet("{id:int}")]
@@ -25,7 +26,7 @@ namespace DS.Website.Controllers
         {
             var result = await service.GetBoard(GetActor(), id);
 
-            return Respond(result);
+            return this.ToActionResult(result);
         }
 
         [HttpGet("{id:int}/columns")]
@@ -33,7 +34,7 @@ namespace DS.Website.Controllers
         {
             var result = await service.GetColumns(GetActor(), id);
 
-            return Respond(result);
+            return this.ToActionResult(result);
         }
 
         [HttpGet("assignees")]
@@ -41,7 +42,7 @@ namespace DS.Website.Controllers
         {
             var result = await service.SearchAssignees(GetActor(), search, boardId);
 
-            return Respond(result);
+            return this.ToActionResult(result);
         }
 
         [HttpGet("{id:int}/members")]
@@ -49,7 +50,7 @@ namespace DS.Website.Controllers
         {
             var result = await service.GetMembers(GetActor(), id);
 
-            return Respond(result);
+            return this.ToActionResult(result);
         }
 
         [HttpPost("{id:int}/members")]
@@ -57,7 +58,7 @@ namespace DS.Website.Controllers
         {
             var result = await service.AddMember(GetActor(), data, id);
 
-            return Respond(result);
+            return this.ToActionResult(result);
         }
 
         [HttpPost]
@@ -65,7 +66,7 @@ namespace DS.Website.Controllers
         {
             var result = await service.CreateBoard(GetActor(), data);
 
-            return Respond(result);
+            return this.ToActionResult(result);
         }
 
         [HttpPost("{id:int}/colors")]
@@ -73,7 +74,7 @@ namespace DS.Website.Controllers
         {
             var result = await service.CreateColor(GetActor(), data, id);
 
-            return Respond(result);
+            return this.ToActionResult(result);
         }
 
         [HttpPut("{id:int}/colors/{colorId:int}")]
@@ -81,7 +82,7 @@ namespace DS.Website.Controllers
         {
             var result = await service.UpdateColor(GetActor(), data, id, colorId);
 
-            return Respond(result);
+            return this.ToActionResult(result);
         }
 
         [HttpDelete("{id:int}/colors/{colorId:int}")]
@@ -89,7 +90,7 @@ namespace DS.Website.Controllers
         {
             var result = await service.DeleteColor(GetActor(), id, colorId);
 
-            return Respond(result);
+            return this.ToActionResult(result);
         }
 
         [HttpPut("{id:int}")]
@@ -97,7 +98,7 @@ namespace DS.Website.Controllers
         {
             var result = await service.UpdateBoard(GetActor(), data, id);
 
-            return Respond(result);
+            return this.ToActionResult(result);
         }
 
         [HttpDelete("{id:int}")]
@@ -105,7 +106,7 @@ namespace DS.Website.Controllers
         {
             var result = await service.DeleteBoard(GetActor(), id);
 
-            return Respond(result);
+            return this.ToActionResult(result);
         }
 
         [HttpPost("{id:int}/columns")]
@@ -113,7 +114,7 @@ namespace DS.Website.Controllers
         {
             var result = await service.CreateColumn(GetActor(), data, id);
 
-            return Respond(result);
+            return this.ToActionResult(result);
         }
 
         [HttpPut("{id:int}/columns/{columnId:int}")]
@@ -121,7 +122,7 @@ namespace DS.Website.Controllers
         {
             var result = await service.UpdateColumn(GetActor(), data, id, columnId);
 
-            return Respond(result);
+            return this.ToActionResult(result);
         }
 
         [HttpDelete("{id:int}/columns/{columnId:int}")]
@@ -129,7 +130,7 @@ namespace DS.Website.Controllers
         {
             var result = await service.DeleteColumn(GetActor(), id, columnId);
 
-            return Respond(result);
+            return this.ToActionResult(result);
         }
 
         [HttpPut("{id:int}/columns/reorder")]
@@ -137,7 +138,7 @@ namespace DS.Website.Controllers
         {
             var result = await service.ReorderColumns(GetActor(), columnOrder, id);
 
-            return Respond(result);
+            return this.ToActionResult(result);
         }
 
         [HttpPost("{id:int}/cards")]
@@ -145,7 +146,7 @@ namespace DS.Website.Controllers
         {
             var result = await service.CreateCard(GetActor(), data, id);
 
-            return Respond(result);
+            return this.ToActionResult(result);
         }
 
         [HttpPut("{id:int}/cards/{workItemId:int}")]
@@ -153,7 +154,7 @@ namespace DS.Website.Controllers
         {
             var result = await service.UpdateCard(GetActor(), data, id, workItemId);
 
-            return Respond(result);
+            return this.ToActionResult(result);
         }
 
         [HttpPut("{id:int}/cards/{workItemId:int}/move")]
@@ -161,7 +162,7 @@ namespace DS.Website.Controllers
         {
             var result = await service.MoveCard(GetActor(), data, id, workItemId);
 
-            return Respond(result);
+            return this.ToActionResult(result);
         }
 
         [HttpDelete("{id:int}/cards/{workItemId:int}")]
@@ -169,7 +170,7 @@ namespace DS.Website.Controllers
         {
             var result = await service.RemoveCard(GetActor(), id, workItemId);
 
-            return Respond(result);
+            return this.ToActionResult(result);
         }
 
         [HttpPost("{id:int}/cards/{workItemId:int}/placements")]
@@ -177,27 +178,12 @@ namespace DS.Website.Controllers
         {
             var result = await service.AddCardPlacement(GetActor(), data, id, workItemId);
 
-            return Respond(result);
+            return this.ToActionResult(result);
         }
 
         private BoardActor GetActor()
         {
             return new BoardActor(userManager.GetUserId(User), User.IsInRole(nameof(AppGroups.SysAdmin)) || User.IsInRole(nameof(AppGroups.CampAdmin)));
-        }
-
-        private IActionResult Respond(BoardResult result)
-        {
-            switch (result.Outcome)
-            {
-                case BoardOutcome.Success:
-                    return result.Value == null ? Ok() : Ok(result.Value);
-                case BoardOutcome.Invalid:
-                    return result.Value == null ? BadRequest() : BadRequest(result.Value);
-                case BoardOutcome.NotFound:
-                    return NotFound();
-                default:
-                    return Forbid();
-            }
         }
     }
 }

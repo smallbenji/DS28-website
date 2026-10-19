@@ -1,6 +1,7 @@
 using DS.Application.Services.Groups;
 using DS.Domain.DTOs;
 using DS.Domain.Models;
+using DS.Website.Extensions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -16,7 +17,7 @@ namespace DS.Website.Controllers
         {
             var result = await service.GetPreSignup(userManager.GetUserId(User));
 
-            return Respond(result);
+            return this.ToActionResult(result);
         }
 
         [HttpPut("pre-signup")]
@@ -26,7 +27,7 @@ namespace DS.Website.Controllers
 
             var result = await service.UpdatePreSignup(userManager.GetUserId(User), data);
 
-            return Respond(result, true);
+            return this.ToActionResult(result, noContent: true);
         }
 
         [HttpGet]
@@ -34,7 +35,7 @@ namespace DS.Website.Controllers
         {
             var result = await service.GetGroup(userManager.GetUserId(User));
 
-            return Respond(result);
+            return this.ToActionResult(result);
         }
 
         [HttpPost("scouts")]
@@ -44,7 +45,7 @@ namespace DS.Website.Controllers
 
             var result = await service.CreateScout(userManager.GetUserId(User), data);
 
-            return Respond(result);
+            return this.ToActionResult(result);
         }
 
         [HttpDelete("scouts/{scoutId:int}")]
@@ -52,7 +53,7 @@ namespace DS.Website.Controllers
         {
             var result = await service.DeleteScout(userManager.GetUserId(User), scoutId);
 
-            return Respond(result, true);
+            return this.ToActionResult(result, noContent: true);
         }
 
         [HttpPost("patrols")]
@@ -62,7 +63,7 @@ namespace DS.Website.Controllers
 
             var result = await service.CreatePatrol(userManager.GetUserId(User), data);
 
-            return Respond(result);
+            return this.ToActionResult(result);
         }
 
         [HttpDelete("patrols/{patrolId:int}")]
@@ -70,7 +71,7 @@ namespace DS.Website.Controllers
         {
             var result = await service.DeletePatrol(userManager.GetUserId(User), patrolId);
 
-            return Respond(result, true);
+            return this.ToActionResult(result, noContent: true);
         }
 
         [HttpPost("scouts/add-patrol")]
@@ -80,7 +81,7 @@ namespace DS.Website.Controllers
 
             var result = await service.AddScoutToPatrol(userManager.GetUserId(User), data);
 
-            return Respond(result);
+            return this.ToActionResult(result);
         }
 
         [HttpPost("scouts/remove-patrol")]
@@ -90,26 +91,7 @@ namespace DS.Website.Controllers
 
             var result = await service.RemoveScoutFromPatrol(userManager.GetUserId(User), data);
 
-            return Respond(result, true);
-        }
-
-        private IActionResult Respond(GroupResult result, bool noContent = false)
-        {
-            switch (result.Outcome)
-            {
-                case GroupOutcome.Success:
-                    if (noContent) return NoContent();
-
-                    return result.Value == null ? Ok() : Ok(result.Value);
-                case GroupOutcome.Invalid:
-                    return BadRequest(result.Value);
-                case GroupOutcome.NotFound:
-                    return result.Value == null ? NotFound() : NotFound(result.Value);
-                case GroupOutcome.Forbidden:
-                    return Forbid();
-                default:
-                    return Conflict(result.Value);
-            }
+            return this.ToActionResult(result, noContent: true);
         }
     }
 }

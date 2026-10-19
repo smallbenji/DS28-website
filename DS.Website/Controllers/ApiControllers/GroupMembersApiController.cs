@@ -1,6 +1,7 @@
 using DS.Application.Services.Groups;
 using DS.Domain.DTOs;
 using DS.Domain.Models;
+using DS.Website.Extensions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -18,7 +19,7 @@ namespace DS.Website.Controllers
 
             var result = await service.InviteAsync(userManager.GetUserId(User), data);
 
-            return Respond(result);
+            return this.ToActionResult(result);
         }
 
         [HttpGet("invitations")]
@@ -26,7 +27,7 @@ namespace DS.Website.Controllers
         {
             var result = await service.GetInvitationsAsync(userManager.GetUserId(User));
 
-            return Respond(result);
+            return this.ToActionResult(result);
         }
 
         [HttpDelete("invitations/{id:guid}")]
@@ -34,7 +35,7 @@ namespace DS.Website.Controllers
         {
             var result = await service.RevokeAsync(userManager.GetUserId(User), id);
 
-            return Respond(result, true);
+            return this.ToActionResult(result, noContent: true);
         }
 
         [HttpDelete("{id}")]
@@ -42,26 +43,7 @@ namespace DS.Website.Controllers
         {
             var result = await service.RemoveAsync(userManager.GetUserId(User), id);
 
-            return Respond(result, true);
-        }
-
-        private IActionResult Respond(GroupResult result, bool noContent = false)
-        {
-            switch (result.Outcome)
-            {
-                case GroupOutcome.Success:
-                    if (noContent) return NoContent();
-
-                    return result.Value == null ? Ok() : Ok(result.Value);
-                case GroupOutcome.Invalid:
-                    return BadRequest(result.Value);
-                case GroupOutcome.NotFound:
-                    return result.Value == null ? NotFound() : NotFound(result.Value);
-                case GroupOutcome.Forbidden:
-                    return Forbid();
-                default:
-                    return Conflict(result.Value);
-            }
+            return this.ToActionResult(result, noContent: true);
         }
     }
 }

@@ -10,9 +10,9 @@ namespace DS.Application.Services.Organization
 {
     public class OrgService(IDataDbContext dataDb, UserManager<User> userManager, EmailService emailService, IUserAccessCache accessCache)
     {
-        public async Task<OrgResult> GetPositions(OrgActor actor)
+        public async Task<ServiceResult<List<OrgPositionDto>>> GetPositions(OrgActor actor)
         {
-            if (!(actor.IsSystemAdministrator || actor.CanView)) return new OrgResult(OrgOutcome.Forbidden);
+            if (!(actor.IsSystemAdministrator || actor.CanView)) return new ServiceResult(ServiceOutcome.Forbidden);
 
             var positions = await dataDb.OrgPositions
                 .AsNoTracking()
@@ -25,35 +25,35 @@ namespace DS.Application.Services.Organization
                 .OrderBy(position => position.Id)
                 .ToListAsync();
 
-            return new OrgResult(OrgOutcome.Success, positions.Select(ToDto).ToList());
+            return new ServiceResult<List<OrgPositionDto>>(ServiceOutcome.Success, positions.Select(ToDto).ToList());
         }
 
-        public async Task<OrgResult> GetAssignableGroups(OrgActor actor)
+        public async Task<ServiceResult<List<string>>> GetAssignableGroups(OrgActor actor)
         {
-            if (!(actor.IsSystemAdministrator || actor.CanView)) return new OrgResult(OrgOutcome.Forbidden);
+            if (!(actor.IsSystemAdministrator || actor.CanView)) return new ServiceResult(ServiceOutcome.Forbidden);
 
             var groups = actor.IsSystemAdministrator
                 ? Enum.GetNames<AppGroups>().ToList()
                 : await GetCurrentGroupsAsync(actor);
 
-            return new OrgResult(OrgOutcome.Success, groups);
+            return new ServiceResult<List<string>>(ServiceOutcome.Success, groups);
         }
 
-        public async Task<OrgResult> CreatePosition(OrgActor actor, OrgPositionCreateDto data)
+        public async Task<ServiceResult<int>> CreatePosition(OrgActor actor, OrgPositionCreateDto data)
         {
-            if (!await CanManageParentAsync(actor, data.ParentPositionId)) return new OrgResult(OrgOutcome.Forbidden);
+            if (!await CanManageParentAsync(actor, data.ParentPositionId)) return new ServiceResult(ServiceOutcome.Forbidden);
 
             if (data.ParentPositionId != null && await dataDb.OrgPositions
                 .AnyAsync(parent => parent.Id == data.ParentPositionId && parent.PaForPositionId != null))
             {
-                return new OrgResult(OrgOutcome.Invalid, "Der kan ikke oprettes understillinger under en personlig assistent.");
+                return new ServiceResult(ServiceOutcome.Invalid, "Der kan ikke oprettes understillinger under en personlig assistent.");
             }
 
             var groups = NormalizeGroups(data.Groups);
-            if (groups.Contains(nameof(AppGroups.SysAdmin))) return new OrgResult(OrgOutcome.Invalid, "SysAdmin kan ikke tildeles en almindelig stilling.");
-            if (!await CanAssignGroupsAsync(actor, groups)) return new OrgResult(OrgOutcome.Forbidden);
+            if (groups.Contains(nameof(AppGroups.SysAdmin))) return new ServiceResult(ServiceOutcome.Invalid, "SysAdmin kan ikke tildeles en almindelig stilling.");
+            if (!await CanAssignGroupsAsync(actor, groups)) return new ServiceResult(ServiceOutcome.Forbidden);
 
-            if (!TryNormalizeColor(data.Color, out var color)) return new OrgResult(OrgOutcome.Invalid, "Ugyldig farve.");
+            if (!TryNormalizeColor(data.Color, out var color)) return new ServiceResult(ServiceOutcome.Invalid, "Ugyldig farve.");
 
             var position = new OrgPosition
             {
@@ -66,21 +66,21 @@ namespace DS.Application.Services.Organization
             dataDb.OrgPositions.Add(position);
             await dataDb.SaveChangesAsync();
 
-            return new OrgResult(OrgOutcome.Success, position.Id);
+            return new ServiceResult<int>(ServiceOutcome.Success, position.Id);
         }
 
-        public async Task<OrgResult> CreatePa(OrgActor actor, int id)
+        public async Task<ServiceResult<int>> CreatePa(OrgActor actor, int id)
         {
             var position = await dataDb.OrgPositions
                 .FirstOrDefaultAsync(position => position.Id == id && position.DeletedAt == null);
-            if (position == null) return new OrgResult(OrgOutcome.NotFound);
+            if (position == null) return new ServiceResult(ServiceOutcome.NotFound);
 
-            if (position.PaForPositionId != null) return new OrgResult(OrgOutcome.Invalid, "Den personlige assistent kan ikke have sin egen assistent.");
-            if (!await CanManagePositionAsync(actor, position)) return new OrgResult(OrgOutcome.Forbidden);
+            if (position.PaForPositionId != null) return new ServiceResult(ServiceOutcome.Invalid, "Den personlige assistent kan ikke have sin egen assistent.");
+            if (!await CanManagePositionAsync(actor, position)) return new ServiceResult(ServiceOutcome.Forbidden);
 
             var hasPa = await dataDb.OrgPositions
                 .AnyAsync(pa => pa.PaForPositionId == id && pa.DeletedAt == null);
-            if (hasPa) return new OrgResult(OrgOutcome.Invalid, "Stillingen har allerede en personlig assistent.");
+            if (hasPa) return new ServiceResult(ServiceOutcome.Invalid, "Stillingen har allerede en personlig assistent.");
 
             var pa = new OrgPosition
             {
@@ -92,24 +92,24 @@ namespace DS.Application.Services.Organization
             dataDb.OrgPositions.Add(pa);
             await dataDb.SaveChangesAsync();
 
-            return new OrgResult(OrgOutcome.Success, pa.Id);
+            return new ServiceResult<int>(ServiceOutcome.Success, pa.Id);
         }
 
-        public async Task<OrgResult> UpdatePosition(OrgActor actor, OrgPositionUpdateDto data, int id)
+        public async Task<ServiceResult> UpdatePosition(OrgActor actor, OrgPositionUpdateDto data, int id)
         {
             var position = await dataDb.OrgPositions
                 .FirstOrDefaultAsync(position => position.Id == id && position.DeletedAt == null);
-            if (position == null) return new OrgResult(OrgOutcome.NotFound);
+            if (position == null) return new ServiceResult(ServiceOutcome.NotFound);
 
-            if (position.IsSystem) return new OrgResult(OrgOutcome.Invalid, "Systemstillingen kan ikke redigeres.");
-            if (position.PaForPositionId != null) return new OrgResult(OrgOutcome.Invalid, "Den personlige assistent kan ikke redigeres.");
-            if (!await CanManagePositionAsync(actor, position)) return new OrgResult(OrgOutcome.Forbidden);
+            if (position.IsSystem) return new ServiceResult(ServiceOutcome.Invalid, "Systemstillingen kan ikke redigeres.");
+            if (position.PaForPositionId != null) return new ServiceResult(ServiceOutcome.Invalid, "Den personlige assistent kan ikke redigeres.");
+            if (!await CanManagePositionAsync(actor, position)) return new ServiceResult(ServiceOutcome.Forbidden);
 
             var groups = NormalizeGroups(data.Groups);
-            if (groups.Contains(nameof(AppGroups.SysAdmin))) return new OrgResult(OrgOutcome.Invalid, "SysAdmin kan ikke tildeles en almindelig stilling.");
-            if (!await CanAssignGroupsAsync(actor, groups)) return new OrgResult(OrgOutcome.Forbidden);
+            if (groups.Contains(nameof(AppGroups.SysAdmin))) return new ServiceResult(ServiceOutcome.Invalid, "SysAdmin kan ikke tildeles en almindelig stilling.");
+            if (!await CanAssignGroupsAsync(actor, groups)) return new ServiceResult(ServiceOutcome.Forbidden);
 
-            if (!TryNormalizeColor(data.Color, out var color)) return new OrgResult(OrgOutcome.Invalid, "Ugyldig farve.");
+            if (!TryNormalizeColor(data.Color, out var color)) return new ServiceResult(ServiceOutcome.Invalid, "Ugyldig farve.");
 
             position.Title = data.Title.Trim();
             position.Color = color;
@@ -128,49 +128,49 @@ namespace DS.Application.Services.Organization
 
             await EvictHoldersAsync(id);
 
-            return new OrgResult(OrgOutcome.Success);
+            return new ServiceResult(ServiceOutcome.Success);
         }
 
-        public async Task<OrgResult> MovePosition(OrgActor actor, OrgPositionMoveDto data, int id)
+        public async Task<ServiceResult> MovePosition(OrgActor actor, OrgPositionMoveDto data, int id)
         {
             var position = await dataDb.OrgPositions
                 .FirstOrDefaultAsync(position => position.Id == id && position.DeletedAt == null);
-            if (position == null) return new OrgResult(OrgOutcome.NotFound);
+            if (position == null) return new ServiceResult(ServiceOutcome.NotFound);
 
-            if (position.IsSystem && !actor.IsSystemAdministrator) return new OrgResult(OrgOutcome.Forbidden);
-            if (position.PaForPositionId != null) return new OrgResult(OrgOutcome.Invalid, "Den personlige assistent er knyttet til en stilling og kan ikke flyttes.");
-            if (!await CanManagePositionAsync(actor, position)) return new OrgResult(OrgOutcome.Forbidden);
+            if (position.IsSystem && !actor.IsSystemAdministrator) return new ServiceResult(ServiceOutcome.Forbidden);
+            if (position.PaForPositionId != null) return new ServiceResult(ServiceOutcome.Invalid, "Den personlige assistent er knyttet til en stilling og kan ikke flyttes.");
+            if (!await CanManagePositionAsync(actor, position)) return new ServiceResult(ServiceOutcome.Forbidden);
 
             var parentPositionId = data?.ParentPositionId;
-            if (!await CanManageParentAsync(actor, parentPositionId)) return new OrgResult(OrgOutcome.Forbidden);
+            if (!await CanManageParentAsync(actor, parentPositionId)) return new ServiceResult(ServiceOutcome.Forbidden);
 
-            if (parentPositionId == id) return new OrgResult(OrgOutcome.Invalid, "En stilling kan ikke være sin egen overstilling.");
+            if (parentPositionId == id) return new ServiceResult(ServiceOutcome.Invalid, "En stilling kan ikke være sin egen overstilling.");
             if (parentPositionId != null && await IsDescendantAsync(id, parentPositionId.Value))
             {
-                return new OrgResult(OrgOutcome.Invalid, "En stilling kan ikke flyttes ind under en af sine egne understillinger.");
+                return new ServiceResult(ServiceOutcome.Invalid, "En stilling kan ikke flyttes ind under en af sine egne understillinger.");
             }
 
             position.ParentPositionId = parentPositionId;
             position.UpdatedAt = DateTime.UtcNow;
             await dataDb.SaveChangesAsync();
 
-            return new OrgResult(OrgOutcome.Success);
+            return new ServiceResult(ServiceOutcome.Success);
         }
 
-        public async Task<OrgResult> DeletePosition(OrgActor actor, int id)
+        public async Task<ServiceResult> DeletePosition(OrgActor actor, int id)
         {
             var position = await dataDb.OrgPositions
                 .Include(position => position.Holders)
                 .FirstOrDefaultAsync(position => position.Id == id && position.DeletedAt == null);
-            if (position == null) return new OrgResult(OrgOutcome.NotFound);
+            if (position == null) return new ServiceResult(ServiceOutcome.NotFound);
 
-            if (position.IsSystem) return new OrgResult(OrgOutcome.Invalid, "Systemstillingen kan ikke slettes.");
-            if (!await CanManagePositionAsync(actor, position)) return new OrgResult(OrgOutcome.Forbidden);
+            if (position.IsSystem) return new ServiceResult(ServiceOutcome.Invalid, "Systemstillingen kan ikke slettes.");
+            if (!await CanManagePositionAsync(actor, position)) return new ServiceResult(ServiceOutcome.Forbidden);
 
             var hasChildren = await dataDb.OrgPositions.AnyAsync(p => p.ParentPositionId == id && p.DeletedAt == null);
-            if (hasChildren) return new OrgResult(OrgOutcome.Invalid, "Stillingen har understillinger og kan ikke slettes.");
+            if (hasChildren) return new ServiceResult(ServiceOutcome.Invalid, "Stillingen har understillinger og kan ikke slettes.");
 
-            if (position.Holders.Count > 0) return new OrgResult(OrgOutcome.Invalid, "Stillingen har personer tilknyttet og kan ikke slettes.");
+            if (position.Holders.Count > 0) return new ServiceResult(ServiceOutcome.Invalid, "Stillingen har personer tilknyttet og kan ikke slettes.");
 
             var paHolderIds = await dataDb.OrgPositionHolders
                 .Where(holder => holder.Position.PaForPositionId == id)
@@ -185,67 +185,67 @@ namespace DS.Application.Services.Organization
                 accessCache.Evict(userId);
             }
 
-            return new OrgResult(OrgOutcome.Success);
+            return new ServiceResult(ServiceOutcome.Success);
         }
 
-        public async Task<OrgResult> AddHolder(OrgActor actor, OrgPositionHolderAddDto data, int id)
+        public async Task<ServiceResult> AddHolder(OrgActor actor, OrgPositionHolderAddDto data, int id)
         {
             var position = await dataDb.OrgPositions
                 .FirstOrDefaultAsync(position => position.Id == id && position.DeletedAt == null);
-            if (position == null) return new OrgResult(OrgOutcome.NotFound);
+            if (position == null) return new ServiceResult(ServiceOutcome.NotFound);
 
-            if (position.IsSystem && !actor.IsSystemAdministrator) return new OrgResult(OrgOutcome.Forbidden);
-            if (!await CanManagePositionAsync(actor, position)) return new OrgResult(OrgOutcome.Forbidden);
+            if (position.IsSystem && !actor.IsSystemAdministrator) return new ServiceResult(ServiceOutcome.Forbidden);
+            if (!await CanManagePositionAsync(actor, position)) return new ServiceResult(ServiceOutcome.Forbidden);
 
             var user = await userManager.FindByIdAsync(data.UserId);
-            if (user == null) return new OrgResult(OrgOutcome.NotFound, "Brugeren findes ikke.");
+            if (user == null) return new ServiceResult(ServiceOutcome.NotFound, "Brugeren findes ikke.");
 
             var exists = await dataDb.OrgPositionHolders.AnyAsync(holder => holder.PositionId == id && holder.UserId == data.UserId);
-            if (exists) return new OrgResult(OrgOutcome.Invalid, "Brugeren er allerede tilknyttet stillingen.");
+            if (exists) return new ServiceResult(ServiceOutcome.Invalid, "Brugeren er allerede tilknyttet stillingen.");
 
             dataDb.OrgPositionHolders.Add(new OrgPositionHolder { PositionId = id, UserId = data.UserId });
             await dataDb.SaveChangesAsync();
 
             accessCache.Evict(data.UserId);
 
-            return new OrgResult(OrgOutcome.Success);
+            return new ServiceResult(ServiceOutcome.Success);
         }
 
-        public async Task<OrgResult> RemoveHolder(OrgActor actor, int id, string userId)
+        public async Task<ServiceResult> RemoveHolder(OrgActor actor, int id, string userId)
         {
             var position = await dataDb.OrgPositions
                 .Include(position => position.Holders)
                 .FirstOrDefaultAsync(position => position.Id == id && position.DeletedAt == null);
-            if (position == null) return new OrgResult(OrgOutcome.NotFound);
+            if (position == null) return new ServiceResult(ServiceOutcome.NotFound);
 
-            if (position.IsSystem && !actor.IsSystemAdministrator) return new OrgResult(OrgOutcome.Forbidden);
-            if (!await CanManagePositionAsync(actor, position)) return new OrgResult(OrgOutcome.Forbidden);
-            if (position.IsSystem && position.Holders.Count <= 1) return new OrgResult(OrgOutcome.Invalid, "Systemstillingen skal have mindst én indehaver.");
+            if (position.IsSystem && !actor.IsSystemAdministrator) return new ServiceResult(ServiceOutcome.Forbidden);
+            if (!await CanManagePositionAsync(actor, position)) return new ServiceResult(ServiceOutcome.Forbidden);
+            if (position.IsSystem && position.Holders.Count <= 1) return new ServiceResult(ServiceOutcome.Invalid, "Systemstillingen skal have mindst én indehaver.");
 
             var holder = position.Holders.FirstOrDefault(holder => holder.UserId == userId);
-            if (holder == null) return new OrgResult(OrgOutcome.NotFound);
+            if (holder == null) return new ServiceResult(ServiceOutcome.NotFound);
 
             dataDb.OrgPositionHolders.Remove(holder);
             await dataDb.SaveChangesAsync();
 
             accessCache.Evict(userId);
 
-            return new OrgResult(OrgOutcome.Success);
+            return new ServiceResult(ServiceOutcome.Success);
         }
 
-        public async Task<OrgResult> Invite(OrgActor actor, OrgInviteDto data, int id)
+        public async Task<ServiceResult> Invite(OrgActor actor, OrgInviteDto data, int id)
         {
             var position = await dataDb.OrgPositions
                 .Include(position => position.Groups)
                 .FirstOrDefaultAsync(position => position.Id == id && position.DeletedAt == null);
-            if (position == null) return new OrgResult(OrgOutcome.NotFound);
+            if (position == null) return new ServiceResult(ServiceOutcome.NotFound);
 
-            if (!await CanManagePositionAsync(actor, position)) return new OrgResult(OrgOutcome.Forbidden);
+            if (!await CanManagePositionAsync(actor, position)) return new ServiceResult(ServiceOutcome.Forbidden);
 
             var email = data.Email.Trim();
 
             var existing = await userManager.FindByEmailAsync(email);
-            if (existing != null) return new OrgResult(OrgOutcome.Invalid, "Bruger findes allerede. Tilknyt i stedet brugeren direkte.");
+            if (existing != null) return new ServiceResult(ServiceOutcome.Invalid, "Bruger findes allerede. Tilknyt i stedet brugeren direkte.");
 
             var invitation = new UserInvitation
             {
@@ -260,7 +260,7 @@ namespace DS.Application.Services.Organization
 
             emailService.QueueInvitationMail(invitation);
 
-            return new OrgResult(OrgOutcome.Success);
+            return new ServiceResult(ServiceOutcome.Success);
         }
 
         private async Task<List<string>> GetCurrentGroupsAsync(OrgActor actor)

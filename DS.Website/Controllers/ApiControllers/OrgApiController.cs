@@ -2,6 +2,7 @@ using DS.Application.Services.Organization;
 using DS.Domain;
 using DS.Domain.DTOs;
 using DS.Domain.Models;
+using DS.Website.Extensions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -17,7 +18,7 @@ namespace DS.Website.Controllers
         {
             var result = await orgService.GetPositions(GetActor());
 
-            return Respond(result);
+            return this.ToActionResult(result);
         }
 
         [HttpGet("assignable-groups")]
@@ -25,7 +26,7 @@ namespace DS.Website.Controllers
         {
             var result = await orgService.GetAssignableGroups(GetActor());
 
-            return Respond(result);
+            return this.ToActionResult(result);
         }
 
         [HttpPost]
@@ -35,7 +36,7 @@ namespace DS.Website.Controllers
 
             var result = await orgService.CreatePosition(GetActor(), data);
 
-            return Respond(result);
+            return this.ToActionResult(result);
         }
 
         [HttpPost("{id:int}/pa")]
@@ -43,7 +44,7 @@ namespace DS.Website.Controllers
         {
             var result = await orgService.CreatePa(GetActor(), id);
 
-            return Respond(result);
+            return this.ToActionResult(result);
         }
 
         [HttpPut("{id:int}")]
@@ -53,7 +54,7 @@ namespace DS.Website.Controllers
 
             var result = await orgService.UpdatePosition(GetActor(), data, id);
 
-            return Respond(result);
+            return this.ToActionResult(result);
         }
 
         [HttpPut("{id:int}/parent")]
@@ -61,7 +62,7 @@ namespace DS.Website.Controllers
         {
             var result = await orgService.MovePosition(GetActor(), data, id);
 
-            return Respond(result);
+            return this.ToActionResult(result);
         }
 
         [HttpDelete("{id:int}")]
@@ -69,7 +70,7 @@ namespace DS.Website.Controllers
         {
             var result = await orgService.DeletePosition(GetActor(), id);
 
-            return Respond(result);
+            return this.ToActionResult(result);
         }
 
         [HttpPost("{id:int}/holders")]
@@ -79,7 +80,7 @@ namespace DS.Website.Controllers
 
             var result = await orgService.AddHolder(GetActor(), data, id);
 
-            return Respond(result);
+            return this.ToActionResult(result);
         }
 
         [HttpDelete("{id:int}/holders/{userId}")]
@@ -87,7 +88,7 @@ namespace DS.Website.Controllers
         {
             var result = await orgService.RemoveHolder(GetActor(), id, userId);
 
-            return Respond(result);
+            return this.ToActionResult(result);
         }
 
         [HttpPost("{id:int}/invite")]
@@ -97,27 +98,12 @@ namespace DS.Website.Controllers
 
             var result = await orgService.Invite(GetActor(), data, id);
 
-            return Respond(result);
+            return this.ToActionResult(result);
         }
 
         private OrgActor GetActor()
         {
             return new OrgActor(userManager.GetUserId(User), User.IsInRole(nameof(AppGroups.SysAdmin)), User.IsInRole(nameof(AppRoles.OrgView)));
-        }
-
-        private IActionResult Respond(OrgResult result)
-        {
-            switch (result.Outcome)
-            {
-                case OrgOutcome.Success:
-                    return result.Value == null ? Ok() : Ok(result.Value);
-                case OrgOutcome.Invalid:
-                    return BadRequest(result.Value);
-                case OrgOutcome.NotFound:
-                    return result.Value == null ? NotFound() : NotFound(result.Value);
-                default:
-                    return Forbid();
-            }
         }
     }
 }

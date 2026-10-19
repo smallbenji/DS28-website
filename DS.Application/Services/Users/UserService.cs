@@ -11,7 +11,7 @@ namespace DS.Application.Services.Users
 {
     public class UserService(IDataDbContext dataDb, UserManager<User> userManager, RoleManager<Role> roleManager, IUserAccessCache accessCache, EmailService emailService)
     {
-        public async Task<UserResult> GetUsers()
+        public async Task<ServiceResult<List<UserDto>>> GetUsers()
         {
             var users = await dataDb.Users
                 .OrderBy(user => user.FirstName)
@@ -63,38 +63,38 @@ namespace DS.Application.Services.Users
                 retval.Add(dto);
             }
 
-            return new UserResult(UserOutcome.Success, retval);
+            return new ServiceResult<List<UserDto>>(ServiceOutcome.Success, retval);
         }
 
-        public async Task<UserResult> CreateUser(UserDto data)
+        public async Task<ServiceResult> CreateUser(UserDto data)
         {
             var user = new User(data);
 
             if (data.Group != null)
             {
                 var group = await dataDb.Groups.FindAsync(data.Group.Id);
-                if (group == null) return new UserResult(UserOutcome.Invalid, "Gruppen findes ikke.");
+                if (group == null) return new ServiceResult(ServiceOutcome.Invalid, "Gruppen findes ikke.");
 
                 user.Group = group;
             }
 
             var result = await userManager.CreateAsync(user);
-            if (!result.Succeeded) return new UserResult(UserOutcome.Invalid, result.Errors);
+            if (!result.Succeeded) return new ServiceResult(ServiceOutcome.Invalid, result.Errors);
 
-            return new UserResult(UserOutcome.Success);
+            return new ServiceResult(ServiceOutcome.Success);
         }
 
-        public async Task<UserResult> UpdateUser(UserDto data)
+        public async Task<ServiceResult> UpdateUser(UserDto data)
         {
             var user = await userManager.FindByIdAsync(data.Id);
-            if (user == null) return new UserResult(UserOutcome.NotFound);
+            if (user == null) return new ServiceResult(ServiceOutcome.NotFound);
 
             data.ApplyTo(user);
 
             if (data.Group != null)
             {
                 var group = await dataDb.Groups.FindAsync(data.Group.Id);
-                if (group == null) return new UserResult(UserOutcome.Invalid, "Gruppen findes ikke.");
+                if (group == null) return new ServiceResult(ServiceOutcome.Invalid, "Gruppen findes ikke.");
 
                 user.Group = group;
             }
@@ -104,24 +104,24 @@ namespace DS.Application.Services.Users
             }
 
             var result = await userManager.UpdateAsync(user);
-            if (!result.Succeeded) return new UserResult(UserOutcome.Invalid, result.Errors);
+            if (!result.Succeeded) return new ServiceResult(ServiceOutcome.Invalid, result.Errors);
 
-            return new UserResult(UserOutcome.Success);
+            return new ServiceResult(ServiceOutcome.Success);
         }
 
-        public async Task<UserResult> UpdateProfilePicture(string currentUserId, string id, UpdateProfilePictureDto data)
+        public async Task<ServiceResult<ImageReferenceDto>> UpdateProfilePicture(string currentUserId, string id, UpdateProfilePictureDto data)
         {
             var user = await userManager.FindByIdAsync(id);
-            if (user == null) return new UserResult(UserOutcome.NotFound);
+            if (user == null) return new ServiceResult(ServiceOutcome.NotFound);
 
             if (data.Image == null)
             {
                 user.ProfilePictureFileId = null;
 
                 var clearResult = await userManager.UpdateAsync(user);
-                if (!clearResult.Succeeded) return new UserResult(UserOutcome.Invalid, clearResult.Errors);
+                if (!clearResult.Succeeded) return new ServiceResult(ServiceOutcome.Invalid, clearResult.Errors);
 
-                return new UserResult(UserOutcome.Success);
+                return new ServiceResult(ServiceOutcome.Success);
             }
 
 
@@ -131,92 +131,92 @@ namespace DS.Application.Services.Users
                     && f.Status == StoredFileStatus.Ready
                     && f.DeletedAt == null
                     && f.UploadedByUserId == currentUserId);
-            if (image == null) return new UserResult(UserOutcome.Invalid, "Billedet findes ikke.");
+            if (image == null) return new ServiceResult(ServiceOutcome.Invalid, "Billedet findes ikke.");
 
             user.ProfilePictureFileId = image.Id;
 
             var result = await userManager.UpdateAsync(user);
-            if (!result.Succeeded) return new UserResult(UserOutcome.Invalid, result.Errors);
+            if (!result.Succeeded) return new ServiceResult(ServiceOutcome.Invalid, result.Errors);
 
-            return new UserResult(UserOutcome.Success, new ImageReferenceDto(image));
+            return new ServiceResult<ImageReferenceDto>(ServiceOutcome.Success, new ImageReferenceDto(image));
         }
 
-        public async Task<UserResult> AddUserToRole(string currentUserId, string role, string id)
+        public async Task<ServiceResult> AddUserToRole(string currentUserId, string role, string id)
         {
             var currentUser = await GetCurrentUserAsync(currentUserId);
-            if (currentUser == null) return new UserResult(UserOutcome.Forbidden);
+            if (currentUser == null) return new ServiceResult(ServiceOutcome.Forbidden);
 
             var currentUserRoles = await userManager.GetRolesAsync(currentUser);
-            if (!AppAccess.CanAssignRole(currentUserRoles, role)) return new UserResult(UserOutcome.Forbidden);
+            if (!AppAccess.CanAssignRole(currentUserRoles, role)) return new ServiceResult(ServiceOutcome.Forbidden);
 
             var user = await userManager.FindByIdAsync(id);
-            if (user == null) return new UserResult(UserOutcome.NotFound);
+            if (user == null) return new ServiceResult(ServiceOutcome.NotFound);
 
             var result = await userManager.AddToRoleAsync(user, role);
-            if (!result.Succeeded) return new UserResult(UserOutcome.Invalid, result.Errors);
+            if (!result.Succeeded) return new ServiceResult(ServiceOutcome.Invalid, result.Errors);
 
             accessCache.Evict(id);
 
-            return new UserResult(UserOutcome.Success);
+            return new ServiceResult(ServiceOutcome.Success);
         }
 
-        public async Task<UserResult> RemoveUserToRole(string currentUserId, string role, string id)
+        public async Task<ServiceResult> RemoveUserToRole(string currentUserId, string role, string id)
         {
             var currentUser = await GetCurrentUserAsync(currentUserId);
-            if (currentUser == null) return new UserResult(UserOutcome.Forbidden);
+            if (currentUser == null) return new ServiceResult(ServiceOutcome.Forbidden);
 
             var currentUserRoles = await userManager.GetRolesAsync(currentUser);
-            if (!AppAccess.CanAssignRole(currentUserRoles, role)) return new UserResult(UserOutcome.Forbidden);
+            if (!AppAccess.CanAssignRole(currentUserRoles, role)) return new ServiceResult(ServiceOutcome.Forbidden);
 
             var user = await userManager.FindByIdAsync(id);
-            if (user == null) return new UserResult(UserOutcome.NotFound);
+            if (user == null) return new ServiceResult(ServiceOutcome.NotFound);
 
             var result = await userManager.RemoveFromRoleAsync(user, role);
-            if (!result.Succeeded) return new UserResult(UserOutcome.Invalid, result.Errors);
+            if (!result.Succeeded) return new ServiceResult(ServiceOutcome.Invalid, result.Errors);
 
             accessCache.Evict(id);
 
-            return new UserResult(UserOutcome.Success);
+            return new ServiceResult(ServiceOutcome.Success);
         }
 
-        public async Task<UserResult> DeleteUser(string id)
+        public async Task<ServiceResult> DeleteUser(string id)
         {
             var user = await userManager.FindByIdAsync(id);
-            if (user == null) return new UserResult(UserOutcome.NotFound);
+            if (user == null) return new ServiceResult(ServiceOutcome.NotFound);
 
             var result = await userManager.DeleteAsync(user);
-            if (!result.Succeeded) return new UserResult(UserOutcome.Invalid, result.Errors);
+            if (!result.Succeeded) return new ServiceResult(ServiceOutcome.Invalid, result.Errors);
 
-            return new UserResult(UserOutcome.Success);
+            return new ServiceResult(ServiceOutcome.Success);
         }
 
-        public async Task<UserResult> LockUser(string id)
+        public async Task<ServiceResult> LockUser(string id)
         {
             var user = await userManager.FindByIdAsync(id);
-            if (user == null) return new UserResult(UserOutcome.NotFound);
+            if (user == null) return new ServiceResult(ServiceOutcome.NotFound);
 
             await userManager.SetLockoutEnabledAsync(user, true);
             var result = await userManager.SetLockoutEndDateAsync(user, DateTimeOffset.MaxValue);
-            if (!result.Succeeded) return new UserResult(UserOutcome.Invalid, result.Errors);
+            if (!result.Succeeded) return new ServiceResult(ServiceOutcome.Invalid, result.Errors);
 
-            return new UserResult(UserOutcome.Success);
+            return new ServiceResult(ServiceOutcome.Success);
         }
 
-        public async Task<UserResult> UnlockUser(string id)
+        public async Task<ServiceResult> UnlockUser(string id)
         {
             var user = await userManager.FindByIdAsync(id);
-            if (user == null) return new UserResult(UserOutcome.NotFound);
+            if (user == null) return new ServiceResult(ServiceOutcome.NotFound);
 
             var result = await userManager.SetLockoutEndDateAsync(user, null);
-            if (!result.Succeeded) return new UserResult(UserOutcome.Invalid, result.Errors);
+            if (!result.Succeeded) return new ServiceResult(ServiceOutcome.Invalid, result.Errors);
 
-            return new UserResult(UserOutcome.Success);
+            return new ServiceResult(ServiceOutcome.Success);
         }
 
-        public async Task<UserResult> GetAssignableGroups(string currentUserId)
+        public async Task<ServiceResult<List<string>>> GetAssignableGroups(string currentUserId)
         {
             var currentUser = await GetCurrentUserAsync(currentUserId);
-            if (currentUser == null) return new UserResult(UserOutcome.Forbidden);
+            if (currentUser == null) return new ServiceResult(ServiceOutcome.Forbidden);
 
             var currentUserRoles = await userManager.GetRolesAsync(currentUser);
             var assignable = Enum.GetValues<AppGroups>()
@@ -224,10 +224,10 @@ namespace DS.Application.Services.Users
                 .Select(g => g.ToString())
                 .ToList();
 
-            return new UserResult(UserOutcome.Success, assignable);
+            return new ServiceResult<List<string>>(ServiceOutcome.Success, assignable);
         }
 
-        public async Task<UserResult> GetGroups()
+        public async Task<ServiceResult<List<RoleDto>>> GetGroups()
         {
             var retval = await roleManager.Roles
                 .OrderBy(role => role.Name)
@@ -238,29 +238,29 @@ namespace DS.Application.Services.Users
                 })
                 .ToListAsync();
 
-            return new UserResult(UserOutcome.Success, retval);
+            return new ServiceResult<List<RoleDto>>(ServiceOutcome.Success, retval);
         }
 
-        public async Task<UserResult> CreateResetPasswordLink(string requestOrigin, string id)
+        public async Task<ServiceResult<ResetPasswordLinkDto>> CreateResetPasswordLink(string requestOrigin, string id)
         {
             var user = await userManager.FindByIdAsync(id);
-            if (user == null) return new UserResult(UserOutcome.NotFound);
+            if (user == null) return new ServiceResult(ServiceOutcome.NotFound);
 
             var token = await userManager.GeneratePasswordResetTokenAsync(user);
 
             var link = $"{requestOrigin}/reset-password/{user.Id}?token={Uri.EscapeDataString(token)}";
 
-            return new UserResult(UserOutcome.Success, new ResetPasswordLinkDto
+            return new ServiceResult<ResetPasswordLinkDto>(ServiceOutcome.Success, new ResetPasswordLinkDto
             {
                 Link = link,
                 Email = user.Email
             });
         }
 
-        public async Task<UserResult> InviteUser(string currentUserId, UserInvitationDto data)
+        public async Task<ServiceResult> InviteUser(string currentUserId, UserInvitationDto data)
         {
             var currentUser = await GetCurrentUserAsync(currentUserId);
-            if (currentUser == null) return new UserResult(UserOutcome.Forbidden);
+            if (currentUser == null) return new ServiceResult(ServiceOutcome.Forbidden);
 
             var currentUserRoles = await userManager.GetRolesAsync(currentUser);
             var allowedRoles = data.Roles
@@ -268,11 +268,11 @@ namespace DS.Application.Services.Users
                 .ToList();
             if (allowedRoles.Count != data.Roles.Count)
             {
-                return new UserResult(UserOutcome.Invalid, "Du har ikke tilladelse til at tildele nogle af de valgte roller.");
+                return new ServiceResult(ServiceOutcome.Invalid, "Du har ikke tilladelse til at tildele nogle af de valgte roller.");
             }
 
             var newUser = await userManager.FindByEmailAsync(data.Email);
-            if (newUser != null) return new UserResult(UserOutcome.Invalid, "Bruger findes allerede.");
+            if (newUser != null) return new ServiceResult(ServiceOutcome.Invalid, "Bruger findes allerede.");
 
             var invitation = new UserInvitation()
             {
@@ -286,7 +286,7 @@ namespace DS.Application.Services.Users
 
             emailService.QueueInvitationMail(invitation);
 
-            return new UserResult(UserOutcome.Success);
+            return new ServiceResult(ServiceOutcome.Success);
         }
 
         private async Task<User> GetCurrentUserAsync(string userId)

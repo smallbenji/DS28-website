@@ -10,18 +10,18 @@ namespace DS.Application.Services.Profile
 {
     public class MeService(IDataDbContext dataDb, UserManager<User> userManager)
     {
-        public async Task<MeResult> Index(MeActor actor)
+        public async Task<ServiceResult<MeDto>> Index(MeActor actor)
         {
             if (!actor.IsAuthenticated)
             {
-                return new MeResult(MeOutcome.Success, new MeDto
+                return new ServiceResult<MeDto>(ServiceOutcome.Success, new MeDto
                 {
                     IsAuthenticated = actor.IsAuthenticated
                 });
             }
 
             var user = await GetCurrentUserAsync(actor.UserId);
-            if (user == null) return new MeResult(MeOutcome.NotFound);
+            if (user == null) return new ServiceResult(ServiceOutcome.NotFound);
 
             var roles = actor.Groups;
             var appRoles = AppAccess.ResolveAppRoles(roles);
@@ -62,35 +62,35 @@ namespace DS.Application.Services.Profile
                 ProfilePicture = profilePicture != null ? new ImageReferenceDto(profilePicture) : null
             };
 
-            return new MeResult(MeOutcome.Success, model);
+            return new ServiceResult<MeDto>(ServiceOutcome.Success, model);
         }
 
-        public async Task<MeResult> UpdatePhone(MeActor actor, UpdatePhoneDto data)
+        public async Task<ServiceResult> UpdatePhone(MeActor actor, UpdatePhoneDto data)
         {
             var user = await GetCurrentUserAsync(actor.UserId);
-            if (user == null) return new MeResult(MeOutcome.NotFound);
+            if (user == null) return new ServiceResult(ServiceOutcome.NotFound);
 
             user.PhoneNumber = data.Phone;
 
             var result = await userManager.UpdateAsync(user);
-            if (!result.Succeeded) return new MeResult(MeOutcome.Invalid, result.Errors);
+            if (!result.Succeeded) return new ServiceResult(ServiceOutcome.Invalid, result.Errors);
 
-            return new MeResult(MeOutcome.Success);
+            return new ServiceResult(ServiceOutcome.Success);
         }
 
-        public async Task<MeResult> UpdateProfilePicture(MeActor actor, UpdateProfilePictureDto data)
+        public async Task<ServiceResult<ImageReferenceDto>> UpdateProfilePicture(MeActor actor, UpdateProfilePictureDto data)
         {
             var user = await GetCurrentUserAsync(actor.UserId);
-            if (user == null) return new MeResult(MeOutcome.NotFound);
+            if (user == null) return new ServiceResult(ServiceOutcome.NotFound);
 
             if (data.Image == null)
             {
                 user.ProfilePictureFileId = null;
 
                 var clearResult = await userManager.UpdateAsync(user);
-                if (!clearResult.Succeeded) return new MeResult(MeOutcome.Invalid, clearResult.Errors);
+                if (!clearResult.Succeeded) return new ServiceResult(ServiceOutcome.Invalid, clearResult.Errors);
 
-                return new MeResult(MeOutcome.Success);
+                return new ServiceResult(ServiceOutcome.Success);
             }
 
             var image = await dataDb.StoredFiles
@@ -99,20 +99,20 @@ namespace DS.Application.Services.Profile
                     && f.Status == StoredFileStatus.Ready
                     && f.DeletedAt == null
                     && f.UploadedByUserId == user.Id);
-            if (image == null) return new MeResult(MeOutcome.Invalid, "Billedet findes ikke.");
+            if (image == null) return new ServiceResult(ServiceOutcome.Invalid, "Billedet findes ikke.");
 
             user.ProfilePictureFileId = image.Id;
 
             var result = await userManager.UpdateAsync(user);
-            if (!result.Succeeded) return new MeResult(MeOutcome.Invalid, result.Errors);
+            if (!result.Succeeded) return new ServiceResult(ServiceOutcome.Invalid, result.Errors);
 
-            return new MeResult(MeOutcome.Success, new ImageReferenceDto(image));
+            return new ServiceResult<ImageReferenceDto>(ServiceOutcome.Success, new ImageReferenceDto(image));
         }
 
-        public async Task<MeResult> GetNotifications(MeActor actor)
+        public async Task<ServiceResult<List<NotificationPreferenceDto>>> GetNotifications(MeActor actor)
         {
             var user = await GetCurrentUserAsync(actor.UserId);
-            if (user == null) return new MeResult(MeOutcome.NotFound);
+            if (user == null) return new ServiceResult(ServiceOutcome.NotFound);
 
             var roles = actor.Groups;
             var appRoles = AppAccess.ResolveAppRoles(roles);
@@ -131,13 +131,13 @@ namespace DS.Application.Services.Profile
                 })
                 .ToList();
 
-            return new MeResult(MeOutcome.Success, preferences);
+            return new ServiceResult<List<NotificationPreferenceDto>>(ServiceOutcome.Success, preferences);
         }
 
-        public async Task<MeResult> UpdateNotifications(MeActor actor, UpdateNotificationPreferencesDto data)
+        public async Task<ServiceResult> UpdateNotifications(MeActor actor, UpdateNotificationPreferencesDto data)
         {
             var user = await GetCurrentUserAsync(actor.UserId);
-            if (user == null) return new MeResult(MeOutcome.NotFound);
+            if (user == null) return new ServiceResult(ServiceOutcome.NotFound);
 
             var roles = actor.Groups;
             var appRoles = AppAccess.ResolveAppRoles(roles);
@@ -145,8 +145,8 @@ namespace DS.Application.Services.Profile
             var requested = new List<NotificationType>();
             foreach (var typeName in data.Types)
             {
-                if (!Enum.TryParse<NotificationType>(typeName, out var type)) return new MeResult(MeOutcome.Invalid, $"Ukendt notifikationstype: {typeName}");
-                if (!NotificationPermissions.CanSubscribe(appRoles, type)) return new MeResult(MeOutcome.Forbidden);
+                if (!Enum.TryParse<NotificationType>(typeName, out var type)) return new ServiceResult(ServiceOutcome.Invalid, $"Ukendt notifikationstype: {typeName}");
+                if (!NotificationPermissions.CanSubscribe(appRoles, type)) return new ServiceResult(ServiceOutcome.Forbidden);
 
                 requested.Add(type);
             }
@@ -169,7 +169,7 @@ namespace DS.Application.Services.Profile
 
             await dataDb.SaveChangesAsync();
 
-            return new MeResult(MeOutcome.Success);
+            return new ServiceResult(ServiceOutcome.Success);
         }
 
         private async Task<User> GetCurrentUserAsync(string userId)

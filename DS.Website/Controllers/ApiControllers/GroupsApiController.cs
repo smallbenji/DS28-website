@@ -1,6 +1,7 @@
 using DS.Application.Services.Groups;
 using DS.Domain;
 using DS.Domain.DTOs;
+using DS.Website.Extensions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -15,7 +16,7 @@ namespace DS.Website.Controllers.ApiControllers
         {
             var result = await service.GetGroups();
 
-            return Respond(result);
+            return this.ToActionResult(result);
         }
 
         [HttpPost]
@@ -25,7 +26,7 @@ namespace DS.Website.Controllers.ApiControllers
 
             var result = await service.CreateGroup(data);
 
-            return Respond(result);
+            return this.ToActionResult(result);
         }
 
         [HttpPost("patrol")]
@@ -35,7 +36,7 @@ namespace DS.Website.Controllers.ApiControllers
 
             var result = await service.CreatePatrol(data);
 
-            return Respond(result);
+            return this.ToActionResult(result);
         }
 
         [HttpPost("scout")]
@@ -45,7 +46,7 @@ namespace DS.Website.Controllers.ApiControllers
 
             var result = await service.CreateScout(data);
 
-            return Respond(result);
+            return this.ToActionResult(result);
         }
 
         [HttpPost("scout/add-patrol")]
@@ -55,7 +56,7 @@ namespace DS.Website.Controllers.ApiControllers
 
             var result = await service.AddPatrol(data);
 
-            return Respond(result);
+            return this.ToActionResult(result);
         }
 
         [HttpPost("scout/remove-patrol")]
@@ -65,7 +66,7 @@ namespace DS.Website.Controllers.ApiControllers
 
             var result = await service.RemovePatrol(data);
 
-            return Respond(result);
+            return this.ToActionResult(result);
         }
 
         [HttpPost("scout/toggle-leader")]
@@ -75,7 +76,7 @@ namespace DS.Website.Controllers.ApiControllers
 
             var result = await service.ToggleLeader(data);
 
-            return Respond(result);
+            return this.ToActionResult(result);
         }
 
         [HttpDelete("patrol/{id}")]
@@ -84,7 +85,7 @@ namespace DS.Website.Controllers.ApiControllers
         {
             var result = await service.DeletePatrol(id);
 
-            return Respond(result);
+            return this.ToActionResult(result);
         }
 
         [HttpDelete("scout/{id}")]
@@ -92,7 +93,7 @@ namespace DS.Website.Controllers.ApiControllers
         {
             var result = await service.DeleteScout(id);
 
-            return Respond(result);
+            return this.ToActionResult(result);
         }
 
         [HttpPut("{id}")]
@@ -102,7 +103,7 @@ namespace DS.Website.Controllers.ApiControllers
 
             var result = await service.UpdateGroup(data, id);
 
-            return Respond(result);
+            return this.ToActionResult(result);
         }
 
         [HttpDelete("{id}")]
@@ -111,26 +112,7 @@ namespace DS.Website.Controllers.ApiControllers
         {
             var result = await service.DeleteGroup(id);
 
-            return Respond(result);
-        }
-
-        private IActionResult Respond(GroupResult result, bool noContent = false)
-        {
-            switch (result.Outcome)
-            {
-                case GroupOutcome.Success:
-                    if (noContent) return NoContent();
-
-                    return result.Value == null ? Ok() : Ok(result.Value);
-                case GroupOutcome.Invalid:
-                    return BadRequest(result.Value);
-                case GroupOutcome.NotFound:
-                    return result.Value == null ? NotFound() : NotFound(result.Value);
-                case GroupOutcome.Forbidden:
-                    return Forbid();
-                default:
-                    return Conflict(result.Value);
-            }
+            return this.ToActionResult(result);
         }
     }
 }

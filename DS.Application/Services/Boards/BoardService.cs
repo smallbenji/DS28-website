@@ -11,7 +11,7 @@ namespace DS.Application.Services.Boards
 {
     public class BoardService(IDataDbContext dataDb, UserManager<User> userManager)
     {
-        public async Task<BoardResult> GetBoards(BoardActor actor)
+        public async Task<ServiceResult<List<BoardSummaryDto>>> GetBoards(BoardActor actor)
         {
             var boards = await VisibleBoards(actor)
                 .AsNoTracking()
@@ -29,10 +29,10 @@ namespace DS.Application.Services.Boards
                 })
                 .ToListAsync();
 
-            return new BoardResult(BoardOutcome.Success, boards);
+            return new ServiceResult<List<BoardSummaryDto>>(ServiceOutcome.Success, boards);
         }
 
-        public async Task<BoardResult> GetBoard(BoardActor actor, int id)
+        public async Task<ServiceResult<BoardDetailDto>> GetBoard(BoardActor actor, int id)
         {
             var board = await dataDb.Boards
                 .AsNoTracking()
@@ -40,20 +40,20 @@ namespace DS.Application.Services.Boards
                 .Include(board => board.Colors)
                 .AsSplitQuery()
                 .FirstOrDefaultAsync(board => board.Id == id && board.DeletedAt == null);
-            if (board == null) return new BoardResult(BoardOutcome.NotFound);
-            if (!await CanSeeBoardAsync(actor, board)) return new BoardResult(BoardOutcome.Forbidden);
+            if (board == null) return new ServiceResult(ServiceOutcome.NotFound);
+            if (!await CanSeeBoardAsync(actor, board)) return new ServiceResult(ServiceOutcome.Forbidden);
 
             var cards = await LoadCardsAsync(id);
             var placements = await LoadPlacementsAsync(actor, cards.Select(card => card.WorkItemId).Distinct().ToList());
 
-            return new BoardResult(BoardOutcome.Success, ToDetailDto(board, cards, placements));
+            return new ServiceResult<BoardDetailDto>(ServiceOutcome.Success, ToDetailDto(board, cards, placements));
         }
 
-        public async Task<BoardResult> GetColumns(BoardActor actor, int id)
+        public async Task<ServiceResult<List<BoardColumnDto>>> GetColumns(BoardActor actor, int id)
         {
             var board = await GetBoardAsync(id);
-            if (board == null) return new BoardResult(BoardOutcome.NotFound);
-            if (!await CanSeeBoardAsync(actor, board)) return new BoardResult(BoardOutcome.Forbidden);
+            if (board == null) return new ServiceResult(ServiceOutcome.NotFound);
+            if (!await CanSeeBoardAsync(actor, board)) return new ServiceResult(ServiceOutcome.Forbidden);
 
             var columns = await dataDb.BoardColumns
                 .AsNoTracking()
@@ -69,13 +69,13 @@ namespace DS.Application.Services.Boards
                 })
                 .ToListAsync();
 
-            return new BoardResult(BoardOutcome.Success, columns);
+            return new ServiceResult<List<BoardColumnDto>>(ServiceOutcome.Success, columns);
         }
 
-        public async Task<BoardResult> SearchAssignees(BoardActor actor, string search, int boardId)
+        public async Task<ServiceResult<List<BoardMemberDto>>> SearchAssignees(BoardActor actor, string search, int boardId)
         {
-            if (!await VisibleBoards(actor).AnyAsync(board => board.Id == boardId)) return new BoardResult(BoardOutcome.Forbidden);
-            if (string.IsNullOrWhiteSpace(search)) return new BoardResult(BoardOutcome.Success, new List<BoardMemberDto>());
+            if (!await VisibleBoards(actor).AnyAsync(board => board.Id == boardId)) return new ServiceResult(ServiceOutcome.Forbidden);
+            if (string.IsNullOrWhiteSpace(search)) return new ServiceResult<List<BoardMemberDto>>(ServiceOutcome.Success, new List<BoardMemberDto>());
 
             var searchTerm = search.Trim();
             var users = await dataDb.Users
@@ -87,12 +87,12 @@ namespace DS.Application.Services.Boards
                 .Take(10)
                 .ToListAsync();
 
-            return new BoardResult(BoardOutcome.Success, users.Select(ToMemberDto).ToList());
+            return new ServiceResult<List<BoardMemberDto>>(ServiceOutcome.Success, users.Select(ToMemberDto).ToList());
         }
 
-        public async Task<BoardResult> GetMembers(BoardActor actor, int id)
+        public async Task<ServiceResult<List<BoardMemberDto>>> GetMembers(BoardActor actor, int id)
         {
-            if (!await VisibleBoards(actor).AnyAsync(board => board.Id == id)) return new BoardResult(BoardOutcome.Forbidden);
+            if (!await VisibleBoards(actor).AnyAsync(board => board.Id == id)) return new ServiceResult(ServiceOutcome.Forbidden);
 
             var users = await dataDb.BoardMembers
                 .AsNoTracking()
@@ -101,29 +101,29 @@ namespace DS.Application.Services.Boards
                 .OrderBy(user => user.FirstName).ThenBy(user => user.LastName)
                 .ToListAsync();
 
-            return new BoardResult(BoardOutcome.Success, users.Select(ToMemberDto).ToList());
+            return new ServiceResult<List<BoardMemberDto>>(ServiceOutcome.Success, users.Select(ToMemberDto).ToList());
         }
 
-        public async Task<BoardResult> AddMember(BoardActor actor, BoardMemberCreateDto data, int id)
+        public async Task<ServiceResult> AddMember(BoardActor actor, BoardMemberCreateDto data, int id)
         {
-            if (!await VisibleBoards(actor).AnyAsync(board => board.Id == id)) return new BoardResult(BoardOutcome.Forbidden);
+            if (!await VisibleBoards(actor).AnyAsync(board => board.Id == id)) return new ServiceResult(ServiceOutcome.Forbidden);
 
-            if (data == null || string.IsNullOrWhiteSpace(data.UserId)) return new BoardResult(BoardOutcome.Invalid, "Vælg en bruger.");
+            if (data == null || string.IsNullOrWhiteSpace(data.UserId)) return new ServiceResult(ServiceOutcome.Invalid, "Vælg en bruger.");
 
             var user = await userManager.FindByIdAsync(data.UserId.Trim());
-            if (user == null) return new BoardResult(BoardOutcome.NotFound);
+            if (user == null) return new ServiceResult(ServiceOutcome.NotFound);
 
             await dataDb.Database.ExecuteSqlInterpolatedAsync($"INSERT INTO ds28.board_member (board_id, user_id) VALUES ({id}, {user.Id}) ON CONFLICT DO NOTHING");
 
-            return new BoardResult(BoardOutcome.Success);
+            return new ServiceResult(ServiceOutcome.Success);
         }
 
-        public async Task<BoardResult> CreateBoard(BoardActor actor, BoardCreateDto data)
+        public async Task<ServiceResult<int>> CreateBoard(BoardActor actor, BoardCreateDto data)
         {
-            if (data == null || string.IsNullOrWhiteSpace(data.Title)) return new BoardResult(BoardOutcome.Invalid, "Titel er påkrævet.");
+            if (data == null || string.IsNullOrWhiteSpace(data.Title)) return new ServiceResult(ServiceOutcome.Invalid, "Titel er påkrævet.");
 
-            if (!TryNormalizeShortText(data.Icon, 64, out var icon)) return new BoardResult(BoardOutcome.Invalid, "Ikonet er for langt.");
-            if (!TryNormalizeShortText(data.Color, 16, out var color)) return new BoardResult(BoardOutcome.Invalid, "Farven er for lang.");
+            if (!TryNormalizeShortText(data.Icon, 64, out var icon)) return new ServiceResult(ServiceOutcome.Invalid, "Ikonet er for langt.");
+            if (!TryNormalizeShortText(data.Color, 16, out var color)) return new ServiceResult(ServiceOutcome.Invalid, "Farven er for lang.");
 
             var key = await GenerateKeyAsync(data.Title);
 
@@ -153,63 +153,63 @@ namespace DS.Application.Services.Boards
             dataDb.Boards.Add(board);
             await dataDb.SaveChangesAsync();
 
-            return new BoardResult(BoardOutcome.Success, board.Id);
+            return new ServiceResult<int>(ServiceOutcome.Success, board.Id);
         }
 
-        public async Task<BoardResult> CreateColor(BoardActor actor, BoardColorUpdateDto data, int id)
+        public async Task<ServiceResult<int>> CreateColor(BoardActor actor, BoardColorUpdateDto data, int id)
         {
-            if (!await VisibleBoards(actor).AnyAsync(board => board.Id == id)) return new BoardResult(BoardOutcome.Forbidden);
+            if (!await VisibleBoards(actor).AnyAsync(board => board.Id == id)) return new ServiceResult(ServiceOutcome.Forbidden);
 
-            if (data == null || !TryNormalizeShortText(data.Name, 64, out var name) || name == null) return new BoardResult(BoardOutcome.Invalid, "Farven skal have et navn på højst 64 tegn.");
-            if (!TryNormalizeCardColor(data.Color, out var color) || color == null) return new BoardResult(BoardOutcome.Invalid, "Vælg en gyldig farve.");
+            if (data == null || !TryNormalizeShortText(data.Name, 64, out var name) || name == null) return new ServiceResult(ServiceOutcome.Invalid, "Farven skal have et navn på højst 64 tegn.");
+            if (!TryNormalizeCardColor(data.Color, out var color) || color == null) return new ServiceResult(ServiceOutcome.Invalid, "Vælg en gyldig farve.");
 
             var boardColor = new BoardColor { BoardId = id, Name = name, Color = color };
             dataDb.BoardColors.Add(boardColor);
             await dataDb.SaveChangesAsync();
 
-            return new BoardResult(BoardOutcome.Success, boardColor.Id);
+            return new ServiceResult<int>(ServiceOutcome.Success, boardColor.Id);
         }
 
-        public async Task<BoardResult> UpdateColor(BoardActor actor, BoardColorUpdateDto data, int id, int colorId)
+        public async Task<ServiceResult> UpdateColor(BoardActor actor, BoardColorUpdateDto data, int id, int colorId)
         {
-            if (!await VisibleBoards(actor).AnyAsync(board => board.Id == id)) return new BoardResult(BoardOutcome.Forbidden);
+            if (!await VisibleBoards(actor).AnyAsync(board => board.Id == id)) return new ServiceResult(ServiceOutcome.Forbidden);
 
-            if (data == null || !TryNormalizeShortText(data.Name, 64, out var name) || name == null) return new BoardResult(BoardOutcome.Invalid, "Farven skal have et navn på højst 64 tegn.");
-            if (!TryNormalizeCardColor(data.Color, out var color) || color == null) return new BoardResult(BoardOutcome.Invalid, "Vælg en gyldig farve.");
+            if (data == null || !TryNormalizeShortText(data.Name, 64, out var name) || name == null) return new ServiceResult(ServiceOutcome.Invalid, "Farven skal have et navn på højst 64 tegn.");
+            if (!TryNormalizeCardColor(data.Color, out var color) || color == null) return new ServiceResult(ServiceOutcome.Invalid, "Vælg en gyldig farve.");
 
             var boardColor = await dataDb.BoardColors.FirstOrDefaultAsync(candidate => candidate.Id == colorId && candidate.BoardId == id);
-            if (boardColor == null) return new BoardResult(BoardOutcome.NotFound);
+            if (boardColor == null) return new ServiceResult(ServiceOutcome.NotFound);
 
             boardColor.Name = name;
             boardColor.Color = color;
             await dataDb.SaveChangesAsync();
 
-            return new BoardResult(BoardOutcome.Success);
+            return new ServiceResult(ServiceOutcome.Success);
         }
 
-        public async Task<BoardResult> DeleteColor(BoardActor actor, int id, int colorId)
+        public async Task<ServiceResult> DeleteColor(BoardActor actor, int id, int colorId)
         {
-            if (!await VisibleBoards(actor).AnyAsync(board => board.Id == id)) return new BoardResult(BoardOutcome.Forbidden);
+            if (!await VisibleBoards(actor).AnyAsync(board => board.Id == id)) return new ServiceResult(ServiceOutcome.Forbidden);
 
             var boardColor = await dataDb.BoardColors.FirstOrDefaultAsync(candidate => candidate.Id == colorId && candidate.BoardId == id);
-            if (boardColor == null) return new BoardResult(BoardOutcome.NotFound);
+            if (boardColor == null) return new ServiceResult(ServiceOutcome.NotFound);
 
             dataDb.BoardColors.Remove(boardColor);
             await dataDb.SaveChangesAsync();
 
-            return new BoardResult(BoardOutcome.Success);
+            return new ServiceResult(ServiceOutcome.Success);
         }
 
-        public async Task<BoardResult> UpdateBoard(BoardActor actor, BoardUpdateDto data, int id)
+        public async Task<ServiceResult> UpdateBoard(BoardActor actor, BoardUpdateDto data, int id)
         {
-            if (data == null || string.IsNullOrWhiteSpace(data.Title)) return new BoardResult(BoardOutcome.Invalid, "Titel er påkrævet.");
+            if (data == null || string.IsNullOrWhiteSpace(data.Title)) return new ServiceResult(ServiceOutcome.Invalid, "Titel er påkrævet.");
 
             var board = await dataDb.Boards.FirstOrDefaultAsync(board => board.Id == id && board.DeletedAt == null);
-            if (board == null) return new BoardResult(BoardOutcome.NotFound);
-            if (!await CanSeeBoardAsync(actor, board)) return new BoardResult(BoardOutcome.Forbidden);
+            if (board == null) return new ServiceResult(ServiceOutcome.NotFound);
+            if (!await CanSeeBoardAsync(actor, board)) return new ServiceResult(ServiceOutcome.Forbidden);
 
-            if (!TryNormalizeShortText(data.Icon, 64, out var icon)) return new BoardResult(BoardOutcome.Invalid, "Ikonet er for langt.");
-            if (!TryNormalizeShortText(data.Color, 16, out var color)) return new BoardResult(BoardOutcome.Invalid, "Farven er for lang.");
+            if (!TryNormalizeShortText(data.Icon, 64, out var icon)) return new ServiceResult(ServiceOutcome.Invalid, "Ikonet er for langt.");
+            if (!TryNormalizeShortText(data.Color, 16, out var color)) return new ServiceResult(ServiceOutcome.Invalid, "Farven er for lang.");
 
             board.Title = data.Title.Trim();
             board.Description = data.Description;
@@ -220,30 +220,30 @@ namespace DS.Application.Services.Boards
 
             await dataDb.SaveChangesAsync();
 
-            return new BoardResult(BoardOutcome.Success);
+            return new ServiceResult(ServiceOutcome.Success);
         }
 
-        public async Task<BoardResult> DeleteBoard(BoardActor actor, int id)
+        public async Task<ServiceResult> DeleteBoard(BoardActor actor, int id)
         {
             var board = await dataDb.Boards.FirstOrDefaultAsync(board => board.Id == id && board.DeletedAt == null);
-            if (board == null) return new BoardResult(BoardOutcome.NotFound);
-            if (!await CanSeeBoardAsync(actor, board)) return new BoardResult(BoardOutcome.Forbidden);
+            if (board == null) return new ServiceResult(ServiceOutcome.NotFound);
+            if (!await CanSeeBoardAsync(actor, board)) return new ServiceResult(ServiceOutcome.Forbidden);
 
             board.DeletedAt = DateTime.UtcNow;
             board.UpdatedAt = DateTime.UtcNow;
             await dataDb.SaveChangesAsync();
 
-            return new BoardResult(BoardOutcome.Success);
+            return new ServiceResult(ServiceOutcome.Success);
         }
 
-        public async Task<BoardResult> CreateColumn(BoardActor actor, BoardColumnCreateDto data, int id)
+        public async Task<ServiceResult<int>> CreateColumn(BoardActor actor, BoardColumnCreateDto data, int id)
         {
-            if (data == null || string.IsNullOrWhiteSpace(data.Title)) return new BoardResult(BoardOutcome.Invalid, "Titel er påkrævet.");
+            if (data == null || string.IsNullOrWhiteSpace(data.Title)) return new ServiceResult(ServiceOutcome.Invalid, "Titel er påkrævet.");
 
             var board = await GetBoardAsync(id);
-            if (board == null) return new BoardResult(BoardOutcome.NotFound);
-            if (!await CanSeeBoardAsync(actor, board)) return new BoardResult(BoardOutcome.Forbidden);
-            if (!IsValidWipLimit(data.WipLimit)) return new BoardResult(BoardOutcome.Invalid, "WIP-grænsen skal være mindst 1.");
+            if (board == null) return new ServiceResult(ServiceOutcome.NotFound);
+            if (!await CanSeeBoardAsync(actor, board)) return new ServiceResult(ServiceOutcome.Forbidden);
+            if (!IsValidWipLimit(data.WipLimit)) return new ServiceResult(ServiceOutcome.Invalid, "WIP-grænsen skal være mindst 1.");
 
             var lastPosition = await dataDb.BoardColumns
                 .Where(column => column.BoardId == id)
@@ -262,20 +262,20 @@ namespace DS.Application.Services.Boards
             dataDb.BoardColumns.Add(column);
             await dataDb.SaveChangesAsync();
 
-            return new BoardResult(BoardOutcome.Success, column.Id);
+            return new ServiceResult<int>(ServiceOutcome.Success, column.Id);
         }
 
-        public async Task<BoardResult> UpdateColumn(BoardActor actor, BoardColumnUpdateDto data, int id, int columnId)
+        public async Task<ServiceResult> UpdateColumn(BoardActor actor, BoardColumnUpdateDto data, int id, int columnId)
         {
-            if (data == null || string.IsNullOrWhiteSpace(data.Title)) return new BoardResult(BoardOutcome.Invalid, "Titel er påkrævet.");
+            if (data == null || string.IsNullOrWhiteSpace(data.Title)) return new ServiceResult(ServiceOutcome.Invalid, "Titel er påkrævet.");
 
             var board = await GetBoardAsync(id);
-            if (board == null) return new BoardResult(BoardOutcome.NotFound);
-            if (!await CanSeeBoardAsync(actor, board)) return new BoardResult(BoardOutcome.Forbidden);
-            if (!IsValidWipLimit(data.WipLimit)) return new BoardResult(BoardOutcome.Invalid, "WIP-grænsen skal være mindst 1.");
+            if (board == null) return new ServiceResult(ServiceOutcome.NotFound);
+            if (!await CanSeeBoardAsync(actor, board)) return new ServiceResult(ServiceOutcome.Forbidden);
+            if (!IsValidWipLimit(data.WipLimit)) return new ServiceResult(ServiceOutcome.Invalid, "WIP-grænsen skal være mindst 1.");
 
             var column = await dataDb.BoardColumns.FirstOrDefaultAsync(column => column.Id == columnId && column.BoardId == id);
-            if (column == null) return new BoardResult(BoardOutcome.NotFound);
+            if (column == null) return new ServiceResult(ServiceOutcome.NotFound);
 
             column.Title = data.Title.Trim();
             column.WipLimit = data.WipLimit;
@@ -284,37 +284,37 @@ namespace DS.Application.Services.Boards
 
             await dataDb.SaveChangesAsync();
 
-            return new BoardResult(BoardOutcome.Success);
+            return new ServiceResult(ServiceOutcome.Success);
         }
 
-        public async Task<BoardResult> DeleteColumn(BoardActor actor, int id, int columnId)
+        public async Task<ServiceResult> DeleteColumn(BoardActor actor, int id, int columnId)
         {
             var board = await GetBoardAsync(id);
-            if (board == null) return new BoardResult(BoardOutcome.NotFound);
-            if (!await CanSeeBoardAsync(actor, board)) return new BoardResult(BoardOutcome.Forbidden);
+            if (board == null) return new ServiceResult(ServiceOutcome.NotFound);
+            if (!await CanSeeBoardAsync(actor, board)) return new ServiceResult(ServiceOutcome.Forbidden);
 
             var column = await dataDb.BoardColumns.FirstOrDefaultAsync(column => column.Id == columnId && column.BoardId == id);
-            if (column == null) return new BoardResult(BoardOutcome.NotFound);
+            if (column == null) return new ServiceResult(ServiceOutcome.NotFound);
 
             var columnCount = await dataDb.BoardColumns.CountAsync(column => column.BoardId == id);
-            if (columnCount <= 1) return new BoardResult(BoardOutcome.Invalid, "Boardet skal have mindst én kolonne.");
+            if (columnCount <= 1) return new ServiceResult(ServiceOutcome.Invalid, "Boardet skal have mindst én kolonne.");
 
             var hasCards = await dataDb.BoardCards.AnyAsync(card => card.ColumnId == columnId);
-            if (hasCards) return new BoardResult(BoardOutcome.Invalid, "Kolonnen indeholder kort og kan ikke slettes.");
+            if (hasCards) return new ServiceResult(ServiceOutcome.Invalid, "Kolonnen indeholder kort og kan ikke slettes.");
 
             dataDb.BoardColumns.Remove(column);
             await dataDb.SaveChangesAsync();
 
-            return new BoardResult(BoardOutcome.Success);
+            return new ServiceResult(ServiceOutcome.Success);
         }
 
-        public async Task<BoardResult> ReorderColumns(BoardActor actor, List<int> columnOrder, int id)
+        public async Task<ServiceResult> ReorderColumns(BoardActor actor, List<int> columnOrder, int id)
         {
             var board = await GetBoardAsync(id);
-            if (board == null) return new BoardResult(BoardOutcome.NotFound);
-            if (!await CanSeeBoardAsync(actor, board)) return new BoardResult(BoardOutcome.Forbidden);
+            if (board == null) return new ServiceResult(ServiceOutcome.NotFound);
+            if (!await CanSeeBoardAsync(actor, board)) return new ServiceResult(ServiceOutcome.Forbidden);
 
-            if (columnOrder == null || columnOrder.Count == 0) return new BoardResult(BoardOutcome.Invalid, "Rækkefølgen må ikke være tom.");
+            if (columnOrder == null || columnOrder.Count == 0) return new ServiceResult(ServiceOutcome.Invalid, "Rækkefølgen må ikke være tom.");
 
             var columns = await dataDb.BoardColumns
                 .Where(column => column.BoardId == id)
@@ -322,12 +322,12 @@ namespace DS.Application.Services.Boards
 
             if (columnOrder.Count != columns.Count || columnOrder.Distinct().Count() != columnOrder.Count)
             {
-                return new BoardResult(BoardOutcome.Invalid, "Rækkefølgen skal indeholde hver kolonne én gang.");
+                return new ServiceResult(ServiceOutcome.Invalid, "Rækkefølgen skal indeholde hver kolonne én gang.");
             }
 
             if (columnOrder.Any(columnId => columns.All(column => column.Id != columnId)))
             {
-                return new BoardResult(BoardOutcome.Invalid, "Rækkefølgen indeholder ukendte kolonner.");
+                return new ServiceResult(ServiceOutcome.Invalid, "Rækkefølgen indeholder ukendte kolonner.");
             }
 
             await using var transaction = await dataDb.Database.BeginTransactionAsync();
@@ -346,23 +346,23 @@ namespace DS.Application.Services.Boards
 
             await transaction.CommitAsync();
 
-            return new BoardResult(BoardOutcome.Success);
+            return new ServiceResult(ServiceOutcome.Success);
         }
 
-        public async Task<BoardResult> CreateCard(BoardActor actor, WorkItemCreateDto data, int id)
+        public async Task<ServiceResult<int>> CreateCard(BoardActor actor, WorkItemCreateDto data, int id)
         {
-            if (data == null || string.IsNullOrWhiteSpace(data.Title)) return new BoardResult(BoardOutcome.Invalid, "Titel er påkrævet.");
+            if (data == null || string.IsNullOrWhiteSpace(data.Title)) return new ServiceResult(ServiceOutcome.Invalid, "Titel er påkrævet.");
 
             var board = await GetBoardAsync(id);
-            if (board == null) return new BoardResult(BoardOutcome.NotFound);
-            if (!await CanSeeBoardAsync(actor, board)) return new BoardResult(BoardOutcome.Forbidden);
+            if (board == null) return new ServiceResult(ServiceOutcome.NotFound);
+            if (!await CanSeeBoardAsync(actor, board)) return new ServiceResult(ServiceOutcome.Forbidden);
 
             var columnExists = await dataDb.BoardColumns.AnyAsync(column => column.Id == data.ColumnId && column.BoardId == id);
-            if (!columnExists) return new BoardResult(BoardOutcome.Invalid, "Kolonnen findes ikke på boardet.");
+            if (!columnExists) return new ServiceResult(ServiceOutcome.Invalid, "Kolonnen findes ikke på boardet.");
 
-            if (!TryNormalizeCardColor(data.Color, out var color)) return new BoardResult(BoardOutcome.Invalid, "Ugyldig kortfarve.");
-            if (!await IsValidAssigneeAsync(data.AssigneeUserId)) return new BoardResult(BoardOutcome.Invalid, "Den ansvarlige bruger findes ikke.");
-            if (!await IsValidOwnerPositionAsync(data.OwnerPositionId)) return new BoardResult(BoardOutcome.Invalid, "Stillingen findes ikke.");
+            if (!TryNormalizeCardColor(data.Color, out var color)) return new ServiceResult(ServiceOutcome.Invalid, "Ugyldig kortfarve.");
+            if (!await IsValidAssigneeAsync(data.AssigneeUserId)) return new ServiceResult(ServiceOutcome.Invalid, "Den ansvarlige bruger findes ikke.");
+            if (!await IsValidOwnerPositionAsync(data.OwnerPositionId)) return new ServiceResult(ServiceOutcome.Invalid, "Stillingen findes ikke.");
 
             var item = new WorkItem
             {
@@ -394,25 +394,25 @@ namespace DS.Application.Services.Boards
 
             await dataDb.SaveChangesAsync();
 
-            return new BoardResult(BoardOutcome.Success, item.Id);
+            return new ServiceResult<int>(ServiceOutcome.Success, item.Id);
         }
 
-        public async Task<BoardResult> UpdateCard(BoardActor actor, WorkItemUpdateDto data, int id, int workItemId)
+        public async Task<ServiceResult> UpdateCard(BoardActor actor, WorkItemUpdateDto data, int id, int workItemId)
         {
-            if (data == null || string.IsNullOrWhiteSpace(data.Title)) return new BoardResult(BoardOutcome.Invalid, "Titel er påkrævet.");
+            if (data == null || string.IsNullOrWhiteSpace(data.Title)) return new ServiceResult(ServiceOutcome.Invalid, "Titel er påkrævet.");
 
             var board = await GetBoardAsync(id);
-            if (board == null) return new BoardResult(BoardOutcome.NotFound);
-            if (!await CanSeeBoardAsync(actor, board)) return new BoardResult(BoardOutcome.Forbidden);
+            if (board == null) return new ServiceResult(ServiceOutcome.NotFound);
+            if (!await CanSeeBoardAsync(actor, board)) return new ServiceResult(ServiceOutcome.Forbidden);
 
             var card = await dataDb.BoardCards
                 .Include(card => card.WorkItem)
                 .FirstOrDefaultAsync(card => card.BoardId == id && card.WorkItemId == workItemId && card.WorkItem.DeletedAt == null);
-            if (card == null) return new BoardResult(BoardOutcome.NotFound);
+            if (card == null) return new ServiceResult(ServiceOutcome.NotFound);
 
-            if (!TryNormalizeCardColor(data.Color, out var color)) return new BoardResult(BoardOutcome.Invalid, "Ugyldig kortfarve.");
-            if (!await IsValidAssigneeAsync(data.AssigneeUserId)) return new BoardResult(BoardOutcome.Invalid, "Den ansvarlige bruger findes ikke.");
-            if (!await IsValidOwnerPositionAsync(data.OwnerPositionId)) return new BoardResult(BoardOutcome.Invalid, "Stillingen findes ikke.");
+            if (!TryNormalizeCardColor(data.Color, out var color)) return new ServiceResult(ServiceOutcome.Invalid, "Ugyldig kortfarve.");
+            if (!await IsValidAssigneeAsync(data.AssigneeUserId)) return new ServiceResult(ServiceOutcome.Invalid, "Den ansvarlige bruger findes ikke.");
+            if (!await IsValidOwnerPositionAsync(data.OwnerPositionId)) return new ServiceResult(ServiceOutcome.Invalid, "Stillingen findes ikke.");
 
             var item = card.WorkItem;
             item.Title = data.Title.Trim();
@@ -426,24 +426,24 @@ namespace DS.Application.Services.Boards
 
             await dataDb.SaveChangesAsync();
 
-            return new BoardResult(BoardOutcome.Success);
+            return new ServiceResult(ServiceOutcome.Success);
         }
 
-        public async Task<BoardResult> MoveCard(BoardActor actor, WorkItemMoveDto data, int id, int workItemId)
+        public async Task<ServiceResult> MoveCard(BoardActor actor, WorkItemMoveDto data, int id, int workItemId)
         {
-            if (data == null) return new BoardResult(BoardOutcome.Invalid);
+            if (data == null) return new ServiceResult(ServiceOutcome.Invalid);
 
             var board = await GetBoardAsync(id);
-            if (board == null) return new BoardResult(BoardOutcome.NotFound);
-            if (!await CanSeeBoardAsync(actor, board)) return new BoardResult(BoardOutcome.Forbidden);
+            if (board == null) return new ServiceResult(ServiceOutcome.NotFound);
+            if (!await CanSeeBoardAsync(actor, board)) return new ServiceResult(ServiceOutcome.Forbidden);
 
             var card = await dataDb.BoardCards
                 .FirstOrDefaultAsync(card => card.BoardId == id && card.WorkItemId == workItemId);
-            if (card == null) return new BoardResult(BoardOutcome.NotFound);
+            if (card == null) return new ServiceResult(ServiceOutcome.NotFound);
 
             var targetColumn = await dataDb.BoardColumns
                 .FirstOrDefaultAsync(column => column.Id == data.ColumnId && column.BoardId == id);
-            if (targetColumn == null) return new BoardResult(BoardOutcome.Invalid, "Kolonnen findes ikke på boardet.");
+            if (targetColumn == null) return new ServiceResult(ServiceOutcome.Invalid, "Kolonnen findes ikke på boardet.");
 
             var sourceColumnId = card.ColumnId;
 
@@ -477,18 +477,18 @@ namespace DS.Application.Services.Boards
 
             await dataDb.SaveChangesAsync();
 
-            return new BoardResult(BoardOutcome.Success);
+            return new ServiceResult(ServiceOutcome.Success);
         }
 
-        public async Task<BoardResult> RemoveCard(BoardActor actor, int id, int workItemId)
+        public async Task<ServiceResult> RemoveCard(BoardActor actor, int id, int workItemId)
         {
             var board = await GetBoardAsync(id);
-            if (board == null) return new BoardResult(BoardOutcome.NotFound);
-            if (!await CanSeeBoardAsync(actor, board)) return new BoardResult(BoardOutcome.Forbidden);
+            if (board == null) return new ServiceResult(ServiceOutcome.NotFound);
+            if (!await CanSeeBoardAsync(actor, board)) return new ServiceResult(ServiceOutcome.Forbidden);
 
             var card = await dataDb.BoardCards
                 .FirstOrDefaultAsync(card => card.BoardId == id && card.WorkItemId == workItemId);
-            if (card == null) return new BoardResult(BoardOutcome.NotFound);
+            if (card == null) return new ServiceResult(ServiceOutcome.NotFound);
 
             dataDb.BoardCards.Remove(card);
             await dataDb.SaveChangesAsync();
@@ -505,30 +505,30 @@ namespace DS.Application.Services.Boards
                 }
             }
 
-            return new BoardResult(BoardOutcome.Success);
+            return new ServiceResult(ServiceOutcome.Success);
         }
 
-        public async Task<BoardResult> AddCardPlacement(BoardActor actor, WorkItemPlacementCreateDto data, int id, int workItemId)
+        public async Task<ServiceResult> AddCardPlacement(BoardActor actor, WorkItemPlacementCreateDto data, int id, int workItemId)
         {
-            if (data == null) return new BoardResult(BoardOutcome.Invalid);
+            if (data == null) return new ServiceResult(ServiceOutcome.Invalid);
 
             var board = await GetBoardAsync(id);
-            if (board == null) return new BoardResult(BoardOutcome.NotFound);
-            if (!await CanSeeBoardAsync(actor, board)) return new BoardResult(BoardOutcome.Forbidden);
+            if (board == null) return new ServiceResult(ServiceOutcome.NotFound);
+            if (!await CanSeeBoardAsync(actor, board)) return new ServiceResult(ServiceOutcome.Forbidden);
 
             var item = await dataDb.WorkItems.FirstOrDefaultAsync(candidate => candidate.Id == workItemId && candidate.DeletedAt == null);
-            if (item == null) return new BoardResult(BoardOutcome.NotFound);
+            if (item == null) return new ServiceResult(ServiceOutcome.NotFound);
 
             var visibleBoardIds = VisibleBoards(actor).Select(candidate => candidate.Id);
             var canSeeSource = await dataDb.BoardCards
                 .AnyAsync(card => card.WorkItemId == workItemId && visibleBoardIds.Contains(card.BoardId));
-            if (!canSeeSource) return new BoardResult(BoardOutcome.Forbidden);
+            if (!canSeeSource) return new ServiceResult(ServiceOutcome.Forbidden);
 
             var columnExists = await dataDb.BoardColumns.AnyAsync(column => column.Id == data.ColumnId && column.BoardId == id);
-            if (!columnExists) return new BoardResult(BoardOutcome.Invalid, "Kolonnen findes ikke på boardet.");
+            if (!columnExists) return new ServiceResult(ServiceOutcome.Invalid, "Kolonnen findes ikke på boardet.");
 
             var alreadyPlaced = await dataDb.BoardCards.AnyAsync(card => card.BoardId == id && card.WorkItemId == workItemId);
-            if (alreadyPlaced) return new BoardResult(BoardOutcome.Invalid, "Kortet ligger allerede på boardet.");
+            if (alreadyPlaced) return new ServiceResult(ServiceOutcome.Invalid, "Kortet ligger allerede på boardet.");
 
             var lastPosition = await dataDb.BoardCards
                 .Where(card => card.BoardId == id && card.ColumnId == data.ColumnId)
@@ -545,7 +545,7 @@ namespace DS.Application.Services.Boards
 
             await dataDb.SaveChangesAsync();
 
-            return new BoardResult(BoardOutcome.Success);
+            return new ServiceResult(ServiceOutcome.Success);
         }
 
         private async Task<List<BoardCard>> LoadCardsAsync(int boardId)

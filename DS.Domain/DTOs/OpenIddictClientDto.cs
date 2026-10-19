@@ -29,4 +29,9 @@ namespace DS.Domain.DTOs
         public OpenIddictClientDto Client { get; set; }
         public string ClientSecret { get; set; }
     }
+
+    public class OpenIddictClientSecretDto
+    {
+        public string ClientSecret { get; set; }
+    }
 }
