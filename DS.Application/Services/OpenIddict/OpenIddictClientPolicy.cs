@@ -1,7 +1,7 @@
 using System.Text.Json;
 using DS.Domain;
 
-namespace DS.Website
+namespace DS.Application.Services.OpenIddict
 {
     public static class OpenIddictClientPolicy
     {

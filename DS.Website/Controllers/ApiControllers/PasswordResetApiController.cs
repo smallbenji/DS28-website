@@ -1,14 +1,13 @@
-using DS.Domain.Models;
+using DS.Application.Services.Accounts;
 using DS.Domain.DTOs;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 
 namespace DS.Website.Controllers
 {
     [AllowAnonymous]
     [Route("api/v1/reset-password")]
-    public class PasswordResetApiController(UserManager<User> userManager) : Controller
+    public class PasswordResetApiController(AccountService accountService) : Controller
     {
         [HttpPost]
         public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordDto data)
@@ -21,11 +20,10 @@ namespace DS.Website.Controllers
                 return BadRequest("Ugyldig anmodning.");
             }
 
-            var user = await userManager.FindByIdAsync(data.UserId);
-            if (user == null) return BadRequest("Brugeren findes ikke.");
+            var result = await accountService.ResetPassword(data);
+            if (result.UserNotFound) return BadRequest("Brugeren findes ikke.");
 
-            var result = await userManager.ResetPasswordAsync(user, data.Token, data.NewPassword);
-            if (!result.Succeeded) return BadRequest(result.Errors);
+            if (!result.Result.Succeeded) return BadRequest(result.Result.Errors);
 
             return Ok();
         }

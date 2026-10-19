@@ -1,9 +1,10 @@
-using DS.Application.Services;
+using Microsoft.Extensions.Logging;
+using DS.Application.Services.Email;
 using DS.Domain.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
 
-namespace DS.Website.Services
+namespace DS.Infrastructure.Identity
 {
     public class NotificationUserManager : UserManager<User>
     {

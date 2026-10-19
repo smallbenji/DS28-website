@@ -6,14 +6,14 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
-using DS.Application.Services;
+using DS.Application.Services.Accounts;
 
 namespace DS.Website.Controllers
 {
     [AllowAnonymous]
     [EnableRateLimiting("auth")]
     [Route("/api/v1/auth")]
-    public class AuthApiController(UserManager<User> userManager, SignInManager<User> signInManager, EmailService emailService) : Controller
+    public class AuthApiController(UserManager<User> userManager, SignInManager<User> signInManager, AccountService accountService) : Controller
     {
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginDto data)
@@ -102,17 +102,8 @@ namespace DS.Website.Controllers
                 return BadRequest("Alle felter skal udfyldes.");
             }
 
-            var newUser = new User
-            {
-                FirstName = data.FirstName,
-                LastName = data.LastName,
-                UserName = data.Email,
-                Email = data.Email,
-                EmailConfirmed = true
-            };
-
-            var result = await userManager.CreateAsync(newUser, data.Password);
-            if (!result.Succeeded) return BadRequest(string.Join(" ", result.Errors.Select(e => e.Description)));
+            var result = await accountService.Register(data);
+            if (!result.Succeeded) return BadRequest(string.Join(" ", result.Errors.Select(error => error.Description)));
 
             return Ok();
         }
@@ -122,14 +113,7 @@ namespace DS.Website.Controllers
         {
             if (data == null || string.IsNullOrWhiteSpace(data.Email)) return BadRequest("Email skal udfyldes.");
 
-            // Svarer altid med Ok, så man ikke kan bruge svaret til at finde ud af
-            // hvilke emailadresser der er oprettet.
-            var user = await userManager.FindByEmailAsync(data.Email);
-            if (user != null)
-            {
-                var token = await userManager.GeneratePasswordResetTokenAsync(user);
-                emailService.QueueResetPasswordMail(user, token);
-            }
+            await accountService.ForgotPassword(data.Email);
 
             return Ok();
         }
