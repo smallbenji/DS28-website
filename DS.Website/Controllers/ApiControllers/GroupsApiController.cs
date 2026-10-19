@@ -1,53 +1,21 @@
+using DS.Application.Services.Groups;
 using DS.Domain;
-using DS.Domain.Data;
 using DS.Domain.DTOs;
-using DS.Domain.Models;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace DS.Website.Controllers.ApiControllers
 {
     [Authorize(Roles = nameof(AppRoles.GroupsView))]
     [Route("/api/v1/groups")]
-    public class GroupsApiController : Controller
+    public class GroupsApiController(GroupAdministrationService service) : Controller
     {
-        private readonly DataDbContext dataDb;
-        private readonly UserManager<User> userManager;
-
-        public GroupsApiController(DataDbContext dataDb, UserManager<User> userManager)
-        {
-            this.dataDb = dataDb;
-            this.userManager = userManager;
-        }
-
         [HttpGet]
         public async Task<IActionResult> Index()
         {
-            var groups = await dataDb.Groups
-                .Include(g => g.Patrols).ThenInclude(p => p.Memberships)
-                .Include(g => g.Scouts).ThenInclude(s => s.Memberships)
-                .Select(x => new GroupDto(x))
-                .AsNoTracking()
-                .ToListAsync();
+            var result = await service.GetGroups();
 
-            var users = await userManager.Users
-                .Include(user => user.Group)
-                .Where(user => user.Group != null)
-                .ToListAsync();
-
-            var retval = new GroupsDto(groups)
-            {
-                Users = users
-                    .GroupBy(user => user.Group.Id)
-                    .ToDictionary(
-                        group => group.Key.ToString(),
-                        group => group.Select(user => new UserDto(user)).ToList()
-                    )
-            };
-
-            return Ok(retval);
+            return Respond(result);
         }
 
         [HttpPost]
@@ -55,11 +23,9 @@ namespace DS.Website.Controllers.ApiControllers
         {
             if (data == null) return BadRequest("Invalid request body.");
 
-            dataDb.Groups.Add(new Group(data));
+            var result = await service.CreateGroup(data);
 
-            await dataDb.SaveChangesAsync();
-
-            return Ok();
+            return Respond(result);
         }
 
         [HttpPost("patrol")]
@@ -67,16 +33,9 @@ namespace DS.Website.Controllers.ApiControllers
         {
             if (data == null) return BadRequest("Invalid request body.");
 
-            var group = await dataDb.Groups
-                .Include(x => x.Patrols)
-                .FirstOrDefaultAsync(x => x.Id == data.GroupId);
-            if (group == null) return BadRequest("No group exists.");
+            var result = await service.CreatePatrol(data);
 
-            var patrol = group.CreatePatrol(new Patrol(data));
-
-            await dataDb.SaveChangesAsync();
-
-            return Ok(new PatrolDto(patrol));
+            return Respond(result);
         }
 
         [HttpPost("scout")]
@@ -84,16 +43,9 @@ namespace DS.Website.Controllers.ApiControllers
         {
             if (data == null) return BadRequest("Invalid request body.");
 
-            var group = await dataDb.Groups
-                .Include(x => x.Scouts)
-                .FirstOrDefaultAsync(x => x.Id == data.GroupId);
-            if (group == null) return BadRequest("Group does not exist.");
+            var result = await service.CreateScout(data);
 
-            var scout = group.CreateScout(new Scout(data));
-
-            await dataDb.SaveChangesAsync();
-
-            return Ok(new ScoutDto(scout));
+            return Respond(result);
         }
 
         [HttpPost("scout/add-patrol")]
@@ -101,20 +53,9 @@ namespace DS.Website.Controllers.ApiControllers
         {
             if (data == null) return BadRequest("Invalid request body.");
 
-            var scout = await dataDb.Scouts
-                .FirstOrDefaultAsync(s => s.Id == data.ScoutId);
-            if (scout == null) return NotFound("Scout not found.");
+            var result = await service.AddPatrol(data);
 
-            var patrol = await dataDb.Patrols
-                .Include(x => x.Memberships)
-                .FirstOrDefaultAsync(p => p.Id == data.PatrolId);
-            if (patrol == null) return NotFound("Patrol not found.");
-
-            patrol.AssignScout(scout);
-
-            await dataDb.SaveChangesAsync();
-
-            return Ok();
+            return Respond(result);
         }
 
         [HttpPost("scout/remove-patrol")]
@@ -122,20 +63,9 @@ namespace DS.Website.Controllers.ApiControllers
         {
             if (data == null) return BadRequest("Invalid request body.");
 
-            var scout = await dataDb.Scouts
-                .FirstOrDefaultAsync(s => s.Id == data.ScoutId);
-            if (scout == null) return NotFound("Scout not found.");
+            var result = await service.RemovePatrol(data);
 
-            var patrol = await dataDb.Patrols
-                .Include(x => x.Memberships)
-                .FirstOrDefaultAsync(p => p.Id == data.PatrolId);
-            if (patrol == null) return NotFound("Patrol not found.");
-
-            patrol.RemoveScout(scout);
-
-            await dataDb.SaveChangesAsync();
-
-            return Ok();
+            return Respond(result);
         }
 
         [HttpPost("scout/toggle-leader")]
@@ -143,40 +73,26 @@ namespace DS.Website.Controllers.ApiControllers
         {
             if (data == null) return BadRequest("Invalid request body.");
 
-            var membership = await dataDb.PatrolMemberships
-                .FirstOrDefaultAsync(pm =>
-                    pm.ScoutId == data.ScoutId && pm.PatrolId == data.PatrolId);
-            if (membership == null) return NotFound("Membership not found.");
+            var result = await service.ToggleLeader(data);
 
-            membership.IsPatrolLeader = !membership.IsPatrolLeader;
-            await dataDb.SaveChangesAsync();
-
-            return Ok(new PatrolMembershipDto(membership));
+            return Respond(result);
         }
 
         [HttpDelete("patrol/{id}")]
         [Authorize(Roles = nameof(AppRoles.GroupsDelete))]
         public async Task<IActionResult> DeletePatrol(int id)
         {
-            var patrol = await dataDb.Patrols.FindAsync(id);
-            if (patrol == null) return NotFound($"Patrol with ID {id} not found.");
+            var result = await service.DeletePatrol(id);
 
-            dataDb.Patrols.Remove(patrol);
-            await dataDb.SaveChangesAsync();
-
-            return Ok();
+            return Respond(result);
         }
 
         [HttpDelete("scout/{id}")]
         public async Task<IActionResult> DeleteScout(int id)
         {
-            var scout = await dataDb.Scouts.FindAsync(id);
-            if (scout == null) return NotFound($"Scout with ID {id} not found.");
+            var result = await service.DeleteScout(id);
 
-            dataDb.Scouts.Remove(scout);
-            await dataDb.SaveChangesAsync();
-
-            return Ok();
+            return Respond(result);
         }
 
         [HttpPut("{id}")]
@@ -184,29 +100,37 @@ namespace DS.Website.Controllers.ApiControllers
         {
             if (data == null) return BadRequest("Invalid request body.");
 
-            if (data.Id != id) return BadRequest("ID mismatch");
+            var result = await service.UpdateGroup(data, id);
 
-            var group = await dataDb.Groups.FindAsync(id);
-            if (group == null) return NotFound($"Group with ID {id} not found.");
-
-            group.Name = data.Name;
-            group.District = data.District;
-            await dataDb.SaveChangesAsync();
-
-            return Ok();
+            return Respond(result);
         }
 
         [HttpDelete("{id}")]
         [Authorize(Roles = nameof(AppRoles.GroupsDelete))]
         public async Task<IActionResult> DeleteGroup(int id)
         {
-            var group = await dataDb.Groups.FindAsync(id);
-            if (group == null) return NotFound($"Group with ID {id} not found.");
+            var result = await service.DeleteGroup(id);
 
-            dataDb.Groups.Remove(group);
-            await dataDb.SaveChangesAsync();
+            return Respond(result);
+        }
 
-            return Ok();
+        private IActionResult Respond(GroupResult result, bool noContent = false)
+        {
+            switch (result.Outcome)
+            {
+                case GroupOutcome.Success:
+                    if (noContent) return NoContent();
+
+                    return result.Value == null ? Ok() : Ok(result.Value);
+                case GroupOutcome.Invalid:
+                    return BadRequest(result.Value);
+                case GroupOutcome.NotFound:
+                    return result.Value == null ? NotFound() : NotFound(result.Value);
+                case GroupOutcome.Forbidden:
+                    return Forbid();
+                default:
+                    return Conflict(result.Value);
+            }
         }
     }
 }

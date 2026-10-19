@@ -1,27 +1,22 @@
-using DS.Domain.Data;
+using DS.Application.Services.Invitations;
 using DS.Domain.DTOs;
-using DS.Domain.Models;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 
 namespace DS.Website.Controllers
 {
     [AllowAnonymous]
     [Route("api/v1/invitation")]
-    public class InvitationApiController(DataDbContext dataDb, UserManager<User> userManager, IMemoryCache memoryCache) : Controller
+    public class InvitationApiController(InvitationService invitationService, IMemoryCache memoryCache) : Controller
     {
         [HttpGet("{id}")]
         public async Task<IActionResult> GetInvitation(string id)
         {
-            Guid.TryParse(id, out var guidId);
-            var result = await dataDb.Invitations
-                .FirstOrDefaultAsync(x => x.InvitationId == guidId && x.GroupId == null);
-            if (result == null) return NotFound("Invitation not found");
+            var invitation = await invitationService.GetInvitation(id);
+            if (invitation == null) return NotFound("Invitation not found");
 
-            return Ok(new UserInvitationDto(result));
+            return Ok(invitation);
         }
 
         [HttpPost("{id:guid}")]
@@ -29,65 +24,12 @@ namespace DS.Website.Controllers
         {
             if (data == null) return BadRequest("Invalid request body.");
 
-            var invitation = await dataDb.Invitations
-                .FirstOrDefaultAsync(x => x.InvitationId == id && x.GroupId == null);
-            if (invitation == null) return NotFound("Invitation not found");
+            var result = await invitationService.CreateUser(data, id);
+            if (result.Outcome == InvitationOutcome.NotFound) return NotFound(result.Error);
 
-            if (invitation.Used) return BadRequest("Invitation has already been used");
+            if (result.Outcome == InvitationOutcome.Invalid) return BadRequest(result.Error);
 
-            if (string.IsNullOrWhiteSpace(data.Password) || data.Password.Length < 4)
-            {
-                return BadRequest("Password must be at least 4 characters long");
-            }
-
-            if (string.IsNullOrWhiteSpace(data.FirstName)
-                || string.IsNullOrWhiteSpace(data.LastName))
-            {
-                return BadRequest("First name and last name are required");
-            }
-
-            var newUser = new User
-            {
-                FirstName = data.FirstName,
-                LastName = data.LastName,
-                UserName = (data.FirstName + data.LastName).Replace(" ", "").ToLower(),
-                Email = invitation.Email,
-            };
-
-            var result = await userManager.CreateAsync(newUser, data.Password);
-            if (!result.Succeeded) return BadRequest("Fejl under oprettelse");
-
-            var user = await userManager.FindByEmailAsync(invitation.Email);
-            if (user != null)
-            {
-                await userManager.AddToRolesAsync(user, invitation.Roles);
-            }
-
-            if (invitation.ActivityTeamId != null && user != null)
-            {
-                dataDb.ActivityTeamMemberships.Add(new ActivityTeamMembership
-                {
-                    ActivityTeamId = invitation.ActivityTeamId.Value,
-                    User = user,
-                    IsAdmin = invitation.IsAdmin
-                });
-            }
-
-            if (invitation.OrgPositionId != null && user != null)
-            {
-                dataDb.OrgPositionHolders.Add(new OrgPositionHolder
-                {
-                    PositionId = invitation.OrgPositionId.Value,
-                    UserId = user.Id
-                });
-            }
-
-            invitation.Used = true;
-
-            dataDb.Invitations.Update(invitation);
-            await dataDb.SaveChangesAsync();
-
-            if (user != null) ClaimsTransformer.Evict(memoryCache, user.Id);
+            if (result.UserId != null) ClaimsTransformer.Evict(memoryCache, result.UserId);
 
             return Ok();
         }

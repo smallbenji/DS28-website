@@ -1,105 +1,40 @@
-using DS.Domain.Data;
+using DS.Application.Services.Groups;
 using DS.Domain.DTOs;
 using DS.Domain.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace DS.Website.Controllers
 {
     [Route("/api/v1/group")]
     [Authorize]
-    // [Authorize(Roles = nameof(AppRoles.AuditLogView))]
-    public class GroupApiController(UserManager<User> userManager, DataDbContext dataDb) : Controller
+    public class GroupApiController(GroupService service, UserManager<User> userManager) : Controller
     {
         [HttpGet("pre-signup")]
         public async Task<IActionResult> GetPreSignup()
         {
-            var userId = userManager.GetUserId(User);
-            var user = await userManager.Users
-                .Include(u => u.Group).ThenInclude(g => g.PreSignup)
-                .SingleOrDefaultAsync(u => u.Id == userId);
-            if (user?.Group == null) return NotFound("Din bruger er ikke tilknyttet en gruppe.");
+            var result = await service.GetPreSignup(userManager.GetUserId(User));
 
-            var signup = user.Group.PreSignup;
-            if (signup == null)
-            {
-                signup = new GroupPreSignup
-                {
-                    GroupId = user.Group.Id
-                };
-                dataDb.GroupPreSignups.Add(signup);
-                await dataDb.SaveChangesAsync();
-            }
-
-            return Ok(new
-            {
-                GroupName = user.Group.Name,
-                GroupId = user.Group.Id,
-                Counts = new UpdateGroupPreSignupDto(signup)
-            });
+            return Respond(result);
         }
 
         [HttpPut("pre-signup")]
         public async Task<IActionResult> UpdatePreSignup([FromBody] UpdateGroupPreSignupDto data)
         {
-            if (data == null || !ModelState.IsValid)
-            {
-                return BadRequest("Udfyld alle deltagerantal med hele tal på 0 eller derover.");
-            }
+            if (data == null || !ModelState.IsValid) return BadRequest("Udfyld alle deltagerantal med hele tal på 0 eller derover.");
 
-            await using var transaction = await dataDb.Database.BeginTransactionAsync();
+            var result = await service.UpdatePreSignup(userManager.GetUserId(User), data);
 
-            await dataDb.Database.ExecuteSqlRawAsync(
-                "SELECT 1 FROM \"RegistrationSettings\" WHERE \"Id\" = 1 FOR SHARE");
-            if (!await dataDb.RegistrationSettings.AnyAsync(
-                s => s.Id == 1 && s.IsPreSignupOpen))
-            {
-                return Conflict("Forhåndstilmeldingen er lukket. Deltagerantallene kan ikke ændres.");
-            }
-
-            var userId = userManager.GetUserId(User);
-            var user = await userManager.Users
-                .Include(u => u.Group).ThenInclude(g => g.PreSignup)
-                .SingleOrDefaultAsync(u => u.Id == userId);
-            if (user?.Group == null) return NotFound("Din bruger er ikke tilknyttet en gruppe.");
-
-            var signup = user.Group.PreSignup;
-            if (signup == null)
-            {
-                signup = new GroupPreSignup
-                {
-                    GroupId = user.Group.Id
-                };
-                dataDb.GroupPreSignups.Add(signup);
-            }
-
-            data.ApplyTo(signup);
-
-            await dataDb.SaveChangesAsync();
-            await transaction.CommitAsync();
-
-            return NoContent();
+            return Respond(result, true);
         }
 
         [HttpGet]
         public async Task<IActionResult> Index()
         {
-            var userId = userManager.GetUserId(HttpContext.User);
-            var user = await userManager.Users
-                .Include(x => x.Group)
-                .ThenInclude(x => x.Patrols).ThenInclude(p => p.Memberships)
-                .Include(x => x.Group)
-                .ThenInclude(x => x.Scouts).ThenInclude(s => s.Memberships)
-                .FirstOrDefaultAsync(u => u.Id == userId);
-            if (user?.Group == null) return NotFound();
+            var result = await service.GetGroup(userManager.GetUserId(User));
 
-            var users = await userManager.Users
-                .Where(u => u.Group != null && u.Group.Id == user.Group.Id)
-                .ToListAsync();
-
-            return Ok(new GroupDto(user.Group, users));
+            return Respond(result);
         }
 
         [HttpPost("scouts")]
@@ -107,37 +42,17 @@ namespace DS.Website.Controllers
         {
             if (data == null || string.IsNullOrWhiteSpace(data.Name)) return BadRequest("Udfyld spejderens navn.");
 
-            var userId = userManager.GetUserId(User);
-            var user = await userManager.Users
-                .Include(u => u.Group).ThenInclude(g => g.Scouts)
-                .FirstOrDefaultAsync(u => u.Id == userId);
-            if (user?.Group == null) return NotFound("Din bruger er ikke tilknyttet en gruppe.");
+            var result = await service.CreateScout(userManager.GetUserId(User), data);
 
-            data.GroupId = user.Group.Id;
-            var scout = user.Group.CreateScout(new Scout(data));
-
-            await dataDb.SaveChangesAsync();
-
-            return Ok(new ScoutDto(scout));
+            return Respond(result);
         }
 
         [HttpDelete("scouts/{scoutId:int}")]
         public async Task<IActionResult> DeleteScout(int scoutId)
         {
-            var userId = userManager.GetUserId(User);
-            var user = await userManager.Users
-                .Include(u => u.Group)
-                .FirstOrDefaultAsync(u => u.Id == userId);
-            if (user?.Group == null) return NotFound("Din bruger er ikke tilknyttet en gruppe.");
+            var result = await service.DeleteScout(userManager.GetUserId(User), scoutId);
 
-            var scout = await dataDb.Scouts
-                .FirstOrDefaultAsync(s => s.Id == scoutId && s.GroupId == user.Group.Id);
-            if (scout == null) return NotFound("Spejderen blev ikke fundet.");
-
-            dataDb.Scouts.Remove(scout);
-            await dataDb.SaveChangesAsync();
-
-            return NoContent();
+            return Respond(result, true);
         }
 
         [HttpPost("patrols")]
@@ -145,37 +60,17 @@ namespace DS.Website.Controllers
         {
             if (data == null || string.IsNullOrWhiteSpace(data.Name)) return BadRequest("Udfyld patruljens navn.");
 
-            var userId = userManager.GetUserId(User);
-            var user = await userManager.Users
-                .Include(u => u.Group).ThenInclude(g => g.Patrols)
-                .FirstOrDefaultAsync(u => u.Id == userId);
-            if (user?.Group == null) return NotFound("Din bruger er ikke tilknyttet en gruppe.");
+            var result = await service.CreatePatrol(userManager.GetUserId(User), data);
 
-            data.GroupId = user.Group.Id;
-            var patrol = user.Group.CreatePatrol(new Patrol(data));
-
-            await dataDb.SaveChangesAsync();
-
-            return Ok(new PatrolDto(patrol));
+            return Respond(result);
         }
 
         [HttpDelete("patrols/{patrolId:int}")]
         public async Task<IActionResult> DeletePatrol(int patrolId)
         {
-            var userId = userManager.GetUserId(User);
-            var user = await userManager.Users
-                .Include(u => u.Group)
-                .FirstOrDefaultAsync(u => u.Id == userId);
-            if (user?.Group == null) return NotFound("Din bruger er ikke tilknyttet en gruppe.");
+            var result = await service.DeletePatrol(userManager.GetUserId(User), patrolId);
 
-            var patrol = await dataDb.Patrols
-                .FirstOrDefaultAsync(p => p.Id == patrolId && p.GroupId == user.Group.Id);
-            if (patrol == null) return NotFound("Patruljen blev ikke fundet.");
-
-            dataDb.Patrols.Remove(patrol);
-            await dataDb.SaveChangesAsync();
-
-            return NoContent();
+            return Respond(result, true);
         }
 
         [HttpPost("scouts/add-patrol")]
@@ -183,25 +78,9 @@ namespace DS.Website.Controllers
         {
             if (data == null) return BadRequest("Ugyldig anmodning.");
 
-            var userId = userManager.GetUserId(User);
-            var user = await userManager.Users
-                .Include(u => u.Group)
-                .FirstOrDefaultAsync(u => u.Id == userId);
-            if (user?.Group == null) return NotFound("Din bruger er ikke tilknyttet en gruppe.");
+            var result = await service.AddScoutToPatrol(userManager.GetUserId(User), data);
 
-            var scout = await dataDb.Scouts
-                .FirstOrDefaultAsync(s => s.Id == data.ScoutId && s.GroupId == user.Group.Id);
-            if (scout == null) return NotFound("Spejderen blev ikke fundet.");
-
-            var patrol = await dataDb.Patrols
-                .Include(p => p.Memberships)
-                .FirstOrDefaultAsync(p => p.Id == data.PatrolId && p.GroupId == user.Group.Id);
-            if (patrol == null) return NotFound("Patruljen blev ikke fundet.");
-
-            patrol.AssignScout(scout);
-            await dataDb.SaveChangesAsync();
-
-            return Ok();
+            return Respond(result);
         }
 
         [HttpPost("scouts/remove-patrol")]
@@ -209,25 +88,28 @@ namespace DS.Website.Controllers
         {
             if (data == null) return BadRequest("Ugyldig anmodning.");
 
-            var userId = userManager.GetUserId(User);
-            var user = await userManager.Users
-                .Include(u => u.Group)
-                .FirstOrDefaultAsync(u => u.Id == userId);
-            if (user?.Group == null) return NotFound("Din bruger er ikke tilknyttet en gruppe.");
+            var result = await service.RemoveScoutFromPatrol(userManager.GetUserId(User), data);
 
-            var scout = await dataDb.Scouts
-                .FirstOrDefaultAsync(s => s.Id == data.ScoutId && s.GroupId == user.Group.Id);
-            if (scout == null) return NotFound("Spejderen blev ikke fundet.");
+            return Respond(result, true);
+        }
 
-            var patrol = await dataDb.Patrols
-                .Include(p => p.Memberships)
-                .FirstOrDefaultAsync(p => p.Id == data.PatrolId && p.GroupId == user.Group.Id);
-            if (patrol == null) return NotFound("Patruljen blev ikke fundet.");
+        private IActionResult Respond(GroupResult result, bool noContent = false)
+        {
+            switch (result.Outcome)
+            {
+                case GroupOutcome.Success:
+                    if (noContent) return NoContent();
 
-            patrol.RemoveScout(scout);
-            await dataDb.SaveChangesAsync();
-
-            return NoContent();
+                    return result.Value == null ? Ok() : Ok(result.Value);
+                case GroupOutcome.Invalid:
+                    return BadRequest(result.Value);
+                case GroupOutcome.NotFound:
+                    return result.Value == null ? NotFound() : NotFound(result.Value);
+                case GroupOutcome.Forbidden:
+                    return Forbid();
+                default:
+                    return Conflict(result.Value);
+            }
         }
     }
 }

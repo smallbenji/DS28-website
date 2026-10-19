@@ -1,15 +1,14 @@
-using DS.Domain.Data;
 using DS.Domain.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using DS.Domain;
+using DS.Application.Services.Groups;
 
 namespace DS.Website.Controllers
 {
     [Authorize(Roles = nameof(AppRoles.AdminAccess))]
     [Route("api/v1/admin")]
-    public class AdminApiController(DataDbContext dataDb) : Controller
+    public class AdminApiController(GroupInfoService groupInfoService) : Controller
     {
         private static List<AdminSectionDto> GetSections()
         {
@@ -120,11 +119,9 @@ namespace DS.Website.Controllers
         {
             var target = ParticipantData.Stats.TotalUniqueParticipants;
 
-            var preSignup = await dataDb.GroupPreSignups
-                .Select(m => (int?)(m.Beaver + m.Wolf + m.Junior + m.Trop + m.Senior + m.Rover + m.Leader))
-                .SumAsync() ?? 0;
+            var preSignup = await groupInfoService.GetTotalPresignup();
 
-            var finalSignup = await dataDb.Scouts.CountAsync();
+            var finalSignup = await groupInfoService.GetTotalSignups();
 
             return Ok(new List<SignupProgressDto>
             {

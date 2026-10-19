@@ -1,53 +1,25 @@
-using DS.Domain.Data;
+using DS.Application.Services.Groups;
 using DS.Domain.DTOs;
 using DS.Domain.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using Npgsql;
 
 namespace DS.Website.Controllers
 {
     [AllowAnonymous]
     [Route("/api/v1/group-pre-signup")]
-    public class GroupPreSignupApiController(
-        DataDbContext dataDb,
-        UserManager<User> userManager,
-        SignInManager<User> signInManager) : Controller
+    public class GroupPreSignupApiController(GroupPreSignupService preSignupService, SignInManager<User> signInManager) : Controller
     {
         [HttpGet("{groupId:int}")]
         public async Task<IActionResult> Lookup(int groupId)
         {
-            if (!await dataDb.RegistrationSettings.AnyAsync(
-                s => s.Id == 1 && s.IsPreSignupOpen))
-            {
-                return Conflict("Forhåndstilmeldingen er lukket.");
-            }
+            var result = await preSignupService.Lookup(groupId);
+            if (result.Outcome == GroupPreSignupOutcome.NotFound) return NotFound(result.Error);
 
-            var group = await dataDb.Groups
-                .AsNoTracking()
-                .Include(g => g.PreSignup)
-                .Where(g => g.Id == groupId)
-                .SingleOrDefaultAsync();
-            if (group == null)
-            {
-                return NotFound("Gruppen blev ikke fundet. Kontrollér gruppenummeret.");
-            }
+            if (result.Outcome == GroupPreSignupOutcome.Conflict) return Conflict(result.Error);
 
-            var hasUsers = await dataDb.Users.AnyAsync(u => u.Group != null && u.Group.Id == groupId);
-            if (hasUsers)
-            {
-                return Conflict("Gruppen er allerede forhåndstilmeldt. Log ind eller kontakt gruppens kontaktperson.");
-            }
-
-            return Ok(new
-            {
-                group.Id,
-                group.Name,
-                group.District,
-                Counts = group.PreSignup != null ? new UpdateGroupPreSignupDto(group.PreSignup) : null
-            });
+            return Ok(result.Details);
         }
 
         [HttpPost]
@@ -57,82 +29,14 @@ namespace DS.Website.Controllers
 
             if (data == null || !ModelState.IsValid) return BadRequest("Udfyld navn, gyldig email og adgangskode på mindst 4 tegn. Deltagerantal skal være hele tal på 0 eller derover.");
 
-            await using var transaction = await dataDb.Database.BeginTransactionAsync();
+            var result = await preSignupService.Create(data);
+            if (result.Outcome == GroupPreSignupOutcome.NotFound) return NotFound(result.Error);
 
-            await dataDb.Database.ExecuteSqlRawAsync(
-                "SELECT 1 FROM \"RegistrationSettings\" WHERE \"Id\" = 1 FOR SHARE");
-            if (!await dataDb.RegistrationSettings.AnyAsync(
-                s => s.Id == 1 && s.IsPreSignupOpen))
-            {
-                return Conflict("Forhåndstilmeldingen er lukket.");
-            }
+            if (result.Outcome == GroupPreSignupOutcome.Conflict) return Conflict(result.Error);
 
-            await dataDb.Database.ExecuteSqlInterpolatedAsync(
-                $"SELECT 1 FROM \"Groups\" WHERE \"Id\" = {data.GroupId} FOR UPDATE");
+            if (result.Outcome == GroupPreSignupOutcome.Invalid) return BadRequest(result.Error);
 
-            var group = await dataDb.Groups
-                .Include(g => g.PreSignup)
-                .SingleOrDefaultAsync(g => g.Id == data.GroupId);
-            if (group == null) return NotFound("Gruppen blev ikke fundet. Kontrollér gruppenummeret.");
-
-            var hasUsers = await dataDb.Users.AnyAsync(u => u.Group != null && u.Group.Id == group.Id);
-            if (hasUsers) return Conflict("Gruppen er allerede forhåndstilmeldt. Log ind eller kontakt gruppens kontaktperson.");
-
-            var user = new User
-            {
-                FirstName = data.FirstName.Trim(),
-                LastName = data.LastName.Trim(),
-                UserName = data.Email.Trim(),
-                Email = data.Email.Trim(),
-                EmailConfirmed = true,
-                Group = group
-            };
-
-            try
-            {
-                var result = await userManager.CreateAsync(user, data.Password);
-                if (!result.Succeeded)
-                {
-                    return BadRequest(string.Join(" ", result.Errors.Select(e => e.Description)));
-                }
-
-                if (group.PreSignup == null)
-                {
-                    dataDb.GroupPreSignups.Add(new GroupPreSignup
-                    {
-                        GroupId = group.Id,
-                        Beaver = data.Beaver,
-                        Wolf = data.Wolf,
-                        Junior = data.Junior,
-                        Trop = data.Trop,
-                        Senior = data.Senior,
-                        Rover = data.Rover,
-                        Leader = data.Leader
-                    });
-                }
-                else
-                {
-                    group.PreSignup.Beaver = data.Beaver;
-                    group.PreSignup.Wolf = data.Wolf;
-                    group.PreSignup.Junior = data.Junior;
-                    group.PreSignup.Trop = data.Trop;
-                    group.PreSignup.Senior = data.Senior;
-                    group.PreSignup.Rover = data.Rover;
-                    group.PreSignup.Leader = data.Leader;
-                }
-
-                await dataDb.SaveChangesAsync();
-                await transaction.CommitAsync();
-            }
-            catch (DbUpdateException ex) when (ex.InnerException is PostgresException
-                { SqlState: PostgresErrorCodes.UniqueViolation })
-            {
-                await transaction.RollbackAsync();
-
-                return Conflict("Gruppen eller emailadressen er allerede registreret. Log ind, eller kontrollér oplysningerne.");
-            }
-
-            await signInManager.SignInAsync(user, isPersistent: true);
+            await signInManager.SignInAsync(result.NewUser, isPersistent: true);
 
             return Ok(new { ReturnUrl = "/group" });
         }
