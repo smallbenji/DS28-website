@@ -1,4 +1,5 @@
-using DS.Domain.Data;
+using DS.Application.Services.Organization;
+using DS.Infrastructure.Data;
 using DS.Domain.Models;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;

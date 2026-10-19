@@ -1,11 +1,11 @@
-using DS.Domain.Data;
+using DS.Application.Data;
 using Microsoft.EntityFrameworkCore;
 
-namespace DS.Website
+namespace DS.Application.Services.Organization
 {
     public static class OrgPositionAccess
     {
-        public static IQueryable<string> GetEffectiveGroups(DataDbContext dataDb, string userId)
+        public static IQueryable<string> GetEffectiveGroups(IDataDbContext dataDb, string userId)
         {
             var ownGroups = dataDb.OrgPositionHolders
                 .Where(holder => holder.UserId == userId && holder.Position.DeletedAt == null)

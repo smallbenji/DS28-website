@@ -1,75 +1,23 @@
-using DS.Application.Services;
+using DS.Application.Services.Users;
 using DS.Domain;
-using DS.Domain.Data;
 using DS.Domain.DTOs;
 using DS.Domain.Models;
-using DS.Website.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Memory;
 
 namespace DS.Website.Controllers
 {
     [Authorize(Roles = nameof(AppRoles.UsersView))]
     [Route("/api/v1/user")]
-    public class UserApiController(DataDbContext dataDb, UserManager<User> userManager, RoleManager<Role> roleManager, IMemoryCache memoryCache, EmailService emailService) : Controller
+    public class UserApiController(UserService userService, UserManager<User> userManager) : Controller
     {
         [HttpGet]
         public async Task<IActionResult> Index()
         {
-            var users = await dataDb.Users
-                .OrderBy(user => user.FirstName)
-                .ThenBy(user => user.LastName)
-                .Include(x => x.Group)
-                .Include(x => x.ProfilePicture)
-                .ToListAsync();
+            var result = await userService.GetUsers();
 
-            var positionsByUser = await dataDb.OrgPositionHolders
-                .AsNoTracking()
-                .Where(holder => holder.Position.DeletedAt == null)
-                .Select(holder => new
-                {
-                    holder.UserId,
-                    PositionId = holder.Position.Id,
-                    PositionTitle = holder.Position.Title
-                })
-                .ToListAsync();
-
-            var positionsLookup = positionsByUser
-                .GroupBy(entry => entry.UserId)
-                .ToDictionary(group => group.Key, group => group
-                    .Select(entry => new OrgPositionDto
-                    {
-                        Id = entry.PositionId,
-                        Title = entry.PositionTitle
-                    })
-                    .ToList());
-
-            var roleNamesByUser = await (
-                from userRole in dataDb.UserRoles
-                join role in dataDb.Roles on userRole.RoleId equals role.Id
-                select new { userRole.UserId, role.Name }
-            ).AsNoTracking().ToListAsync();
-
-            var rolesLookup = roleNamesByUser
-                .GroupBy(entry => entry.UserId)
-                .ToDictionary(group => group.Key, group => group.Select(entry => entry.Name).ToList());
-
-            var retval = new List<UserDto>();
-            foreach (var user in users)
-            {
-                var dto = new UserDto(user)
-                {
-                    Roles = rolesLookup.TryGetValue(user.Id, out var roles) ? roles : [],
-                    Positions = positionsLookup.TryGetValue(user.Id, out var positions) ? positions : []
-                };
-
-                retval.Add(dto);
-            }
-
-            return Ok(retval);
+            return Respond(result);
         }
 
         [HttpPost]
@@ -79,20 +27,9 @@ namespace DS.Website.Controllers
 
             if (string.IsNullOrWhiteSpace(data.Email)) return BadRequest("Email er påkrævet.");
 
-            var user = new User(data);
+            var result = await userService.CreateUser(data);
 
-            if (data.Group != null)
-            {
-                var group = await dataDb.Groups.FindAsync(data.Group.Id);
-                if (group == null) return BadRequest("Gruppen findes ikke.");
-
-                user.Group = group;
-            }
-
-            var result = await userManager.CreateAsync(user);
-            if (!result.Succeeded) return BadRequest(result.Errors);
-
-            return Ok();
+            return Respond(result);
         }
 
         [HttpPut]
@@ -102,27 +39,9 @@ namespace DS.Website.Controllers
 
             if (string.IsNullOrWhiteSpace(data.Id)) return BadRequest("Bruger-id er påkrævet.");
 
-            var user = await userManager.FindByIdAsync(data.Id);
-            if (user == null) return NotFound();
+            var result = await userService.UpdateUser(data);
 
-            data.ApplyTo(user);
-
-            if (data.Group != null)
-            {
-                var group = await dataDb.Groups.FindAsync(data.Group.Id);
-                if (group == null) return BadRequest("Gruppen findes ikke.");
-
-                user.Group = group;
-            }
-            else
-            {
-                dataDb.Entry(user).Property("GroupId").CurrentValue = null;
-            }
-
-            var result = await userManager.UpdateAsync(user);
-            if (!result.Succeeded) return BadRequest(result.Errors);
-
-            return Ok();
+            return Respond(result);
         }
 
         [HttpPut("{id}/profile-picture")]
@@ -131,35 +50,9 @@ namespace DS.Website.Controllers
         {
             if (data == null) return BadRequest("Invalid request body.");
 
-            var user = await userManager.FindByIdAsync(id);
-            if (user == null) return NotFound();
+            var result = await userService.UpdateProfilePicture(userManager.GetUserId(User), id, data);
 
-            if (data.Image == null)
-            {
-                user.ProfilePictureFileId = null;
-
-                var clearResult = await userManager.UpdateAsync(user);
-                if (!clearResult.Succeeded) return BadRequest(clearResult.Errors);
-
-                return Ok();
-            }
-
-            var currentUserId = userManager.GetUserId(User);
-
-            var image = await dataDb.StoredFiles
-                .FirstOrDefaultAsync(f => f.PublicId == data.Image.PublicId
-                    && f.Purpose == FilePurpose.ProfilePicture
-                    && f.Status == StoredFileStatus.Ready
-                    && f.DeletedAt == null
-                    && f.UploadedByUserId == currentUserId);
-            if (image == null) return BadRequest("Billedet findes ikke.");
-
-            user.ProfilePictureFileId = image.Id;
-
-            var result = await userManager.UpdateAsync(user);
-            if (!result.Succeeded) return BadRequest(result.Errors);
-
-            return Ok(new ImageReferenceDto(image));
+            return Respond(result);
         }
 
         [HttpPut("{id}/role/add")]
@@ -167,21 +60,9 @@ namespace DS.Website.Controllers
         {
             if (string.IsNullOrWhiteSpace(role)) return BadRequest("Role is required.");
 
-            var currentUser = await userManager.GetUserAsync(User);
-            if (currentUser == null) return Forbid();
+            var result = await userService.AddUserToRole(userManager.GetUserId(User), role, id);
 
-            var currentUserRoles = await userManager.GetRolesAsync(currentUser);
-            if (!AppAccess.CanAssignRole(currentUserRoles, role)) return Forbid();
-
-            var user = await userManager.FindByIdAsync(id);
-            if (user == null) return NotFound();
-
-            var result = await userManager.AddToRoleAsync(user, role);
-            if (!result.Succeeded) return BadRequest(result.Errors);
-
-            memoryCache.Remove($"{ClaimsTransformer.RoleCachePrefix}{id}");
-
-            return Ok();
+            return Respond(result);
         }
 
         [HttpPut("{id}/role/remove")]
@@ -189,109 +70,61 @@ namespace DS.Website.Controllers
         {
             if (string.IsNullOrWhiteSpace(role)) return BadRequest("Role is required.");
 
-            var currentUser = await userManager.GetUserAsync(User);
-            if (currentUser == null) return Forbid();
+            var result = await userService.RemoveUserToRole(userManager.GetUserId(User), role, id);
 
-            var currentUserRoles = await userManager.GetRolesAsync(currentUser);
-            if (!AppAccess.CanAssignRole(currentUserRoles, role)) return Forbid();
-
-            var user = await userManager.FindByIdAsync(id);
-            if (user == null) return NotFound();
-
-            var result = await userManager.RemoveFromRoleAsync(user, role);
-            if (!result.Succeeded) return BadRequest(result.Errors);
-
-            memoryCache.Remove($"{ClaimsTransformer.RoleCachePrefix}{id}");
-
-            return Ok();
+            return Respond(result);
         }
 
         [HttpDelete("{id}")]
         [Authorize(Roles = nameof(AppRoles.UsersDelete))]
         public async Task<IActionResult> DeleteUser(string id)
         {
-            var user = await userManager.FindByIdAsync(id);
-            if (user == null) return NotFound();
+            var result = await userService.DeleteUser(id);
 
-            var result = await userManager.DeleteAsync(user);
-            if (!result.Succeeded) return BadRequest(result.Errors);
-
-            return Ok();
+            return Respond(result);
         }
 
         [HttpPut("{id}/lock")]
         [Authorize(Roles = nameof(AppRoles.UsersLock))]
         public async Task<IActionResult> LockUser(string id)
         {
-            var user = await userManager.FindByIdAsync(id);
-            if (user == null) return NotFound();
+            var result = await userService.LockUser(id);
 
-            await userManager.SetLockoutEnabledAsync(user, true);
-            var result = await userManager.SetLockoutEndDateAsync(user, DateTimeOffset.MaxValue);
-            if (!result.Succeeded) return BadRequest(result.Errors);
-
-            return Ok();
+            return Respond(result);
         }
 
         [HttpPut("{id}/unlock")]
         [Authorize(Roles = nameof(AppRoles.UsersLock))]
         public async Task<IActionResult> UnlockUser(string id)
         {
-            var user = await userManager.FindByIdAsync(id);
-            if (user == null) return NotFound();
+            var result = await userService.UnlockUser(id);
 
-            var result = await userManager.SetLockoutEndDateAsync(user, null);
-            if (!result.Succeeded) return BadRequest(result.Errors);
-
-            return Ok();
+            return Respond(result);
         }
 
         [HttpGet("assignable-groups")]
         public async Task<IActionResult> GetAssignableGroups()
         {
-            var currentUser = await userManager.GetUserAsync(User);
-            if (currentUser == null) return Forbid();
+            var result = await userService.GetAssignableGroups(userManager.GetUserId(User));
 
-            var currentUserRoles = await userManager.GetRolesAsync(currentUser);
-            var assignable = Enum.GetValues<AppGroups>()
-                .Where(g => AppAccess.CanAssignRole(currentUserRoles, g.ToString()))
-                .Select(g => g.ToString())
-                .ToList();
-
-            return Ok(assignable);
+            return Respond(result);
         }
 
         [HttpGet("groups")]
         public async Task<IActionResult> GetGroups()
         {
-            var retval = await roleManager.Roles
-                .OrderBy(role => role.Name)
-                .Select(role => new RoleDto
-                {
-                    Id = role.Id,
-                    Name = role.Name ?? string.Empty
-                })
-                .ToListAsync();
+            var result = await userService.GetGroups();
 
-            return Ok(retval);
+            return Respond(result);
         }
 
         [HttpPost("{id}/reset-password-link")]
         [Authorize(Roles = nameof(AppRoles.UsersResetPassword))]
         public async Task<IActionResult> CreateResetPasswordLink(string id)
         {
-            var user = await userManager.FindByIdAsync(id);
-            if (user == null) return NotFound();
+            var result = await userService.CreateResetPasswordLink($"{Request.Scheme}://{Request.Host}", id);
 
-            var token = await userManager.GeneratePasswordResetTokenAsync(user);
-
-            var link = $"{Request.Scheme}://{Request.Host}/reset-password/{user.Id}?token={Uri.EscapeDataString(token)}";
-
-            return Ok(new ResetPasswordLinkDto
-            {
-                Link = link,
-                Email = user.Email
-            });
+            return Respond(result);
         }
 
         [HttpPost("invite")]
@@ -299,34 +132,24 @@ namespace DS.Website.Controllers
         {
             if (data == null) return BadRequest("Invalid request body.");
 
-            var currentUser = await userManager.GetUserAsync(User);
-            if (currentUser == null) return Forbid();
+            var result = await userService.InviteUser(userManager.GetUserId(User), data);
 
-            var currentUserRoles = await userManager.GetRolesAsync(currentUser);
-            var allowedRoles = data.Roles
-                .Where(r => AppAccess.CanAssignRole(currentUserRoles, r))
-                .ToList();
-            if (allowedRoles.Count != data.Roles.Count)
+            return Respond(result);
+        }
+
+        private IActionResult Respond(UserResult result)
+        {
+            switch (result.Outcome)
             {
-                return BadRequest("Du har ikke tilladelse til at tildele nogle af de valgte roller.");
+                case UserOutcome.Success:
+                    return result.Value == null ? Ok() : Ok(result.Value);
+                case UserOutcome.Invalid:
+                    return BadRequest(result.Value);
+                case UserOutcome.NotFound:
+                    return NotFound();
+                default:
+                    return Forbid();
             }
-
-            var newUser = await userManager.FindByEmailAsync(data.Email);
-            if (newUser != null) return BadRequest("Bruger findes allerede.");
-
-            var invitation = new UserInvitation()
-            {
-                InvitationId = Guid.NewGuid(),
-                Roles = allowedRoles,
-                Email = data.Email
-            };
-
-            await dataDb.Invitations.AddAsync(invitation);
-            await dataDb.SaveChangesAsync();
-
-            emailService.QueueInvitationMail(invitation);
-
-            return Ok();
         }
     }
 }
