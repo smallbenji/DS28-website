@@ -1,11 +1,16 @@
+using DS.Infrastructure.Identity;
+using DS.Infrastructure.Google;
+using DS.Application.Services.Google;
 using System.Security.Cryptography.X509Certificates;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
+using DS.Application.Data;
 using DS.Domain;
-using DS.Domain.Data;
 using DS.Domain.Models;
-using DS.Website.Exports;
+using DS.Infrastructure.Data;
+using DS.Infrastructure.Exports;
+using DS.Application.Services.Exports;
 using DS.Website.Services;
 using Hangfire;
 using Hangfire.PostgreSql;
@@ -70,7 +75,12 @@ public static class ServiceExtensions
         services.AddScoped<IUserClaimsPrincipalFactory<User>, AppClaimsPrincipalFactory>();
         services.AddTransient<CampSettings>();
 
-        services.AddTransient<IGoogleAuthService, GoogleAuthService>();
+        services.AddScoped<IDataDbContext>(provider => provider.GetRequiredService<DataDbContext>());
+        services.AddScoped<DS.Application.Services.Organization.IUserAccessCache, UserAccessCache>();
+
+        services.AddScoped<GoogleAuthService>();
+        services.AddScoped<IGoogleAuthService>(provider => provider.GetRequiredService<GoogleAuthService>());
+        services.AddScoped<IGoogleDriveClientFactory>(provider => provider.GetRequiredService<GoogleAuthService>());
         services.AddTransient<IGoogleDriveService, GoogleDriveService>();
         services.AddHangfire(config => config.UsePostgreSqlStorage(
             storage => storage.UseNpgsqlConnection(dsSettings.ConnectionString),
@@ -82,6 +92,9 @@ public static class ServiceExtensions
 
         services.AddHangfireServer(options => options.WorkerCount = 5);
 
+        services.ConfigureDsApplication();
+        DS.Infrastructure.ConfigureInfrastructure.ConfigureDsInfrastructure(services);
+
         services.AddExporters();
 
         return services;
@@ -89,8 +102,8 @@ public static class ServiceExtensions
 
     public static IServiceCollection AddExporters(this IServiceCollection services)
     {
-        services.AddScoped<DataExport, GroupPreSignupExport>();
-        services.AddScoped<DataExport, ParticipantExport>();
+        services.AddScoped<IDataExport, GroupPreSignupExport>();
+        services.AddScoped<IDataExport, ParticipantExport>();
 
         return services;
     }

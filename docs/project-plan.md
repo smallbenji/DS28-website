@@ -31,6 +31,148 @@ på et CMS, så andre end IT kan vedligeholde indhold.
 
 ### Applikationsopstart
 
+**Rettelse 2026-10-19 (implementeret):** Flytningen fra DS til DS.Domain ændrede
+utilsigtet SQL-resource-navne fra `DS.Migrations.*` til `DS.Domain.Migrations.*`.
+DbUp identificerer udførte scripts ved disse navne og forsøgte derfor at køre
+legacy-overgangen igen på en allerede migreret database. Domain-projektet
+fastlægger nu `LogicalName` til de oprindelige `DS.Migrations.*`-navne.
+Journalen og SQL-scripts ændres ikke; der slettes eller omdøbes ikke rækker i
+en eksisterende database. Migrationernes identitet skal bevares ved fremtidige
+projektflytninger. Dette retter resourcenavnene fra den tidligere flytning.
+
+**Beslutning 2026-10-19 (implementeret):** Offentlig brugeroprettelse, glemt
+adgangskode og nulstilling af adgangskode håndteres af `AccountService` under
+`Application/Services/Accounts`. Auth- og nulstillingscontrollerne beholder
+inputvalidering, routes og HTTP-svar; login, 2FA, passkeys og cookies forbliver
+i Website. Glemt adgangskode svarer fortsat ens for kendte og ukendte emails.
+
+Klientadministration bruger `IOpenIddictClientService` og resultattyper under
+`Application/Services/OpenIddict`, implementeret af `OpenIddictClientService`
+i Infrastructure. `OpenIddictClientPolicy` ligger i Application og deles med
+autorisationsendpointet. Website beholder antiforgery, cacheforbud og
+`OpenIddictManage`-adgangskrav. Validering, descriptorbevarelse, secrets og
+fejlsvar er uændrede. Identity-udvidelsen `NotificationUserManager` ligger
+under `Infrastructure/Identity` og registreres fortsat som UserManager, så
+notifikationer stadig dækker alle Identity-baserede oprettelsesveje.
+Infrastructure registreres samlet via `ConfigureDsInfrastructure`, inklusive
+de eksisterende jobs. Der ændres ikke databaseskema eller adgangsregler.
+
+**Beslutning 2026-10-19 (implementeret):** Profil- og boardarbejdsgange ligger i
+Application som `MeService` under `Services/Profile` og `BoardService` under
+`Services/Boards`. Website leverer bruger-id og de eksisterende effektive claims
+som `MeActor`/`BoardActor`; Application afhænger ikke af HTTP-contexten.
+Boardmedlemskab, administratoradgang, synlighed af kortplaceringer,
+notifikationsrettigheder og "Vis som"-adfærd bevares. Passkey-mapping ligger ved
+profilservicen, og `NotificationPermissions` under `Services/Notifications`.
+
+Dataudtræk bruger `ExportService` og `IDataExport` under `Services/Exports` i
+Application. ClosedXML, konkrete udtræk og regnearksformatering ligger under
+`Infrastructure/Exports`. Eksportrettigheder kontrolleres fortsat både ved
+listevisning og download; API-routes, filnavne og arkdata bevares. Fælles
+visningsnavne (`Labels`) ligger i Domain, så Infrastructure kan bruge dem.
+
+Resterende Website-referencer til den tidligere `DS.Domain.Data`-namespace er
+opdateret til Infrastructure. SQL-migrationerne ligger fortsat i Domain og
+indlæses fra Domain-assemblyet ved opstart og i board-adgangstesten, selvom
+`DataDbContext` ligger i Infrastructure. Disse flytninger ændrer ikke skemaet.
+
+**Beslutning 2026-10-19 (implementeret):** `GoogleAuthService` ligger i
+Infrastructure under `Google`, med det konkrete Google SDK, Data Protection og
+`DataDbContext`. `IGoogleAuthService` ligger i Application under `Services/Google`
+og omfatter konfiguration, status og OAuth-forbindelse. SDK-klienten udleveres
+gennem `IGoogleDriveClientFactory` i Infrastructure, så Application-interfacet
+ikke eksponerer Google SDK-typer. GoogleDriveService bruger denne factory og
+er efterfølgende flyttet til Infrastructure. Website registrerer begge auth-interfaces mod samme scoped
+GoogleAuthService. OAuth-scope, tokenbeskyttelsens formål, konfiguration og
+forbindelsesadfærd er uændrede; der ændres ikke databaseskema.
+
+**Beslutning 2026-10-19 (implementeret):** `GoogleDriveService` ligger under
+`Infrastructure/Google`. `IGoogleDriveService`, `DriveFileInfo` og den fælles
+`GoogleFileTypes` ligger under `Application/Services/Google`, uden Google
+SDK-typer i kontrakten. Website registrerer fortsat implementationen og bruger
+Application-interfacet. Mappeafgrænsning, cacheduration, filsortering,
+aktiviteternes mappekobling og håndtering af manglende mapper bevares.
+Dette erstatter placeringen af GoogleDriveService i Website ovenfor.
+
+**Beslutning 2026-10-19 (implementeret):** `UserApiController` bruger `UserService`
+under `Services/Users` i Application til brugeradministration, profilbilleder,
+roller, låsning, invitationer og generering af nulstillingslinks. Servicen bruger
+`IDataDbContext`, Identity, `EmailService` og `IUserAccessCache`. Controlleren
+beholder routes, autorisationsattributter, requestvalidering og HTTP-svar.
+Rolletildeling kontrolleres fortsat mod brugerens direkte Identity-roller;
+flytningen udvider ikke rettigheder gennem stillinger eller "Vis som".
+Nulstillingslinks bruger fortsat requestens scheme og host, leveret af Website;
+den tidligere dokumenterede proxybegrænsning er ikke ændret. Databaseskema og
+øvrig eksisterende adfærd bevares.
+
+**Beslutning 2026-10-19 (implementeret):** `RegistrationSettingsApiController`
+bruger `RegistrationSettingsService` under `Services/Registration` i Application
+til opslag og ændring af tilmeldingens åben/lukket-flag via `IDataDbContext`.
+Controlleren beholder offentlig læseadgang, `PreSignupManage` ved ændringer,
+inputvalidering og HTTP-svar. Delvise opdateringer bevarer det udeladte flag.
+Der ændres ikke tilmeldingsregler, datoer eller databaseskema.
+
+**Beslutning 2026-10-19 (implementeret):** `OrgApiController` bruger `OrgService`
+under `Services/Organization` i Application. Stillinger, PA'er, indehavere,
+invitationer og rettighedskontroller håndteres i servicen via `IDataDbContext`.
+Website leverer bruger-id og aktuelle SysAdmin-/OrgView-claims som `OrgActor`,
+og beholder requestvalidering og HTTP-svar. Den fælles opslagshjælper
+`OrgPositionAccess` ligger også i Application og bruges fortsat af Websites
+claims-opbygning. Application rydder rettighedscachen gennem `IUserAccessCache`,
+som Website implementerer med den eksisterende `ClaimsTransformer.Evict`.
+Eksisterende adgangsregler, PA-arv, cacheinvalidering og databaseskema bevares.
+
+**Beslutning 2026-10-19 (implementeret):** `GroupPreSignupApiController` bruger
+`GroupPreSignupService` i Application til gruppeopslag og offentlig
+forhåndstilmelding. Transaktion, rækkelåse, kontrol af åben tilmelding,
+gruppens første bruger, deltagerantal og håndtering af unikhedsbrud bevares.
+Controlleren beholder inputvalidering og kontrollen af, at brugeren er logget
+ud, samt HTTP-svar og login efter commit. Routes og databaseskema er uændrede.
+
+**Beslutning 2026-10-19 (implementeret):** `GroupInvitationApiController` bruger
+`GroupInvitationService` i Application til opslag og accept. Servicen bevarer
+den transaktionelle claim af invitationen, kontrollen af den inviterede bruger,
+den atomiske gruppetilknytning og oprettelsen af nye brugere gennem Identity.
+Controlleren beholder HTTP-svar og logger først en ny bruger ind, når servicen
+har committed transaktionen. Eksisterende routes, svar og regler bevares.
+Der ændres ikke databaseskema.
+
+**Beslutning 2026-10-19 (implementeret):** `FileApiController` bruger
+`FileService` under `Services/Files` i Application til upload, læsning og sletning
+via `IDataDbContext` og `IFileStorage`. Application bestiller billedbehandling
+gennem `IFileProcessingQueue`; Infrastructure enqueuer det eksisterende
+`FileProcessingJobs.ConvertToWebp` gennem `HangfireFileProcessingQueue`.
+Controlleren beholder uploadvalidering, brugeridentifikation, routes,
+autorisationsattributter, cache-headere og streaming med range-understøttelse.
+Ejerskabskontrollen ved sletning udføres i servicen med bruger-id og den
+serverbestemte SysAdmin-status. Eksisterende adfærd og databaseskema bevares.
+
+**Beslutning 2026-10-19 (implementeret):** `InvitationApiController` bruger
+`InvitationService` under `Services/Invitations` i Application til at hente og
+acceptere invitationer uden gruppetilknytning. Servicen bruger `IDataDbContext`
+og Identity til brugeroprettelse, roller, aktivitetsteam og stillinger.
+Controlleren beholder HTTP-svar og rydning af Website-lagets rettighedscache
+efter succes. Eksisterende validering, rækkefølge og invitationsadfærd bevares;
+gruppeinvitationer er fortsat et separat flow. Der ændres ikke databaseskema.
+
+**Beslutning 2026-10-19 (implementeret):** Gruppeadministration, gruppens egen
+side med forhåndstilmelding, spejdere og patruljer samt medlemsadministration
+ligger i Application som `GroupAdministrationService`, `GroupService`
+og `GroupMembersService`. De bruger `IDataDbContext`; interfacet eksponerer
+også EF's transaktioner og entity entries, så eksisterende rækkelåse og fjernelse
+af gruppetilknytning bevares. Controllerne beholder routes, autorisationskrav,
+requestvalidering og oversættelse af serviceresultater til HTTP-svar. Dette er en
+flytning af eksisterende adfærd uden nye rettigheder eller skemaændringer.
+Det offentlige forhåndstilmeldingsflow ligger efter den efterfølgende flytning
+i `GroupPreSignupService` under `Services/Groups`.
+Accept af gruppeinvitationer ligger i `GroupInvitationService` under
+`Services/Invitations` efter den efterfølgende flytning nedenfor.
+
+Application-services grupperes efter funktion under `Services/Activities`,
+`Services/Email` og `Services/Groups`, med tilsvarende namespaces.
+`IMailQueue` ligger sammen med mailservicen, og `GroupResult` sammen med
+gruppeservices. Det fælles `IDataDbContext` bliver under `Data`.
+
 **Beslutning 2026-10-19 (implementeret):** Service-registrering og tilhørende
 konfiguration samles i `DS.Website/Extensions/ServiceExtensions.cs` og kaldes
 via `builder.ConfigureDS()`. `Program.cs` beholder HTTP-pipeline, routing,
@@ -69,6 +211,13 @@ brugeroprettelse. Brugeren kobles automatisk til gruppenummeret. Flere personer
 fra samme gruppe skal kunne have hver sin konto i DS_OS.
 
 ### Notifikationer – nice to have
+
+**Beslutning 2026-10-19 (implementeret):** `EmailService` i Application bestiller
+mailafsendelse gennem `IMailQueue`. Infrastructure implementerer interfacet med
+`HangfireMailQueue`, som enqueuer det eksisterende `MailJobs.Send` med `MailData`.
+EmailService kender dermed ikke den konkrete jobklasse eller Hangfire-klienten.
+Mailindhold, adressevalidering, `NotificationsEnabled` og jobbets retry-regler
+er uændrede. Dette præciserer ansvarsfordelingen i den eksisterende Hangfire-løsning.
 
 Brugere skal eventuelt kunne få besked om hændelser, eksempelvis når nogen
 opretter en patrulje eller ændrer deltagerantal. Dette blev primært tænkt som
