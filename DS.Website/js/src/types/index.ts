@@ -13,6 +13,7 @@ export * from './invitation.types';
 export * from './me.types';
 export * from './notification.types';
 export * from './org.types';
+export * from './openiddict.types';
 export * from './patrol.types';
 export * from './password-reset.types';
 export * from './role.types';

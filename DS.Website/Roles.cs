@@ -37,6 +37,7 @@ namespace DS.Website
         AuditLogView,
         ExportsView,
         AdminAccess,
+        OpenIddictManage,
 
         WordPressEditor,
         WordPressAdmin,
@@ -74,6 +75,7 @@ namespace DS.Website
                     nameof(AppRoles.AuditLogView),
                     nameof(AppRoles.ExportsView),
                     nameof(AppRoles.AdminAccess),
+                    nameof(AppRoles.OpenIddictManage),
 
                     nameof(AppRoles.HangfireView),
                 ]

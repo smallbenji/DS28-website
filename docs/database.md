@@ -476,6 +476,14 @@ eksisterende relation til aktiviteten og budgettabellen er uændrede.
 
 ## OpenIddict
 
+`open_iddict_applications.properties` er et nullable tekstfelt med OpenIddicts
+JSON-propertybag. Nøglen `ds28:required_app_roles` indeholder et JSON-array af
+`AppRoles`-navne. Mindst én af de valgte rettigheder kræves for klientens login.
+Klientadministrationen kræver et ikke-tomt, gyldigt valg og bevarer øvrige
+properties. Der findes ingen særskilt tabel eller kolonne til loginrettigheder.
+Mangler nøglen, gælder `WordPressEditor` eller `WordPressAdmin` som standard;
+en tilstedeværende, men tom eller ugyldig værdi afviser login.
+
 ```mermaid
 erDiagram
     open_iddict_applications {

@@ -139,7 +139,69 @@ Ubesluttede punkter:
   tilhørende rollegating er ikke fastlagt. Afmelding sker ved at fjerne krydset
   i profilen; der findes ingen separat afmeldingsmulighed.
 
+### Min profil
+
+**Beslutning 2026-10-19 (implementeret):** Min profil viser brugerens email
+som skrivebeskyttet tekst under Profil og sikkerhed. Email medsendes i
+`GET /api/v1/me`; der tilføjes ingen mulighed for at ændre den i profilen.
+
 ### Adminområde
+
+**Beslutning 2026-10-19 (implementeret):** OpenIddict-klienter administreres på
+`/admin/openiddict`, med en flise under Admin → System. Den nye approlle
+`OpenIddictManage` gives kun til SysAdmin, ikke lejrchef. API og frontend bruger
+samme adgangskrav, også under "Vis som".
+
+- Første version omfatter liste, oprettelse, redigering og sletning samt
+  rotation af client secret. Felterne er Client ID, navn, public/confidential,
+  redirect-URL'er, scopes (`openid`, `profile`, `email`, `roles`), PKCE og
+  loginrettigheder (`AppRoles`, se den efterfølgende beslutning nedenfor).
+  Public-klienter kræver PKCE; nye confidential-klienter foreslår også PKCE.
+- Nye klienter bruger serverens eksisterende authorization-code-flow og implicit
+  consent, da der ikke findes et samtykketrin. Andre grants og nye scopes
+  aktiveres ikke. Redirect-URL'er kræver HTTPS, undtagen HTTP på loopback, og
+  tillader ikke wildcard, fragment eller brugernavn/adgangskode.
+- Secrets genereres kryptografisk på serveren, hashes af OpenIddict og vises
+  kun i svaret ved oprettelse, rotation eller skift fra public til confidential.
+  Listen indeholder hverken secret eller hash. Almindelig redigering bevarer
+  eksisterende secret; skift til public fjerner det. Rotation erstatter straks
+  det gamle secret og kræver opdatering af klientapplikationen.
+- Redigering indlæser den eksisterende OpenIddict-descriptor og bevarer øvrige
+  indstillinger, herunder consent, avancerede permissions/scopes, requirements,
+  logout-URL'er, nøgler og øvrige properties. Kun loginrettighederne har en
+  redigerbar property i denne version.
+- Sletning og rotation kræver bekræftelse i brugerfladen. Sletning sker gennem
+  OpenIddict og fjerner også klientens gemte tokens og autorisationer.
+  Ændringsendpoints har antiforgery-validering; svar fra klient-API'et må ikke
+  caches. Der tilføjes ingen tabeller, kolonner eller migrationer.
+
+**Beslutning 2026-10-19 (efterfølgende, implementeret):** Klienters loginadgang
+styres af valgte **`AppRoles`-rettigheder**, ikke `AppGroups`-brugerroller.
+Brugerroller er bundter af rettigheder. Dette erstatter den fælles,
+hardkodede WordPress-begrænsning fra klientadministrationens første version.
+
+- Hver klient vælger én eller flere rettigheder fra backendens aktuelle
+  `AppRoles`. Brugeren skal have **mindst én** af dem (OR). Valget giver ikke
+  brugeren nye rettigheder. SysAdmin har ingen særskilt bypass af klientkravet.
+- Oprettelse og redigering afviser tomme valg, ukendte rettigheder og
+  `AppGroups`-navne. Nye klienter har intet forhåndsvalgt adgangskrav og kan
+  ikke gemmes, før administratoren har valgt mindst én rettighed.
+- Kravet gemmes som et JSON-array i klientens eksisterende `properties` under
+  `ds28:required_app_roles`. Der kræves ingen skemaændring eller migration.
+  Klienter uden nøglen beholder `WordPressEditor` ELLER `WordPressAdmin`;
+  de vises med dette valg i brugerfladen. Ved næste gemning bliver valget
+  eksplicit. En eksisterende, men tom eller ugyldig property afviser login
+  frem for at åbne adgang eller falde tilbage til WordPress.
+- `/connect/authorize` kontrollerer kravet mod brugerens effektive rettigheder,
+  inklusive stillinger, PA-arv og "Vis som". Ved indløsning af authorization
+  code genkontrolleres klientens aktuelle krav mod brugerens aktuelle
+  Identity-principal (reelle roller og stillinger; server-til-server-kaldet
+  er ikke afhængigt af browserens "Vis som"-cookie). Fjernede rettigheder eller
+  ændrede klientkrav kan dermed afvise en allerede udstedt code.
+- Der ændres ikke på allerede udstedte tokens, klientapplikationernes egne
+  sessioner eller indholdet i eksisterende claims/userinfo. `userinfo`-svarets
+  `roles`-felt er fortsat WordPress-specifikt; generel udlevering af flere
+  rettigheder er ikke del af denne beslutning.
 
 **Beslutning 2026-09-29:** Der oprettes et samlet adminområde på `/admin` med
 sektioner, som kræver `AppRoles.AdminAccess`. Rollen er tildelt
@@ -1260,8 +1322,12 @@ til projektet. Kontrollér altid koden igen ved fremtidige ændringer.
 - Det implementerede forhåndstilmeldingsflow starter offentligt med et
   gruppenummer, gemmer `GroupPreSignup`, opretter en bruger og logger ind på
   gruppens egen side, `/group`.
-- Gruppeinvitationer oprettes som personlige links, som medlemmer selv deler.
-  Der sendes ikke automatisk email i dette flow.
+- **Beslutning 2026-10-19 (implementeret):** Gruppeinvitationer sender automatisk
+  en email med et personligt link via `EmailService.QueueInvitationMail` og
+  den eksisterende Hangfire-mailkø. Linket bruger `DS.PublicBaseUrl` og peger på
+  `/group-invitation/{id}`. Det kan fortsat vises og deles manuelt. Dette
+  erstatter den tidligere beslutning om kun at dele links manuelt uden email.
+  Afsendelse kræver som øvrige mails, at `DS.NotificationsEnabled` er slået til.
 - Fjernelse af et gruppemedlem ophæver gruppetilknytningen og bevarer kontoen.
   Et medlem kan ikke fjerne sig selv gennem gruppens brugeradministration.
 - Lejrindstillinger har en selvstændig side på `/camp-settings`, som åbnes fra
@@ -1291,9 +1357,8 @@ til projektet. Kontrollér altid koden igen ved fremtidige ændringer.
 - Glemt adgangskode er et selvbetjent flow på `/forgot-password`. Brugeren
   indtaster sin email, og backend sender et nulstillingslink på
   `/reset-password/{brugerId}?token=...`. Det er en mail, der sendes
-  automatisk, i modsætning til gruppeinvitationer ovenfor, hvor Benjamin
-  bevidst har valgt, at brugerne selv deler linket. Dette er altså en ny
-  afklaring og ikke en udvidelse af invitationflowet.
+  automatisk. Gruppeinvitationer sender også automatisk email efter
+  beslutningen 2026-10-19 ovenfor.
 - Endpoints svarer altid ens på en anmodning om nulstillingslink, uanset om
   emailadressen findes, så svaret ikke afslører hvilke brugere der er
   oprettet. Det er kun det konkrete nulstillingslink, der afslører om

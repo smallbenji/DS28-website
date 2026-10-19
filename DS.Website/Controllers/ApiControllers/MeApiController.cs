@@ -50,6 +50,7 @@ namespace DS.Website.Controllers
                 Name = user.GetFullName(),
                 FirstName = user.FirstName ?? string.Empty,
                 LastName = user.LastName ?? string.Empty,
+                Email = user.Email ?? string.Empty,
                 Title = positionTitle ?? AppAccess.ResolveGroupTitle(roles),
                 Phone = user.PhoneNumber ?? string.Empty,
                 MustEnableTwoFactor = await userManager.IsInRoleAsync(

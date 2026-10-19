@@ -49,6 +49,10 @@
                                 </span>
                             </div>
                             <div class="profile-summary-row">
+                                <span class="has-text-grey">Email</span>
+                                <span class="profile-summary-value">{{ Me.email }}</span>
+                            </div>
+                            <div class="profile-summary-row">
                                 <span class="has-text-grey">Telefon</span>
                                 <span class="profile-summary-value">
                                     <span>{{ Me.phone || 'Intet telefonnummer' }}</span>

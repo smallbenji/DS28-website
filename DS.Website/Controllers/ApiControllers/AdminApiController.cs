@@ -79,6 +79,13 @@ namespace DS.Website.Controllers
                             Url = "/admin/google",
                             Icon = ["globe"],
                             RequiredRole = nameof(AppRoles.AdminAccess)
+                        },
+                        new HQPanelEntryDto
+                        {
+                            Title = "OpenIddict-klienter",
+                            Url = "/admin/openiddict",
+                            Icon = ["gear"],
+                            RequiredRole = nameof(AppRoles.OpenIddictManage)
                         }
                     ]
                 }

@@ -1,6 +1,7 @@
 using DS.Data;
 using DS.DTOs;
 using DS.Models;
+using DS.Website.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -10,7 +11,7 @@ namespace DS.Website.Controllers
 {
     [Authorize]
     [Route("api/v1/group/members")]
-    public class GroupMembersApiController(DataDbContext dataDb, UserManager<User> userManager) : Controller
+    public class GroupMembersApiController(DataDbContext dataDb, UserManager<User> userManager, EmailService emailService) : Controller
     {
         private Task<User> GetCurrentUserAsync()
         {
@@ -47,6 +48,8 @@ namespace DS.Website.Controllers
 
             dataDb.Invitations.Add(invitation);
             await dataDb.SaveChangesAsync();
+
+            emailService.QueueInvitationMail(invitation);
 
             return Ok(new { Path = $"/group-invitation/{invitation.InvitationId}" });
         }

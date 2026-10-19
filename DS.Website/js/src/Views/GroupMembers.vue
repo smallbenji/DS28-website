@@ -7,13 +7,13 @@
                 <h2 class="title is-4">{{ group.name }}</h2>
                 <div class="box">
                     <h3 class="title is-5">Inviter til gruppen</h3>
-                    <p class="mb-4">Alle medlemmer kan invitere og fjerne andre medlemmer. Opret et personligt link og del det med den inviterede. Der sendes ikke automatisk en email.</p>
+                    <p class="mb-4">Alle medlemmer kan invitere og fjerne andre medlemmer. Den inviterede modtager automatisk en email med et personligt invitationslink.</p>
                     <form @submit.prevent="invite">
                         <BField label="Email"><BInput v-model="email" type="email" required :disabled="busy" /></BField>
-                        <BButton native-type="submit" type="is-primary" :loading="busy" :disabled="busy || !email.trim()">Opret invitation</BButton>
+                        <BButton native-type="submit" type="is-primary" :loading="busy" :disabled="busy || !email.trim()">Send invitation</BButton>
                     </form>
                     <BNotification v-if="link" type="is-success" :closable="false" class="mt-4">
-                        <BField label="Invitationslink – kopiér og del med den inviterede"><BInput :model-value="link" readonly /></BField>
+                        <BField label="Invitationslink – kan også deles manuelt"><BInput :model-value="link" readonly /></BField>
                     </BNotification>
                 </div>
                 <div class="box">

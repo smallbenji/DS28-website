@@ -116,6 +116,11 @@ const routes: RouteRecordRaw[] = [
         meta: { requiresAuth: true, requiredRole: "AdminAccess", pageTitle: "Google Drev", pageIcon: "globe" }
     },
     {
+        path: "/admin/openiddict",
+        component: () => import("@/Views/OpenIddictClients.vue"),
+        meta: { requiresAuth: true, requiredRole: "OpenIddictManage", pageTitle: "OpenIddict-klienter", pageIcon: "gear" }
+    },
+    {
         path: "/org",
         component: () => import("@/Views/OrgChart.vue"),
         meta: { requiresAuth: true, requiredRole: "OrgView", pageTitle: "Organisation", pageIcon: "sitemap" }
