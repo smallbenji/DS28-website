@@ -1,5 +1,6 @@
 <Solution>
   <Project Path="DS.Application/DS.Application.csproj" />
   <Project Path="DS.Domain/DS.Domain.csproj" />
+  <Project Path="DS.Infrastructure/DS.Infrastructure.csproj" />
   <Project Path="DS.Website/DS.Website.csproj" />
 </Solution>
