@@ -1,4 +1,4 @@
-namespace DS.Website.Services
+namespace DS.Application.Services.Google
 {
     public static class GoogleFileTypes
     {

@@ -1,7 +1,6 @@
 using DS.Domain.DTOs;
-using Google.Apis.Drive.v3;
 
-namespace DS.Website.Services
+namespace DS.Application.Services.Google
 {
     public interface IGoogleAuthService
     {
@@ -16,7 +15,5 @@ namespace DS.Website.Services
         Task ConnectAsync(string code, string userId, CancellationToken cancellationToken = default);
 
         Task DisconnectAsync(CancellationToken cancellationToken = default);
-
-        Task<DriveService> GetDriveServiceAsync(CancellationToken cancellationToken = default);
     }
 }

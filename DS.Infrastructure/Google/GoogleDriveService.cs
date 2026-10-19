@@ -1,17 +1,18 @@
+using DS.Application.Services.Google;
+using DriveFile = global::Google.Apis.Drive.v3.Data.File;
 using System.Net;
-using DS;
-using DS.Application.Services;
+using DS.Application.Services.Activities;
 using DS.Domain;
 using Google;
 using Google.Apis.Drive.v3;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
 
-namespace DS.Website.Services
+namespace DS.Infrastructure.Google
 {
     public class GoogleDriveService(
         IOptions<DSSettings> options,
-        IGoogleAuthService googleAuth,
+        IGoogleDriveClientFactory driveClientFactory,
         ActivityService activityService,
         IMemoryCache cache) : IGoogleDriveService
     {
@@ -30,7 +31,7 @@ namespace DS.Website.Services
                 return cached;
             }
 
-            var service = await googleAuth.GetDriveServiceAsync(cancellationToken);
+            var service = await driveClientFactory.GetDriveServiceAsync(cancellationToken);
             var rootId = await ResolveActivityFolderAsync(service, activityId, cancellationToken);
             var targetId = rootId;
 
@@ -70,7 +71,7 @@ namespace DS.Website.Services
 
         public async Task<string> CreateActivityFileAsync(int activityId, string activityName, string kind, string title, string folderId, CancellationToken cancellationToken = default)
         {
-            var service = await googleAuth.GetDriveServiceAsync(cancellationToken);
+            var service = await driveClientFactory.GetDriveServiceAsync(cancellationToken);
             var rootId = await EnsureActivityFolderAsync(service, activityId, activityName, cancellationToken);
 
             var targetId = rootId;
@@ -84,7 +85,7 @@ namespace DS.Website.Services
                 folderKey = folderId;
             }
 
-            var file = new Google.Apis.Drive.v3.Data.File
+            var file = new DriveFile
             {
                 Name = title,
                 MimeType = GoogleFileTypes.MimeTypeForKind(kind),
@@ -110,7 +111,7 @@ namespace DS.Website.Services
             {
                 if (current == rootId) return true;
 
-                Google.Apis.Drive.v3.Data.File folder;
+                DriveFile folder;
                 try
                 {
                     var request = service.Files.Get(current);
@@ -248,7 +249,7 @@ namespace DS.Website.Services
 
         private async Task<string> CreateActivityFolderAsync(DriveService service, int activityId, string activityName, CancellationToken cancellationToken)
         {
-            var folder = new Google.Apis.Drive.v3.Data.File
+            var folder = new DriveFile
             {
                 Name = string.IsNullOrWhiteSpace(activityName) ? $"Aktivitet {activityId}" : activityName,
                 MimeType = GoogleFileTypes.FolderMimeType,
@@ -268,7 +269,7 @@ namespace DS.Website.Services
             return created.Id;
         }
 
-        private static DriveFileInfo ToDriveFileInfo(Google.Apis.Drive.v3.Data.File file)
+        private static DriveFileInfo ToDriveFileInfo(DriveFile file)
         {
             return new DriveFileInfo
             {

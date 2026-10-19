@@ -1,6 +1,7 @@
-using DS;
 using DS.Domain;
-using DS.Domain.Data;
+using DS.Infrastructure.Data;
+using DS.Application.Services.Google;
+using Microsoft.Extensions.Logging;
 using DS.Domain.DTOs;
 using DS.Domain.Models;
 using Google.Apis.Auth.OAuth2;
@@ -13,13 +14,13 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using System.Security.Cryptography;
 
-namespace DS.Website.Services
+namespace DS.Infrastructure.Google
 {
     public class GoogleAuthService(
         IOptions<DSSettings> options,
         DataDbContext dataDb,
         IDataProtectionProvider dataProtection,
-        ILogger<GoogleAuthService> logger) : IGoogleAuthService
+        ILogger<GoogleAuthService> logger) : IGoogleAuthService, IGoogleDriveClientFactory
     {
         private const string DriveScope = "https://www.googleapis.com/auth/drive";
         private const string FlowUserId = "ds28-hq";

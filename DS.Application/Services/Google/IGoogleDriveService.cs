@@ -1,4 +1,4 @@
-namespace DS.Website.Services
+namespace DS.Application.Services.Google
 {
     public interface IGoogleDriveService
     {
@@ -7,11 +7,4 @@ namespace DS.Website.Services
         Task<string> CreateActivityFileAsync(int activityId, string activityName, string kind, string title, string folderId, CancellationToken cancellationToken = default);
     }
 
-    public class DriveFileInfo
-    {
-        public string Id { get; set; }
-        public string Name { get; set; }
-        public string MimeType { get; set; }
-        public DateTime? ModifiedAt { get; set; }
-    }
 }
