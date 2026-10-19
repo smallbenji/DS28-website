@@ -1,12 +1,12 @@
 using System.Linq.Expressions;
+using DS.Application.Data;
 using DS.Domain;
-using DS.Domain.Data;
 using DS.Domain.Models;
 using Microsoft.EntityFrameworkCore;
 
-namespace DS.Application.Services;
+namespace DS.Application.Services.Activities;
 
-public class ActivityTeamService(DataDbContext dataDb)
+public class ActivityTeamService(IDataDbContext dataDb)
 {
     public async Task AddTeam(string name, string userId)
     {

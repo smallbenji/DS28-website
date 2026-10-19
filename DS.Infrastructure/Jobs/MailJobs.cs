@@ -6,7 +6,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using MimeKit;
 
-namespace DS.Application.Jobs
+namespace DS.Infrastructure.Jobs
 {
     public record MailData(string ToEmail, string ToName, string Subject, string Body);
 

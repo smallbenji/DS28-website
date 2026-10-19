@@ -296,7 +296,6 @@ DS.Website/certs/
 # Custom
 .opencode/
 .env
-files
 DS.Website/files
 
 # Google service account keys

@@ -1,15 +1,13 @@
-using DS.Application.Jobs;
+using DS.Application.Data;
 using DS.Domain;
-using DS.Domain.Data;
 using DS.Domain.Models;
-using Hangfire;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using MimeKit;
 
-namespace DS.Application.Services
+namespace DS.Application.Services.Email
 {
-    public class EmailService(IOptions<DSSettings> options, IBackgroundJobClient backgroundJobs, DataDbContext dataDb, ILogger<EmailService> logger)
+    public class EmailService(IOptions<DSSettings> options, IMailQueue mailQueue, IDataDbContext dataDb, ILogger<EmailService> logger)
     {
         public void QueueInvitationMail(UserInvitation invitation)
         {
@@ -85,7 +83,7 @@ Mvh. DS28 teamet
                 return;
             }
 
-            backgroundJobs.Enqueue<MailJobs>(jobs => jobs.Send(new MailData(recipient.Address, recipient.Name, subject, body)));
+            mailQueue.Enqueue(recipient.Address, recipient.Name, subject, body);
             logger.LogInformation("Stillede mail til {ToEmail} i køen: {Subject}", recipient.Address, subject);
         }
     }

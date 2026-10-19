@@ -1,4 +1,5 @@
-using DS.Application.Services;
+using DS.Application.Services.Google;
+using DS.Application.Services.Activities;
 using DS.Domain;
 using DS.Domain.DTOs;
 using DS.Domain.Models;

@@ -1,8 +1,8 @@
-using DS.Application.Jobs;
+using DS.Infrastructure.Jobs;
 using Hangfire;
 using Microsoft.Extensions.Hosting;
 
-namespace DS.Website.Services
+namespace DS.Infrastructure
 {
     public class RecurringJobRegistrar(IRecurringJobManager recurringJobs) : IHostedService
     {

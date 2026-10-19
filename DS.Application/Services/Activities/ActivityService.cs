@@ -1,11 +1,11 @@
-using DS.Domain.Data;
+using DS.Application.Data;
 using DS.Domain.DTOs;
 using DS.Domain.Models;
 using Microsoft.EntityFrameworkCore;
 
-namespace DS.Application.Services;
+namespace DS.Application.Services.Activities;
 
-public class ActivityService(DataDbContext dataDb)
+public class ActivityService(IDataDbContext dataDb)
 {
     public async Task<List<Activity>> GetUserActivities(string userId)
     {

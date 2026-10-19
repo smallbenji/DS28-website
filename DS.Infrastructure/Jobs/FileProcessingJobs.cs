@@ -1,11 +1,11 @@
 using DS.Application.FileStorage;
-using DS.Domain.Data;
 using DS.Domain.Models;
+using DS.Infrastructure.Data;
 using Hangfire;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
-namespace DS.Application.Jobs
+namespace DS.Infrastructure.Jobs
 {
     public class FileProcessingJobs(DataDbContext dataDb, IFileStorage storage, ILogger<FileProcessingJobs> logger)
     {
