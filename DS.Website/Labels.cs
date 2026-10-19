@@ -1,4 +1,4 @@
-using DS.Models;
+using DS.Domain.Models;
 
 namespace DS.Website
 {

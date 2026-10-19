@@ -1,3 +1,4 @@
+using DS.Domain;
 using Hangfire;
 using MailKit;
 using MailKit.Net.Smtp;

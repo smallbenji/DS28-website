@@ -1,4 +1,5 @@
-using DS.DTOs;
+using DS.Domain;
+using DS.Domain.DTOs;
 using Microsoft.AspNetCore.Mvc;
 
 namespace DS.Website.Controllers

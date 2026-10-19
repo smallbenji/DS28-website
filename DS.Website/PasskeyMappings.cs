@@ -1,4 +1,4 @@
-using DS.DTOs;
+using DS.Domain.DTOs;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Identity;
 

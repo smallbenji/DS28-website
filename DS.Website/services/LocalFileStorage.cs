@@ -1,4 +1,5 @@
 using DS;
+using DS.Domain;
 using Microsoft.Extensions.Options;
 
 namespace DS.Website.Services

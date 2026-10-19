@@ -1,4 +1,5 @@
-using DS.Models;
+using DS.Domain;
+using DS.Domain.Models;
 using Microsoft.AspNetCore.Identity;
 
 namespace DS.Website.Services

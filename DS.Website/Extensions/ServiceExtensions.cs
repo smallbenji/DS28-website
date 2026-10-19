@@ -2,10 +2,10 @@ using System.Security.Cryptography.X509Certificates;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
-using DS.Data;
-using DS.Models;
+using DS.Domain;
+using DS.Domain.Data;
+using DS.Domain.Models;
 using DS.Website.Exports;
-using DS.Website.Repositories;
 using DS.Website.Services;
 using Hangfire;
 using Hangfire.PostgreSql;
@@ -68,7 +68,6 @@ public static class ServiceExtensions
         var dsSettings = builder.Configuration.GetSection("DS").Get<DSSettings>();
 
         services.AddScoped<IUserClaimsPrincipalFactory<User>, AppClaimsPrincipalFactory>();
-        services.AddTransient<ActivityRepository>();
         services.AddTransient<RoleSeeder>();
         services.AddTransient<CampSettings>();
         services.AddTransient<EmailService>();

@@ -1,6 +1,7 @@
-using DS.DTOs;
-using DS.Models;
-using DS.Website.Repositories;
+using DS.Application.Services;
+using DS.Domain;
+using DS.Domain.DTOs;
+using DS.Domain.Models;
 using DS.Website.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -11,7 +12,8 @@ namespace DS.Website.Controllers
     [Authorize(Roles = nameof(AppRoles.ActivityView))]
     [Route("api/v1/activity")]
     public class ActivityApiController(
-        ActivityRepository activityRepository,
+        ActivityService activityService,
+        ActivityTeamService activityTeamService,
         UserManager<User> userManager,
         IGoogleAuthService googleAuth,
         IGoogleDriveService googleDrive,
@@ -27,15 +29,15 @@ namespace DS.Website.Controllers
             if (IsActivityAdmin()) return true;
 
             var userId = userManager.GetUserId(User);
-            return await activityRepository.HasAccessToTeam(userId, teamId, isAdmin);
+            return await activityTeamService.HasAccessToTeam(userId, teamId, isAdmin);
         }
 
         [HttpGet("teams")]
         public async Task<IActionResult> GetTeams()
         {
             var teams = IsActivityAdmin()
-                ? await activityRepository.GetAllActivityTeamsAsync()
-                : await activityRepository.GetUserActivityTeamAsync(userManager.GetUserId(HttpContext.User));
+                ? await activityTeamService.GetAllActivityTeamsAsync()
+                : await activityTeamService.GetUserActivityTeamAsync(userManager.GetUserId(HttpContext.User));
 
             return Ok(teams.Select(t => new ActivityTeamDto(t)).ToList());
         }
@@ -45,7 +47,7 @@ namespace DS.Website.Controllers
         {
             if (!await HasAccessAsync(teamId, true)) return StatusCode(StatusCodes.Status403Forbidden);
 
-            await activityRepository.AddActivity(teamId, new Activity(data));
+            await activityService.AddActivity(teamId, new Activity(data));
 
             return Ok();
         }
@@ -54,7 +56,7 @@ namespace DS.Website.Controllers
         public async Task<IActionResult> AddTeam([FromBody] ActivityTeamDto activityTeam)
         {
             var userId = userManager.GetUserId(HttpContext.User);
-            await activityRepository.AddTeamAsync(activityTeam.Name, userId);
+            await activityTeamService.AddTeam(activityTeam.Name, userId);
 
             return Ok();
         }
@@ -64,7 +66,7 @@ namespace DS.Website.Controllers
         {
             if (string.IsNullOrWhiteSpace(search)) return Ok(new List<UserDto>());
 
-            var users = await activityRepository.SearchActivityUsersAsync(search.Trim(), teamId);
+            var users = await activityTeamService.SearchActivityUsersAsync(search.Trim(), teamId);
 
             return Ok(users.Select(u => new UserDto(u)).ToList());
         }
@@ -76,7 +78,7 @@ namespace DS.Website.Controllers
 
             if (data == null || string.IsNullOrWhiteSpace(data.UserId)) return BadRequest("Invalid request body.");
 
-            var success = await activityRepository.AddMemberAsync(teamId, data.UserId, data.IsAdmin);
+            var success = await activityTeamService.AddMember(teamId, data.UserId, data.IsAdmin);
             if (!success) return NotFound("User not found.");
 
             return Ok();
@@ -92,7 +94,7 @@ namespace DS.Website.Controllers
 
             if (data.UserId == userId) return BadRequest("You cannot remove yourself from the team.");
 
-            var success = await activityRepository.RemoveMemberAsync(teamId, data.UserId);
+            var success = await activityTeamService.RemoveMember(teamId, data.UserId);
             if (!success) return NotFound("Membership not found.");
 
             return Ok();
@@ -101,7 +103,7 @@ namespace DS.Website.Controllers
         [HttpGet("activity/{activityId:int}")]
         public async Task<IActionResult> GetActivity(int activityId)
         {
-            var activity = await activityRepository.GetActivityAsync(activityId);
+            var activity = await activityService.GetActivity(activityId);
             if (activity == null) return NotFound();
 
             if (!await HasAccessAsync(activity.ActivityTeamId, false)) return StatusCode(StatusCodes.Status403Forbidden);
@@ -117,7 +119,7 @@ namespace DS.Website.Controllers
         [HttpPut("activity/{activityId:int}")]
         public async Task<IActionResult> UpdateActivity([FromBody] ActivityUpdateDto data, int activityId)
         {
-            var activity = await activityRepository.GetActivityAsync(activityId);
+            var activity = await activityService.GetActivity(activityId);
             if (activity == null) return NotFound();
 
             if (!await HasAccessAsync(activity.ActivityTeamId, true)) return StatusCode(StatusCodes.Status403Forbidden);
@@ -125,7 +127,7 @@ namespace DS.Website.Controllers
             if (data == null || string.IsNullOrWhiteSpace(data.Name) || data.ReviewVersion == null) return BadRequest("Navn og version skal angives.");
 
             var userId = userManager.GetUserId(User);
-            var result = await activityRepository.UpdateActivityAsync(activityId, data, userId);
+            var result = await activityService.UpdateActivityAsync(activityId, data, userId);
 
             return ActivityChangeResponse(result);
         }
@@ -133,14 +135,14 @@ namespace DS.Website.Controllers
         [HttpPost("activity/{activityId:int}/submit")]
         public async Task<IActionResult> SubmitActivity([FromBody] ActivityReviewRequestDto data, int activityId)
         {
-            var activity = await activityRepository.GetActivityAsync(activityId);
+            var activity = await activityService.GetActivity(activityId);
             if (activity == null) return NotFound();
 
             if (!await HasAccessAsync(activity.ActivityTeamId, true)) return Forbid();
 
             if (data?.ReviewVersion == null) return BadRequest("Version skal angives.");
 
-            var result = await activityRepository.ReviewActivityAsync(activityId, data.ReviewVersion.Value, ActivityReviewAction.Submit, userManager.GetUserId(User));
+            var result = await activityService.ReviewActivity(activityId, data.ReviewVersion.Value, ActivityReviewAction.Submit, userManager.GetUserId(User));
 
             return ActivityChangeResponse(result);
         }
@@ -151,7 +153,7 @@ namespace DS.Website.Controllers
         {
             if (data?.ReviewVersion == null) return BadRequest("Version skal angives.");
 
-            var result = await activityRepository.ReviewActivityAsync(activityId, data.ReviewVersion.Value, ActivityReviewAction.Approve, userManager.GetUserId(User));
+            var result = await activityService.ReviewActivity(activityId, data.ReviewVersion.Value, ActivityReviewAction.Approve, userManager.GetUserId(User));
 
             return ActivityChangeResponse(result);
         }
@@ -162,7 +164,7 @@ namespace DS.Website.Controllers
         {
             if (data?.ReviewVersion == null) return BadRequest("Version skal angives.");
 
-            var result = await activityRepository.ReviewActivityAsync(activityId, data.ReviewVersion.Value, ActivityReviewAction.RequestChanges, userManager.GetUserId(User), data.Feedback);
+            var result = await activityService.ReviewActivity(activityId, data.ReviewVersion.Value, ActivityReviewAction.RequestChanges, userManager.GetUserId(User), data.Feedback);
 
             return ActivityChangeResponse(result);
         }
@@ -195,7 +197,7 @@ namespace DS.Website.Controllers
 
             if (data == null || string.IsNullOrWhiteSpace(data.Email)) return BadRequest("Invalid request body.");
 
-            var invitationId = await activityRepository.CreateInvitationAsync(
+            var invitationId = await activityTeamService.CreateInvitationAsync(
                 teamId,
                 data.Email.Trim(),
                 data.IsAdmin
@@ -214,7 +216,7 @@ namespace DS.Website.Controllers
         [HttpGet("activity/{activityId:int}/files")]
         public async Task<IActionResult> GetFiles(int activityId, [FromQuery] string folderId)
         {
-            var activity = await activityRepository.GetActivityAsync(activityId);
+            var activity = await activityService.GetActivity(activityId);
             if (activity == null) return NotFound();
 
             if (!await HasAccessAsync(activity.ActivityTeamId, false)) return StatusCode(StatusCodes.Status403Forbidden);
@@ -236,7 +238,7 @@ namespace DS.Website.Controllers
 
             if (files == null) return NotFound("Mappen findes ikke.");
 
-            var created = await activityRepository.GetFilesAsync(activityId);
+            var created = await activityService.GetFilesAsync(activityId);
             var result = new List<ActivityFileDto>();
 
             foreach (var file in files)
@@ -261,7 +263,7 @@ namespace DS.Website.Controllers
         [HttpPost("activity/{activityId:int}/file/add")]
         public async Task<IActionResult> AddFile([FromBody] ActivityFileCreateDto data, int activityId)
         {
-            var activity = await activityRepository.GetActivityAsync(activityId);
+            var activity = await activityService.GetActivity(activityId);
             if (activity == null) return NotFound();
 
             if (!await HasAccessAsync(activity.ActivityTeamId, true)) return StatusCode(StatusCodes.Status403Forbidden);
@@ -293,7 +295,7 @@ namespace DS.Website.Controllers
 
             if (driveFileId == null) return NotFound("Mappen findes ikke.");
 
-            var file = await activityRepository.AddFileAsync(activityId, driveFileId, title, userId);
+            var file = await activityService.AddFileAsync(activityId, driveFileId, title, userId);
             var createdBy = await userManager.FindByIdAsync(userId);
             var mimeType = GoogleFileTypes.MimeTypeForKind(kind);
 

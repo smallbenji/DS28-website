@@ -1,5 +1,6 @@
-using DS.Data;
-using DS.DTOs;
+using DS.Domain;
+using DS.Domain.Data;
+using DS.Domain.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;

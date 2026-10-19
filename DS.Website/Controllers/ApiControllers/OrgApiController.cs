@@ -1,6 +1,7 @@
-using DS.Data;
-using DS.DTOs;
-using DS.Models;
+using DS.Domain;
+using DS.Domain.Data;
+using DS.Domain.DTOs;
+using DS.Domain.Models;
 using DS.Website.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;

@@ -1,9 +1,10 @@
-using DS.Models;
-using DS.DTOs;
+using DS.Domain.Models;
+using DS.Domain.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using DS.Domain;
 
 namespace DS.Website.Controllers
 {

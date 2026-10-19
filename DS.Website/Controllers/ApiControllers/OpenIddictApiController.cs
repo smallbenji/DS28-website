@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using System.Text.Json;
-using DS.DTOs;
+using DS.Domain;
+using DS.Domain.DTOs;
 using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

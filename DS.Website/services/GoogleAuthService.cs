@@ -1,7 +1,8 @@
 using DS;
-using DS.Data;
-using DS.DTOs;
-using DS.Models;
+using DS.Domain;
+using DS.Domain.Data;
+using DS.Domain.DTOs;
+using DS.Domain.Models;
 using Google.Apis.Auth.OAuth2;
 using Google.Apis.Auth.OAuth2.Flows;
 using Google.Apis.Auth.OAuth2.Responses;

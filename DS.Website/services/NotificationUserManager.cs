@@ -1,4 +1,4 @@
-using DS.Models;
+using DS.Domain.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
 

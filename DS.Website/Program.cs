@@ -1,4 +1,4 @@
-using DS.Data;
+using DS.Domain.Data;
 using DS;
 using DS.Website;
 using DS.Website.Services;
@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.HttpOverrides;
 using DbUp;
 using Hangfire;
 using DS.Website.Extensions;
+using DS.Domain;
 
 var builder = WebApplication.CreateBuilder(args);
 

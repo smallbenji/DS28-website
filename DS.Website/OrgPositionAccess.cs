@@ -1,4 +1,4 @@
-using DS.Data;
+using DS.Domain.Data;
 using Microsoft.EntityFrameworkCore;
 
 namespace DS.Website

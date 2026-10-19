@@ -1,0 +1,25 @@
+namespace DS.Domain
+{
+    public class DSSettings
+    {
+        public string SSO_URL { get; set; }
+        public string ClientID { get; set; }
+        public string ClientSecret { get; set; }
+        public string Realm { get; set; }
+        public string ConnectionString { get; set; }
+        public string SMTPHost { get; set; }
+        public string SMTPUser { get; set; }
+        public string SMTPPassword { get; set; }
+        public string SMTPFromEmail { get; set; }
+        public string SMTPFromName { get; set; }
+        public string PublicBaseUrl { get; set; }
+        public string InternalApiKey { get; set; }
+        public bool NotificationsEnabled { get; set; }
+        public string FileStoragePath { get; set; }
+        public long MaxUploadBytes { get; set; } = 10 * 1024 * 1024;
+        public string GoogleClientId { get; set; }
+        public string GoogleClientSecret { get; set; }
+        public string GoogleRedirectUri { get; set; }
+        public string GoogleDriveBaseFolderId { get; set; }
+    }
+}

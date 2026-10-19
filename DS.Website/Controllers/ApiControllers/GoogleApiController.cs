@@ -1,4 +1,5 @@
-using DS.Models;
+using DS.Domain;
+using DS.Domain.Models;
 using DS.Website.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;

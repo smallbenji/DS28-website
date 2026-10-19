@@ -1,11 +1,12 @@
-using DS.Models;
-using DS.DTOs;
+using DS.Domain.Models;
+using DS.Domain.DTOs;
 using DS.Website.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using QRCoder;
+using DS.Domain;
 
 namespace DS.Website.Controllers
 {

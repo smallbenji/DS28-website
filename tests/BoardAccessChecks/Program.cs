@@ -1,7 +1,7 @@
 using DbUp;
-using DS.Data;
-using DS.DTOs;
-using DS.Models;
+using DS.Domain.Data;
+using DS.Domain.DTOs;
+using DS.Domain.Models;
 using DS.Website;
 using DS.Website.Controllers;
 using Microsoft.AspNetCore.Http;

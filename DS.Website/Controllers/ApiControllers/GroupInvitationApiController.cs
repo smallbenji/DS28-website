@@ -1,6 +1,6 @@
-using DS.Models;
-using DS.Data;
-using DS.DTOs;
+using DS.Domain.Models;
+using DS.Domain.Data;
+using DS.Domain.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;

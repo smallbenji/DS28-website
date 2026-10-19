@@ -1,5 +1,6 @@
 using ClosedXML.Excel;
-using DS.Data;
+using DS.Domain;
+using DS.Domain.Data;
 using Microsoft.EntityFrameworkCore;
 
 namespace DS.Website.Exports

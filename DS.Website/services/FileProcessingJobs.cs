@@ -1,5 +1,5 @@
-using DS.Data;
-using DS.Models;
+using DS.Domain.Data;
+using DS.Domain.Models;
 using Hangfire;
 using Microsoft.EntityFrameworkCore;
 

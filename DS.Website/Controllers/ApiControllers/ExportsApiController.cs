@@ -1,5 +1,6 @@
 using ClosedXML.Excel;
-using DS.DTOs;
+using DS.Domain;
+using DS.Domain.DTOs;
 using DS.Website.Exports;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

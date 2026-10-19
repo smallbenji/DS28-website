@@ -1,5 +1,6 @@
-using DS.Data;
-using DS.Models;
+using DS.Domain;
+using DS.Domain.Data;
+using DS.Domain.Models;
 using Hangfire;
 using Microsoft.Extensions.Options;
 using MimeKit;

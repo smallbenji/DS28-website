@@ -1,3 +1,4 @@
+using DS.Domain;
 using Hangfire.Dashboard;
 
 namespace DS.Website

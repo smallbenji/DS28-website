@@ -1,5 +1,6 @@
 using System.Security.Claims;
-using DS.Models;
+using DS.Domain;
+using DS.Domain.Models;
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;

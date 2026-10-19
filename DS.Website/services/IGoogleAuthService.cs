@@ -1,4 +1,4 @@
-using DS.DTOs;
+using DS.Domain.DTOs;
 using Google.Apis.Drive.v3;
 
 namespace DS.Website.Services

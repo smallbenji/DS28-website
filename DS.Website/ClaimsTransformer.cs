@@ -1,11 +1,12 @@
-using DS.Data;
-using DS.Models;
+using DS.Domain.Data;
+using DS.Domain.Models;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
+using DS.Domain;
 
 namespace DS.Website;
 

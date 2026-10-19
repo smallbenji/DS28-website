@@ -1,8 +1,7 @@
-using DS.Models;
+using DS.Domain.Models;
 using System.Security.Claims;
-using DS.DTOs;
+using DS.Domain.DTOs;
 using DS.Website.Services;
-using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;

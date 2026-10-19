@@ -1,6 +1,7 @@
 using System.Net;
 using DS;
-using DS.Website.Repositories;
+using DS.Application.Services;
+using DS.Domain;
 using Google;
 using Google.Apis.Drive.v3;
 using Microsoft.Extensions.Caching.Memory;
@@ -11,7 +12,7 @@ namespace DS.Website.Services
     public class GoogleDriveService(
         IOptions<DSSettings> options,
         IGoogleAuthService googleAuth,
-        ActivityRepository activityRepository,
+        ActivityService activityService,
         IMemoryCache cache) : IGoogleDriveService
     {
         private const string ActivityRootFolderKey = "root";
@@ -56,7 +57,7 @@ namespace DS.Website.Services
             {
                 if (targetId == rootId)
                 {
-                    await activityRepository.RemoveDriveFolderIdAsync(activityId);
+                    await activityService.RemoveDriveFolderIdAsync(activityId);
                 }
 
                 files = [];
@@ -135,7 +136,7 @@ namespace DS.Website.Services
 
         private async Task<string> ResolveActivityFolderAsync(DriveService service, int activityId, CancellationToken cancellationToken)
         {
-            var folderId = await activityRepository.GetDriveFolderIdAsync(activityId);
+            var folderId = await activityService.GetDriveFolderIdAsync(activityId);
 
             if (folderId != null) return folderId;
 
@@ -143,14 +144,14 @@ namespace DS.Website.Services
 
             if (folderId == null) return null;
 
-            await activityRepository.SaveDriveFolderIdAsync(activityId, folderId);
+            await activityService.SaveDriveFolderIdAsync(activityId, folderId);
 
             return folderId;
         }
 
         private async Task<string> EnsureActivityFolderAsync(DriveService service, int activityId, string activityName, CancellationToken cancellationToken)
         {
-            var folderId = await activityRepository.GetDriveFolderIdAsync(activityId);
+            var folderId = await activityService.GetDriveFolderIdAsync(activityId);
 
             if (folderId != null && await FolderExistsAsync(service, folderId, cancellationToken))
             {
@@ -159,7 +160,7 @@ namespace DS.Website.Services
 
             if (folderId != null)
             {
-                await activityRepository.RemoveDriveFolderIdAsync(activityId);
+                await activityService.RemoveDriveFolderIdAsync(activityId);
             }
 
             folderId = await FindActivityFolderAsync(service, activityId, cancellationToken);
@@ -169,7 +170,7 @@ namespace DS.Website.Services
                 folderId = await CreateActivityFolderAsync(service, activityId, activityName, cancellationToken);
             }
 
-            await activityRepository.SaveDriveFolderIdAsync(activityId, folderId);
+            await activityService.SaveDriveFolderIdAsync(activityId, folderId);
 
             return folderId;
         }

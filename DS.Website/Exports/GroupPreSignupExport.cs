@@ -1,7 +1,8 @@
-using DS.Data;
+using DS.Domain.Data;
 using ClosedXML.Excel;
-using DS.Models;
+using DS.Domain.Models;
 using Microsoft.EntityFrameworkCore;
+using DS.Domain;
 
 namespace DS.Website.Exports
 {

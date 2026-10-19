@@ -21,7 +21,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="../DS/DS.csproj" />
+    <ProjectReference Include="../DS.Application/DS.Application.csproj" />
   </ItemGroup>
 
 </Project>
