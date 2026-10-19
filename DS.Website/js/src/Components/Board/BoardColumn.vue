@@ -1,9 +1,10 @@
 <template>
     <section
         class="board-column"
-        :class="{ 'is-done': column.isDoneColumn, 'is-dragging': dragging }"
-        @dragover.prevent
-        @drop.stop.prevent="onDrop"
+        :class="{ 'is-done': column.isDoneColumn, 'is-dragging': dragging, 'drop-before': columnTarget && !columnTarget.after, 'drop-after': columnTarget?.after, 'drop-append': appendTarget }"
+        @dragover="onDragOver"
+        @dragleave="onDragLeave"
+        @drop="onDrop"
     >
         <header class="board-column-head">
             <button
@@ -13,7 +14,6 @@
                 draggable="true"
                 :aria-label="`Flyt kolonnen ${column.title}`"
                 @dragstart="onColumnDragStart"
-                @dragend="dragging = false"
             >
                 <font-awesome-icon icon="grip-vertical" />
             </button>
@@ -52,6 +52,7 @@
                 @drop-card="emit('dropCard', $event)"
             />
             <p v-if="cards.length === 0" class="board-column-empty">Ingen kort</p>
+            <div v-if="appendTarget" class="board-column-drop" role="status">Slip kortet her</div>
         </div>
 
         <BButton v-if="canManage" size="is-small" class="board-column-add is-ghost" @click="emit('addCard', column.id)">
@@ -63,9 +64,10 @@
 
 <script setup lang="ts">
 import { BButton } from 'buefy';
-import { ref } from 'vue';
+import { computed } from 'vue';
 import type { BoardColumnDto, WorkItemDto } from '@/types';
 import BoardCard from './BoardCard.vue';
+import { useBoardDrag } from './boardDrag';
 
 const props = defineProps<{
     column: BoardColumnDto;
@@ -78,43 +80,72 @@ const emit = defineEmits<{
     addCard: [columnId: number];
     editColumn: [column: BoardColumnDto];
     deleteColumn: [column: BoardColumnDto];
-    dropCard: [payload: { targetCardId: string; draggedId: string }];
+    dropCard: [payload: { targetCardId: string; draggedId: string; after: boolean }];
     dropColumn: [payload: { columnId: number; draggedId: string }];
-    reorderColumn: [payload: { targetColumnId: number; draggedColumnId: number }];
+    reorderColumn: [payload: { targetColumnId: number; draggedColumnId: number; after: boolean }];
 }>();
 
-const dragging = ref(false);
+const drag = useBoardDrag();
+const dragging = computed(() => drag.value?.kind === 'column' && drag.value.id === Number(props.column.id));
+const columnTarget = computed(() => drag.value?.target?.kind === 'column' && drag.value.target.id === Number(props.column.id) ? drag.value.target : null);
+const appendTarget = computed(() => drag.value?.target?.kind === 'append' && drag.value.target.id === Number(props.column.id));
 
 function onColumnDragStart(event: DragEvent) {
-    event.dataTransfer?.setData('text/plain', `column:${props.column.id}`);
-    if (event.dataTransfer) event.dataTransfer.effectAllowed = 'move';
-
-    dragging.value = true;
-}
-
-function onDrop(event: DragEvent) {
-    const payload = event.dataTransfer?.getData('text/plain') ?? '';
-    if (!payload) return;
-
-    if (payload.startsWith('card:')) {
-        const draggedId = payload.slice('card:'.length);
-        if (!draggedId) return;
-
-        emit('dropColumn', { columnId: props.column.id, draggedId });
+    if (!props.canManage) {
+        event.preventDefault();
         return;
     }
 
-    if (!payload.startsWith('column:')) return;
+    event.dataTransfer?.setData('text/plain', `column:${props.column.id}`);
+    if (event.dataTransfer) event.dataTransfer.effectAllowed = 'move';
 
-    const draggedColumnId = Number(payload.slice('column:'.length));
-    if (!draggedColumnId || draggedColumnId === Number(props.column.id)) return;
+    drag.value = { kind: 'column', id: Number(props.column.id), target: null };
+}
 
-    emit('reorderColumn', { targetColumnId: props.column.id, draggedColumnId });
+function onDragOver(event: DragEvent) {
+    if (!props.canManage || !drag.value) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+    if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
+    if (dragging.value) {
+        drag.value.target = null;
+        return;
+    }
+
+    const bounds = (event.currentTarget as HTMLElement).getBoundingClientRect();
+    drag.value.target = {
+        kind: drag.value.kind === 'card' ? 'append' : 'column',
+        id: Number(props.column.id),
+        after: event.clientX > bounds.left + bounds.width / 2
+    };
+}
+
+function onDragLeave(event: DragEvent) {
+    if ((event.currentTarget as HTMLElement).contains(event.relatedTarget as Node | null)) return;
+    if ((columnTarget.value || appendTarget.value) && drag.value) drag.value.target = null;
+}
+
+function onDrop(event: DragEvent) {
+    if (!props.canManage || !drag.value) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+    const { kind, id, target } = drag.value;
+    drag.value = null;
+    if (!target || target.id !== Number(props.column.id)) return;
+
+    if (kind === 'card' && target.kind === 'append') {
+        emit('dropColumn', { columnId: props.column.id, draggedId: String(id) });
+    } else if (kind === 'column' && target.kind === 'column') {
+        emit('reorderColumn', { targetColumnId: props.column.id, draggedColumnId: id, after: target.after });
+    }
 }
 </script>
 
 <style scoped>
 .board-column {
+    position: relative;
     display: flex;
     flex-direction: column;
     flex: 0 0 18rem;
@@ -124,6 +155,31 @@ function onDrop(event: DragEvent) {
     border: 1px solid transparent;
     border-radius: 8px;
     overflow: hidden;
+}
+
+.board-column.drop-before {
+    border-left-color: #3273dc;
+    box-shadow: inset 3px 0 #3273dc;
+}
+
+.board-column.drop-after {
+    border-right-color: #3273dc;
+    box-shadow: inset -3px 0 #3273dc;
+}
+
+.board-column.drop-append {
+    border-color: #3273dc;
+}
+
+.board-column-drop {
+    border-top: 4px solid #3273dc;
+    padding: 0.4rem;
+    color: #2458a6;
+    background: #e8f0fd;
+    border-radius: 3px;
+    font-size: 0.8rem;
+    text-align: center;
+    pointer-events: none;
 }
 
 .board-column.is-done {

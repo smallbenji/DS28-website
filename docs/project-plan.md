@@ -692,6 +692,21 @@ implementeret eller synlig i adminområdet.
 
 ### Projektstyring og Kanban-board
 
+**Beslutning 2026-10-19 (implementeret, træk og slip):** Tavlen viser en blå
+indsættelseslinje før eller efter det kort, musen peger på. Den øverste og
+nederste halvdel vælger placeringen, og kortet indsættes samme sted som
+markeringen. Drop på kolonnens frie område viser en markering efter sidste
+kort med teksten "Slip kortet her", også i tomme kolonner. Kortet, der
+trækkes, dæmpes visuelt.
+
+Kolonneflytning markerer venstre eller højre kant efter musens placering og
+indsætter kolonnen på den markerede side. Kolonner kan også slippes over
+andre kolonners kort. Drop i mellemrummet uden for kolonnerne flytter ikke
+noget. Markeringerne fjernes ved drop, afsluttet/afbrudt træk eller tab af
+vinduesfokus. Native HTML5-drag beholdes; der tilføjes ikke touch- eller
+tastaturbaseret flytning i denne ændring. Rettigheder og databaseskema er
+uændrede.
+
 **Beslutning 2026-10-18 (implementeret, kortfarver, udvidet samme dag):** Hver
 tavle har sin egen palette af navngivne kortfarver. Dette erstatter den først
 implementerede fælles palette med seks faste farver.

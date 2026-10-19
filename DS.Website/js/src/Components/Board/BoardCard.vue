@@ -1,15 +1,16 @@
 <template>
     <article
         class="board-card"
-        :class="{ 'is-done': isDoneColumn }"
+        :class="{ 'is-done': isDoneColumn, 'is-dragging': isDragging, 'drop-before': dropTarget && !dropTarget.after, 'drop-after': dropTarget?.after }"
         :style="{ backgroundColor: card.color ? `color-mix(in srgb, ${card.color} 40%, white)` : undefined }"
         :draggable="canManage"
         tabindex="0"
         @click="emit('open', card)"
         @keydown.enter="emit('open', card)"
         @dragstart="onDragStart"
-        @dragover.prevent
-        @drop.stop.prevent="onDrop"
+        @dragover="onDragOver"
+        @dragleave="onDragLeave"
+        @drop="onDrop"
     >
         <p class="board-card-number">DS-{{ card.id }}</p>
         <p class="board-card-title">{{ card.title }}</p>
@@ -39,12 +40,17 @@ import { computed, onMounted, onBeforeUnmount, ref, watch } from 'vue';
 import { BTooltip } from 'buefy';
 import type { WorkItemDto } from '@/types';
 import { htmlToPlainText } from '@/lib/util';
+import { useBoardDrag } from './boardDrag';
 
 const props = defineProps<{
     card: WorkItemDto;
     canManage: boolean;
     isDoneColumn: boolean;
 }>();
+
+const drag = useBoardDrag();
+const isDragging = computed(() => drag.value?.kind === 'card' && drag.value.id === Number(props.card.id));
+const dropTarget = computed(() => drag.value?.target?.kind === 'card' && drag.value.target.id === Number(props.card.id) ? drag.value.target : null);
 
 const descriptionPreview = computed(() => htmlToPlainText(props.card.description));
 
@@ -80,7 +86,7 @@ onBeforeUnmount(() => {
 
 const emit = defineEmits<{
     open: [card: WorkItemDto];
-    dropCard: [payload: { targetCardId: string; draggedId: string }];
+    dropCard: [payload: { targetCardId: string; draggedId: string; after: boolean }];
 }>();
 
 function onDragStart(event: DragEvent) {
@@ -91,21 +97,46 @@ function onDragStart(event: DragEvent) {
 
     event.dataTransfer?.setData('text/plain', `card:${props.card.id}`);
     if (event.dataTransfer) event.dataTransfer.effectAllowed = 'move';
+    drag.value = { kind: 'card', id: Number(props.card.id), target: null };
+}
+
+function onDragOver(event: DragEvent) {
+    if (!props.canManage || drag.value?.kind !== 'card') return;
+
+    event.preventDefault();
+    event.stopPropagation();
+    if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
+    if (isDragging.value) {
+        drag.value.target = null;
+        return;
+    }
+
+    const bounds = (event.currentTarget as HTMLElement).getBoundingClientRect();
+    drag.value.target = { kind: 'card', id: Number(props.card.id), after: event.clientY > bounds.top + bounds.height / 2 };
+}
+
+function onDragLeave(event: DragEvent) {
+    if ((event.currentTarget as HTMLElement).contains(event.relatedTarget as Node | null)) return;
+    if (dropTarget.value && drag.value) drag.value.target = null;
 }
 
 function onDrop(event: DragEvent) {
-    const payload = event.dataTransfer?.getData('text/plain') ?? '';
-    if (!payload.startsWith('card:')) return;
+    if (!props.canManage || drag.value?.kind !== 'card') return;
 
-    const draggedId = payload.slice('card:'.length);
-    if (!draggedId || draggedId === String(props.card.id)) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const draggedId = String(drag.value.id);
+    const target = dropTarget.value;
+    drag.value = null;
+    if (!target) return;
 
-    emit('dropCard', { targetCardId: String(props.card.id), draggedId });
+    emit('dropCard', { targetCardId: String(props.card.id), draggedId, after: target.after });
 }
 </script>
 
 <style scoped>
 .board-card {
+    position: relative;
     background: #fff;
     border: 1px solid #e8ebef;
     border-radius: 6px;
@@ -113,6 +144,31 @@ function onDrop(event: DragEvent) {
     cursor: pointer;
     box-shadow: none;
     transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.board-card.is-dragging {
+    opacity: 0.45;
+}
+
+.board-card.drop-before::before,
+.board-card.drop-after::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 4px;
+    border-radius: 2px;
+    background: #3273dc;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.board-card.drop-before::before {
+    top: -6px;
+}
+
+.board-card.drop-after::after {
+    bottom: -6px;
 }
 
 .board-card:hover {

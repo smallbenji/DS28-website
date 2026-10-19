@@ -21,7 +21,7 @@
 
         <p v-else-if="!board" class="has-text-grey">Tavlen blev ikke fundet.</p>
 
-        <div v-else class="board-columns" role="region" aria-label="Tavlens kolonner" @drop.stop.prevent="onContainerDrop">
+        <div v-else class="board-columns" role="region" aria-label="Tavlens kolonner" @dragover.self="clearDropTarget">
             <BoardColumn
                 v-for="column in board.columns"
                 :key="column.id"
@@ -81,7 +81,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, provide, ref } from 'vue';
 import { useRoute } from 'vue-router';
 import { BButton, BCheckbox, BField, BInput, BModal, useDialog, useToast } from 'buefy';
 import type { BoardColumnDto, WorkItemDto } from '@/types';
@@ -91,6 +91,7 @@ import BoardColorsModal from '@/Components/Board/BoardColorsModal.vue';
 import BoardColumn from '@/Components/Board/BoardColumn.vue';
 import BoardCardModal from '@/Components/Board/BoardCardModal.vue';
 import BoardColumnDrawer from '@/Components/Board/BoardColumnDrawer.vue';
+import { boardDragKey, type BoardDragState } from '@/Components/Board/boardDrag';
 
 const route = useRoute();
 const store = useBoardStore();
@@ -99,6 +100,16 @@ const Dialog = useDialog();
 
 const boardId = Number(route.params.id);
 const loading = ref(true);
+const drag = ref<BoardDragState | null>(null);
+provide(boardDragKey, drag);
+
+function clearDrag() {
+    drag.value = null;
+}
+
+function clearDropTarget() {
+    if (drag.value) drag.value.target = null;
+}
 
 const cardDrawerOpen = ref(false);
 const editingCard = ref<WorkItemDto | null>(null);
@@ -203,7 +214,7 @@ async function saveSettings() {
     }
 }
 
-function handleDropOnCard(payload: { targetCardId: string; draggedId: string }) {
+function handleDropOnCard(payload: { targetCardId: string; draggedId: string; after: boolean }) {
     if (!payload.draggedId || payload.targetCardId === payload.draggedId) return;
 
     const target = board.value?.cards.find((card) => String(card.id) === String(payload.targetCardId));
@@ -211,7 +222,7 @@ function handleDropOnCard(payload: { targetCardId: string; draggedId: string }) 
 
     const list = cardsFor(target.columnId).filter((card) => String(card.id) !== String(payload.draggedId));
     const index = list.findIndex((card) => String(card.id) === String(payload.targetCardId));
-    void moveCard(payload.draggedId, target.columnId, index < 0 ? list.length : index);
+    void moveCard(payload.draggedId, target.columnId, index < 0 ? list.length : index + Number(payload.after));
 }
 
 function handleDropOnColumn(payload: { columnId: number; draggedId: string }) {
@@ -221,29 +232,17 @@ function handleDropOnColumn(payload: { columnId: number; draggedId: string }) {
     void moveCard(payload.draggedId, payload.columnId, list.length);
 }
 
-function handleReorderColumn(payload: { targetColumnId: number; draggedColumnId: number }) {
+function handleReorderColumn(payload: { targetColumnId: number; draggedColumnId: number; after: boolean }) {
     const order = columnOrder();
     const from = order.indexOf(Number(payload.draggedColumnId));
     const to = order.indexOf(Number(payload.targetColumnId));
     if (from < 0 || to < 0 || from === to) return;
 
     const next = order.filter((columnId) => columnId !== order[from]);
-    next.splice(from < to ? to - 1 : to, 0, order[from]);
+    const targetIndex = next.indexOf(Number(payload.targetColumnId));
+    next.splice(targetIndex + Number(payload.after), 0, order[from]);
 
     void reorderColumns(next);
-}
-
-function onContainerDrop(event: DragEvent) {
-    const payload = event.dataTransfer?.getData('text/plain') ?? '';
-    if (!payload.startsWith('column:')) return;
-
-    const draggedColumnId = Number(payload.slice('column:'.length));
-    if (!draggedColumnId) return;
-
-    const order = columnOrder();
-    if (!order.includes(draggedColumnId) || order.indexOf(draggedColumnId) === order.length - 1) return;
-
-    void reorderColumns([...order.filter((columnId) => columnId !== draggedColumnId), draggedColumnId]);
 }
 
 function columnOrder(): number[] {
@@ -265,12 +264,21 @@ async function moveCard(cardId: string, columnId: number, position: number) {
 }
 
 onMounted(async () => {
+    window.addEventListener('dragend', clearDrag);
+    window.addEventListener('drop', clearDrag);
+    window.addEventListener('blur', clearDrag);
     loading.value = true;
     try {
         await store.GET_BOARD(boardId);
     } finally {
         loading.value = false;
     }
+});
+
+onBeforeUnmount(() => {
+    window.removeEventListener('dragend', clearDrag);
+    window.removeEventListener('drop', clearDrag);
+    window.removeEventListener('blur', clearDrag);
 });
 </script>
 
