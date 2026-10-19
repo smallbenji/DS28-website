@@ -1,49 +1,39 @@
-using ClosedXML.Excel;
+using DS.Application.Services.Exports;
 using DS.Domain;
-using DS.Domain.DTOs;
-using DS.Website.Exports;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace DS.Website.Controllers
 {
     [Authorize(Roles = nameof(AppRoles.ExportsView))]
     [Route("api/v1/exports")]
-    public class ExportsApiController(IEnumerable<DataExport> exports) : Controller
+    public class ExportsApiController(ExportService exportService) : Controller
     {
         [HttpGet]
         public IActionResult Index()
         {
-            var visible = exports
-                .Where(e => User.IsInRole(e.RequiredRole))
-                .Select(e => new DataExportDto
-                {
-                    Key = e.Key,
-                    Title = e.Title,
-                    Description = e.Description,
-                    FileName = e.FileName,
-                    RequiredRole = e.RequiredRole
-                })
-                .ToList();
-
-            return Ok(visible);
+            return Ok(exportService.GetExports(GetRoles()));
         }
 
         [HttpGet("{key}")]
         public async Task<IActionResult> Download(string key, CancellationToken cancellationToken)
         {
-            var export = exports.FirstOrDefault(e => e.Key == key);
-            if (export == null) return NotFound("Dataudtrækket findes ikke.");
-            if (!User.IsInRole(export.RequiredRole)) return Forbid();
+            var result = await exportService.Download(key, GetRoles(), cancellationToken);
+            if (result.Outcome == ExportOutcome.NotFound) return NotFound("Dataudtrækket findes ikke.");
 
-            using var workbook = new XLWorkbook();
-            await export.BuildAsync(workbook, cancellationToken);
+            if (result.Outcome == ExportOutcome.Forbidden) return Forbid();
 
-            var stream = new MemoryStream();
-            workbook.SaveAs(stream);
-            stream.Position = 0;
+            return File(result.Content, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", result.FileName);
+        }
 
-            return File(stream, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", $"{export.FileName}.xlsx");
+        private List<string> GetRoles()
+        {
+            return User.Identities
+                .SelectMany(identity => identity.FindAll(identity.RoleClaimType))
+                .Select(claim => claim.Value)
+                .Distinct()
+                .ToList();
         }
     }
 }

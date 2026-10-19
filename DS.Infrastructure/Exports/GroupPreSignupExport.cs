@@ -1,10 +1,10 @@
-using DS.Domain.Data;
+using DS.Infrastructure.Data;
 using ClosedXML.Excel;
 using DS.Domain.Models;
 using Microsoft.EntityFrameworkCore;
 using DS.Domain;
 
-namespace DS.Website.Exports
+namespace DS.Infrastructure.Exports
 {
     public class GroupPreSignupExport(DataDbContext dataDb) : DataExport
     {

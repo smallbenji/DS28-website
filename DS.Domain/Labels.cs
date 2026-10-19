@@ -1,6 +1,6 @@
 using DS.Domain.Models;
 
-namespace DS.Website
+namespace DS.Domain
 {
     public static class Labels
     {

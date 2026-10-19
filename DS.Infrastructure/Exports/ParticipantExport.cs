@@ -1,9 +1,9 @@
 using ClosedXML.Excel;
 using DS.Domain;
-using DS.Domain.Data;
+using DS.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
-namespace DS.Website.Exports
+namespace DS.Infrastructure.Exports
 {
     public class ParticipantExport(DataDbContext dataDb) : DataExport
     {
