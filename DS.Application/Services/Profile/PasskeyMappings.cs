@@ -2,7 +2,7 @@ using DS.Domain.DTOs;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Identity;
 
-namespace DS.Website;
+namespace DS.Application.Services.Profile;
 
 public static class PasskeyMappings
 {

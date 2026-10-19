@@ -1,5 +1,7 @@
+using DS.Domain;
 using DbUp;
-using DS.Domain.Data;
+using DS.Infrastructure.Data;
+using DS.Application.Services.Boards;
 using DS.Domain.DTOs;
 using DS.Domain.Models;
 using DS.Website;
@@ -24,7 +26,8 @@ void Check(bool condition, string message)
     Console.WriteLine($"PASS {message}");
 }
 
-var assembly = typeof(DataDbContext).Assembly;
+var assembly = typeof(Group).Assembly;
+Check(assembly.GetManifestResourceNames().Contains("DS.Migrations.000_legacy_v016.sql"), "migration resource names retain their original journal identity");
 var initial = DeployChanges.To.PostgresqlDatabase(connectionString, "ds28")
     .JournalToPostgresqlTable("ds28", "schemaversions")
     .WithScriptsEmbeddedInAssembly(assembly, name => string.CompareOrdinal(name, "DS.Migrations.022_board_members.sql") < 0)
@@ -59,6 +62,11 @@ var upgrade = DeployChanges.To.PostgresqlDatabase(connectionString, "ds28")
     .JournalToPostgresqlTable("ds28", "schemaversions").WithScriptsEmbeddedInAssembly(assembly)
     .WithVariablesDisabled().WithTransaction().LogToNowhere().Build().PerformUpgrade();
 Check(upgrade.Successful, $"membership migration: {upgrade.Error?.Message}");
+var repeatedUpgrade = DeployChanges.To.PostgresqlDatabase(connectionString, "ds28")
+    .JournalToPostgresqlTable("ds28", "schemaversions")
+    .WithScriptsEmbeddedInAssembly(assembly)
+    .WithVariablesDisabled().WithTransaction().LogToNowhere().Build();
+Check(!repeatedUpgrade.GetScriptsToExecute().Any(), "original migration journal prevents scripts from running again");
 
 var services = new ServiceCollection();
 services.AddLogging();
@@ -77,7 +85,7 @@ foreach (var id in new[] { "member", "friend", "outsider", "admin" })
     Check((await manager.CreateAsync(new User { Id = id, UserName = id, FirstName = id, LastName = "Test", Email = $"{id}@example.test" })).Succeeded, $"create {id}");
 }
 
-var controller = new BoardApiController(db, manager)
+var controller = new BoardApiController(new BoardService(db, manager), manager)
 {
     ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() }
 };

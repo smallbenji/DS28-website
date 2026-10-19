@@ -1,71 +1,22 @@
-using DS.Domain.Models;
-using DS.Domain.Data;
+using DS.Application.Services.Profile;
+using DS.Domain;
 using DS.Domain.DTOs;
-using Microsoft.AspNetCore.Authentication;
+using DS.Domain.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
-using DS.Domain;
 
 namespace DS.Website.Controllers
 {
     [Route("/api/v1/me")]
-    public class MeApiController(UserManager<User> userManager, DataDbContext dataDb) : Controller
+    public class MeApiController(MeService service, UserManager<User> userManager) : Controller
     {
         public async Task<IActionResult> Index()
         {
-            if (!HttpContext.User.Identity.IsAuthenticated)
-            {
-                return Ok(new MeDto
-                {
-                    IsAuthenticated = HttpContext.User.Identity.IsAuthenticated
-                });
-            }
+            var result = await service.Index(GetActor());
 
-            var user = await userManager.GetUserAsync(HttpContext.User);
-            if (user == null) return NotFound();
-
-            var roles = GetEffectiveGroups(HttpContext.User);
-            var appRoles = AppAccess.ResolveAppRoles(roles);
-            var passkeys = (await userManager.GetPasskeysAsync(user)).ToDtoList();
-
-            var positionTitle = await dataDb.OrgPositionHolders
-                .Where(holder => holder.UserId == user.Id && holder.Position.DeletedAt == null)
-                .OrderBy(holder => holder.PositionId)
-                .Select(holder => holder.Position.Title)
-                .FirstOrDefaultAsync();
-
-            var profilePicture = user.ProfilePictureFileId.HasValue
-                ? await dataDb.StoredFiles
-                    .AsNoTracking()
-                    .FirstOrDefaultAsync(f => f.Id == user.ProfilePictureFileId.Value
-                        && f.Status == StoredFileStatus.Ready
-                        && f.DeletedAt == null)
-                : null;
-
-            var model = new MeDto
-            {
-                IsAuthenticated = HttpContext.User.Identity.IsAuthenticated,
-                Id = user.Id,
-                Name = user.GetFullName(),
-                FirstName = user.FirstName ?? string.Empty,
-                LastName = user.LastName ?? string.Empty,
-                Email = user.Email ?? string.Empty,
-                Title = positionTitle ?? AppAccess.ResolveGroupTitle(roles),
-                Phone = user.PhoneNumber ?? string.Empty,
-                MustEnableTwoFactor = await userManager.IsInRoleAsync(
-                    user,
-                    nameof(AppGroups.SysAdmin)
-                ) && !user.TwoFactorEnabled,
-                Roles = roles,
-                AppRoles = appRoles,
-                IsImpersonating = HttpContext.User.HasClaim(claim => claim.Type == Impersonation.ActiveClaimType),
-                Passkeys = passkeys,
-                ProfilePicture = profilePicture != null ? new ImageReferenceDto(profilePicture) : null
-            };
-
-            return Ok(model);
+            return Respond(result);
         }
 
         [HttpPut("phone")]
@@ -73,15 +24,9 @@ namespace DS.Website.Controllers
         {
             if (data == null) return BadRequest("Invalid request body.");
 
-            var user = await userManager.GetUserAsync(HttpContext.User);
-            if (user == null) return NotFound();
+            var result = await service.UpdatePhone(GetActor(), data);
 
-            user.PhoneNumber = data.Phone;
-
-            var result = await userManager.UpdateAsync(user);
-            if (!result.Succeeded) return BadRequest(result.Errors);
-
-            return Ok();
+            return Respond(result);
         }
 
         [HttpPut("profile-picture")]
@@ -89,59 +34,17 @@ namespace DS.Website.Controllers
         {
             if (data == null) return BadRequest("Invalid request body.");
 
-            var user = await userManager.GetUserAsync(HttpContext.User);
-            if (user == null) return NotFound();
+            var result = await service.UpdateProfilePicture(GetActor(), data);
 
-            if (data.Image == null)
-            {
-                user.ProfilePictureFileId = null;
-
-                var clearResult = await userManager.UpdateAsync(user);
-                if (!clearResult.Succeeded) return BadRequest(clearResult.Errors);
-
-                return Ok();
-            }
-
-            var image = await dataDb.StoredFiles
-                .FirstOrDefaultAsync(f => f.PublicId == data.Image.PublicId
-                    && f.Purpose == FilePurpose.ProfilePicture
-                    && f.Status == StoredFileStatus.Ready
-                    && f.DeletedAt == null
-                    && f.UploadedByUserId == user.Id);
-            if (image == null) return BadRequest("Billedet findes ikke.");
-
-            user.ProfilePictureFileId = image.Id;
-
-            var result = await userManager.UpdateAsync(user);
-            if (!result.Succeeded) return BadRequest(result.Errors);
-
-            return Ok(new ImageReferenceDto(image));
+            return Respond(result);
         }
 
         [HttpGet("notifications")]
         public async Task<IActionResult> GetNotifications()
         {
-            var user = await userManager.GetUserAsync(HttpContext.User);
-            if (user == null) return NotFound();
+            var result = await service.GetNotifications(GetActor());
 
-            var roles = GetEffectiveGroups(HttpContext.User);
-            var appRoles = AppAccess.ResolveAppRoles(roles);
-
-            var subscribed = await dataDb.NotificationPreferences
-                .Where(p => p.UserId == user.Id)
-                .Select(p => p.NotificationType)
-                .ToListAsync();
-
-            var preferences = Enum.GetValues<NotificationType>()
-                .Select(type => new NotificationPreferenceDto
-                {
-                    Type = type.ToString(),
-                    CanSubscribe = NotificationPermissions.CanSubscribe(appRoles, type),
-                    Subscribed = subscribed.Contains(type),
-                })
-                .ToList();
-
-            return Ok(preferences);
+            return Respond(result);
         }
 
         [HttpPut("notifications")]
@@ -149,40 +52,15 @@ namespace DS.Website.Controllers
         {
             if (data == null) return BadRequest("Invalid request body.");
 
-            var user = await userManager.GetUserAsync(HttpContext.User);
-            if (user == null) return NotFound();
+            var result = await service.UpdateNotifications(GetActor(), data);
 
-            var roles = GetEffectiveGroups(HttpContext.User);
-            var appRoles = AppAccess.ResolveAppRoles(roles);
+            return Respond(result);
+        }
 
-            var requested = new List<NotificationType>();
-            foreach (var typeName in data.Types)
-            {
-                if (!Enum.TryParse<NotificationType>(typeName, out var type)) return BadRequest($"Ukendt notifikationstype: {typeName}");
-                if (!NotificationPermissions.CanSubscribe(appRoles, type)) return Forbid();
-
-                requested.Add(type);
-            }
-
-            var existing = await dataDb.NotificationPreferences
-                .Where(p => p.UserId == user.Id)
-                .ToListAsync();
-
-            dataDb.NotificationPreferences.RemoveRange(
-                existing.Where(p => !requested.Contains(p.NotificationType)));
-
-            foreach (var type in requested.Where(t => existing.All(p => p.NotificationType != t)))
-            {
-                dataDb.NotificationPreferences.Add(new UserNotificationPreference
-                {
-                    UserId = user.Id,
-                    NotificationType = type,
-                });
-            }
-
-            await dataDb.SaveChangesAsync();
-
-            return Ok();
+        private MeActor GetActor()
+        {
+            return new MeActor(userManager.GetUserId(User), HttpContext.User.Identity.IsAuthenticated,
+                User.HasClaim(claim => claim.Type == Impersonation.ActiveClaimType), GetEffectiveGroups(User));
         }
 
         private static List<string> GetEffectiveGroups(ClaimsPrincipal user)
@@ -195,6 +73,21 @@ namespace DS.Website.Controllers
                 .Select(claim => claim.Value)
                 .Where(value => Enum.TryParse<AppGroups>(value, out _))
                 .ToList();
+        }
+
+        private IActionResult Respond(MeResult result)
+        {
+            switch (result.Outcome)
+            {
+                case MeOutcome.Success:
+                    return result.Value == null ? Ok() : Ok(result.Value);
+                case MeOutcome.Invalid:
+                    return result.Value == null ? BadRequest() : BadRequest(result.Value);
+                case MeOutcome.NotFound:
+                    return NotFound();
+                default:
+                    return Forbid();
+            }
         }
     }
 }

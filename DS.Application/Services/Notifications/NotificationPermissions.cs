@@ -1,7 +1,7 @@
 using DS.Domain;
 using DS.Domain.Models;
 
-namespace DS.Website
+namespace DS.Application.Services.Notifications
 {
     public static class NotificationPermissions
     {
