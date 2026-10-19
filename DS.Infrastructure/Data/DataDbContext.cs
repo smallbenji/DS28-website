@@ -1,0 +1,59 @@
+using DS.Application.Data;
+using DS.Domain.Models;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
+
+namespace DS.Infrastructure.Data;
+
+public class DataDbContext : IdentityDbContext<User, Role, string>, IDataDbContext
+{
+    public DataDbContext(DbContextOptions<DataDbContext> options) : base(options) { }
+
+    public DbSet<UserInvitation> Invitations { get; set; }
+    public DbSet<UserNotificationPreference> NotificationPreferences { get; set; }
+    public DbSet<RegistrationSettings> RegistrationSettings { get; set; }
+    public DbSet<Group> Groups { get; set; }
+    public DbSet<Patrol> Patrols { get; set; }
+    public DbSet<Scout> Scouts { get; set; }
+    public DbSet<PatrolMembership> PatrolMemberships { get; set; }
+    public DbSet<GroupPreSignup> GroupPreSignups { get; set; }
+    public DbSet<ScoutSignup> ScoutSignups { get; set; }
+
+    public DbSet<Activity> Activities { get; set; }
+    public DbSet<ActivityCategory> ActivityCategories { get; set; }
+    public DbSet<ActivityTeam> ActivityTeams { get; set; }
+    public DbSet<ActivityTeamMembership> ActivityTeamMemberships { get; set; }
+    public DbSet<ActivityTimeslot> ActivityTimeslots { get; set; }
+    public DbSet<ActivityBudget> ActivityBudgets { get; set; }
+    public DbSet<CatalogData> CatalogData { get; set; }
+    public DbSet<ActivityFile> ActivityFiles { get; set; }
+
+    public DbSet<ActivityDriveFolder> ActivityDriveFolders { get; set; }
+
+    public DbSet<GoogleConnection> GoogleConnections { get; set; }
+
+    public DbSet<Material> Materials { get; set; }
+    public DbSet<MaterialOrder> MaterialOrders { get; set; }
+
+    public DbSet<StoredFile> StoredFiles { get; set; }
+
+    public DbSet<OrgPosition> OrgPositions { get; set; }
+    public DbSet<OrgPositionGroup> OrgPositionGroups { get; set; }
+    public DbSet<OrgPositionHolder> OrgPositionHolders { get; set; }
+
+    public DbSet<Board> Boards { get; set; }
+    public DbSet<BoardMember> BoardMembers { get; set; }
+    public DbSet<BoardColor> BoardColors { get; set; }
+    public DbSet<BoardColumn> BoardColumns { get; set; }
+    public DbSet<WorkItem> WorkItems { get; set; }
+    public DbSet<BoardCard> BoardCards { get; set; }
+    public DbSet<WorkItemLink> WorkItemLinks { get; set; }
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        base.OnModelCreating(modelBuilder);
+        modelBuilder.HasDefaultSchema("ds28");
+
+        modelBuilder.ApplyConfigurationsFromAssembly(typeof(DataDbContext).Assembly);
+    }
+}

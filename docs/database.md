@@ -1,8 +1,13 @@
 # Database diagram
 
 Schema `ds28` (PostgreSQL). Alle tabeller ligger i schema `ds28` og bruger
-snake_case. Kilden er `DS/Data/DataDbContext.cs`, `DS/Data/Configurations/*.cs`
-og `DS/Migrations/*.sql`.
+snake_case. Kilden er `DS.Infrastructure/Data/DataDbContext.cs`,
+`DS.Infrastructure/Data/Configurations/*.cs` og `DS.Domain/Migrations/*.sql`.
+
+DbUp-journalen ligger i `ds28.schemaversions`. Migrationernes indlejrede
+resource-navne er stabilt `DS.Migrations.<filnavn>.sql`, også når assemblyet
+hedder `DS.Domain`. Navnene er migrations-id'er og må ikke ændres ved flytning
+af kode, da allerede udførte migrationer ellers bliver opfattet som nye.
 
 ## Domene
 

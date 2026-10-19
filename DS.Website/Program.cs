@@ -1,4 +1,5 @@
-using DS.Domain.Data;
+using DS.Domain.Models;
+using DS.Infrastructure.Data;
 using DS;
 using DS.Website;
 using DS.Website.Services;
@@ -65,7 +66,7 @@ var dssettings = app.Configuration.GetSection("DS").Get<DSSettings>();
 var migrationResult = DeployChanges.To
     .PostgresqlDatabase(dssettings.ConnectionString, "ds28")
     .JournalToPostgresqlTable("ds28", "schemaversions")
-    .WithScriptsEmbeddedInAssembly(typeof(DataDbContext).Assembly)
+    .WithScriptsEmbeddedInAssembly(typeof(Group).Assembly)
     .WithVariablesDisabled()
     .WithTransaction()
     .LogTo(new MigrationLog(app.Services.GetRequiredService<ILogger<MigrationLog>>()))

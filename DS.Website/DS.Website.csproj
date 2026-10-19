@@ -17,6 +17,7 @@
 
   <ItemGroup>
     <ProjectReference Include="../DS.Application/DS.Application.csproj" />
+    <ProjectReference Include="../DS.Infrastructure/DS.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>
