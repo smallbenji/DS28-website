@@ -13,16 +13,18 @@ using DS.Application.Services.Profile;
 using DS.Application.Services.Exports;
 using DS.Application.Services.Accounts;
 using Microsoft.Extensions.DependencyInjection;
+using DS.Application.Services.Materials;
 
 public static class ConfigureApplication
 {
     public static IServiceCollection ConfigureDsApplication(this IServiceCollection services)
     {
-        services.AddTransient<ActivityService>();
-        services.AddTransient<ActivityTeamService>();
-        services.AddTransient<EmailService>();
+        services.AddScoped<ActivityService>();
+        services.AddScoped<ActivityTeamService>();
+        services.AddScoped<EmailService>();
         services.AddScoped<InvitationService>();
         services.AddScoped<GroupInvitationService>();
+        services.AddScoped<MaterialService>();
         services.AddScoped<FileService>();
         services.AddScoped<OrgService>();
         services.AddScoped<RegistrationSettingsService>();
@@ -36,8 +38,8 @@ public static class ConfigureApplication
         services.AddScoped<GroupInfoService>();
         services.AddScoped<GroupAdministrationService>();
         services.AddScoped<GroupMembersService>();
-        services.AddTransient<RoleSeeder>();
-        services.AddTransient<IFileStorage, LocalFileStorage>();
+        services.AddScoped<RoleSeeder>();
+        services.AddScoped<IFileStorage, LocalFileStorage>();
 
         return services;
     }
