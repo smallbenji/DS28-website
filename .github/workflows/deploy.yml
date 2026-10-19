@@ -15,7 +15,18 @@ env:
 
 jobs:
   build-and-deploy:
+    name: Build and publish ${{ matrix.target }}
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: Website
+            containerfile: Containerfile.Website
+            image_suffix: ""
+          - target: Worker
+            containerfile: Containerfile.Worker
+            image_suffix: "-worker"
     # Grant the job permission to push packages to GHCR and read repo scope
     permissions:
       contents: read
@@ -47,7 +58,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v6
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}${{ matrix.image_suffix }}
           tags: |
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
@@ -59,7 +70,7 @@ jobs:
         uses: docker/build-push-action@v7
         with:
           context: .                  # build context is repo root
-          file: ./Containerfile.Website # build from the repo's container file
+          file: ./${{ matrix.containerfile }}
           platforms: linux/amd64
           push: true                  # publish to GHCR
           tags: ${{ steps.meta.outputs.tags }}

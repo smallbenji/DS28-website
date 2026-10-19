@@ -90,8 +90,6 @@ public static class ServiceExtensions
                 PrepareSchemaIfNecessary = false
             }));
 
-        services.AddHangfireServer(options => options.WorkerCount = 5);
-
         services.ConfigureDsApplication();
         DS.Infrastructure.ConfigureInfrastructure.ConfigureDsInfrastructure(services);
 

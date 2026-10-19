@@ -24,8 +24,6 @@ public static class ConfigureInfrastructure {
         services.AddTransient<OpenIddictJobs>();
         services.AddTransient<FileProcessingJobs>();
 
-        services.AddHostedService<RecurringJobRegistrar>();
-
         return services;
     }
 }

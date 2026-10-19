@@ -3,4 +3,5 @@
   <Project Path="DS.Domain/DS.Domain.csproj" />
   <Project Path="DS.Infrastructure/DS.Infrastructure.csproj" />
   <Project Path="DS.Website/DS.Website.csproj" />
+  <Project Path="DS.Worker/DS.Worker.csproj" />
 </Solution>

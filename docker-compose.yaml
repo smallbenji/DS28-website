@@ -33,6 +33,22 @@ services:
       - traefik.http.services.http-hq.loadbalancer.server.port=8080
       - traefik.http.services.https-hq.loadbalancer.server.port=8080
 
+  worker:
+    build:
+      context: .
+      dockerfile: Containerfile.Worker
+    restart: unless-stopped
+    depends_on:
+      - hq
+    networks:
+      - internal-net
+    env_file:
+      - .env
+    environment:
+      DS__FileStoragePath: /app/files
+    volumes:
+      - files:/app/files
+
 networks:
   internal-net:
     external: true

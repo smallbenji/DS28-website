@@ -31,6 +31,30 @@ på et CMS, så andre end IT kan vedligeholde indhold.
 
 ### Applikationsopstart
 
+**Beslutning 2026-10-19 (implementeret):** `DS.Worker` er en selvstændig Generic
+Host i samme Docker Compose-projekt som Website. Den starter Hangfire-serveren
+med fem jobtråde og `ServerName = Dns.GetHostName()`, dvs. containerens hostname.
+Der sættes ikke et fast hostname eller container_name i Compose, så flere
+workercontainere kan have hver deres navn. Website enqueuer jobs og viser
+dashboardet, men udfører ikke længere jobs. Tilbagevendende jobs registreres
+kun i Worker. Begge bruger samme PostgreSQL/Hangfire-lager og delte filvolume.
+
+Worker kører ikke migrationer: før registrering og jobudførelse venter den på,
+at alle indlejrede `DS.Migrations.*`-scripts findes i DbUp-journalen. Website
+beholder migrationer og rolleseeding. Compose `depends_on` giver startrækkefølgen;
+workerens journalcheck sikrer også, at migrationerne er klar. Worker har kun
+OpenIddict Core til oprydningsjobbet og ingen HTTP-server eller loginendpoints.
+`Containerfile.Worker` bygger worker-imaget lokalt via Compose. Databaseskemaet
+er uændret.
+
+**Efterfølgende beslutning 2026-10-19 (implementeret):** Deploy-workflowet bygger
+og publicerer både Website og Worker med en matrix. Website bevarer
+`ghcr.io/smallbenji/ds28-website`; Worker bruger
+`ghcr.io/smallbenji/ds28-website-worker`. Begge bruger samme SemVer-/latest-tags,
+`linux/amd64`, GHCR-login og eksisterende tag-/manuelle triggers. Dette erstatter
+den oprindelige begrænsning til kun at publicere Website. Compose bygger fortsat
+lokalt fra de respektive Containerfiles.
+
 **Rettelse 2026-10-19 (implementeret):** Flytningen fra DS til DS.Domain ændrede
 utilsigtet SQL-resource-navne fra `DS.Migrations.*` til `DS.Domain.Migrations.*`.
 DbUp identificerer udførte scripts ved disse navne og forsøgte derfor at køre

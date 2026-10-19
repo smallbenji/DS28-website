@@ -137,11 +137,19 @@ project patterns for forms, buttons, tables, notifications, and step flows.
 
 ## Deployment
 
+- `DS.Worker` executes Hangfire jobs; Website only enqueues jobs and hosts the
+  dashboard. Keep recurring-job registration in Worker.
+- Compose builds Worker using `Containerfile.Worker`. Both services share the
+  database and file volume. Worker waits for Website's DbUp migration journal
+  before starting Hangfire and uses the container hostname as its server name.
+- The release workflow builds and publishes both Website and Worker using a
+  matrix, with the same version tags. Worker uses the `-worker` image suffix.
+
 The project uses GitHub Actions for CI/CD (see `.github/workflows/deploy.yml`).
 
 - **Trigger**: Runs only on semantic version git tags matching `v[0-9]+.[0-9]+.[0-9]+*` (e.g., `v0.1.21`, `v1.2.3-rc1`). Also supports manual runs via `workflow_dispatch`.
-- **Registry**: Images are published to GitHub Container Registry (`ghcr.io`) as `ghcr.io/smallbenji/ds28-website`.
-- **Build**: Uses Docker Buildx with Docker driver to build from `Containerfile.Website` in the repo root (`context: .`), targeting `linux/amd64`. 
+- **Registry**: Images are published to GitHub Container Registry (`ghcr.io`) as `ghcr.io/smallbenji/ds28-website` and `ghcr.io/smallbenji/ds28-website-worker`.
+- **Build**: Uses Docker Buildx with Docker driver and a matrix for `Containerfile.Website` and `Containerfile.Worker` in the repo root (`context: .`), targeting `linux/amd64`.
 - **Tags**: Automatically generated from the SemVer tag - exact (`{{version}}`), minor (`{{major}}.{{minor}}`), major (`{{major}}`), and `latest` (for all semver tag pushes).
 - **Push**: Images are pushed on tag triggers (manual runs still build but the workflow pushes as configured; see workflow for details).
 
