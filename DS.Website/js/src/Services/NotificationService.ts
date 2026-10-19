@@ -1,12 +1,12 @@
-import axios from 'axios';
 import type { NotificationPreferenceDto } from '@/types';
+import { apiGet, apiPut } from '@/lib/api';
 
 export default class NotificationService {
     async getPreferences(): Promise<NotificationPreferenceDto[]> {
-        return (await axios.get<NotificationPreferenceDto[]>('/api/v1/me/notifications')).data;
+        return await apiGet<NotificationPreferenceDto[]>('/api/v1/me/notifications');
     }
 
     async updatePreferences(types: string[]): Promise<void> {
-        await axios.put('/api/v1/me/notifications', { types });
+        await apiPut<void>('/api/v1/me/notifications', { types });
     }
 }

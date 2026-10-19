@@ -1,134 +1,53 @@
-import type { AxiosResponse } from "axios";
-import axios from "axios";
 import type { ActivityReviewAction, ActivityUpdateDto, ActivityFileCreateDto, ActivityFileDto, ActivityDto, ActivityTeamDto, ActivityTeamInviteDto, ActivityTeamInviteLinkDto, ActivityTeamMembershipDto, UserDto } from "@/types";
+import { apiGet, apiPost, apiPut, safeApiCall, safeApiOk } from "@/lib/api";
 
 export default class ActivityService {
     public async getTeams(): Promise<ActivityTeamDto[]> {
-        try {
-            const response: AxiosResponse<ActivityTeamDto[]> = await axios({
-                url: "/api/v1/activity/teams",
-                method: "GET"
-            });
-            return response.data ? response.data : [];
-        } catch {
-            return [];
-        }
+        return safeApiCall(() => apiGet<ActivityTeamDto[]>("/api/v1/activity/teams"), []);
     }
 
     public async searchUsers(search: string, teamId: number): Promise<UserDto[]> {
-        try {
-            const response: AxiosResponse<UserDto[]> = await axios({
-                url: "/api/v1/activity/users/search",
-                method: "GET",
-                params: { search, teamId }
-            });
-            return response.data ? response.data : [];
-        } catch {
-            return [];
-        }
+        return safeApiCall(() => apiGet<UserDto[]>("/api/v1/activity/users/search", { params: { search, teamId } }), []);
     }
 
     public async addMember(teamId: number, membership: ActivityTeamMembershipDto): Promise<boolean> {
-        try {
-            await axios({
-                url: `/api/v1/activity/team/${teamId}/member/add`,
-                method: "POST",
-                data: membership
-            });
-            return true;
-        } catch {
-            return false;
-        }
+        return safeApiOk(() => apiPost(`/api/v1/activity/team/${teamId}/member/add`, membership));
     }
 
     public async removeMember(teamId: number, userId: string): Promise<boolean> {
-        try {
-            await axios({
-                url: `/api/v1/activity/team/${teamId}/member/remove`,
-                method: "POST",
-                data: { userId, isAdmin: false }
-            });
-            return true;
-        } catch {
-            return false;
-        }
+        return safeApiOk(() => apiPost(`/api/v1/activity/team/${teamId}/member/remove`, { userId, isAdmin: false }));
     }
 
     public async inviteUser(teamId: number, data: ActivityTeamInviteDto): Promise<ActivityTeamInviteLinkDto | null> {
-        try {
-            const response: AxiosResponse<ActivityTeamInviteLinkDto> = await axios({
-                url: `/api/v1/activity/team/${teamId}/invite`,
-                method: "POST",
-                data
-            });
-            return response.data ? response.data : null;
-        } catch {
-            return null;
-        }
+        return safeApiCall(() => apiPost<ActivityTeamInviteLinkDto>(`/api/v1/activity/team/${teamId}/invite`, data), null);
     }
 
     public async getActivity(id: number): Promise<ActivityDto | null> {
-        try {
-            const response: AxiosResponse<ActivityDto> = await axios({
-                url: `/api/v1/activity/activity/${id}`,
-                method: "GET"
-            });
-            return response.data ? response.data : null;
-        } catch {
-            return null;
-        }
+        return safeApiCall(() => apiGet<ActivityDto>(`/api/v1/activity/activity/${id}`), null);
     }
 
     public async updateActivity(id: number, data: ActivityUpdateDto): Promise<boolean> {
-        await axios.put(`/api/v1/activity/activity/${id}`, data);
+        await apiPut<void>(`/api/v1/activity/activity/${id}`, data);
         return true;
     }
 
     public async reviewActivity(id: number, action: ActivityReviewAction, reviewVersion: number, feedback?: string): Promise<void> {
-        await axios.post(`/api/v1/activity/activity/${id}/${action}`, { reviewVersion, feedback });
+        await apiPost<void>(`/api/v1/activity/activity/${id}/${action}`, { reviewVersion, feedback });
     }
 
     public async addActivity(teamId: number, name: string): Promise<boolean> {
-        try {
-            await axios({
-                url: `/api/v1/activity/team/${teamId}/activity/add`,
-                method: "POST",
-                data: { name }
-            });
-            return true;
-        } catch {
-            return false;
-        }
+        return safeApiOk(() => apiPost(`/api/v1/activity/team/${teamId}/activity/add`, { name }));
     }
 
     public async addTeam(name: string): Promise<boolean> {
-        try {
-            await axios({
-                url: "/api/v1/activity/teams/add",
-                method: "POST",
-                data: { name }
-            });
-            return true;
-        } catch {
-            return false;
-        }
+        return safeApiOk(() => apiPost("/api/v1/activity/teams/add", { name }));
     }
 
     public async getFiles(activityId: number, folderId?: string | null): Promise<ActivityFileDto[]> {
-        const response: AxiosResponse<ActivityFileDto[]> = await axios({
-            url: `/api/v1/activity/activity/${activityId}/files`,
-            method: "GET",
-            params: folderId ? { folderId } : {}
-        });
-        return response.data ? response.data : [];
+        return safeApiCall(() => apiGet<ActivityFileDto[]>(`/api/v1/activity/activity/${activityId}/files`, { params: folderId ? { folderId } : {} }), []);
     }
 
     public async addFile(activityId: number, data: ActivityFileCreateDto): Promise<ActivityFileDto> {
-        const response: AxiosResponse<ActivityFileDto> = await axios({
-            url: `/api/v1/activity/activity/${activityId}/file/add`,
-            method: "POST",
-            data
-        });
-        return response.data;
+        return await apiPost<ActivityFileDto>(`/api/v1/activity/activity/${activityId}/file/add`, data);
     }
 }

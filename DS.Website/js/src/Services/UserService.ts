@@ -1,208 +1,57 @@
-import type { AxiosResponse } from "axios";
-import axios from "axios";
 import type { RoleDto, UserDto } from "@/types";
+import { apiDelete, apiGet, apiPost, apiPut, safeApiCall, safeApiOk } from "@/lib/api";
 
 export default class UserService {
     public async getUsers(): Promise<UserDto[]> {
-        try {
-            const response: AxiosResponse<UserDto[]> = await axios({
-                url: "/api/v1/user",
-                method: "GET"
-            });
-
-            return Array.isArray(response.data) ? response.data : [];
-        } catch {
-            return [];
-        }
+        return safeApiCall(async () => {
+            const data = await apiGet<UserDto[]>("/api/v1/user");
+            return Array.isArray(data) ? data : [];
+        }, []);
     }
 
     public async updateUser(user: UserDto) {
-        try {
-            // const response: AxiosResponse = await axios({
-            //     url: "/api/v1/user",
-            //     method: "PUT",
-            //     data: user,
-            //     headers: {
-            //         "Content-Type": "application/json"
-            //     }
-            // });
-
-            const response: AxiosResponse = await axios.put("/api/v1/user", user);
-
-            if (response.status == 200){
-                return true;
-            } else {
-                return false;
-            }
-        } catch {
-            return false;
-        }
+        return safeApiOk(() => apiPut("/api/v1/user", user));
     }
 
     public async updateUserProfilePicture(userId: string, publicId: string | null) {
-        try {
-            const response: AxiosResponse = await axios.put(`/api/v1/user/${userId}/profile-picture`, {
-                image: publicId ? { publicId } : null
-            });
-
-            return response.status == 200;
-        } catch {
-            return false;
-        }
+        return safeApiOk(() => apiPut(`/api/v1/user/${userId}/profile-picture`, {
+            image: publicId ? { publicId } : null
+        }));
     }
 
     public async createUser(user: UserDto) {
-        try {
-            const response: AxiosResponse = await axios({
-                url: "/api/v1/user",
-                method: "POST",
-                data: JSON.stringify(user),
-                headers: {
-                    "Content-Type": "application/json"
-                }
-            });
-
-            if (response.status == 200){
-                return true;
-            } else
-            {
-                return false;
-            }
-        } catch {
-            return false;
-        }
+        return safeApiOk(() => apiPost("/api/v1/user", user));
     }
 
     public async getAssignableGroups(): Promise<string[]> {
-        try {
-            const response: AxiosResponse<string[]> = await axios({
-                url: "/api/v1/user/assignable-groups",
-                method: "GET"
-            });
-
-            if (response.status == 200) {
-                return response.data;
-            }
-            else {
-                return [];
-            }
-        } catch {
-            return [];
-        }
+        return safeApiCall(() => apiGet<string[]>("/api/v1/user/assignable-groups"), []);
     }
 
     public async getGroups(): Promise<RoleDto[]> {
-        try {
-            const response: AxiosResponse<RoleDto[]> = await axios({
-                url: "/api/v1/user/groups",
-                method: "GET"
-            });
-
-            if (response.status == 200) {
-                return response.data;
-            }
-            else {
-                return [];
-            }
-        } catch {
-            return [];
-        }
+        return safeApiCall(() => apiGet<RoleDto[]>("/api/v1/user/groups"), []);
     }
 
     public async AssignRoleToUser(user: UserDto, roleName: string) {
-        try {
-            const response: AxiosResponse = await axios({
-                url: `/api/v1/user/${user.id}/role/add`,
-                method: "PUT",
-                data: JSON.stringify(roleName),
-                headers: {
-                    "Content-Type": "application/json"
-                }
-            });
-
-            if (response.status == 200) {
-                return true;
-            } else {
-                return false;
-            }
-        } catch {
-            return false;
-        }
+        return safeApiOk(() => apiPut(`/api/v1/user/${user.id}/role/add`, roleName));
     }
 
     public async RemoveRoleFromUser(user: UserDto, roleName: string) {
-        try {
-            const response: AxiosResponse = await axios({
-                url: `/api/v1/user/${user.id}/role/remove`,
-                method: "PUT",
-                data: JSON.stringify(roleName),
-                headers: {
-                    "Content-Type": "application/json"
-                }
-            });
-
-            if (response.status == 200) {
-                return true;
-            } else {
-                return false;
-            }
-        } catch {
-            return false;
-        }
+        return safeApiOk(() => apiPut(`/api/v1/user/${user.id}/role/remove`, roleName));
     }
 
     public async deleteUser(user: UserDto) {
-        try {
-            const response: AxiosResponse = await axios({
-                url: `/api/v1/user/${user.id}`,
-                method: "DELETE"
-            });
-
-            return response.status == 200;
-        } catch {
-            return false;
-        }
+        return safeApiOk(() => apiDelete(`/api/v1/user/${user.id}`));
     }
 
     public async lockUser(user: UserDto) {
-        try {
-            const response: AxiosResponse = await axios({
-                url: `/api/v1/user/${user.id}/lock`,
-                method: "PUT"
-            });
-
-            return response.status == 200;
-        } catch {
-            return false;
-        }
+        return safeApiOk(() => apiPut(`/api/v1/user/${user.id}/lock`));
     }
 
     public async unlockUser(user: UserDto) {
-        try {
-            const response: AxiosResponse = await axios({
-                url: `/api/v1/user/${user.id}/unlock`,
-                method: "PUT"
-            });
-
-            return response.status == 200;
-        } catch {
-            return false;
-        }
+        return safeApiOk(() => apiPut(`/api/v1/user/${user.id}/unlock`));
     }
 
-    public async inviteUser(email: string, roles: string[]) {        try {
-            const response: AxiosResponse = await axios({
-                url: "/api/v1/user/invite",
-                method: "POST",
-                data: JSON.stringify({ email, roles }),
-                headers: {
-                    "Content-Type": "application/json"
-                }
-            });
-
-            return response.status == 200;
-        } catch {
-            return false;
-        }
+    public async inviteUser(email: string, roles: string[]) {
+        return safeApiOk(() => apiPost("/api/v1/user/invite", { email, roles }));
     }
 }

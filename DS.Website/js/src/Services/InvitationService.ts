@@ -1,17 +1,10 @@
-import type { AxiosResponse } from "axios";
-import axios from "axios";
 import type { UserInvitationCreationDto, UserInvitationDto } from "@/types";
-
+import { apiGet, apiPost, safeApiOk } from "@/lib/api";
 
 export default class InvitationService {
     public async getInvitation(id: string): Promise<UserInvitationDto | null> {
         try {
-            const response: AxiosResponse<UserInvitationDto> = await axios({
-                url: `/api/v1/invitation/${id}`,
-                method: "GET"
-            });
-
-            return response.data;
+            return await apiGet<UserInvitationDto>(`/api/v1/invitation/${id}`);
         } catch (ex) {
             console.error(`Error fetching invitation with id ${id}:`, ex);
             return null;
@@ -19,21 +12,6 @@ export default class InvitationService {
     }
 
     public async useInvitation(id: string, data: UserInvitationCreationDto) {
-        try {
-            const response: AxiosResponse = await axios({
-                url: `/api/v1/invitation/${id}`,
-                method: "POST",
-                data: JSON.stringify(data),
-                headers: {
-                    "Content-Type": "application/json"
-                }
-            });
-
-            if (response.status == 200)
-                return true
-            return false;
-        } catch {
-            return false;
-        }
+        return safeApiOk(() => apiPost(`/api/v1/invitation/${id}`, data));
     }
 }

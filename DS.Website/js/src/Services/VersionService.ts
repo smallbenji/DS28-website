@@ -1,8 +1,8 @@
-import axios from 'axios';
 import type { VersionDto } from '@/types';
+import { apiGet } from '@/lib/api';
 
 export default class VersionService {
     async get(): Promise<VersionDto> {
-        return (await axios.get<VersionDto>('/api/version')).data;
+        return await apiGet<VersionDto>('/api/version');
     }
 }

@@ -1,17 +1,11 @@
 import { District, type GroupDto } from "@/types";
-import axios, { type AxiosResponse } from "axios";
+import { apiGet, safeApiCall } from "@/lib/api";
 
 export default class GroupService {
     public async getGroup(): Promise<GroupDto> {
-        try {
-            const response: AxiosResponse<GroupDto> = await axios({
-                url: "/api/v1/group",
-                method: "GET"
-            });
-
-            return response.data;
-        } catch {
-            return { name: "", id: "0", district: District.DANEHOF, patrols: [], scouts: [], users: [] };
-        }
+        return safeApiCall(
+            () => apiGet<GroupDto>("/api/v1/group"),
+            { name: "", id: "0", district: District.DANEHOF, patrols: [], scouts: [], users: [] }
+        );
     }
 }

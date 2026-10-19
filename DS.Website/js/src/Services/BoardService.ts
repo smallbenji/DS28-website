@@ -1,5 +1,3 @@
-import type { AxiosResponse } from "axios";
-import axios from "axios";
 import type {
     BoardColumnCreateDto,
     BoardColorUpdateDto,
@@ -15,231 +13,138 @@ import type {
     WorkItemPlacementCreateDto,
     WorkItemUpdateDto
 } from "@/types";
+import { apiDelete, apiGet, apiPost, apiPut, safeApiCall } from "@/lib/api";
 
 export default class BoardService {
     public async getBoards(): Promise<BoardSummaryDto[]> {
-        try {
-            const response: AxiosResponse<BoardSummaryDto[]> = await axios({
-                url: "/api/v1/boards",
-                method: "GET"
-            });
-            return Array.isArray(response.data) ? response.data : [];
-        } catch {
-            return [];
-        }
+        return safeApiCall(async () => {
+            const data = await apiGet<BoardSummaryDto[]>("/api/v1/boards");
+            return Array.isArray(data) ? data : [];
+        }, []);
     }
 
     public async searchAssignees(search: string, boardId: number): Promise<BoardMemberDto[]> {
-        try {
-            const response: AxiosResponse<BoardMemberDto[]> = await axios({
-                url: "/api/v1/boards/assignees",
-                method: "GET",
-                params: { search, boardId }
-            });
-            return Array.isArray(response.data) ? response.data : [];
-        } catch {
-            return [];
-        }
+        return safeApiCall(async () => {
+            const data = await apiGet<BoardMemberDto[]>("/api/v1/boards/assignees", { params: { search, boardId } });
+            return Array.isArray(data) ? data : [];
+        }, []);
     }
 
     public async getBoard(id: number): Promise<BoardDetailDto | null> {
-        try {
-            const response: AxiosResponse<BoardDetailDto> = await axios({
-                url: `/api/v1/boards/${id}`,
-                method: "GET"
-            });
-            return response.data ? response.data : null;
-        } catch {
-            return null;
-        }
+        return safeApiCall(async () => {
+            const data = await apiGet<BoardDetailDto>(`/api/v1/boards/${id}`);
+            return data ? data : null;
+        }, null);
     }
 
     public async getMembers(boardId: number): Promise<BoardMemberDto[]> {
-        const response = await axios.get<BoardMemberDto[]>(`/api/v1/boards/${boardId}/members`);
-        return response.data;
+        return await apiGet<BoardMemberDto[]>(`/api/v1/boards/${boardId}/members`);
     }
 
     public async createColor(boardId: number, data: BoardColorUpdateDto): Promise<void> {
-        await axios.post(`/api/v1/boards/${boardId}/colors`, data);
+        await apiPost<void>(`/api/v1/boards/${boardId}/colors`, data);
     }
 
     public async updateColor(boardId: number, colorId: number, data: BoardColorUpdateDto): Promise<void> {
-        await axios.put(`/api/v1/boards/${boardId}/colors/${colorId}`, data);
+        await apiPut<void>(`/api/v1/boards/${boardId}/colors/${colorId}`, data);
     }
 
     public async deleteColor(boardId: number, colorId: number): Promise<void> {
-        await axios.delete(`/api/v1/boards/${boardId}/colors/${colorId}`);
+        await apiDelete<void>(`/api/v1/boards/${boardId}/colors/${colorId}`);
     }
 
     public async addMember(boardId: number, userId: string): Promise<void> {
-        await axios.post(`/api/v1/boards/${boardId}/members`, { userId });
+        await apiPost<void>(`/api/v1/boards/${boardId}/members`, { userId });
     }
 
     public async getColumns(boardId: number): Promise<BoardColumnDto[]> {
-        try {
-            const response: AxiosResponse<BoardColumnDto[]> = await axios({
-                url: `/api/v1/boards/${boardId}/columns`,
-                method: "GET"
-            });
-            return Array.isArray(response.data) ? response.data : [];
-        } catch {
-            return [];
-        }
+        return safeApiCall(async () => {
+            const data = await apiGet<BoardColumnDto[]>(`/api/v1/boards/${boardId}/columns`);
+            return Array.isArray(data) ? data : [];
+        }, []);
     }
 
     public async createBoard(data: BoardCreateDto): Promise<number | null> {
-        try {
-            const response: AxiosResponse<number> = await axios({
-                url: "/api/v1/boards",
-                method: "POST",
-                data
-            });
-            const id = Number(response.data);
+        return safeApiCall(async () => {
+            const id = Number(await apiPost<number>("/api/v1/boards", data));
             return Number.isFinite(id) ? id : null;
-        } catch {
-            return null;
-        }
+        }, null);
     }
 
     public async updateBoard(id: number, data: BoardUpdateDto): Promise<boolean> {
-        try {
-            await axios({
-                url: `/api/v1/boards/${id}`,
-                method: "PUT",
-                data
-            });
+        return safeApiCall(async () => {
+            await apiPut<void>(`/api/v1/boards/${id}`, data);
             return true;
-        } catch {
-            return false;
-        }
+        }, false);
     }
 
     public async deleteBoard(id: number): Promise<boolean> {
-        try {
-            await axios({
-                url: `/api/v1/boards/${id}`,
-                method: "DELETE"
-            });
+        return safeApiCall(async () => {
+            await apiDelete<void>(`/api/v1/boards/${id}`);
             return true;
-        } catch {
-            return false;
-        }
+        }, false);
     }
 
     public async createColumn(boardId: number, data: BoardColumnCreateDto): Promise<number | null> {
-        try {
-            const response: AxiosResponse<number> = await axios({
-                url: `/api/v1/boards/${boardId}/columns`,
-                method: "POST",
-                data
-            });
-            const id = Number(response.data);
+        return safeApiCall(async () => {
+            const id = Number(await apiPost<number>(`/api/v1/boards/${boardId}/columns`, data));
             return Number.isFinite(id) ? id : null;
-        } catch {
-            return null;
-        }
+        }, null);
     }
 
     public async updateColumn(boardId: number, columnId: number, data: BoardColumnUpdateDto): Promise<boolean> {
-        try {
-            await axios({
-                url: `/api/v1/boards/${boardId}/columns/${columnId}`,
-                method: "PUT",
-                data
-            });
+        return safeApiCall(async () => {
+            await apiPut<void>(`/api/v1/boards/${boardId}/columns/${columnId}`, data);
             return true;
-        } catch {
-            return false;
-        }
+        }, false);
     }
 
     public async reorderColumns(boardId: number, columnOrder: string[]): Promise<boolean> {
-        try {
-            await axios({
-                url: `/api/v1/boards/${boardId}/columns/reorder`,
-                method: "PUT",
-                data: columnOrder.map((columnId) => Number(columnId))
-            });
+        return safeApiCall(async () => {
+            await apiPut<void>(`/api/v1/boards/${boardId}/columns/reorder`, columnOrder.map((columnId) => Number(columnId)));
             return true;
-        } catch {
-            return false;
-        }
+        }, false);
     }
 
     public async deleteColumn(boardId: number, columnId: number): Promise<boolean> {
-        try {
-            await axios({
-                url: `/api/v1/boards/${boardId}/columns/${columnId}`,
-                method: "DELETE"
-            });
+        return safeApiCall(async () => {
+            await apiDelete<void>(`/api/v1/boards/${boardId}/columns/${columnId}`);
             return true;
-        } catch {
-            return false;
-        }
+        }, false);
     }
 
     public async createCard(boardId: number, data: WorkItemCreateDto): Promise<number | null> {
-        try {
-            const response: AxiosResponse<number> = await axios({
-                url: `/api/v1/boards/${boardId}/cards`,
-                method: "POST",
-                data
-            });
-            const id = Number(response.data);
+        return safeApiCall(async () => {
+            const id = Number(await apiPost<number>(`/api/v1/boards/${boardId}/cards`, data));
             return Number.isFinite(id) ? id : null;
-        } catch {
-            return null;
-        }
+        }, null);
     }
 
     public async updateCard(boardId: number, cardId: number, data: WorkItemUpdateDto): Promise<boolean> {
-        try {
-            await axios({
-                url: `/api/v1/boards/${boardId}/cards/${cardId}`,
-                method: "PUT",
-                data
-            });
+        return safeApiCall(async () => {
+            await apiPut<void>(`/api/v1/boards/${boardId}/cards/${cardId}`, data);
             return true;
-        } catch {
-            return false;
-        }
+        }, false);
     }
 
     public async moveCard(boardId: number, cardId: number, data: WorkItemMoveDto): Promise<boolean> {
-        try {
-            await axios({
-                url: `/api/v1/boards/${boardId}/cards/${cardId}/move`,
-                method: "PUT",
-                data
-            });
+        return safeApiCall(async () => {
+            await apiPut<void>(`/api/v1/boards/${boardId}/cards/${cardId}/move`, data);
             return true;
-        } catch {
-            return false;
-        }
+        }, false);
     }
 
     public async removeCard(boardId: number, cardId: number): Promise<boolean> {
-        try {
-            await axios({
-                url: `/api/v1/boards/${boardId}/cards/${cardId}`,
-                method: "DELETE"
-            });
+        return safeApiCall(async () => {
+            await apiDelete<void>(`/api/v1/boards/${boardId}/cards/${cardId}`);
             return true;
-        } catch {
-            return false;
-        }
+        }, false);
     }
 
     public async createPlacement(boardId: number, cardId: number, data: WorkItemPlacementCreateDto): Promise<boolean> {
-        try {
-            await axios({
-                url: `/api/v1/boards/${boardId}/cards/${cardId}/placements`,
-                method: "POST",
-                data
-            });
+        return safeApiCall(async () => {
+            await apiPost<void>(`/api/v1/boards/${boardId}/cards/${cardId}/placements`, data);
             return true;
-        } catch {
-            return false;
-        }
+        }, false);
     }
 }

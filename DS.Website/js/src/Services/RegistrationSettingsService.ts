@@ -1,4 +1,4 @@
-import axios from 'axios';
+import { apiGet, apiPut } from '@/lib/api';
 
 export interface RegistrationSettings {
     isPreSignupOpen: boolean;
@@ -7,10 +7,10 @@ export interface RegistrationSettings {
 
 export default class RegistrationSettingsService {
     async get(): Promise<RegistrationSettings> {
-        return (await axios.get<RegistrationSettings>('/api/v1/registration-settings')).data;
+        return await apiGet<RegistrationSettings>('/api/v1/registration-settings');
     }
 
     async update(settings: Partial<RegistrationSettings>): Promise<RegistrationSettings> {
-        return (await axios.put<RegistrationSettings>('/api/v1/registration-settings', settings)).data;
+        return await apiPut<RegistrationSettings>('/api/v1/registration-settings', settings);
     }
 }

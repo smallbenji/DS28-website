@@ -1,14 +1,10 @@
-import type { AxiosResponse } from "axios";
-import axios from "axios";
 import type { AuthResultDto, ForgotPasswordDto, LoginDto, PasskeyAssertionRequestDto, RecoveryCodeLoginDto, RegisterDto, TwoFactorLoginDto } from "@/types";
 import type { PasskeyOptionsDto } from "@/types/passkeys.types";
+import { apiGet, apiPost, getErrorMessage } from "@/lib/api";
 
 export default class AuthService {
   public async logout(): Promise<void> {
-    await axios({
-      url: "/api/v1/auth/logout",
-      method: "POST"
-    });
+    await apiPost<void>("/api/v1/auth/logout");
   }
 
   public async login(data: LoginDto): Promise<AuthResultDto> {
@@ -34,45 +30,24 @@ export default class AuthService {
   }
 
   public async passkeyOptions(): Promise<PasskeyOptionsDto> {
-    const result = await axios.post<PasskeyOptionsDto>("/api/v1/auth/2fa/passkeys/options");
-    return result.data;
+    return await apiGet<PasskeyOptionsDto>("/api/v1/auth/2fa/passkeys/options");
   }
 
   public async passkeyVerify(data: PasskeyAssertionRequestDto): Promise<AuthResultDto> {
-    return await this.post<AuthResultDto>("/api/v1/auth/2fa/passkeys/verify", data)
+    return await this.post<AuthResultDto>("/api/v1/auth/2fa/passkeys/verify", data);
   }
 
   private async post<T>(url: string, data: unknown): Promise<AuthResultDto> {
     try {
-      const response: AxiosResponse<T> = await axios({
-        url,
-        method: "POST",
-        data: JSON.stringify(data),
-        withCredentials: true,
-        headers: {
-          "Content-Type": "application/json"
-        }
-      });
-
-      return response.data as unknown as AuthResultDto;
+      const result = await apiPost<T>(url, data);
+      return result as unknown as AuthResultDto;
     } catch (error) {
       return {
         requiresTwoFactor: false,
         hasAuthenticator: false,
         passkeysAvailable: false,
-        error: this.extractErrorMessage(error)
+        error: getErrorMessage(error)
       };
     }
-  }
-
-  private extractErrorMessage(error: unknown): string {
-    if (axios.isAxiosError(error)) {
-      const data = error.response?.data;
-      if (typeof data === "string" && data.length > 0) {
-        return data;
-      }
-    }
-
-    return "Der skete en uventet fejl.";
   }
 }

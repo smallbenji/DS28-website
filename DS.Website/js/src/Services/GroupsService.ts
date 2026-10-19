@@ -1,132 +1,47 @@
-import type { AxiosResponse } from "axios";
-import axios from "axios";
 import type { GroupDto, GroupsDto, PatrolDto, ScoutDto } from "@/types";
+import { apiDelete, apiGet, apiPost, apiPut, safeApiCall, safeApiOk } from "@/lib/api";
 
 export default class GroupsService {
     public async getGroups(): Promise<GroupsDto> {
-        try {
-            const response: AxiosResponse<GroupsDto> = await axios({
-                url: "/api/v1/groups",
-                method: "GET"
-            });
-            return response.data ? response.data : { groups: [], users: {}};
-        } catch {
-            return { groups: [], users: {}};
-        }
+        return safeApiCall(async () => {
+            const data = await apiGet<GroupsDto>("/api/v1/groups");
+            return data ? data : { groups: [], users: {}};
+        }, { groups: [], users: {}});
     }
 
     public async createGroup(group: GroupDto): Promise<boolean> {
-        try {
-            await axios({
-                url: "/api/v1/groups",
-                method: "POST",
-                data: group
-            });
-            return true;
-        } catch {
-            return false;
-        }
+        return safeApiOk(() => apiPost("/api/v1/groups", group));
     }
 
     public async updateGroup(group: GroupDto): Promise<boolean> {
-        try {
-            await axios({
-                url: `/api/v1/groups/${group.id}`,
-                method: "PUT",
-                data: group
-            });
-            return true;
-        } catch {
-            return false;
-        }
+        return safeApiOk(() => apiPut(`/api/v1/groups/${group.id}`, group));
     }
 
     public async createPatrol(groupId: number | string, name: string): Promise<PatrolDto | null> {
-        try {
-            const response: AxiosResponse<PatrolDto> = await axios({
-                url: "/api/v1/groups/patrol",
-                method: "POST",
-                data: { groupId, name }
-            });
-            return response.data ? response.data : null;
-        } catch {
-            return null;
-        }
+        return safeApiCall(() => apiPost<PatrolDto>("/api/v1/groups/patrol", { groupId, name }), null);
     }
 
     public async createScout(groupId: number | string, name: string, birthday: string, gender: 'Male' | 'Female'): Promise<ScoutDto | null> {
-        try {
-            const response: AxiosResponse<ScoutDto> = await axios({
-                url: "/api/v1/groups/scout",
-                method: "POST",
-                data: { groupId, name, birthday, gender }
-            });
-            return response.data ? response.data : null;
-        } catch {
-            return null;
-        }
+        return safeApiCall(() => apiPost<ScoutDto>("/api/v1/groups/scout", { groupId, name, birthday, gender }), null);
     }
 
     public async addPatrol(scoutId: number, patrolId: number): Promise<boolean> {
-        try {
-            await axios({
-                url: "/api/v1/groups/scout/add-patrol",
-                method: "POST",
-                data: { scoutId, patrolId }
-            });
-            return true;
-        } catch {
-            return false;
-        }
+        return safeApiOk(() => apiPost("/api/v1/groups/scout/add-patrol", { scoutId, patrolId }));
     }
 
     public async removePatrol(scoutId: number, patrolId: number): Promise<boolean> {
-        try {
-            await axios({
-                url: "/api/v1/groups/scout/remove-patrol",
-                method: "POST",
-                data: { scoutId, patrolId }
-            });
-            return true;
-        } catch {
-            return false;
-        }
+        return safeApiOk(() => apiPost("/api/v1/groups/scout/remove-patrol", { scoutId, patrolId }));
     }
 
     public async toggleLeader(scoutId: number, patrolId: number): Promise<boolean> {
-        try {
-            await axios({
-                url: "/api/v1/groups/scout/toggle-leader",
-                method: "POST",
-                data: { scoutId, patrolId }
-            });
-            return true;
-        } catch {
-            return false;
-        }
+        return safeApiOk(() => apiPost("/api/v1/groups/scout/toggle-leader", { scoutId, patrolId }));
     }
 
     public async deletePatrol(patrolId: number): Promise<boolean> {
-        try {
-            await axios({
-                url: `/api/v1/groups/patrol/${patrolId}`,
-                method: "DELETE"
-            });
-            return true;
-        } catch {
-            return false;
-        }
+        return safeApiOk(() => apiDelete(`/api/v1/groups/patrol/${patrolId}`));
     }
 
     public async deleteScout(scoutId: number): Promise<boolean> {
-        try {
-            await axios({
-                url: `/api/v1/groups/scout/${scoutId}`,
-                method: "DELETE"
-            });
-            return true;
-        } catch {
-            return false;
-        }
+        return safeApiOk(() => apiDelete(`/api/v1/groups/scout/${scoutId}`));
     }
 }

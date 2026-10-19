@@ -1,4 +1,4 @@
-import axios from 'axios';
+import { apiGet, apiPost, apiPut } from '@/lib/api';
 
 export interface SignupGroup {
     id: string;
@@ -27,7 +27,7 @@ export interface GroupPreSignupRequest extends ParticipantCounts {
 
 export default class GroupPreSignupService {
     async getOwn(): Promise<{ groupName: string; groupId: string; counts: ParticipantCounts }> {
-        const { data } = await axios.get<{
+        const data = await apiGet<{
             groupName: string;
             groupId: string;
             counts: Record<keyof ParticipantCounts, string | number>;
@@ -40,14 +40,14 @@ export default class GroupPreSignupService {
     }
 
     async updateOwn(counts: ParticipantCounts): Promise<void> {
-        await axios.put('/api/v1/group/pre-signup', counts);
+        await apiPut('/api/v1/group/pre-signup', counts);
     }
 
     async lookup(groupId: string): Promise<SignupGroup> {
-        return (await axios.get<SignupGroup>(`/api/v1/group-pre-signup/${encodeURIComponent(groupId)}`)).data;
+        return await apiGet<SignupGroup>(`/api/v1/group-pre-signup/${encodeURIComponent(groupId)}`);
     }
 
     async create(data: GroupPreSignupRequest): Promise<void> {
-        await axios.post('/api/v1/group-pre-signup', data);
+        await apiPost('/api/v1/group-pre-signup', data);
     }
 }

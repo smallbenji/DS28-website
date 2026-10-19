@@ -1,20 +1,12 @@
-import type { AxiosResponse } from "axios";
-import axios from "axios";
 import type { GoogleConnectionStatusDto } from "@/types";
+import { apiGet, apiPost } from "@/lib/api";
 
 export default class GoogleService {
     public async getStatus(): Promise<GoogleConnectionStatusDto> {
-        const response: AxiosResponse<GoogleConnectionStatusDto> = await axios({
-            url: "/api/v1/google/status",
-            method: "GET"
-        });
-        return response.data;
+        return await apiGet<GoogleConnectionStatusDto>("/api/v1/google/status");
     }
 
     public async disconnect(): Promise<void> {
-        await axios({
-            url: "/api/v1/google/disconnect",
-            method: "POST"
-        });
+        await apiPost<void>("/api/v1/google/disconnect");
     }
 }
