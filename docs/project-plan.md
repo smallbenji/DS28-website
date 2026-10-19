@@ -1252,6 +1252,61 @@ Ubesluttede punkter:
 Dette afsnit dokumenterer planen og bekræfter ikke den aktuelle hosting eller
 driftsopsætning.
 
+### Delt resultattype fra services til controllers
+
+**Beslutning 2026-10-20:** Services returnerer én fælles resultattype i
+`DS.Application/Services/ServiceResult.cs` i stedet for én `*Result`/`*Outcome`
+familie pr. domæne:
+
+- `ServiceResult(ServiceOutcome Outcome, object Error = null)` til handlinger
+  uden returværdi.
+- `ServiceResult<T>(ServiceOutcome Outcome, T Value = default, object Error = null)`
+  hvor der findes en typet payload. `Error` er `object`, fordi Identity-baserede
+  services sender fejlsamlinger (`IdentityError`) i fejlbodyen.
+
+`ServiceResult<T>` har en implicit konvertering fra den ikke-generiske
+`ServiceResult`, så fejlretur i metoder med typet returværdi kan skrives kort
+(`return new ServiceResult(ServiceOutcome.NotFound)`). De tidligere
+`BoardResult`, `MeResult`, `OrgResult`, `UserResult`, `GroupResult` og
+`OpenIddictClientResult` samt deres paralleller er fjernet.
+
+Controllers konverterer resultatet med to udvidelsesmetoder i
+`DS.Website/Extensions/ControllerResultExtensions.cs`, begge med parameteren
+`noContent`. De kaldes på controlleren, fx `this.ToActionResult(result)` og
+`this.ToActionResult(result, noContent: true)`, og erstatter de tidligere
+duplikerede private `Respond`-switches. Den fælles mapping er: `Success` → `Ok`
+(eller `NoContent`, når `noContent` er sat), `Invalid` → `BadRequest(Error)`,
+`NotFound` → `NotFound(Error)`, `Forbidden` → `Forbid`, `Conflict` →
+`Conflict(Error)` og ethvert andet udfald → `500`. Det adskiller sig fra de
+gamle controllere, hvor `default` implicit dækkede `Forbidden`/`Conflict`;
+begge er nu eksplicitte, og et ukendt udfald giver en fejl i stedet for stilhed.
+
+OpenIddict-hemmeligheden returneres nu som `OpenIddictClientSecretDto` i stedet
+for et anonymt `{ clientSecret }`-objekt, så testene kan tjekke typen direkte.
+Anonyme payloads i gruppe-services bevares som `T = object` for at holde
+JSON-formen uændret.
+
+### Fælles frontend-API-klient
+
+**Beslutning 2026-10-20:** `DS.Website/js/src/lib/api.ts` samler den gentagne
+axios-brug i services: én delt `apiClient` (samme oprindelse,
+`withCredentials` og JSON-headere) samt hjælperne `apiGet`/`apiPost`/`apiPut`/
+`apiDelete`, `safeApiCall`, `safeApiResult` og `getErrorMessage`.
+
+`safeApiCall` fanger fejl og returnerer en kalderangivet fallback, mens
+`getErrorMessage` udtrækker fejlbeskeden fra et axios-svar. Fejlopførslen er
+bevidst uændret: hver service beholder sin eksisterende fallback (`[]`, `null`,
+`false` osv.), så viewene ikke påvirkes, og metoder der hidtil kastede videre
+(fx `BoardService.getMembers`, `FileService`) gør det fortsat.
+
+`BoardService` blev først migreret som pilot; alle øvrige services i
+`DS.Website/js/src/Services` er nu migreret til den fælles klient, så ingen
+service importerer `axios` direkte længere. Konverteringshjælperne
+`safeApiResult` (fallback `null`) og `safeApiOk` (fallback `false`) dækker de
+tilfælde, hvor den oprindelige kode tjekkede `response.status`. `FileService`
+bevarer `multipart/form-data`-upload ved at fjerne den delte JSON-header for den
+pågældende request.
+
 ### Frontend-build og typekontrol
 
 **Midlertidig beslutning 2026-10-02:** `npm run build` i `DS.Website/js`
