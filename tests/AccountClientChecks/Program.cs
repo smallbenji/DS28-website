@@ -1,8 +1,17 @@
+using Microsoft.AspNetCore.Hosting;
+using DS.Application.Services.Users;
+using DS.Application.Services.Organization;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
+using System.Net;
+using System.Security.Claims;
 using DbUp;
 using DS.Application.Data;
 using DS.Application.Services.Accounts;
 using DS.Application.Services.Email;
 using DS.Application.Services.OpenIddict;
+using DS.Application.Services;
 using DS.Domain;
 using DS.Domain.DTOs;
 using DS.Domain.Models;
@@ -61,6 +70,8 @@ services.AddSingleton<RecordingMailQueue>();
 services.AddSingleton<IMailQueue>(provider => provider.GetRequiredService<RecordingMailQueue>());
 services.AddScoped<EmailService>();
 services.AddScoped<AccountService>();
+services.AddScoped<UserService>();
+services.AddSingleton<IUserAccessCache, TestUserAccessCache>();
 services.AddScoped<IOpenIddictClientService, OpenIddictClientService>();
 using var provider = services.BuildServiceProvider();
 using var scope = provider.CreateScope();
@@ -88,6 +99,55 @@ Check((await accounts.ResetPassword(new ResetPasswordDto { UserId = user.Id, Tok
 var token = await manager.GeneratePasswordResetTokenAsync(user);
 Check((await accounts.ResetPassword(new ResetPasswordDto { UserId = user.Id, Token = token, NewPassword = "next" })).Result.Succeeded && await manager.CheckPasswordAsync(user, "next"), "valid token resets password");
 
+var webBuilder = WebApplication.CreateBuilder();
+webBuilder.Logging.ClearProviders();
+webBuilder.WebHost.UseUrls("http://127.0.0.1:0");
+webBuilder.Services.AddAuthentication().AddCookie();
+webBuilder.Services.AddAuthorization();
+webBuilder.Services.AddAntiforgery();
+webBuilder.Services.AddControllersWithViews().AddApplicationPart(typeof(UserApiController).Assembly);
+webBuilder.Services.AddSingleton(scope.ServiceProvider.GetRequiredService<UserService>());
+webBuilder.Services.AddSingleton(manager);
+await using (var web = webBuilder.Build())
+{
+    web.UseRouting();
+    web.UseAuthentication();
+    web.Use(async (context, next) =>
+    {
+        context.User = new ClaimsPrincipal(new ClaimsIdentity(new[]
+        {
+            new Claim(ClaimTypes.NameIdentifier, observer.Id),
+            new Claim(ClaimTypes.Role, nameof(AppRoles.UsersView)),
+            new Claim(ClaimTypes.Role, nameof(AppRoles.UsersResetPassword))
+        }, "test"));
+        await next(context);
+    });
+    web.UseAuthorization();
+    web.MapControllers();
+    await web.StartAsync();
+
+    using var handler = new HttpClientHandler { CookieContainer = new CookieContainer() };
+    using var client = new HttpClient(handler) { BaseAddress = new Uri(web.Urls.Single()) };
+    var resetPath = $"/api/v1/user/{user.Id}/reset-password-link";
+    using var withoutToken = await client.PostAsync(resetPath, null);
+    Check(withoutToken.StatusCode == HttpStatusCode.BadRequest, "reset-link endpoint rejects missing CSRF token");
+    using var tokenResponse = await client.GetAsync("/api/v1/user/reset-password-link/antiforgery");
+    Check(tokenResponse.IsSuccessStatusCode, "authorized user can obtain CSRF token");
+    using var tokenJson = JsonDocument.Parse(await tokenResponse.Content.ReadAsStringAsync());
+    var csrfToken = tokenJson.RootElement.GetProperty("token").GetString();
+    using var invalidRequest = new HttpRequestMessage(HttpMethod.Post, resetPath);
+    invalidRequest.Headers.Add("RequestVerificationToken", "invalid");
+    using var invalidResponse = await client.SendAsync(invalidRequest);
+    Check(invalidResponse.StatusCode == HttpStatusCode.BadRequest, "reset-link endpoint rejects invalid CSRF token");
+    using var validRequest = new HttpRequestMessage(HttpMethod.Post, resetPath);
+    validRequest.Headers.Add("RequestVerificationToken", csrfToken);
+    using var validResponse = await client.SendAsync(validRequest);
+    Check(validResponse.IsSuccessStatusCode, "reset-link endpoint accepts matching CSRF token and cookie");
+    using var linkJson = JsonDocument.Parse(await validResponse.Content.ReadAsStringAsync());
+    Check(linkJson.RootElement.GetProperty("link").GetString().Contains($"/reset-password/{user.Id}?token="), "protected endpoint still returns reset link");
+    await web.StopAsync();
+}
+
 var clients = scope.ServiceProvider.GetRequiredService<IOpenIddictClientService>();
 var applications = scope.ServiceProvider.GetRequiredService<IOpenIddictApplicationManager>();
 var data = new OpenIddictClientUpdateDto
@@ -101,12 +161,12 @@ var data = new OpenIddictClientUpdateDto
     RequirePkce = true
 };
 var invalidData = new OpenIddictClientUpdateDto();
-Check((await clients.CreateClient(invalidData, default)).Outcome == OpenIddictClientOutcome.Invalid, "invalid client input rejected");
+Check((await clients.CreateClient(invalidData, default)).Outcome == ServiceOutcome.Invalid, "invalid client input rejected");
 var created = await clients.CreateClient(data, default);
-var saved = (OpenIddictClientSavedDto)created.Value;
+var saved = created.Value;
 var application = await applications.FindByIdAsync(saved.Client.Id);
-Check(created.Outcome == OpenIddictClientOutcome.Success && !string.IsNullOrEmpty(saved.ClientSecret) && await applications.ValidateClientSecretAsync(application, saved.ClientSecret), "confidential client receives valid secret");
-Check((await clients.CreateClient(data, default)).Outcome == OpenIddictClientOutcome.Conflict, "duplicate client ID rejected");
+Check(created.Outcome == ServiceOutcome.Success && !string.IsNullOrEmpty(saved.ClientSecret) && await applications.ValidateClientSecretAsync(application, saved.ClientSecret), "confidential client receives valid secret");
+Check((await clients.CreateClient(data, default)).Outcome == ServiceOutcome.Conflict, "duplicate client ID rejected");
 var descriptor = new OpenIddictApplicationDescriptor();
 await applications.PopulateAsync(descriptor, application);
 descriptor.Properties["custom"] = JsonSerializer.SerializeToElement("keep");
@@ -114,20 +174,19 @@ descriptor.Permissions.Add("scp:custom");
 descriptor.PostLogoutRedirectUris.Add(new Uri("https://client.example.test/logout"));
 await applications.UpdateAsync(application, descriptor);
 data.DisplayName = "Updated client";
-var updated = (OpenIddictClientSavedDto)(await clients.UpdateClient(saved.Client.Id, data, default)).Value;
+var updated = (await clients.UpdateClient(saved.Client.Id, data, default)).Value;
 var preserved = new OpenIddictApplicationDescriptor();
 await applications.PopulateAsync(preserved, application);
 Check(updated.ClientSecret == null && await applications.ValidateClientSecretAsync(application, saved.ClientSecret), "editing preserves secret without returning it");
 Check(preserved.Properties["custom"].GetString() == "keep" && preserved.Permissions.Contains("scp:custom") && preserved.PostLogoutRedirectUris.Count == 1, "editing preserves unrelated descriptor settings");
-var rotated = await clients.RotateSecret(saved.Client.Id, default);
-var rotatedSecret = (string)rotated.Value.GetType().GetProperty("clientSecret").GetValue(rotated.Value);
+var rotatedSecret = (await clients.RotateSecret(saved.Client.Id, default)).Value.ClientSecret;
 Check(await applications.ValidateClientSecretAsync(application, rotatedSecret) && !await applications.ValidateClientSecretAsync(application, saved.ClientSecret), "rotation replaces old secret");
 data.ClientType = "public";
-Check((await clients.UpdateClient(saved.Client.Id, data, default)).Outcome == OpenIddictClientOutcome.Success && (await clients.RotateSecret(saved.Client.Id, default)).Outcome == OpenIddictClientOutcome.Invalid, "public clients cannot rotate secrets");
+Check((await clients.UpdateClient(saved.Client.Id, data, default)).Outcome == ServiceOutcome.Success && (await clients.RotateSecret(saved.Client.Id, default)).Outcome == ServiceOutcome.Invalid, "public clients cannot rotate secrets");
 data.RequirePkce = false;
-Check((await clients.UpdateClient(saved.Client.Id, data, default)).Outcome == OpenIddictClientOutcome.Invalid, "public clients still require PKCE");
-Check((await clients.DeleteClient(saved.Client.Id, default)).Outcome == OpenIddictClientOutcome.Success && await applications.FindByClientIdAsync(data.ClientId) == null, "delete removes client");
-Check((await clients.RotateSecret("missing", default)).Outcome == OpenIddictClientOutcome.NotFound, "missing client retains not-found result");
+Check((await clients.UpdateClient(saved.Client.Id, data, default)).Outcome == ServiceOutcome.Invalid, "public clients still require PKCE");
+Check((await clients.DeleteClient(saved.Client.Id, default)).Outcome == ServiceOutcome.Success && await applications.FindByClientIdAsync(data.ClientId) == null, "delete removes client");
+Check((await clients.RotateSecret("missing", default)).Outcome == ServiceOutcome.NotFound, "missing client retains not-found result");
 Console.WriteLine("ALL ACCOUNT AND CLIENT CHECKS PASSED");
 
 class RecordingMailQueue : IMailQueue
@@ -137,5 +196,12 @@ class RecordingMailQueue : IMailQueue
     public void Enqueue(string toEmail, string toName, string subject, string body)
     {
         Messages.Add((toEmail, body));
+    }
+}
+
+class TestUserAccessCache : IUserAccessCache
+{
+    public void Evict(string userId)
+    {
     }
 }
