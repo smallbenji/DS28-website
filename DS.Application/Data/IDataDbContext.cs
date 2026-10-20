@@ -35,6 +35,9 @@ namespace DS.Application.Data
         DbSet<BoardColumn> BoardColumns { get; }
         DbSet<BoardCard> BoardCards { get; }
         DbSet<WorkItem> WorkItems { get; }
+        DbSet<Material> Materials { get; }
+        DbSet<MaterialOrder> MaterialOrders { get; }
+
         DbSet<UserNotificationPreference> NotificationPreferences { get; }
         Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
     }

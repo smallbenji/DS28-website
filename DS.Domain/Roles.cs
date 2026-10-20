@@ -43,6 +43,10 @@ namespace DS.Domain
         WordPressAdmin,
 
         HangfireView,
+
+        MaterialView,
+        MaterialCreate,
+        MaterialDelete,
     }
 
     public static class AppAccess
@@ -78,6 +82,10 @@ namespace DS.Domain
                     nameof(AppRoles.OpenIddictManage),
 
                     nameof(AppRoles.HangfireView),
+
+                    nameof(AppRoles.MaterialView),
+                    nameof(AppRoles.MaterialDelete),
+                    nameof(AppRoles.MaterialDelete),
                 ]
             },
             {
