@@ -56,7 +56,7 @@ import { useUserStore } from '@/Stores/UserStore';
 import { storeToRefs } from 'pinia';
 
 const userStore = useUserStore();
-const { GROUPS: groups, ASSIGNABLE_GROUPS: assignableGroups } = storeToRefs(userStore);
+const { Groups, AssignableGroups } = storeToRefs(userStore);
 const Toast = useToast();
 
 const isModalActive = ref(false);
@@ -65,7 +65,7 @@ const email = ref('');
 const selectedRoles = ref<string[]>([]);
 
 const filteredGroups = computed(() => {
-    return groups.value.filter(x => assignableGroups.value.includes(x.name));
+    return Groups.value.filter(x => AssignableGroups.value.includes(x.name));
 });
 
 const assignableGroupNames = computed(() => {

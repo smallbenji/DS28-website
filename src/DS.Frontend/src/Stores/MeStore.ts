@@ -1,7 +1,7 @@
 import MeService from "@/Services/MeService";
 import ImpersonationService from "@/Services/ImpersonationService";
 import { defineStore } from "pinia";
-import { computed, ref } from "vue";
+import { ref } from "vue";
 import type { HomeViewModelDto, MeDto } from "@/types";
 
 export const useMeStore = defineStore("me", () => {
@@ -23,9 +23,7 @@ export const useMeStore = defineStore("me", () => {
     passkeys: [],
     profilePicture: null,
   });
-  const ME = computed(() => Me.value);
   const Hq = ref<HomeViewModelDto>({ shortcuts: [] });
-  const HQ = computed(() => Hq.value);
 
   async function GET_ME() {
     var data = await meService.getMe();
@@ -72,8 +70,6 @@ export const useMeStore = defineStore("me", () => {
   return {
     Me,
     Hq,
-    ME,
-    HQ,
     GET_ME,
     GET_HQ,
     UPDATE_PROFILE_PICTURE,

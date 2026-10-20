@@ -48,7 +48,7 @@ import type { HQPanelEntryDto } from '@/types';
 
 const router = useRouter();
 const meStore = useMeStore();
-const { ME, HQ } = storeToRefs(meStore);
+const { Me, Hq } = storeToRefs(meStore);
 
 const isOpen = ref(false);
 const query = ref('');
@@ -61,9 +61,9 @@ const isExternal = (url: string) => {
 
 const filteredShortcuts = computed(() => {
     const search = query.value.trim().toLowerCase();
-    if (!search) return HQ.value.shortcuts;
+    if (!search) return Hq.value.shortcuts;
 
-    return HQ.value.shortcuts.filter(x => x.title.toLowerCase().includes(search));
+    return Hq.value.shortcuts.filter(x => x.title.toLowerCase().includes(search));
 });
 
 watch(filteredShortcuts, (shortcuts) => {
@@ -83,7 +83,7 @@ const focusInput = () => {
 };
 
 const open = async () => {
-    if (!ME.value.isAuthenticated) return;
+    if (!Me.value.isAuthenticated) return;
 
     query.value = '';
     activeIndex.value = 0;
@@ -91,7 +91,7 @@ const open = async () => {
     await nextTick();
     focusInput();
 
-    if (HQ.value.shortcuts.length > 0) return;
+    if (Hq.value.shortcuts.length > 0) return;
 
     try {
         await meStore.GET_HQ();

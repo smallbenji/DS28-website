@@ -10,8 +10,8 @@
                 <button class="delete" aria-label="close" @click="open = false"></button>
             </header>
             <section class="modal-card-body">
-                <p v-if="ME.isImpersonating" class="impersonation-picker-note">
-                    Du vises allerede som <strong>{{ ME.title || ME.roles[0] }}</strong>.
+                <p v-if="Me.isImpersonating" class="impersonation-picker-note">
+                    Du vises allerede som <strong>{{ Me.title || Me.roles[0] }}</strong>.
                 </p>
                 <p v-else class="impersonation-picker-note">
                     Vælg en rolle for at se systemet, som udvalget selv ser det.
@@ -21,7 +21,7 @@
                         <button
                             type="button"
                             class="impersonation-picker-item"
-                            :disabled="ME.isImpersonating"
+                            :disabled="Me.isImpersonating"
                             @click="select(group.name)"
                         >
                             <span>
@@ -58,7 +58,7 @@ const open = computed({
 });
 
 const meStore = useMeStore();
-const { ME } = storeToRefs(meStore);
+const { Me } = storeToRefs(meStore);
 const impersonationService = new ImpersonationService();
 
 const groups = ref<ImpersonationGroupDto[]>([]);

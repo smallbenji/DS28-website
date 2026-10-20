@@ -78,7 +78,7 @@ const saving = ref(false);
 const createOpen = ref(false);
 const form = ref({ title: '', description: '' });
 
-const boards = computed(() => store.BOARDS);
+const boards = computed(() => store.Boards);
 
 function tileStyle(board: BoardSummaryDto): Record<string, string> {
     return board.color ? { borderTop: `3px solid ${board.color}` } : {};

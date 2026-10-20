@@ -2,7 +2,7 @@
     <BModal v-model="open" has-modal-card :width="1024" custom-content-class="board-card-modal-container" :can-cancel="['escape', 'outside']">
         <div v-if="open" class="modal-card board-card-modal">
             <header class="modal-card-head">
-                <div class="board-card-context">{{ store.SELECTED_BOARD?.title ?? 'Tavle' }} / {{ isNew ? 'Nyt kort' : `DS-${card?.id}` }}</div>
+                <div class="board-card-context">{{ store.SelectedBoard?.title ?? 'Tavle' }} / {{ isNew ? 'Nyt kort' : `DS-${card?.id}` }}</div>
                 <div class="board-card-header-actions">
                     <BDropdown v-if="canManage && !isNew" position="is-bottom-left" aria-role="list">
                         <template #trigger>
@@ -315,7 +315,7 @@ const isNew = computed(() => props.card === null);
 const cardColorOptions = computed(() => {
     const options: { key: string; value: string | null; label: string }[] = [
         { key: 'none', value: null, label: 'Ingen farve' },
-        ...(store.SELECTED_BOARD?.colors ?? []).map((color) => ({ key: String(color.id), value: color.color, label: color.name }))
+        ...(store.SelectedBoard?.colors ?? []).map((color) => ({ key: String(color.id), value: color.color, label: color.name }))
     ];
     if (form.color && !options.some((color) => color.value === form.color)) {
         options.push({ key: 'current', value: form.color, label: 'Nuværende farve (uden for tavlens palette)' });
@@ -328,12 +328,12 @@ const placements = computed<WorkItemPlacementDto[]>(() => {
     const cardId = props.card?.id;
     if (cardId == null) return [];
 
-    const live = store.SELECTED_BOARD?.cards.find((card) => String(card.id) === String(cardId));
+    const live = store.SelectedBoard?.cards.find((card) => String(card.id) === String(cardId));
     return live?.placements ?? props.card?.placements ?? [];
 });
 
 const availableBoards = computed(() =>
-    store.BOARDS.filter((board) => !board.isArchived && !placements.value.some((placement) => String(placement.boardId) === String(board.id)))
+    store.Boards.filter((board) => !board.isArchived && !placements.value.some((placement) => String(placement.boardId) === String(board.id)))
 );
 
 watch(
@@ -397,7 +397,7 @@ async function loadOrgPositions() {
 }
 
 async function loadBoards() {
-    if (!props.canManage || store.BOARDS.length > 0) return;
+    if (!props.canManage || store.Boards.length > 0) return;
 
     await store.GET_BOARDS();
 }

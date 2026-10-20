@@ -13,7 +13,7 @@
             </span>
             {{ group }}
             <div class="flex"></div>
-            <BButton type="is-small is-danger" v-if="assignableGroups.includes(group)" @click="Remove(group)">
+            <BButton type="is-small is-danger" v-if="AssignableGroups.includes(group)" @click="Remove(group)">
                 Fjern
             </BButton>
         </div>
@@ -72,7 +72,7 @@ const props = defineProps<{
 }>();
 
 const userStore = useUserStore();
-const {GROUPS: groups, ASSIGNABLE_GROUPS: assignableGroups} = storeToRefs(userStore);
+const { Groups, AssignableGroups } = storeToRefs(userStore);
 
 const selectedGroup = ref<string>();
 const open = ref<boolean>(false);
@@ -81,9 +81,9 @@ const confirmationOpen = ref<boolean>(false);
 const selectedGroupToRemove = ref<string>("");
 
 const filteredGroups = computed(() => {
-    return groups.value.filter(x =>
+    return Groups.value.filter(x =>
         !props.selectedUser.roles.includes(x.name) &&
-        assignableGroups.value.includes(x.name)
+        AssignableGroups.value.includes(x.name)
     ) as RoleDto[];
 })
 

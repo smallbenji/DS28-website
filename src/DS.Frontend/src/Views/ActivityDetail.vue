@@ -237,7 +237,7 @@ const activityService = new ActivityService();
 const activityStore = useActivityStore();
 const meStore = useMeStore();
 const googleService = new GoogleService();
-const { SelectedActivity, FILES } = storeToRefs(activityStore);
+const { SelectedActivity, Files } = storeToRefs(activityStore);
 
 const activeTab = ref('overview');
 const editingName = ref(false);
@@ -256,9 +256,9 @@ const googleConnected = ref(true);
 const folderPath = ref<{ id: string; name: string }[]>([]);
 const hasFiles = ref(false);
 
-const isActivityAdmin = computed(() => meStore.ME.appRoles.includes('ActivityAdmin'));
+const isActivityAdmin = computed(() => meStore.Me.appRoles.includes('ActivityAdmin'));
 
-const canManageGoogle = computed(() => meStore.ME.appRoles.includes('AdminAccess'));
+const canManageGoogle = computed(() => meStore.Me.appRoles.includes('AdminAccess'));
 
 const form = reactive<ActivityFormDto>({
     id: 0,
@@ -269,7 +269,7 @@ const form = reactive<ActivityFormDto>({
 });
 
 const activity = SelectedActivity;
-const files = FILES;
+const files = Files;
 
 const startNameEdit = async () => {
     if (!activity.value?.canEdit || reviewBusy.value) return;

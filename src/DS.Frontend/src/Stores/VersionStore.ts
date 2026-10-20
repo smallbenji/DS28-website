@@ -1,12 +1,11 @@
 import VersionService from "@/Services/VersionService";
 import { defineStore } from "pinia";
-import { computed, ref } from "vue";
+import { ref } from "vue";
 import type { VersionDto } from "@/types";
 
 export const useVersionStore = defineStore("version", () => {
   const versionService = new VersionService();
   const Version = ref<VersionDto>({ version: "", name: "" });
-  const VERSION = computed(() => Version.value);
 
   async function GET_VERSION() {
     var data = await versionService.get();
@@ -16,7 +15,6 @@ export const useVersionStore = defineStore("version", () => {
 
   return {
     Version,
-    VERSION,
     GET_VERSION,
   }
 });

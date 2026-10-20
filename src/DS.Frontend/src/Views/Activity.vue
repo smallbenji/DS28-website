@@ -95,13 +95,13 @@ import { useRouter } from 'vue-router';
 import type { ActivityTeamDto } from '@/types';
 
 const meStore = useMeStore();
-const { ME } = storeToRefs(meStore);
+const { Me } = storeToRefs(meStore);
 const router = useRouter();
 
 const activityStore = useActivityStore();
 const { Teams, SelectedTeamId } = storeToRefs(activityStore);
 
-const isActivityAdmin = computed(() => ME.value.appRoles.includes('ActivityAdmin'));
+const isActivityAdmin = computed(() => Me.value.appRoles.includes('ActivityAdmin'));
 
 const selectedTeam = computed<ActivityTeamDto | null>(
     () => Teams.value.find((team) => team.id === SelectedTeamId.value) ?? null

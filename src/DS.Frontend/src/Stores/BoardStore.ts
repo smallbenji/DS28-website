@@ -1,6 +1,6 @@
 import BoardService from "@/Services/BoardService";
 import { defineStore } from "pinia";
-import { computed, ref } from "vue";
+import { ref } from "vue";
 import type {
     BoardColumnCreateDto,
     BoardColumnUpdateDto,
@@ -16,8 +16,6 @@ export const useBoardStore = defineStore("board", () => {
     const boardService = new BoardService();
     const Boards = ref<BoardSummaryDto[]>([]);
     const SelectedBoard = ref<BoardDetailDto | null>(null);
-    const BOARDS = computed(() => Boards.value);
-    const SELECTED_BOARD = computed(() => SelectedBoard.value);
 
     async function GET_BOARDS() {
         const data = await boardService.getBoards();
@@ -138,9 +136,7 @@ export const useBoardStore = defineStore("board", () => {
 
     return {
         Boards,
-        BOARDS,
         SelectedBoard,
-        SELECTED_BOARD,
         GET_BOARDS,
         GET_BOARD,
         CREATE_BOARD,

@@ -7,11 +7,11 @@
                 <BNotification v-if="error" type="is-danger" :closable="false" role="alert">{{ error }}</BNotification>
                 <template v-if="invitation">
                     <p class="mb-4">Du er inviteret til <strong>{{ invitation.groupName }}</strong> som <strong>{{ invitation.email }}</strong>.</p>
-                    <template v-if="invitation.existingUser && !me.ME.isAuthenticated">
+                    <template v-if="invitation.existingUser && !me.Me.isAuthenticated">
                         <p class="mb-4">Log ind med den inviterede email for at acceptere invitationen.</p>
                         <BButton type="is-primary" @click="login">Log ind</BButton>
                     </template>
-                    <template v-else-if="!invitation.existingUser && me.ME.isAuthenticated">
+                    <template v-else-if="!invitation.existingUser && me.Me.isAuthenticated">
                         <p>Log ud, før du opretter en konto med den inviterede email.</p>
                         <BButton :disabled="busy" @click="logout">Log ud</BButton>
                     </template>
@@ -22,7 +22,7 @@
                             <BField label="Adgangskode" message="Mindst 4 tegn"><BInput v-model="password" type="password" autocomplete="new-password" minlength="4" required :disabled="busy" /></BField>
                             <BField label="Gentag adgangskode"><BInput v-model="repeatPassword" type="password" autocomplete="new-password" required :disabled="busy" /></BField>
                         </template>
-                        <p v-else class="mb-4">Du er logget ind som {{ me.ME.name }}. Kontoen skal have den inviterede email og må ikke allerede tilhøre en gruppe.</p>
+                        <p v-else class="mb-4">Du er logget ind som {{ me.Me.name }}. Kontoen skal have den inviterede email og må ikke allerede tilhøre en gruppe.</p>
                         <BButton native-type="submit" type="is-primary" :loading="busy" :disabled="busy || !valid">{{ invitation.existingUser ? 'Accepter invitation' : 'Opret bruger og tilslut gruppen' }}</BButton>
                         <BButton v-if="invitation.existingUser" class="mt-3" :disabled="busy" @click="logout">Log ind med en anden konto</BButton>
                     </form>

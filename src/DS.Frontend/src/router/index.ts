@@ -212,7 +212,7 @@ router.beforeEach(async (to) => {
             }
         }
 
-        if (to.meta.requiresActivityAdmin && !meStore.ME.appRoles.includes("ActivityAdmin")) {
+        if (to.meta.requiresActivityAdmin && !meStore.Me.appRoles.includes("ActivityAdmin")) {
             return "/activity";
         }
 
@@ -220,19 +220,19 @@ router.beforeEach(async (to) => {
             await Promise.all(promises);
         }
 
-        if (to.meta.requiresAuth && !meStore.ME.isAuthenticated) {
+        if (to.meta.requiresAuth && !meStore.Me.isAuthenticated) {
             return { path: "/login", query: { returnUrl: to.fullPath } };
         }
 
-        if (typeof to.meta.requiredRole === "string" && !meStore.ME.appRoles.includes(to.meta.requiredRole)) {
+        if (typeof to.meta.requiredRole === "string" && !meStore.Me.appRoles.includes(to.meta.requiredRole)) {
             return "/";
         }
 
-        if (to.meta.guestOnly && meStore.ME.isAuthenticated) {
+        if (to.meta.guestOnly && meStore.Me.isAuthenticated) {
             return "/";
         }
 
-        const mustSetupTwoFactor = meStore.ME.mustEnableTwoFactor;
+        const mustSetupTwoFactor = meStore.Me.mustEnableTwoFactor;
         if (mustSetupTwoFactor && to.path !== "/twofactor-setup") {
             return "/twofactor-setup";
         }

@@ -56,7 +56,7 @@
                             </div>
                         </div>
                         <BButton
-                            v-if="canManageMembers && member.userId !== meStore.ME.id"
+                            v-if="canManageMembers && member.userId !== meStore.Me.id"
                             type="is-light"
                             size="is-small"
                             icon-left="trash"
@@ -168,9 +168,9 @@ const selectedTeam = computed<ActivityTeamDto | null>(
 );
 
 const canManageMembers = computed(() => {
-    if (meStore.ME.appRoles.includes('ActivityAdmin')) return true;
+    if (meStore.Me.appRoles.includes('ActivityAdmin')) return true;
     return selectedTeam.value?.members.some(
-        (member) => member.userId === meStore.ME.id && member.isAdmin
+        (member) => member.userId === meStore.Me.id && member.isAdmin
     ) ?? false;
 });
 

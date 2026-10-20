@@ -22,7 +22,7 @@
                         <BTableColumn field="firstName" label="Navn" v-slot="props">{{ props.row.firstName }} {{ props.row.lastName }}</BTableColumn>
                         <BTableColumn field="email" label="Email" v-slot="props">{{ props.row.email }}</BTableColumn>
                         <BTableColumn label="Handling" v-slot="props">
-                            <span v-if="props.row.id === me.ME.id">Dig</span>
+                            <span v-if="props.row.id === me.Me.id">Dig</span>
                             <BButton v-else type="is-danger is-light" size="is-small" :disabled="busy" @click="removing = props.row">Fjern fra gruppen</BButton>
                         </BTableColumn>
                     </BTable>

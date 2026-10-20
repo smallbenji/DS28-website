@@ -1,7 +1,7 @@
 <template>
     <div class="grid">
         <component
-            v-for="(link, index) in HQ.shortcuts"
+            v-for="(link, index) in Hq.shortcuts"
             :key="index"
             :is="isExternal(link.url) ? 'a' : 'router-link'"
             :[isExternal(link.url)?'href':'to']="link.url"
@@ -15,7 +15,7 @@
             </div>
         </component>
     </div>
-    <p class="center">{{ VERSION.version }}</p>
+    <p class="center">{{ Version.version }}</p>
 </template>
 
 <script lang="ts" setup>
@@ -24,10 +24,10 @@ import { useVersionStore } from '@/Stores/VersionStore';
 import { storeToRefs } from 'pinia';
 
 const versionStore = useVersionStore();
-const { VERSION } = storeToRefs(versionStore);
+const { Version } = storeToRefs(versionStore);
 
 const meStore = useMeStore();
-const { HQ } = storeToRefs(meStore);
+const { Hq } = storeToRefs(meStore);
 
 // Helper function to check if a URL is external
 const isExternal = (url: string) => {

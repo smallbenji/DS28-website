@@ -1,9 +1,9 @@
 <template>
     <div class="user-menu-trigger">
-        <UserAvatar :user="ME" size="small" />
+        <UserAvatar :user="Me" size="small" />
         <div class="user-menu-trigger-info">
-            <span class="user-menu-trigger-name">{{ ME.name }}</span>
-            <span class="user-menu-trigger-title">{{ ME.title }}</span>
+            <span class="user-menu-trigger-name">{{ Me.name }}</span>
+            <span class="user-menu-trigger-title">{{ Me.title }}</span>
         </div>
     </div>
 </template>
@@ -13,7 +13,7 @@ import UserAvatar from '@/Components/User/UserAvatar.vue';
 import { storeToRefs } from 'pinia';
 
 const meStore = useMeStore();
-const { ME } = storeToRefs(meStore);
+const { Me } = storeToRefs(meStore);
 </script>
 <style lang="scss">
 .user-menu-trigger {

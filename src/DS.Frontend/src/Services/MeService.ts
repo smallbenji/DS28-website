@@ -7,6 +7,7 @@ const emptyMe: MeDto = {
     firstName: "",
     lastName: "",
     title: "",
+    email: "",
     mustEnableTwoFactor: false,
     isImpersonating: false,
     roles: [],

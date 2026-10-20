@@ -124,7 +124,7 @@ const colorsOpen = ref(false);
 const savingSettings = ref(false);
 const settings = ref({ title: '', description: '', isArchived: false });
 
-const board = computed(() => store.SELECTED_BOARD);
+const board = computed(() => store.SelectedBoard);
 const canManage = computed(() => board.value !== null);
 
 function cardsFor(columnId: number): WorkItemDto[] {

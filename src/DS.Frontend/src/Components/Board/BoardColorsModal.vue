@@ -48,7 +48,7 @@ const open = defineModel<boolean>({ default: false });
 const store = useBoardStore();
 const service = new BoardService();
 const Dialog = useDialog();
-const colors = computed(() => store.SELECTED_BOARD?.colors ?? []);
+const colors = computed(() => store.SelectedBoard?.colors ?? []);
 const name = ref('');
 const color = ref('#dbeafe');
 const editingId = ref<number | null>(null);

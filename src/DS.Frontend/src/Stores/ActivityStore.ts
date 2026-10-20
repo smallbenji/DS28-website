@@ -10,11 +10,6 @@ export const useActivityStore = defineStore("activity", () => {
     const SelectedTeamId = ref<number | null>(null);
     const SelectedActivity = ref<ActivityDto | null>(null);
     const Files = ref<ActivityFileDto[]>([]);
-    const TEAMS = computed(() => Teams.value);
-    const SEARCH_RESULTS = computed(() => SearchResults.value);
-    const SELECTED_TEAM_ID = computed(() => SelectedTeamId.value);
-    const SELECTED_ACTIVITY = computed(() => SelectedActivity.value);
-    const FILES = computed(() => Files.value);
     const ALL_ACTIVITIES = computed<ActivityWithTeamDto[]>(() =>
         Teams.value.flatMap((team) =>
             team.activities.map((activity) => ({ ...activity, teamName: team.name }))
@@ -110,16 +105,11 @@ export const useActivityStore = defineStore("activity", () => {
 
     return {
         Teams,
-        TEAMS,
         SearchResults,
-        SEARCH_RESULTS,
         SelectedTeamId,
-        SELECTED_TEAM_ID,
         SelectedActivity,
-        SELECTED_ACTIVITY,
         ALL_ACTIVITIES,
         Files,
-        FILES,
         GET_TEAMS,
         GET_ACTIVITY,
         GET_FILES,

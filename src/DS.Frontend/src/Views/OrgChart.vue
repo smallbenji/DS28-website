@@ -99,8 +99,8 @@ const rootColor = ref<string | null>(null);
 const selectedId = ref<number | null>(null);
 const drawerOpen = ref(false);
 
-const currentUserId = computed(() => meStore.ME.id);
-const isSysAdmin = computed(() => (meStore.ME.roles ?? []).includes('SysAdmin'));
+const currentUserId = computed(() => meStore.Me.id);
+const isSysAdmin = computed(() => (meStore.Me.roles ?? []).includes('SysAdmin'));
 const selectedPosition = computed(
     () => positions.value.find((position) => position.id === selectedId.value) ?? null
 );

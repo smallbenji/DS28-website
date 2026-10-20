@@ -87,6 +87,7 @@ const creating = ref(false);
 const activityName = ref('');
 const activityStore = useActivityStore();
 const meStore = useMeStore();
+const { Me } = storeToRefs(meStore);
 const { Teams, SelectedTeamId } = storeToRefs(activityStore);
 
 const selectedTeam = computed<ActivityTeamDto | null>(
@@ -94,9 +95,9 @@ const selectedTeam = computed<ActivityTeamDto | null>(
 );
 
 const canManageActivities = computed(() => {
-    if (meStore.ME.appRoles.includes('ActivityAdmin')) return true;
+    if (Me.value.appRoles.includes('ActivityAdmin')) return true;
     return selectedTeam.value?.members.some(
-        (member) => member.userId === meStore.ME.id && member.isAdmin
+        (member) => member.userId === Me.value.id && member.isAdmin
     ) ?? false;
 });
 

@@ -21,19 +21,19 @@
                 <template #trigger>
                     <UserMenuTrigger />
                 </template>
-                <b-dropdown-item v-if="ME.isImpersonating" disabled>
+                <b-dropdown-item v-if="Me.isImpersonating" disabled>
                     <b-icon pack="fas" icon="user-shield" size="is-small" />
-                    Viser som {{ ME.title || ME.roles[0] }}
+                    Viser som {{ Me.title || Me.roles[0] }}
                 </b-dropdown-item>
-                <b-dropdown-item v-if="ME.isImpersonating" @click="stopImpersonation">
+                <b-dropdown-item v-if="Me.isImpersonating" @click="stopImpersonation">
                     <b-icon pack="fas" icon="xmark" size="is-small" />
                     Stop visning
                 </b-dropdown-item>
-                <b-dropdown-item v-else-if="ME.roles.includes('SysAdmin')" @click="pickerOpen = true">
+                <b-dropdown-item v-else-if="Me.roles.includes('SysAdmin')" @click="pickerOpen = true">
                     <b-icon pack="fas" icon="user-shield" size="is-small" />
                     Vis som …
                 </b-dropdown-item>
-                <hr v-if="ME.isImpersonating || ME.roles.includes('SysAdmin')" class="dropdown-divider" />
+                <hr v-if="Me.isImpersonating || Me.roles.includes('SysAdmin')" class="dropdown-divider" />
                 <b-dropdown-item @click="goToProfile">
                     <b-icon pack="fas" icon="user" size="is-small" />
                     Min profil
@@ -63,7 +63,7 @@ import ImpersonationPicker from '@/Components/ImpersonationPicker.vue';
 import { useMeStore } from '@/Stores/MeStore';
 
 const meStore = useMeStore();
-const { ME } = storeToRefs(meStore);
+const { Me } = storeToRefs(meStore);
 
 const pickerOpen = ref(false);
 

@@ -63,6 +63,7 @@ const createNewUser = () => {
         userName: "",
         firstName: "",
         lastName: "",
+        positions: [],
         phone: "",
         email: "",
     roles: [],
