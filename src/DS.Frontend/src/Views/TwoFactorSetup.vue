@@ -156,7 +156,7 @@ const logout = async () => {
 };
 
 const enableWithPasskey = async () => {
-    if (isPasskeyVerifying.value) return;
+    if (isPasskeyVerifying.value || !meStore.Me) return;
     isPasskeyVerifying.value = true;
     passkeyError.value = '';
 

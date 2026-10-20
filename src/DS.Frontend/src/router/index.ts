@@ -212,27 +212,27 @@ router.beforeEach(async (to) => {
             }
         }
 
-        if (to.meta.requiresActivityAdmin && !meStore.Me.appRoles.includes("ActivityAdmin")) {
-            return "/activity";
-        }
-
         if (promises.length > 0) {
             await Promise.all(promises);
         }
 
-        if (to.meta.requiresAuth && !meStore.Me.isAuthenticated) {
+        if (to.meta.requiresActivityAdmin && !meStore.Me?.appRoles.includes("ActivityAdmin")) {
+            return "/activity";
+        }
+
+        if (to.meta.requiresAuth && !meStore.Me?.isAuthenticated) {
             return { path: "/login", query: { returnUrl: to.fullPath } };
         }
 
-        if (typeof to.meta.requiredRole === "string" && !meStore.Me.appRoles.includes(to.meta.requiredRole)) {
+        if (typeof to.meta.requiredRole === "string" && !meStore.Me?.appRoles.includes(to.meta.requiredRole)) {
             return "/";
         }
 
-        if (to.meta.guestOnly && meStore.Me.isAuthenticated) {
+        if (to.meta.guestOnly && meStore.Me?.isAuthenticated) {
             return "/";
         }
 
-        const mustSetupTwoFactor = meStore.Me.mustEnableTwoFactor;
+        const mustSetupTwoFactor = meStore.Me?.mustEnableTwoFactor;
         if (mustSetupTwoFactor && to.path !== "/twofactor-setup") {
             return "/twofactor-setup";
         }

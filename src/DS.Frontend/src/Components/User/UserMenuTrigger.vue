@@ -1,5 +1,5 @@
 <template>
-    <div class="user-menu-trigger">
+    <div class="user-menu-trigger" v-if="Me">
         <UserAvatar :user="Me" size="small" />
         <div class="user-menu-trigger-info">
             <span class="user-menu-trigger-name">{{ Me.name }}</span>

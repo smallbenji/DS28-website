@@ -7,22 +7,7 @@ import type { HomeViewModelDto, MeDto } from "@/types";
 export const useMeStore = defineStore("me", () => {
   const meService = new MeService();
   const impersonationService = new ImpersonationService();
-  const Me = ref<MeDto>({
-    name: "",
-    id: "",
-    firstName: "",
-    lastName: "",
-    email: "",
-    title: "",
-    phone: "",
-    mustEnableTwoFactor: false,
-    isImpersonating: false,
-    roles: [],
-    appRoles: [],
-    isAuthenticated: false,
-    passkeys: [],
-    profilePicture: null,
-  });
+  const Me = ref<MeDto | null>(null);
   const Hq = ref<HomeViewModelDto>({ shortcuts: [] });
 
   async function GET_ME() {

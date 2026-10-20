@@ -10,7 +10,7 @@
                 <button class="delete" aria-label="close" @click="open = false"></button>
             </header>
             <section class="modal-card-body">
-                <p v-if="Me.isImpersonating" class="impersonation-picker-note">
+                <p v-if="Me?.isImpersonating" class="impersonation-picker-note">
                     Du vises allerede som <strong>{{ Me.title || Me.roles[0] }}</strong>.
                 </p>
                 <p v-else class="impersonation-picker-note">
@@ -21,7 +21,7 @@
                         <button
                             type="button"
                             class="impersonation-picker-item"
-                            :disabled="Me.isImpersonating"
+                            :disabled="Me?.isImpersonating"
                             @click="select(group.name)"
                         >
                             <span>

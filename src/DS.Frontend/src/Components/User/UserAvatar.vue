@@ -6,22 +6,18 @@
 </template>
 <script lang="ts" setup>
 import { computed } from 'vue';
-import type { ImageReferenceDto } from '@/types';
+import type { MeDto } from '@/types';
 
 const props = withDefaults(defineProps<{
-    user: {
-        firstName?: string;
-        lastName?: string;
-        profilePicture?: ImageReferenceDto | null;
-    };
+    user: Pick<MeDto, 'firstName' | 'lastName' | 'profilePicture'> | null;
     size?: 'small' | 'medium' | 'large';
 }>(), {
     size: 'medium'
 });
 
-const url = computed(() => props.user.profilePicture?.url ?? null);
+const url = computed(() => props.user?.profilePicture?.url ?? null);
 const initials = computed(() => {
-    const value = `${props.user.firstName?.[0] ?? ''}${props.user.lastName?.[0] ?? ''}`.toUpperCase();
+    const value = `${props.user?.firstName?.[0] ?? ''}${props.user?.lastName?.[0] ?? ''}`.toUpperCase();
     return value || '?';
 });
 </script>

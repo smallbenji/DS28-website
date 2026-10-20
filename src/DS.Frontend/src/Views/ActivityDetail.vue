@@ -256,9 +256,9 @@ const googleConnected = ref(true);
 const folderPath = ref<{ id: string; name: string }[]>([]);
 const hasFiles = ref(false);
 
-const isActivityAdmin = computed(() => meStore.Me.appRoles.includes('ActivityAdmin'));
+const isActivityAdmin = computed(() => meStore.Me?.appRoles.includes('ActivityAdmin') ?? false);
 
-const canManageGoogle = computed(() => meStore.Me.appRoles.includes('AdminAccess'));
+const canManageGoogle = computed(() => meStore.Me?.appRoles.includes('AdminAccess') ?? false);
 
 const form = reactive<ActivityFormDto>({
     id: 0,

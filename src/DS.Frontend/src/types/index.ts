@@ -20,4 +20,5 @@ export * from './role.types';
 export * from './scout.types';
 export * from './user.types';
 export * from './version.types';
-export * from './passkeys.types'
+export * from './passkeys.types';
+export * from './material.types';

@@ -5,7 +5,7 @@
                 <h1 class="title is-4">Invitation til en gruppe</h1>
                 <p v-if="loading" role="status">Henter invitation…</p>
                 <BNotification v-if="error" type="is-danger" :closable="false" role="alert">{{ error }}</BNotification>
-                <template v-if="invitation">
+                <template v-if="invitation && me.Me">
                     <p class="mb-4">Du er inviteret til <strong>{{ invitation.groupName }}</strong> som <strong>{{ invitation.email }}</strong>.</p>
                     <template v-if="invitation.existingUser && !me.Me.isAuthenticated">
                         <p class="mb-4">Log ind med den inviterede email for at acceptere invitationen.</p>

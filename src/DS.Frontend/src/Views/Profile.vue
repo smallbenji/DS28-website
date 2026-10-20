@@ -1,5 +1,5 @@
 <template>
-    <div class="profile-scroll compact-scroll">
+    <div v-if="Me" class="profile-scroll compact-scroll">
         <div class="profile-page">
             <section class="profile-header">
                 <UserAvatar :user="Me" size="large" />
@@ -414,10 +414,10 @@ watch(selectedPicture, (file) => {
 
 onMounted(() => {
     accountStore.GET_STATUS();
-    firstName.value = Me.value.firstName ?? '';
-    lastName.value = Me.value.lastName ?? '';
-    phone.value = Me.value.phone ?? '';
-    passkeys.value = Me.value.passkeys;
+    firstName.value = Me.value?.firstName ?? '';
+    lastName.value = Me.value?.lastName ?? '';
+    phone.value = Me.value?.phone ?? '';
+    passkeys.value = Me.value?.passkeys ?? null;
     loadNotifications();
 });
 
@@ -454,13 +454,13 @@ const updateNotifications = async () => {
 };
 
 const openNameModal = () => {
-    firstName.value = Me.value.firstName ?? '';
-    lastName.value = Me.value.lastName ?? '';
+    firstName.value = Me.value?.firstName ?? '';
+    lastName.value = Me.value?.lastName ?? '';
     showName.value = true;
 };
 
 const openPhoneModal = () => {
-    phone.value = Me.value.phone ?? '';
+    phone.value = Me.value?.phone ?? '';
     showPhone.value = true;
 };
 
@@ -525,6 +525,8 @@ const updatePhone = async () => {
 };
 
 const addPasskey = async () => {
+    if (!meStore.Me) return;
+
     try {
         const result = await accountStore.CREATE_PASSKEY(meStore.Me.name);
         if (result) {

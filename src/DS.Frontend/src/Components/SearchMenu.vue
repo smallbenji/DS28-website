@@ -83,7 +83,7 @@ const focusInput = () => {
 };
 
 const open = async () => {
-    if (!Me.value.isAuthenticated) return;
+    if (!Me.value?.isAuthenticated) return;
 
     query.value = '';
     activeIndex.value = 0;

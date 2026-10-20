@@ -101,7 +101,7 @@ const router = useRouter();
 const activityStore = useActivityStore();
 const { Teams, SelectedTeamId } = storeToRefs(activityStore);
 
-const isActivityAdmin = computed(() => Me.value.appRoles.includes('ActivityAdmin'));
+const isActivityAdmin = computed(() => Me.value?.appRoles.includes('ActivityAdmin') ?? false);
 
 const selectedTeam = computed<ActivityTeamDto | null>(
     () => Teams.value.find((team) => team.id === SelectedTeamId.value) ?? null

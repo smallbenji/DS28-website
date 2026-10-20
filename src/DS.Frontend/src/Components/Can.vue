@@ -13,8 +13,8 @@ const props = defineProps<{
 const meStore = useMeStore();
 
 const allowed = computed(() => {
-    const roles = meStore.Me.roles ?? [];
-    const appRoles = meStore.Me.appRoles ?? [];
+    const roles = meStore.Me?.roles ?? [];
+    const appRoles = meStore.Me?.appRoles ?? [];
     const has = (name: string) => roles.includes(name) || appRoles.includes(name);
 
     if (props.role) {

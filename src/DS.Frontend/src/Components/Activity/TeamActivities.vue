@@ -95,9 +95,9 @@ const selectedTeam = computed<ActivityTeamDto | null>(
 );
 
 const canManageActivities = computed(() => {
-    if (Me.value.appRoles.includes('ActivityAdmin')) return true;
+    if (Me.value?.appRoles.includes('ActivityAdmin')) return true;
     return selectedTeam.value?.members.some(
-        (member) => member.userId === Me.value.id && member.isAdmin
+        (member) => member.userId === Me.value?.id && member.isAdmin
     ) ?? false;
 });
 

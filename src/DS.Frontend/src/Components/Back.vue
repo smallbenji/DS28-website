@@ -16,6 +16,7 @@
         </div>
         <div class="buttons">
             <b-dropdown
+                v-if="Me"
                 position="is-bottom-left"
             >
                 <template #trigger>
