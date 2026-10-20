@@ -684,7 +684,12 @@ mindst syv dage gamle. Det er ren dataoprydning uden skemaændring.
 ## Bemærkninger
 
 - Soft delete via `deleted_at` på `scout_group`, `scout`, `activity_team`,
-  `activity`, `material`, `material_order` og `stored_file`.
+  `activity`, `activity_file`, `material`, `material_order`, `org_position`,
+  `stored_file`, `board` og `work_item`. `DataDbContext` håndhæver det med et
+  globalt query-filter (`deleted_at IS NULL`) og en `SaveChanges`-interceptor,
+  der sætter `DeletedAt` i stedet for at slette rækken; `created_at` og
+  `updated_at` sættes automatisk ved insert og opdatering. Slettede rækker kan
+  stadig hentes med `IgnoreQueryFilters()`.
 - `stored_file.status` styres af konverteringsjobbet: `Pending` ved upload,
   `Processing` under konvertering, `Ready` når WebP-filen er skrevet, og
   `Failed` med fejltekst i `error` hvis den fejler. `storage_key` er først sat
@@ -728,16 +733,17 @@ mindst syv dage gamle. Det er ren dataoprydning uden skemaændring.
   opløses dynamisk som Identity-roller ∪ stillingernes grupper, hvor en
   personlig assistent også arver grupperne fra den stilling, den er knyttet til.
   `user_invitation.org_position_id` peger på den stilling en invitation gælder.
-  Sletning af en stilling sker som hård sletning; `org_position_group`,
-  `org_position_holder` og stillingens personlige assistent ryddes via
-  `ON DELETE CASCADE`.
+  Sletning af en stilling sker som soft delete via `deleted_at`;
+  `org_position_group` og `org_position_holder` ryddes stadig via
+  `ON DELETE CASCADE`, mens stillingens personlige assistent soft-slettes
+  sammen med ejerstillingen i `OrgService`.
 - `org_position.pa_for_position_id` (nullable, unik) knytter en "Personlig
   assistent"-stilling til dens ejerstilling. Stillinger med
   `pa_for_position_id` sat har ingen understillinger og kan ikke ændres eller
   flyttes; de er oprettet med gruppen `PersonalAssistant` og arver desuden
-  ejerstillingens grupper i den effektive adgang. Unikt index
-  `uq_org_position_pa_for_position_id` sikrer maksimalt én assistent pr.
-  stilling.
+  ejerstillingens grupper i den effektive adgang. Det partielle unikke index
+  `uq_org_position_pa_for_position_id` sikrer maksimalt én aktiv assistent pr.
+  stilling, da det kun dækker rækker med `deleted_at IS NULL`.
 - `ix_org_position_deleted_at` er et partielt index over ikke-slettede
   `org_position`-rækker (`WHERE deleted_at IS NULL`), der understøtter
   listen over aktive stillinger.
@@ -780,6 +786,7 @@ mindst syv dage gamle. Det er ren dataoprydning uden skemaændring.
   `entity_id`, da koblingen er polymorf; døde links ryddes i koden. Unikhed på
   `(work_item_id, entity_type, entity_id)` forhindrer dobbelte links, og
   indekset `(entity_type, entity_id)` gør opslag fra domænesiden billigt.
-- `work_item` og `board` har soft delete via `deleted_at`. `board_color`, `board_member`, `board_column`,
-  `board_card` og `work_item_link` slettes hårdt; sletning af et board eller et
-  kort fjerner de tilhørende rækker via `ON DELETE CASCADE`.
+- `work_item` og `board` har soft delete via `deleted_at`. Sletning af et board
+  sætter kun `deleted_at`; `board_color`, `board_member`, `board_column`,
+  `board_card` og `work_item_link` bevares og slettes hårdt, når de fjernes
+  enkeltvis eller via `ON DELETE CASCADE` fra et hårdt slettet board eller kort.

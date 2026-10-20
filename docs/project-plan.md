@@ -1433,11 +1433,37 @@ Eksisterende databaser er ikke ændret af denne opgave.
 
 Audit- og soft-delete-felterne følger SQL-planens nullable `deleted_at` og
 `NOW()`-standarder for oprettelse og opdatering. Automatisk ændring af
-`updated_at` ved opdateringer og soft-delete-filtrering er ikke implementeret.
-Outboxens dengang eksisterende indeks på næste forsøg og id blev bevaret ud
-over de indekser, SQL-planen angiver; tabellen er senere fjernet
+`updated_at` ved opdateringer og soft-delete-filtrering var ikke implementeret
+på dette tidspunkt; det blev efterfølgende indført, se beslutningen
+2026-10-20 nedenfor. Outboxens dengang eksisterende indeks på næste forsøg og id
+blev bevaret ud over de indekser, SQL-planen angiver; tabellen er senere fjernet
 (beslutning 2026-10-06). EF genererer fortsat egne indeks- og
 constraint-navne samt konventionsbaserede fremmednøgleindekser.
+
+**Beslutning 2026-10-20 (implementeret):** Audit og soft delete håndhæves nu
+centralt i `DataDbContext` i Infrastructure, så felterne ikke længere sættes
+manuelt i hver service. En `ChangeTracker.StateChanged`-handler omdanner
+`Remove` af enhver `ISoftDeleteable`-entitet til en soft delete ved at sætte
+`deleted_at` og ændre tilstanden til `Modified`, og et globalt query-filter
+(`deleted_at IS NULL`) på alle `ISoftDeleteable`-entiteter skjuler slettede
+rækker i læsninger. En `SaveChanges`-interceptor
+(`AuditSaveChangesInterceptor`) sætter `created_at` og `updated_at` ved insert
+og `updated_at` ved opdatering. Entiteter uden `ISoftDeleteable` slettes fortsat
+hårdt. Grupper, spejdere, aktiviteter, aktivitetshold og org-stillinger bliver
+dermed soft-slettet, hvor de tidligere blev slettet hårdt. Eksisterende
+soft-delete-kald i `BoardService` og `FileService` bevares.
+
+Slettede rækker kan fortsat hentes med `IgnoreQueryFilters()`, hvilket bruges i
+`BoardService.GenerateKeyAsync` for at undgå at genbruge et `board.key`, der
+stadig optager det unikke indeks, og i `MaterialService.GetMaterials` bag
+parameteren `includeDeleted`. Fordi et soft-slettet `board` beholder sine
+`board_color`-, `board_column`- og `board_card`-rækker, kaskaderer en board-sletning
+ikke længere til dem. En ny migration `025_org_pa_soft_delete.sql` gør det unikke
+indeks `uq_org_position_pa_for_position_id` partielt (`WHERE deleted_at IS NULL`),
+så en ny personlig assistent kan oprettes efter en soft-slettet; `OrgService`
+soft-sletter desuden stillingens assistent sammen med ejerstillingen for at
+bevare den tidligere `ON DELETE CASCADE`-adfærd. Deltager-eksporten udelader
+spejdere i en soft-slettet gruppe.
 
 **Beslutning 2026-09-30:** DbUp håndterer nu SQL-migrations fra
 `DS/Migrations`, som erstatter den samlede `DS/Models/db.sql`-fil.
