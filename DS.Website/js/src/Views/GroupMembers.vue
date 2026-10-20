@@ -56,24 +56,26 @@
 import { onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { BButton, BField, BInput, BNotification, BTable, BTableColumn } from 'buefy';
-import axios from 'axios';
+import GroupMembersService, { type GroupMemberInvitationDto } from '@/Services/GroupMembersService';
+import { getErrorMessage } from '@/lib/api';
 import type { GroupDto } from '@/types';
 import { useMeStore } from '@/Stores/MeStore';
 const router = useRouter();
+const service = new GroupMembersService();
 const me = useMeStore();
 const group = ref<GroupDto | null>(null);
-const invitations = ref<{ invitationId: string; email: string }[]>([]);
+const invitations = ref<GroupMemberInvitationDto[]>([]);
 const removing = ref<GroupDto['users'][number] | null>(null);
 const email = ref('');
 const link = ref('');
 const error = ref('');
 const busy = ref(false);
 const loading = ref(true);
-function fail(e: unknown) { error.value = axios.isAxiosError(e) && typeof e.response?.data === 'string' ? e.response.data : 'Handlingen kunne ikke gennemføres. Kontrollér din adgang til gruppen, og prøv igen.'; }
+function fail(e: unknown) { error.value = getErrorMessage(e, 'Handlingen kunne ikke gennemføres. Kontrollér din adgang til gruppen, og prøv igen.'); }
 function showLink(id: string) { link.value = `${window.location.origin}/group-invitation/${id}`; }
 async function refresh() {
-    const [members, pending] = await Promise.all([axios.get<GroupDto>('/api/v1/group'), axios.get('/api/v1/group/members/invitations')]);
-    group.value = members.data; invitations.value = pending.data;
+    const [members, pending] = await Promise.all([service.getGroup(), service.getInvitations()]);
+    group.value = members; invitations.value = pending;
 }
 async function load() {
     loading.value = true; error.value = '';
@@ -83,7 +85,7 @@ async function invite() {
     if (busy.value) return;
     busy.value = true; error.value = ''; link.value = '';
     try {
-        const { data } = await axios.post('/api/v1/group/members/invitations', { email: email.value.trim() });
+        const data = await service.invite(email.value.trim());
         link.value = new URL(data.path, window.location.origin).href;
         email.value = ''; await refresh();
     } catch (e) { fail(e); } finally { busy.value = false; }
@@ -91,13 +93,13 @@ async function invite() {
 async function remove() {
     if (!removing.value || busy.value) return;
     busy.value = true; error.value = '';
-    try { await axios.delete(`/api/v1/group/members/${encodeURIComponent(removing.value.id)}`); removing.value = null; await refresh(); }
+    try { await service.removeMember(removing.value.id); removing.value = null; await refresh(); }
     catch (e) { fail(e); } finally { busy.value = false; }
 }
 async function revoke(id: string) {
     if (busy.value) return;
     busy.value = true; error.value = '';
-    try { await axios.delete(`/api/v1/group/members/invitations/${id}`); link.value = ''; await refresh(); }
+    try { await service.revokeInvitation(id); link.value = ''; await refresh(); }
     catch (e) { fail(e); } finally { busy.value = false; }
 }
 onMounted(load);

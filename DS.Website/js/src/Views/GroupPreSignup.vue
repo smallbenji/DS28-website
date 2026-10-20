@@ -82,7 +82,7 @@
 import { computed, onMounted, reactive, ref } from 'vue';
 import { BButton, BField, BInput, BSteps, BStepItem, BNotification } from 'buefy';
 import RegistrationSettingsService from '@/Services/RegistrationSettingsService';
-import axios from 'axios';
+import { getErrorMessage } from '@/lib/api';
 import GroupPreSignupService, { type ParticipantCounts, type SignupGroup } from '@/Services/GroupPreSignupService';
 import { districtLabel } from '@/types';
 
@@ -129,8 +129,7 @@ const total = computed(() => Object.values(counts).reduce((sum, n) => sum + Numb
 const canSubmit = computed(() => group.value && validCounts.value && firstName.value.trim() && lastName.value.trim() && email.value.trim() && password.value.length >= 4 && password.value === repeatPassword.value);
 
 function showError(cause: unknown) {
-    error.value = axios.isAxiosError(cause) && typeof cause.response?.data === 'string'
-        ? cause.response.data : 'Der opstod en fejl. Prøv igen. Hvis tilmeldingen allerede blev gemt, kan du logge ind med din nye bruger.';
+    error.value = getErrorMessage(cause, 'Der opstod en fejl. Prøv igen. Hvis tilmeldingen allerede blev gemt, kan du logge ind med din nye bruger.');
 }
 
 async function lookup() {

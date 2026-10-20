@@ -65,7 +65,7 @@
 import { computed, onMounted, reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { BButton, BField, BInput, BNotification } from 'buefy';
-import axios from 'axios';
+import { getErrorMessage } from '@/lib/api';
 import GroupPreSignupService, { type ParticipantCounts } from '@/Services/GroupPreSignupService';
 import RegistrationSettingsService from '@/Services/RegistrationSettingsService';
 
@@ -99,8 +99,7 @@ const dirty = computed(() => fields.some(({ key }) => counts[key] !== original.v
 const total = computed(() => fields.reduce((sum, { key }) => sum + Number(counts[key]), 0));
 
 function showError(cause: unknown) {
-    error.value = axios.isAxiosError(cause) && typeof cause.response?.data === 'string'
-        ? cause.response.data : 'Der opstod en fejl. Prøv igen.';
+    error.value = getErrorMessage(cause, 'Der opstod en fejl. Prøv igen.');
 }
 
 async function load() {

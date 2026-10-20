@@ -36,31 +36,35 @@
 import { computed, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { BButton, BField, BInput, BNotification } from 'buefy';
-import axios from 'axios';
+import AuthService from '@/Services/AuthService';
+import GroupInvitationService, { type GroupInvitationDto } from '@/Services/GroupInvitationService';
+import { getErrorMessage } from '@/lib/api';
 import { useMeStore } from '@/Stores/MeStore';
 const route = useRoute(); const router = useRouter(); const me = useMeStore();
-const invitation = ref<{ email: string; groupName: string; existingUser: boolean } | null>(null);
+const service = new GroupInvitationService();
+const authService = new AuthService();
+const invitation = ref<GroupInvitationDto | null>(null);
 const firstName = ref(''); const lastName = ref(''); const password = ref(''); const repeatPassword = ref('');
 const busy = ref(false); const loading = ref(true); const error = ref('');
 const valid = computed(() => invitation.value?.existingUser || (firstName.value.trim() && lastName.value.trim() && password.value.length >= 4 && password.value === repeatPassword.value));
-const endpoint = computed(() => `/api/v1/group-invitations/${encodeURIComponent(String(route.params.id))}`);
-function fail(e: unknown) { error.value = axios.isAxiosError(e) && typeof e.response?.data === 'string' ? e.response.data : 'Der opstod en fejl. Prøv igen.'; }
+const invitationId = computed(() => String(route.params.id));
+function fail(e: unknown) { error.value = getErrorMessage(e, 'Der opstod en fejl. Prøv igen.'); }
 function login() { router.push({ path: '/login', query: { returnUrl: route.fullPath } }); }
 async function logout() {
     busy.value = true;
-    try { await axios.post('/api/v1/auth/logout'); window.location.assign(`/login?returnUrl=${encodeURIComponent(route.fullPath)}`); }
+    try { await authService.logout(); window.location.assign(`/login?returnUrl=${encodeURIComponent(route.fullPath)}`); }
     catch (e) { fail(e); busy.value = false; }
 }
 async function accept() {
     if (!valid.value || busy.value) return;
     busy.value = true; error.value = '';
     try {
-        await axios.post(endpoint.value, { firstName: firstName.value.trim(), lastName: lastName.value.trim(), password: password.value });
+        await service.accept(invitationId.value, { firstName: firstName.value.trim(), lastName: lastName.value.trim(), password: password.value });
         window.location.assign('/group');
     } catch (e) { fail(e); busy.value = false; }
 }
 onMounted(async () => {
-    try { invitation.value = (await axios.get(endpoint.value)).data; }
+    try { invitation.value = await service.get(invitationId.value); }
     catch (e) { fail(e); } finally { loading.value = false; }
 });
 </script>

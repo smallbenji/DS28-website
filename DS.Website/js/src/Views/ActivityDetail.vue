@@ -216,7 +216,7 @@ import { useMeStore } from '@/Stores/MeStore';
 import GoogleService from '@/Services/GoogleService';
 import ActivityService from '@/Services/ActivityService';
 import ActivityReviewPanel from '@/Components/Activity/ActivityReviewPanel.vue';
-import axios from 'axios';
+import { getErrorMessage, getErrorStatus } from '@/lib/api';
 import { formatDate } from '@/lib/util';
 import { BButton, BField, BInput, BNotification, BSelect, BTable, BTableColumn, useDialog, useToast } from 'buefy';
 import { storeToRefs } from 'pinia';
@@ -523,10 +523,9 @@ const saveActivity = async () => {
             type: success ? 'is-success' : 'is-danger'
         });
     } catch (error) {
-        const response = axios.isAxiosError(error) ? error.response : undefined;
-        saveConflict.value = response?.status === 409;
+        saveConflict.value = getErrorStatus(error) === 409;
         Toast.open({
-            message: typeof response?.data === 'string' ? response.data : 'Der skete en fejl ved opdatering af aktiviteten',
+            message: getErrorMessage(error, 'Der skete en fejl ved opdatering af aktiviteten'),
             type: 'is-danger',
             duration: 7000
         });

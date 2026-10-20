@@ -107,9 +107,9 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
-import axios from 'axios';
 import { BButton, BCheckbox, BField, BInput, BModal, BNotification, BSelect, BTable, BTableColumn, BTaginput, useDialog, useToast } from 'buefy';
 import OpenIddictService from '@/Services/OpenIddictService';
+import { getErrorMessage } from '@/lib/api';
 import type { OpenIddictClientDto, OpenIddictClientUpdateDto } from '@/types';
 
 const service = new OpenIddictService();
@@ -135,10 +135,6 @@ function emptyForm(): OpenIddictClientUpdateDto {
     return { clientId: '', displayName: '', clientType: 'confidential', redirectUris: [], scopes: ['openid'], requiredRoles: [], requirePkce: true };
 }
 
-function errorMessage(exception: unknown, fallback: string) {
-    return axios.isAxiosError(exception) && typeof exception.response?.data === 'string' ? exception.response.data : fallback;
-}
-
 async function load() {
     if (loading.value) return;
     loading.value = true;
@@ -149,7 +145,7 @@ async function load() {
         availableRoles.value = roles;
     } catch (exception) {
         clients.value = [];
-        error.value = errorMessage(exception, 'Klientlisten kunne ikke hentes. Kontrollér din adgang, og prøv igen.');
+        error.value = getErrorMessage(exception, 'Klientlisten kunne ikke hentes. Kontrollér din adgang, og prøv igen.');
     } finally {
         loading.value = false;
     }
@@ -225,7 +221,7 @@ async function save() {
         Toast.open({ message: 'Klienten er gemt.', type: 'is-success' });
         await load();
     } catch (exception) {
-        saveError.value = errorMessage(exception, 'Klienten kunne ikke gemmes. Prøv igen.');
+        saveError.value = getErrorMessage(exception, 'Klienten kunne ikke gemmes. Prøv igen.');
     } finally {
         busy.value = false;
     }
@@ -254,7 +250,7 @@ async function rotate(client: OpenIddictClientDto) {
     try {
         showSecret(client.clientId, await service.rotateSecret(client.id));
     } catch (exception) {
-        error.value = errorMessage(exception, 'Secret kunne ikke roteres. Prøv igen.');
+        error.value = getErrorMessage(exception, 'Secret kunne ikke roteres. Prøv igen.');
     } finally {
         busy.value = false;
     }
@@ -280,7 +276,7 @@ async function remove(client: OpenIddictClientDto) {
         Toast.open({ message: 'Klienten er slettet.', type: 'is-success' });
         await load();
     } catch (exception) {
-        error.value = errorMessage(exception, 'Klienten kunne ikke slettes. Prøv igen.');
+        error.value = getErrorMessage(exception, 'Klienten kunne ikke slettes. Prøv igen.');
     } finally {
         busy.value = false;
     }

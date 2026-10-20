@@ -38,10 +38,10 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import { BButton, BField, BInput, BNotification, useToast } from 'buefy';
-import axios from 'axios';
 import ActivityService from '@/Services/ActivityService';
 import { useActivityStore } from '@/Stores/ActivityStore';
 import { activityReviewStatus } from '@/lib/activityReview';
+import { getErrorMessage, getErrorStatus } from '@/lib/api';
 import type { ActivityDto, ActivityReviewAction } from '@/types';
 
 const props = defineProps<{ activity: ActivityDto; isAdmin: boolean; hasUnsavedChanges: boolean }>();
@@ -118,9 +118,8 @@ async function perform(action: ActivityReviewAction) {
         feedback.value = '';
         Toast.open({ message: action === 'submit' ? 'Aktiviteten er indsendt til godkendelse.' : action === 'approve' ? 'Aktiviteten er godkendt.' : 'Aktiviteten er sendt retur til teamet.', type: 'is-success' });
     } catch (reason) {
-        const response = axios.isAxiosError(reason) ? reason.response : undefined;
-        conflict.value = response?.status === 409;
-        error.value = typeof response?.data === 'string' ? response.data : 'Handlingen kunne ikke gennemføres. Prøv igen.';
+        conflict.value = getErrorStatus(reason) === 409;
+        error.value = getErrorMessage(reason, 'Handlingen kunne ikke gennemføres. Prøv igen.');
     } finally {
         busy.value = false;
         emit('busy', false);

@@ -34,19 +34,18 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
 import { BButton, BNotification } from 'buefy';
-import axios from 'axios';
+import ExportService from '@/Services/ExportService';
+import { getErrorMessage } from '@/lib/api';
 import type { DataExportDto } from '@/types';
 
+const service = new ExportService();
 const exports = ref<DataExportDto[]>([]);
 const loading = ref(false);
 const downloading = ref('');
 const error = ref('');
 
 function fail(e: unknown, fallback: string) {
-    error.value =
-        axios.isAxiosError(e) && typeof e.response?.data === 'string'
-            ? e.response.data
-            : fallback;
+    error.value = getErrorMessage(e, fallback);
 }
 
 async function load() {
@@ -56,8 +55,7 @@ async function load() {
     error.value = '';
 
     try {
-        const { data } = await axios.get<DataExportDto[]>('/api/v1/exports');
-        exports.value = data;
+        exports.value = await service.getExports();
     } catch (e) {
         fail(e, 'Dataudtræk kunne ikke hentes. Kontrollér din adgang, og prøv igen.');
     } finally {
@@ -72,11 +70,9 @@ async function download(item: DataExportDto) {
     error.value = '';
 
     try {
-        const response = await axios.get(`/api/v1/exports/${encodeURIComponent(item.key)}`, {
-            responseType: 'blob'
-        });
+        const blob = await service.download(item.key);
 
-        const url = URL.createObjectURL(response.data);
+        const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
         link.download = `${item.fileName}.xlsx`;

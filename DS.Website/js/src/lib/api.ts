@@ -63,3 +63,7 @@ export function getErrorMessage(error: unknown, fallback = "Der skete en uventet
 
     return fallback;
 }
+
+export function getErrorStatus(error: unknown): number | undefined {
+    return axios.isAxiosError(error) ? error.response?.status : undefined;
+}

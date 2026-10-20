@@ -64,9 +64,11 @@
 <script lang="ts" setup>
 import { onMounted, ref } from 'vue';
 import { BButton, BNotification } from 'buefy';
-import axios from 'axios';
-import type { AdminSectionDto, AdminViewModelDto, HQPanelEntryDto, SignupProgressDto } from '@/types';
+import AdminService from '@/Services/AdminService';
+import { getErrorMessage } from '@/lib/api';
+import type { AdminSectionDto, HQPanelEntryDto, SignupProgressDto } from '@/types';
 
+const service = new AdminService();
 const sections = ref<AdminSectionDto[]>([]);
 const signupProgress = ref<SignupProgressDto[]>([]);
 const loading = ref(true);
@@ -104,16 +106,11 @@ async function load() {
     error.value = '';
 
     try {
-        const { data } = await axios.get<AdminViewModelDto>('/api/v1/admin');
+        const data = await service.get();
         sections.value = data.sections;
-
-        const progress = await axios.get<SignupProgressDto[]>('/api/v1/admin/signup-progress');
-        signupProgress.value = progress.data;
+        signupProgress.value = await service.getSignupProgress();
     } catch (e) {
-        error.value =
-            axios.isAxiosError(e) && typeof e.response?.data === 'string'
-                ? e.response.data
-                : 'Admin kunne ikke hentes. Kontrollér din adgang, og prøv igen.';
+        error.value = getErrorMessage(e, 'Admin kunne ikke hentes. Kontrollér din adgang, og prøv igen.');
     } finally {
         loading.value = false;
     }
