@@ -10,7 +10,7 @@ import type { MeDto } from '@/types';
 
 const props = withDefaults(defineProps<{
     user: Pick<MeDto, 'firstName' | 'lastName' | 'profilePicture'> | null;
-    size?: 'small' | 'medium' | 'large';
+    size?: 'xsmall' | 'small' | 'medium' | 'large';
 }>(), {
     size: 'medium'
 });
@@ -33,6 +33,12 @@ const initials = computed(() => {
     color: hsl(0, 0%, 29%);
     font-weight: 600;
     text-transform: uppercase;
+
+    &.is-xsmall {
+        width: 1.5rem;
+        height: 1.5rem;
+        font-size: 0.40rem;
+    }
 
     &.is-small {
         width: 2rem;

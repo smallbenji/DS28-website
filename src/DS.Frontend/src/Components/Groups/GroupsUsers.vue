@@ -7,7 +7,8 @@
             <div v-for="user in users">
                 <a class="panel-block">
                     <span class="panel-icon">
-                        <i class="fas fa-user" aria-hidden="true"></i>
+                        <UserAvatar :user="user" size="xsmall"/>
+                        <!-- <i class="fas fa-user" aria-hidden="true"></i> -->
                     </span>
                     {{ user.firstName + " " + user.lastName}}
                 </a>
@@ -24,6 +25,7 @@ import { useGroupsStore } from '@/Stores/GroupsStore';
 import { storeToRefs } from 'pinia';
 import { computed } from 'vue';
 import type { GroupDto } from '@/types';
+import UserAvatar from '../User/UserAvatar.vue';
 
 const props = defineProps<{
     selectedGroup: GroupDto

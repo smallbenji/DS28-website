@@ -19,6 +19,7 @@ namespace DS.Application.Services.Groups
 
             var users = await userManager.Users
                 .Include(user => user.Group)
+                .Include(user => user.ProfilePicture)
                 .Where(user => user.Group != null)
                 .ToListAsync();
 
