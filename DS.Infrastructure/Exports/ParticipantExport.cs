@@ -21,9 +21,10 @@ namespace DS.Infrastructure.Exports
         {
             var participants = await dataDb.Scouts
                 .AsNoTracking()
-                .Include(s => s.Group)
+                .Where(s => s.Group.DeletedAt == null)
                 .OrderBy(s => s.Name)
                 .ThenBy(s => s.Group.Name)
+                .Select(s => new { s.Name, GroupName = s.Group.Name })
                 .ToListAsync(cancellationToken);
             
             var sheet = workbook.AddExportSheet(
@@ -35,7 +36,7 @@ namespace DS.Infrastructure.Exports
             {
                 sheet.AddExportRow(
                     participant.Name,
-                    participant.Group.Name
+                    participant.GroupName
                 );
 
                 sheet.FitColumns(2, 40);

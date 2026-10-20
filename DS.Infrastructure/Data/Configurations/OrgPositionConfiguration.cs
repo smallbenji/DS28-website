@@ -39,7 +39,8 @@ public class OrgPositionConfiguration : IEntityTypeConfiguration<OrgPosition>
             .OnDelete(DeleteBehavior.Cascade);
 
         builder.HasIndex(x => x.PaForPositionId)
-            .IsUnique();
+            .IsUnique()
+            .HasFilter("deleted_at IS NULL");
 
         builder.Property(x => x.CreatedAt)
             .IsRequired()

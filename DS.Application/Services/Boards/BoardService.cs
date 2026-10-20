@@ -611,7 +611,7 @@ namespace DS.Application.Services.Boards
             var candidate = baseKey;
             var suffix = 2;
 
-            while (await dataDb.Boards.AnyAsync(board => board.Key == candidate))
+            while (await dataDb.Boards.IgnoreQueryFilters().AnyAsync(board => board.Key == candidate))
             {
                 var suffixText = $"-{suffix++}";
                 var clipped = baseKey.Length + suffixText.Length > 64

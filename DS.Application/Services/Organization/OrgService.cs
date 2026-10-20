@@ -177,6 +177,11 @@ namespace DS.Application.Services.Organization
                 .Select(holder => holder.UserId)
                 .ToListAsync();
 
+            var personalAssistants = await dataDb.OrgPositions
+                .Where(pa => pa.PaForPositionId == id)
+                .ToListAsync();
+            dataDb.OrgPositions.RemoveRange(personalAssistants);
+
             dataDb.OrgPositions.Remove(position);
             await dataDb.SaveChangesAsync();
 
