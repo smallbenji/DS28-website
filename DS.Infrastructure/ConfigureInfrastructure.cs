@@ -37,10 +37,12 @@ public static class ConfigureInfrastructure {
 
     public static IServiceCollection AddDsDataLayer(this IServiceCollection services, string connectionString)
     {
-        services.AddDbContext<DataDbContext>(options => options
+        services.AddSingleton<AuditSaveChangesInterceptor>();
+        services.AddDbContext<DataDbContext>((provider, options) => options
             .UseNpgsql(connectionString)
             .UseSnakeCaseNamingConvention()
-            .UseOpenIddict());
+            .UseOpenIddict()
+            .AddInterceptors(provider.GetRequiredService<AuditSaveChangesInterceptor>()));
 
         services.AddScoped<IDataDbContext>(provider => provider.GetRequiredService<DataDbContext>());
 

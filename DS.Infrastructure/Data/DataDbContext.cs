@@ -1,13 +1,27 @@
+using System.Linq.Expressions;
 using DS.Application.Data;
 using DS.Domain.Models;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 
 namespace DS.Infrastructure.Data;
 
 public class DataDbContext : IdentityDbContext<User, Role, string>, IDataDbContext
 {
-    public DataDbContext(DbContextOptions<DataDbContext> options) : base(options) { }
+    public DataDbContext(DbContextOptions<DataDbContext> options) : base(options)
+    {
+        ChangeTracker.StateChanged += OnStateChanged;
+    }
+
+    private void OnStateChanged(object sender, EntityStateChangedEventArgs e)
+    {
+        if (e.NewState != EntityState.Deleted) return;
+        if (e.Entry.Entity is not ISoftDeleteable softDeleteable) return;
+
+        softDeleteable.DeletedAt = DateTime.UtcNow;
+        e.Entry.State = EntityState.Modified;
+    }
 
     public DbSet<UserInvitation> Invitations { get; set; }
     public DbSet<UserNotificationPreference> NotificationPreferences { get; set; }
@@ -55,5 +69,22 @@ public class DataDbContext : IdentityDbContext<User, Role, string>, IDataDbConte
         modelBuilder.HasDefaultSchema("ds28");
 
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(DataDbContext).Assembly);
+
+        ApplySoftDeleteQueryFilters(modelBuilder);
+    }
+
+    private static void ApplySoftDeleteQueryFilters(ModelBuilder modelBuilder)
+    {
+        foreach (var entityType in modelBuilder.Model.GetEntityTypes())
+        {
+            if (!typeof(ISoftDeleteable).IsAssignableFrom(entityType.ClrType)) continue;
+
+            var parameter = Expression.Parameter(entityType.ClrType, "entity");
+            var deletedAt = Expression.Property(parameter, nameof(ISoftDeleteable.DeletedAt));
+            var nullConstant = Expression.Constant(null, typeof(DateTime?));
+            var filter = Expression.Lambda(Expression.Equal(deletedAt, nullConstant), parameter);
+
+            modelBuilder.Entity(entityType.ClrType).HasQueryFilter(filter);
+        }
     }
 }
