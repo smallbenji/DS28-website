@@ -77,6 +77,7 @@ namespace DS.Application.Services.Groups
             if (user?.Group == null) return new ServiceResult(ServiceOutcome.NotFound);
 
             var users = await userManager.Users
+                .Include(u => u.ProfilePicture)
                 .Where(u => u.Group != null && u.Group.Id == user.Group.Id)
                 .ToListAsync();
 

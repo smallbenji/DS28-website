@@ -1,5 +1,6 @@
 import type { PatrolDto } from "./patrol.types";
 import type { ScoutDto } from "./scout.types";
+import type { UserDto } from "./user.types";
 
 export enum District {
     DANEHOF = 'DANEHOF',
@@ -21,7 +22,7 @@ export interface GroupDto {
     district: District;
     patrols: PatrolDto[];
     scouts: ScoutDto[];
-    users: GroupUserDto[];
+    users: UserDto[];
 }
 
 export interface GroupUserDto {

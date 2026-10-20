@@ -7,7 +7,7 @@
             <BButton size="is-small" @click="router.push('/group/members')">Administrer brugere</BButton>
         </div>
         <div class="group-user" v-for="user in Group.users">
-            <FontAwesomeIcon icon="user" />
+            <UserAvatar :user="user" size="small"/>
             {{ user.firstName + " " + user.lastName }}
         </div>
     </div>
@@ -17,8 +17,8 @@ import { BButton } from 'buefy';
 import { useRouter } from 'vue-router';
 const router = useRouter();
 import { useGroupStore } from '@/Stores/GroupStore';
-import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import { storeToRefs } from 'pinia';
+import UserAvatar from '../User/UserAvatar.vue';
 
 const groupStore = useGroupStore();
 const { Group } = storeToRefs(groupStore);
@@ -36,6 +36,9 @@ const { Group } = storeToRefs(groupStore);
 
     &-user {
         padding: 0.25rem 1rem;
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
         // background-color: darkgray;
     }
 }

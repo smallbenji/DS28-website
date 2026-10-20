@@ -12,7 +12,7 @@ namespace DS.Domain.DTOs
             District = group.District;
             Patrols = group.Patrols?.Select(p => new PatrolDto(p)).ToList() ?? [];
             Scouts = group.Scouts?.Select(s => new ScoutDto(s)).ToList() ?? [];
-            Users = users?.Select(u => new GroupUserDto(u)).ToList() ?? [];
+            Users = users?.Select(u => new UserDto(u)).ToList() ?? [];
         }
 
         public int Id { get; set; }
@@ -20,7 +20,7 @@ namespace DS.Domain.DTOs
         public District District { get; set; }
         public List<PatrolDto> Patrols { get; set; } = [];
         public List<ScoutDto> Scouts { get; set; } = [];
-        public List<GroupUserDto> Users { get; set; } = [];
+        public List<UserDto> Users { get; set; } = [];
     }
 
     public class GroupUserDto

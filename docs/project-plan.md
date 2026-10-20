@@ -31,6 +31,12 @@ på et CMS, så andre end IT kan vedligeholde indhold.
 
 ### Applikationsopstart
 
+**Beslutning 2026-10-20 (implementeret):** Frontendens `MeStore.Me` er `null`,
+indtil brugerdata er hentet. Komponenter håndterer denne indlæsningstilstand
+uden at tildele rettigheder eller læse felter på `null`. Routerens kontrol af
+`ActivityAdmin` afventer nu brugerdata ligesom de øvrige adgangskontroller.
+`MeService` bevarer sit eksisterende fallback til en ikke-autentificeret bruger.
+
 **Beslutning 2026-10-19 (implementeret):** `DS.Worker` er en selvstændig Generic
 Host i samme Docker Compose-projekt som Website. Den starter Hangfire-serveren
 med fem jobtråde og `ServerName = Dns.GetHostName()`, dvs. containerens hostname.

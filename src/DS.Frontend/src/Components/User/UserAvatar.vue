@@ -1,5 +1,5 @@
 <template>
-    <figure class="user-avatar" :class="`is-${size}`">
+    <figure class="user-avatar" :class="`is-${size}`" v-if="user">
         <img v-if="url" :src="url" :alt="`${user.firstName} ${user.lastName}`" />
         <span v-else class="user-avatar-initials">{{ initials }}</span>
     </figure>
