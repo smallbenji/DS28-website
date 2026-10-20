@@ -1354,6 +1354,44 @@ hidtil kaldte axios direkte, er flyttet over på services: `Admin.vue`,
 (`<img src>` til 2FA-QR og `window.location.href` til Google-connect) og går
 ikke gennem axios. Ingen fil uden for `src/lib/api.ts` importerer `axios` nu.
 
+### Fælles gruppeopslag og forhåndstilmeldingslås
+
+**Beslutning 2026-10-20 (implementeret):** De gentagne "hent bruger med gruppe"-
+opslag og det rå forhåndstilmeldingslås er samlet i
+`DS.Application/Services/Groups/GroupLookup.cs`:
+
+- `GetUserWithGroupAsync(userId)` er en udvidelsesmetode på `UserManager<User>`,
+  der laver `Include(u => u.Group)` og `SingleOrDefaultAsync(u => u.Id == userId)`.
+  Den erstatter den private `GetCurrentUserAsync` i `GroupMembersService` og de
+  fire identiske opslag i `GroupService` (`DeleteScout`, `DeletePatrol`,
+  `AddScoutToPatrol`, `RemoveScoutFromPatrol`). De opslag, der har brug for
+  ekstra includes (`ThenInclude(g => g.PreSignup/Scouts/Patrols)`), er bevaret
+  inline, fordi de er reelt forskellige forespørgsler.
+- `IsPreSignupOpenAsync(lockSettings)` tager `FOR SHARE`-låsen på
+  indstillingsrækken (når `lockSettings` er sat) og læser
+  `IsPreSignupOpen`. Den erstatter den duplikerede sekvens i
+  `GroupService.UpdatePreSignup`, `GroupPreSignupService.Lookup` og
+  `GroupPreSignupService.Create`.
+- `LockGroupForUpdateAsync(groupId)` tager `FOR UPDATE`-låsen på gruppen og
+  erstatter de tilsvarende rå kald i `GroupMembersService.RemoveAsync` og
+  `GroupPreSignupService.Create`.
+- `RegistrationSettingsId` er en delt konstant for den ene indstillingsrække
+  med id 1, også brugt af `RegistrationSettingsService`.
+
+**Rettelse af præeksisterende fejl (2026-10-20):** Den rå låse-SQL brugte
+PascalCase-navne (`"RegistrationSettings"`, `"Groups"`), men tabellerne ligger i
+`ds28`-schemaet med snake_case-navne (`ds28.registration_settings`,
+`ds28.scout_group`). Da forbindelsens `search_path` er `"$user", public`, fejlede
+begge forespørgsler med `42P01 relation ... does not exist`. Det betød, at
+`GroupPreSignupService.Create` og `GroupService.UpdatePreSignup` fejlede hver
+gang, de blev kaldt, og at `GroupMembersService.RemoveAsync` fejlede ved selve
+låsetrinet. Den fejlende SQL er flyttet uændret gennem den tidligere
+controller-til-service-opdeling, så den stammer ikke fra ændringerne her.
+`GroupLookup` bruger nu de faktiske skemanavne, og fejlen er bekræftet rettet
+end-to-end mod en migreret database. Der er ikke tilføjet en permanent
+regressionstest for flowet, da den midlertidige kontrol blev fjernet igen efter
+aftale.
+
 ### Frontend-build og typekontrol
 
 **Midlertidig beslutning 2026-10-02:** `npm run build` i `DS.Website/js`
