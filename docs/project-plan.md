@@ -1307,6 +1307,21 @@ tilfælde, hvor den oprindelige kode tjekkede `response.status`. `FileService`
 bevarer `multipart/form-data`-upload ved at fjerne den delte JSON-header for den
 pågældende request.
 
+**Opfølgning 2026-10-20 (samme beslutning):** De views og komponenter, der
+hidtil kaldte axios direkte, er flyttet over på services: `Admin.vue`,
+`Exports.vue`, `GroupMembers.vue`, `GroupInvitation.vue`, `GroupPreSignupEdit.vue`,
+`GroupPreSignup.vue`, `OpenIddictClients.vue` samt `ActivityDetail.vue` og
+`ActivityReviewPanel.vue`. Det gav fire nye services – `AdminService`,
+`ExportService`, `GroupMembersService` og `GroupInvitationService` – og
+`getErrorMessage`/`getErrorStatus` erstatter de lokale fejlbesked-hjælpere
+(`errorMessage`, `fail`, `showError`) og de gentagne `axios.isAxiosError`-tjek.
+
+`getErrorStatus` er tilføjet, fordi et par steder skelner mellem en
+409-konflikt og andre fejl. De resterende `"/api/v1/..."`-strenge uden for
+`Services`/`lib` er bevidst bevaret: de er rene browser-navigationer
+(`<img src>` til 2FA-QR og `window.location.href` til Google-connect) og går
+ikke gennem axios. Ingen fil uden for `src/lib/api.ts` importerer `axios` nu.
+
 ### Frontend-build og typekontrol
 
 **Midlertidig beslutning 2026-10-02:** `npm run build` i `DS.Website/js`
