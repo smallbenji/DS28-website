@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using DS.Domain;
 
-namespace DS.Backend.Controllers
+namespace DS.Backend.Controllers.ApiControllers
 {
     [Authorize]
     [Route("/api/v1/home")]

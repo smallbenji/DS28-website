@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Mvc;
 
-namespace DS.Backend.Controllers
+namespace DS.Backend.Controllers.ApiControllers
 {
     [Authorize]
     [Route("api/v1/impersonation")]

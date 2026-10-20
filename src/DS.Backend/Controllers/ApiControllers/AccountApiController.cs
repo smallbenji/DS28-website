@@ -1,7 +1,6 @@
 using DS.Application.Services.Profile;
 using DS.Domain.Models;
 using DS.Domain.DTOs;
-using DS.Backend.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -9,7 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 using QRCoder;
 using DS.Domain;
 
-namespace DS.Backend.Controllers
+namespace DS.Backend.Controllers.ApiControllers
 {
     [Authorize]
     [Route("/api/v1/account")]

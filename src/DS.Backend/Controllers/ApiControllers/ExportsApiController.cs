@@ -2,9 +2,8 @@ using DS.Application.Services.Exports;
 using DS.Domain;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.Security.Claims;
 
-namespace DS.Backend.Controllers
+namespace DS.Backend.Controllers.ApiControllers
 {
     [Authorize(Roles = nameof(AppRoles.ExportsView))]
     [Route("api/v1/exports")]

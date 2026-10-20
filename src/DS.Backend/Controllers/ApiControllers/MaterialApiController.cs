@@ -10,6 +10,7 @@ namespace DS.Backend.Controllers.ApiControllers;
 [Authorize(Roles = nameof(AppRoles.MaterialView))]
 public class MaterialApiController(MaterialService materialService) : Controller
 {
+    [HttpGet]
     public async Task<IActionResult> Index()
     {
         return this.ToActionResult(await materialService.GetMaterials());

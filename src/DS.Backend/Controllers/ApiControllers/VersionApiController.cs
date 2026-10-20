@@ -2,7 +2,7 @@ using DS.Domain;
 using DS.Domain.DTOs;
 using Microsoft.AspNetCore.Mvc;
 
-namespace DS.Backend.Controllers
+namespace DS.Backend.Controllers.ApiControllers
 {
     [Route("/api/version")]
     public class VersionApiController : Controller

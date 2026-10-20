@@ -4,7 +4,7 @@ using DS.Domain.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace DS.Backend.Controllers
+namespace DS.Backend.Controllers.ApiControllers
 {
     [Route("api/v1/registration-settings")]
     public class RegistrationSettingsApiController(RegistrationSettingsService settingsService) : Controller

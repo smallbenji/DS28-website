@@ -3,12 +3,11 @@ using DS.Domain;
 using DS.Domain.DTOs;
 using DS.Domain.Models;
 using DS.Backend.Extensions;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 
-namespace DS.Backend.Controllers
+namespace DS.Backend.Controllers.ApiControllers
 {
     [Route("/api/v1/me")]
     public class MeApiController(MeService service, UserManager<User> userManager) : Controller

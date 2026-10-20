@@ -1,14 +1,13 @@
 using DS.Domain.Models;
 using System.Security.Claims;
 using DS.Domain.DTOs;
-using DS.Backend.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using DS.Application.Services.Accounts;
 
-namespace DS.Backend.Controllers
+namespace DS.Backend.Controllers.ApiControllers
 {
     [AllowAnonymous]
     [EnableRateLimiting("auth")]

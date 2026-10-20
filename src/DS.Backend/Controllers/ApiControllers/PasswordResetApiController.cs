@@ -3,7 +3,7 @@ using DS.Domain.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace DS.Backend.Controllers
+namespace DS.Backend.Controllers.ApiControllers
 {
     [AllowAnonymous]
     [IgnoreAntiforgeryToken]

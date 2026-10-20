@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace DS.Backend.Controllers
+namespace DS.Backend.Controllers.ApiControllers
 {
     [Authorize(Roles = nameof(AppRoles.OpenIddictManage))]
     [Route("api/v1/openiddict/clients")]

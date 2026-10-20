@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using DS.Domain;
 using DS.Application.Services.Groups;
 
-namespace DS.Backend.Controllers
+namespace DS.Backend.Controllers.ApiControllers
 {
     [Authorize(Roles = nameof(AppRoles.AdminAccess))]
     [Route("api/v1/admin")]
