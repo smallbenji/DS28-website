@@ -160,13 +160,11 @@ public static class ServiceExtensions
             options.LogoutPath = "/logout";
             options.AccessDeniedPath = "/AccessDenied";
             options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
-            if (builder.Environment.IsDevelopment()) options.Cookie.SecurePolicy = CookieSecurePolicy.None;
         });
 
         services.AddAntiforgery(options =>
         {
             options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
-            if (builder.Environment.IsDevelopment()) options.Cookie.SecurePolicy = CookieSecurePolicy.None;
         });
 
         services.AddScoped<IClaimsTransformation, ClaimsTransformer>();

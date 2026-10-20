@@ -346,6 +346,32 @@ Ubesluttede punkter:
 
 ### Min profil
 
+**Sikkerhedsrettelse 2026-10-20 (implementeret):** Login- og antiforgery-cookies
+bruger altid `Secure`, også i Development; lokal browserudvikling kræver HTTPS
+(Vite bruger allerede basic-ssl). Google-forbindelsesloggen indeholder ikke
+længere kontoens email. Mailjobbets applikationslogs indeholder ikke modtager,
+emne eller exceptiontekst; fejltypen bevares, og fejlen genkastes fortsat til
+Hangfire med uændrede retries. Hangfire gemmer fortsat jobpayload og fejldetaljer
+og kræver derfor fortsat beskyttet dashboard- og databaseadgang. Frontendens
+invitationslog bruger en fast tekst uden invitations-id eller fejlobjekt.
+
+CodeQL-alerts #86, #87 og #88 er vurderet som falske positiver: de markerede
+inputguards afviser manglende input med HTTP 400, ikke et succesfuldt login eller
+en sikkerhedsændring. Token-/adgangskodekontrol kan ikke omgås gennem disse
+guards. Valideringen bevares; alerts er ikke automatisk afvist på GitHub.
+
+**Opfølgning 2026-10-20 (implementeret):** Website refererer eksplicit til
+`System.Security.Cryptography.Xml` 10.0.13 frem for OpenIddicts transitive version
+10.0.10. Kun pakkens pruning-advarsel `NU1510` undertrykkes: referencen er
+tilsigtet, selvom Website også har ASP.NET Core-frameworkreferencen.
+Sårbarhedsadvarsler undertrykkes ikke. SDK'et kan prune pakken i forbrugende
+testprojekter, som da bruger den delte ASP.NET Core-runtime. Version 10.0.13
+retter CVE-2026-96958, CVE-2026-96959 og CVE-2026-96960 (XML denial of service).
+Den installerede .NET-runtime skal desuden opdateres til mindst 10.0.13;
+pakkeopdateringen erstatter ikke en runtimeopdatering. Containerne bruger
+flydende `aspnet:10.0`-tags og skal genbygges med opdaterede base-images og
+genudrulles. Der ændres ikke databaseskema eller autentifikationsflow.
+
 **Beslutning 2026-10-19 (implementeret):** Min profil viser brugerens email
 som skrivebeskyttet tekst under Profil og sikkerhed. Email medsendes i
 `GET /api/v1/me`; der tilføjes ingen mulighed for at ændre den i profilen.

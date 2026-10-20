@@ -37,11 +37,11 @@ namespace DS.Infrastructure.Jobs
                 client.Send(message);
                 client.Disconnect(true);
 
-                logger.LogInformation("Sendte mail til {ToEmail}: {Subject}", data.ToEmail, data.Subject);
+                logger.LogInformation("Mail blev sendt.");
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
-                logger.LogWarning(ex, "Mail til {ToEmail} kunne ikke sendes: {Subject}", data.ToEmail, data.Subject);
+                logger.LogWarning("Mail kunne ikke sendes. Fejltype: {FailureType}", ex.GetType().Name);
                 throw;
             }
         }

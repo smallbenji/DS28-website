@@ -5,8 +5,8 @@ export default class InvitationService {
     public async getInvitation(id: string): Promise<UserInvitationDto | null> {
         try {
             return await apiGet<UserInvitationDto>(`/api/v1/invitation/${id}`);
-        } catch (ex) {
-            console.error(`Error fetching invitation with id ${id}:`, ex);
+        } catch {
+            console.error("Error fetching invitation.");
             return null;
         }
     }

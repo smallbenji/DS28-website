@@ -93,7 +93,7 @@ namespace DS.Infrastructure.Google
 
             await dataDb.SaveChangesAsync(cancellationToken);
 
-            logger.LogInformation("Google Drev blev forbundet som {AccountEmail}.", accountEmail);
+            logger.LogInformation("Google Drev blev forbundet.");
         }
 
         public async Task DisconnectAsync(CancellationToken cancellationToken = default)
