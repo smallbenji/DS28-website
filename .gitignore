@@ -289,14 +289,14 @@ __pycache__/
 *.xsd.cs
 appsettings.json
 
-DS.Website/certs/
+DS.Backend/certs/
 *.pfx
 *.pem
 
 # Custom
 .opencode/
 .env
-DS.Website/files
+DS.Backend/files
 
 # Google service account keys
 ds28-hq-*.json

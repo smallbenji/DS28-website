@@ -230,7 +230,7 @@ Application-services grupperes efter funktion under `Services/Activities`,
 gruppeservices. Det fælles `IDataDbContext` bliver under `Data`.
 
 **Beslutning 2026-10-19 (implementeret):** Service-registrering og tilhørende
-konfiguration samles i `DS.Website/Extensions/ServiceExtensions.cs` og kaldes
+konfiguration samles i `DS.Backend/Extensions/ServiceExtensions.cs` og kaldes
 via `builder.ConfigureDS()`. `Program.cs` beholder HTTP-pipeline, routing,
 DbUp-migrering og rolleseeding. Flytningen ændrer ikke autentifikationsregler
 eller databaseskema.
@@ -900,7 +900,7 @@ samme måde som filer, så "Oprettet af" også vises for mapper.
   soft-slettes/cascades, så Drive er kilden til sandhed for selve filen.
 - Drive-klienten er `Google.Apis.Drive.v3`. Pakken trækker
   `System.Security.Cryptography.Pkcs`, hvis standardversion (10.0.0) havde kendte
-  sårbarheder; den er derfor pinnet til 10.0.13 i `DS.Website.csproj`, så
+  sårbarheder; den er derfor pinnet til 10.0.13 i `DS.Backend.csproj`, så
   restore er uden advisories.
 
 Ubesluttede punkter:
@@ -924,7 +924,7 @@ Planen under Økonomi nævner eksport af deltagerantal pr. dag og pr. gruppe, me
 beskriver ikke hvordan udtræk skal defineres eller hvem der må hente dem.
 
 **Beslutning 2026-09-29:** Dataudtræk defineres udelukkende i backend. Hvert
-udtræk er en `DataExport`-klasse under `DS.Website/Exports/`, som registreres som
+udtræk er en `DataExport`-klasse under `DS.Backend/Exports/`, som registreres som
 scoped service i `ServiceExtensions.AddDSServices`. Frontend henter listen fra `GET /api/v1/exports`
 og renderer den, så et nyt udtræk kræver ingen frontend-ændring. Siden ligger
 på `/exports` og linkes fra adminområdet.
@@ -945,7 +945,7 @@ på `/exports` og linkes fra adminområdet.
 - Der logges ikke, hvem der har hentet et udtræk. Det aktuelle udtræk indeholder
   kun tal, men kommende udtræk med persondata bør overveje det.
 - Backend manglede hidtil danske visningsnavne på enums; de ligger nu i
-  `DS.Website/Labels.cs`. Frontend har stadig egne kopier i `group.types.ts` og
+  `DS.Backend/Labels.cs`. Frontend har stadig egne kopier i `group.types.ts` og
   `GroupsScouts.vue`, som på sigt bør læse fra den fælles kilde.
 
 ### Auditlog – nice to have
@@ -1345,7 +1345,7 @@ familie pr. domæne:
 `OpenIddictClientResult` samt deres paralleller er fjernet.
 
 Controllers konverterer resultatet med to udvidelsesmetoder i
-`DS.Website/Extensions/ControllerResultExtensions.cs`, begge med parameteren
+`DS.Backend/Extensions/ControllerResultExtensions.cs`, begge med parameteren
 `noContent`. De kaldes på controlleren, fx `this.ToActionResult(result)` og
 `this.ToActionResult(result, noContent: true)`, og erstatter de tidligere
 duplikerede private `Respond`-switches. Den fælles mapping er: `Success` → `Ok`
@@ -1362,7 +1362,7 @@ JSON-formen uændret.
 
 ### Fælles frontend-API-klient
 
-**Beslutning 2026-10-20:** `DS.Website/js/src/lib/api.ts` samler den gentagne
+**Beslutning 2026-10-20:** `DS.Backend/js/src/lib/api.ts` samler den gentagne
 axios-brug i services: én delt `apiClient` (samme oprindelse,
 `withCredentials` og JSON-headere) samt hjælperne `apiGet`/`apiPost`/`apiPut`/
 `apiDelete`, `safeApiCall`, `safeApiResult` og `getErrorMessage`.
@@ -1374,7 +1374,7 @@ bevidst uændret: hver service beholder sin eksisterende fallback (`[]`, `null`,
 (fx `BoardService.getMembers`, `FileService`) gør det fortsat.
 
 `BoardService` blev først migreret som pilot; alle øvrige services i
-`DS.Website/js/src/Services` er nu migreret til den fælles klient, så ingen
+`DS.Backend/js/src/Services` er nu migreret til den fælles klient, så ingen
 service importerer `axios` direkte længere. Konverteringshjælperne
 `safeApiResult` (fallback `null`) og `safeApiOk` (fallback `false`) dækker de
 tilfælde, hvor den oprindelige kode tjekkede `response.status`. `FileService`
@@ -1436,7 +1436,7 @@ aftale.
 
 ### Frontend-build og typekontrol
 
-**Midlertidig beslutning 2026-10-02:** `npm run build` i `DS.Website/js`
+**Midlertidig beslutning 2026-10-02:** `npm run build` i `DS.Backend/js`
 kører kun `vite build` og udelader `vue-tsc -b`. Årsagen er en
 afhængighedskonflikt: `vue-tsc` 3.x løser `typescript/lib/tsc`, og
 TypeScript 7 eksporterer ikke længere det subpath, så buildet fejlede med
@@ -1693,7 +1693,7 @@ til projektet. Kontrollér altid koden igen ved fremtidige ændringer.
   kommende integration eller en åben arkitekturbeslutning. Backend bruger
   ASP.NET Core Identity og OpenIddict.
 - Frontend bruger Vue/Vite og Buefy.
-- Globale roller og rettigheder ligger i `DS.Website/Roles.cs`. Planens roller
+- Globale roller og rettigheder ligger i `DS.Backend/Roles.cs`. Planens roller
   er ikke nødvendigvis implementeret med de beskrevne rettigheder.
 - Spejdergrupper er adskilt fra globale roller. `User.Group` knytter en bruger
   til en gruppe. Der er ingen særskilt gruppeadministrator eller gruppeejer.

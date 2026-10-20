@@ -17,9 +17,9 @@ specification or a request to implement every listed feature**.
   behavior and surface discrepancies relevant to the task.
 - Keycloak has been explicitly dropped from the plan. ASP.NET Core Identity
   and OpenIddict are the current authentication foundation
-  (`DS.Website/Extensions/ServiceExtensions.cs`). Do not reintroduce Keycloak based on old planning
+  (`DS.Backend/Extensions/ServiceExtensions.cs`). Do not reintroduce Keycloak based on old planning
   material.
-- Current global permissions are defined in `DS.Website/Roles.cs`. `AppGroups`
+- Current global permissions are defined in `DS.Backend/Roles.cs`. `AppGroups`
   denotes global identity roles, not scout groups. The draft role descriptions
   are not evidence that those permissions are already implemented.
 - Scout group membership currently uses `User.Group`, with no group owner or
@@ -76,7 +76,7 @@ Do not add code comments unless explicitly asked. This covers `//`, `/* */`,
 
 ## C# controller style
 
-Use `DS.Website/Controllers/ApiControllers/ActivityApiController.cs` as the
+Use `DS.Backend/Controllers/ApiControllers/ActivityApiController.cs` as the
 general reference for controller formatting. Read it before creating or
 substantially editing a controller. The guard style below is authoritative and
 supersedes single-return examples in the reference. Use Microsoft C# conventions
@@ -112,7 +112,7 @@ where the reference does not establish a convention.
 Example layout:
 
 ```csharp
-namespace DS.Website.Controllers
+namespace DS.Backend.Controllers
 {
     [Authorize]
     [Route("api/v1/example")]
@@ -163,8 +163,8 @@ To deploy a new version: bump the version in `DS/DSVersion.cs`, create a commit 
   style.
 - Run `git diff --check` after edits.
 - For C# changes, build with
-  `dotnet build DS.Website/DS.Website.csproj --no-restore --disable-build-servers -m:1`.
-- For frontend changes, run `npm run build` in `DS.Website/js`. If both builds
+  `dotnet build DS.Backend/DS.Backend.csproj --no-restore --disable-build-servers -m:1`.
+- For frontend changes, run `npm run build` in `DS.Backend/js`. If both builds
   are needed, finish the frontend build first: it replaces assets consumed by
   the backend build.
 - Do not add tests solely for formatting changes.

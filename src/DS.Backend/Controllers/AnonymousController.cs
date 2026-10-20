@@ -1,0 +1,37 @@
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+
+namespace DS.Backend.Controllers
+{
+    [AllowAnonymous]
+    public class AnonymousController(IWebHostEnvironment env) : Controller
+    {
+        [HttpGet("/login")]
+        public IActionResult Login() => SpaIndex();
+
+        [HttpGet("/register")]
+        public IActionResult Register() => SpaIndex();
+
+        [HttpGet("/group-pre-signup")]
+        public IActionResult GroupPreSignup() => SpaIndex();
+
+        [HttpGet("/group-invitation/{id}")]
+        public IActionResult GroupInvitation() => SpaIndex();
+
+        [HttpGet("/invitation/{id}")]
+        public IActionResult Invitation() => SpaIndex();
+
+        [HttpGet("/reset-password/{id}")]
+        public IActionResult ResetPassword() => SpaIndex();
+
+        [HttpGet("/forgot-password")]
+        public IActionResult ForgotPassword() => SpaIndex();
+
+        private IActionResult SpaIndex()
+        {
+            var filePath = Path.Combine(env.ContentRootPath, "wwwroot", "dist", "index.html");
+
+            return PhysicalFile(filePath, "text/html");
+        }
+    }
+}

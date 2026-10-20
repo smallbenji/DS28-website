@@ -6,9 +6,9 @@
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build Website",
-            "program": "${workspaceFolder}/DS.Website/bin/Debug/net10.0/DS.Website.dll",
+            "program": "${workspaceFolder}/src/DS.Backend/bin/Debug/net10.0/DS.Backend.dll",
             "args": [],
-            "cwd": "${workspaceFolder}/DS.Website",
+            "cwd": "${workspaceFolder}/src/DS.Backend",
             "console": "internalConsole",
             "envFile": "${workspaceFolder}/.env",
             "stopAtEntry": false

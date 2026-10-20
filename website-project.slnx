@@ -1,7 +1,7 @@
 <Solution>
-  <Project Path="DS.Application/DS.Application.csproj" />
-  <Project Path="DS.Domain/DS.Domain.csproj" />
-  <Project Path="DS.Infrastructure/DS.Infrastructure.csproj" />
-  <Project Path="DS.Website/DS.Website.csproj" />
-  <Project Path="DS.Worker/DS.Worker.csproj" />
+  <Project Path="src/DS.Application/DS.Application.csproj" />
+  <Project Path="src/DS.Backend/DS.Backend.csproj" />
+  <Project Path="src/DS.Domain/DS.Domain.csproj" />
+  <Project Path="src/DS.Infrastructure/DS.Infrastructure.csproj" />
+  <Project Path="src/DS.Worker/DS.Worker.csproj" />
 </Solution>
