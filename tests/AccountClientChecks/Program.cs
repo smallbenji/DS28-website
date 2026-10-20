@@ -15,13 +15,13 @@ using DS.Application.Services;
 using DS.Domain;
 using DS.Domain.DTOs;
 using DS.Domain.Models;
+using DS.Infrastructure;
 using DS.Infrastructure.Data;
 using DS.Infrastructure.Identity;
 using DS.Infrastructure.OpenIddict;
 using DS.Website.Controllers;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
 using OpenIddict.Abstractions;
@@ -48,19 +48,8 @@ Check(migration.Successful, $"migrations: {migration.Error?.Message}");
 var services = new ServiceCollection();
 services.AddLogging();
 services.AddDataProtection();
-services.AddDbContext<DataDbContext>(options => options.UseNpgsql(connectionString).UseSnakeCaseNamingConvention().UseOpenIddict());
-services.AddScoped<IDataDbContext>(provider => provider.GetRequiredService<DataDbContext>());
-services.AddIdentityCore<User>(options =>
-{
-    options.Stores.SchemaVersion = IdentitySchemaVersions.Version3;
-    options.Password.RequiredLength = 4;
-    options.Password.RequireNonAlphanumeric = false;
-    options.Password.RequireDigit = false;
-    options.Password.RequireUppercase = false;
-    options.Password.RequireLowercase = false;
-    options.User.RequireUniqueEmail = true;
-}).AddRoles<Role>().AddEntityFrameworkStores<DataDbContext>().AddUserManager<NotificationUserManager>().AddDefaultTokenProviders();
-services.AddOpenIddict().AddCore(options => options.UseEntityFrameworkCore().UseDbContext<DataDbContext>());
+services.AddDsDataLayer(connectionString);
+services.AddDsIdentityCore().AddUserManager<NotificationUserManager>().AddDefaultTokenProviders();
 services.Configure<DSSettings>(options =>
 {
     options.NotificationsEnabled = true;

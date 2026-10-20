@@ -1,4 +1,5 @@
 using DS.Infrastructure.Identity;
+using DS.Infrastructure;
 using DS.Infrastructure.Google;
 using DS.Application.Services.Google;
 using System.Security.Cryptography.X509Certificates;
@@ -17,7 +18,6 @@ using Hangfire.PostgreSql;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
 using OpenIddict.Abstractions;
 using OpenIddict.Server;
 
@@ -36,13 +36,7 @@ public static class ServiceExtensions
 
         var dssettings = builder.Configuration.GetSection("DS").Get<DSSettings>();
 
-        builder.Services.AddDbContext<DataDbContext>(options =>
-        {
-            options.UseNpgsql(dssettings?.ConnectionString ?? "")
-                .UseSnakeCaseNamingConvention();
-
-            options.UseOpenIddict();
-        });
+        builder.Services.AddDsDataLayer(dssettings?.ConnectionString ?? "");
 
         builder.Services.AddDSAuth(builder);
 
@@ -75,20 +69,13 @@ public static class ServiceExtensions
         services.AddScoped<IUserClaimsPrincipalFactory<User>, AppClaimsPrincipalFactory>();
         services.AddTransient<CampSettings>();
 
-        services.AddScoped<IDataDbContext>(provider => provider.GetRequiredService<DataDbContext>());
         services.AddScoped<DS.Application.Services.Organization.IUserAccessCache, UserAccessCache>();
 
         services.AddScoped<GoogleAuthService>();
         services.AddScoped<IGoogleAuthService>(provider => provider.GetRequiredService<GoogleAuthService>());
         services.AddScoped<IGoogleDriveClientFactory>(provider => provider.GetRequiredService<GoogleAuthService>());
         services.AddTransient<IGoogleDriveService, GoogleDriveService>();
-        services.AddHangfire(config => config.UsePostgreSqlStorage(
-            storage => storage.UseNpgsqlConnection(dsSettings.ConnectionString),
-            new PostgreSqlStorageOptions
-            {
-                SchemaName = "hangfire",
-                PrepareSchemaIfNecessary = false
-            }));
+        services.AddDsHangfireStorage(dsSettings.ConnectionString);
 
         services.ConfigureDsApplication();
         DS.Infrastructure.ConfigureInfrastructure.ConfigureDsInfrastructure(services);
@@ -108,28 +95,14 @@ public static class ServiceExtensions
 
     public static IServiceCollection AddDSAuth(this IServiceCollection services, WebApplicationBuilder builder)
     {
-        services.AddIdentity<User, Role>(options =>
-        {
-            options.Password.RequiredLength = 4;
-            options.Password.RequireNonAlphanumeric = false;
-            options.Password.RequireDigit = false;
-            options.Password.RequireUppercase = false;
-            options.Password.RequireLowercase = false;
-            options.User.RequireUniqueEmail = true;
-            options.Tokens.AuthenticatorIssuer = "DS HQ";
-
-            options.Stores.SchemaVersion = IdentitySchemaVersions.Version3;
-        })
+        services.AddIdentity<User, Role>()
         .AddEntityFrameworkStores<DataDbContext>()
         .AddUserManager<NotificationUserManager>()
         .AddDefaultTokenProviders();
 
+        services.ConfigureDsIdentityOptions();
+
         services.AddOpenIddict()
-            .AddCore(options =>
-            {
-                options.UseEntityFrameworkCore()
-                    .UseDbContext<DataDbContext>();
-            })
             .AddServer(options =>
             {
                 options

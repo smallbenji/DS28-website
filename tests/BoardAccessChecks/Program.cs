@@ -1,5 +1,6 @@
 using DS.Domain;
 using DbUp;
+using DS.Infrastructure;
 using DS.Infrastructure.Data;
 using DS.Application.Services.Boards;
 using DS.Domain.DTOs;
@@ -70,9 +71,8 @@ Check(!repeatedUpgrade.GetScriptsToExecute().Any(), "original migration journal 
 
 var services = new ServiceCollection();
 services.AddLogging();
-services.AddDbContext<DataDbContext>(builder => builder.UseNpgsql(connectionString).UseSnakeCaseNamingConvention().UseOpenIddict());
-services.AddIdentityCore<User>(options => options.Stores.SchemaVersion = IdentitySchemaVersions.Version3)
-    .AddRoles<Role>().AddEntityFrameworkStores<DataDbContext>();
+services.AddDsDataLayer(connectionString);
+services.AddDsIdentityCore();
 using var provider = services.BuildServiceProvider();
 using var scope = provider.CreateScope();
 var db = scope.ServiceProvider.GetRequiredService<DataDbContext>();
