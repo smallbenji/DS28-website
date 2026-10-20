@@ -38,10 +38,7 @@ namespace DS.Application.Services.Groups
         {
             await using var transaction = await dataDb.Database.BeginTransactionAsync();
 
-            await dataDb.Database.ExecuteSqlRawAsync(
-                "SELECT 1 FROM \"RegistrationSettings\" WHERE \"Id\" = 1 FOR SHARE");
-            if (!await dataDb.RegistrationSettings.AnyAsync(
-                s => s.Id == 1 && s.IsPreSignupOpen))
+            if (!await dataDb.IsPreSignupOpenAsync(lockSettings: true))
             {
                 return new ServiceResult(ServiceOutcome.Conflict, "Forhåndstilmeldingen er lukket. Deltagerantallene kan ikke ændres.");
             }
@@ -103,9 +100,7 @@ namespace DS.Application.Services.Groups
 
         public async Task<ServiceResult> DeleteScout(string userId, int scoutId)
         {
-            var user = await userManager.Users
-                .Include(u => u.Group)
-                .FirstOrDefaultAsync(u => u.Id == userId);
+            var user = await userManager.GetUserWithGroupAsync(userId);
             if (user?.Group == null) return new ServiceResult(ServiceOutcome.NotFound, "Din bruger er ikke tilknyttet en gruppe.");
 
             var scout = await dataDb.Scouts
@@ -135,9 +130,7 @@ namespace DS.Application.Services.Groups
 
         public async Task<ServiceResult> DeletePatrol(string userId, int patrolId)
         {
-            var user = await userManager.Users
-                .Include(u => u.Group)
-                .FirstOrDefaultAsync(u => u.Id == userId);
+            var user = await userManager.GetUserWithGroupAsync(userId);
             if (user?.Group == null) return new ServiceResult(ServiceOutcome.NotFound, "Din bruger er ikke tilknyttet en gruppe.");
 
             var patrol = await dataDb.Patrols
@@ -152,9 +145,7 @@ namespace DS.Application.Services.Groups
 
         public async Task<ServiceResult> AddScoutToPatrol(string userId, ScoutPatrolDto data)
         {
-            var user = await userManager.Users
-                .Include(u => u.Group)
-                .FirstOrDefaultAsync(u => u.Id == userId);
+            var user = await userManager.GetUserWithGroupAsync(userId);
             if (user?.Group == null) return new ServiceResult(ServiceOutcome.NotFound, "Din bruger er ikke tilknyttet en gruppe.");
 
             var scout = await dataDb.Scouts
@@ -174,9 +165,7 @@ namespace DS.Application.Services.Groups
 
         public async Task<ServiceResult> RemoveScoutFromPatrol(string userId, ScoutPatrolDto data)
         {
-            var user = await userManager.Users
-                .Include(u => u.Group)
-                .FirstOrDefaultAsync(u => u.Id == userId);
+            var user = await userManager.GetUserWithGroupAsync(userId);
             if (user?.Group == null) return new ServiceResult(ServiceOutcome.NotFound, "Din bruger er ikke tilknyttet en gruppe.");
 
             var scout = await dataDb.Scouts

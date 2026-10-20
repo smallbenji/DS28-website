@@ -11,8 +11,7 @@ namespace DS.Application.Services.Groups
     {
         public async Task<GroupPreSignupResult> Lookup(int groupId)
         {
-            if (!await dataDb.RegistrationSettings.AnyAsync(
-                s => s.Id == 1 && s.IsPreSignupOpen))
+            if (!await dataDb.IsPreSignupOpenAsync(lockSettings: false))
             {
                 return new GroupPreSignupResult(GroupPreSignupOutcome.Conflict, "Forhåndstilmeldingen er lukket.");
             }
@@ -44,16 +43,12 @@ namespace DS.Application.Services.Groups
         {
             await using var transaction = await dataDb.Database.BeginTransactionAsync();
 
-            await dataDb.Database.ExecuteSqlRawAsync(
-                "SELECT 1 FROM \"RegistrationSettings\" WHERE \"Id\" = 1 FOR SHARE");
-            if (!await dataDb.RegistrationSettings.AnyAsync(
-                s => s.Id == 1 && s.IsPreSignupOpen))
+            if (!await dataDb.IsPreSignupOpenAsync(lockSettings: true))
             {
                 return new GroupPreSignupResult(GroupPreSignupOutcome.Conflict, "Forhåndstilmeldingen er lukket.");
             }
 
-            await dataDb.Database.ExecuteSqlInterpolatedAsync(
-                $"SELECT 1 FROM \"Groups\" WHERE \"Id\" = {data.GroupId} FOR UPDATE");
+            await dataDb.LockGroupForUpdateAsync(data.GroupId);
 
             var group = await dataDb.Groups
                 .Include(g => g.PreSignup)

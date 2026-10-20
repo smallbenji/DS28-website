@@ -9,16 +9,9 @@ namespace DS.Application.Services.Groups
 {
     public class GroupMembersService(IDataDbContext dataDb, UserManager<User> userManager, EmailService emailService)
     {
-        private Task<User> GetCurrentUserAsync(string userId)
-        {
-            return userManager.Users
-                .Include(u => u.Group)
-                .SingleOrDefaultAsync(u => u.Id == userId);
-        }
-
         public async Task<ServiceResult<object>> InviteAsync(string userId, InviteGroupMemberDto data)
         {
-            var currentUser = await GetCurrentUserAsync(userId);
+            var currentUser = await userManager.GetUserWithGroupAsync(userId);
             if (currentUser?.Group == null) return new ServiceResult(ServiceOutcome.Forbidden);
 
             var email = data.Email.Trim();
@@ -49,7 +42,7 @@ namespace DS.Application.Services.Groups
 
         public async Task<ServiceResult<object>> GetInvitationsAsync(string userId)
         {
-            var currentUser = await GetCurrentUserAsync(userId);
+            var currentUser = await userManager.GetUserWithGroupAsync(userId);
             if (currentUser?.Group == null) return new ServiceResult(ServiceOutcome.Forbidden);
 
             return new ServiceResult<object>(ServiceOutcome.Success, await dataDb.Invitations
@@ -60,7 +53,7 @@ namespace DS.Application.Services.Groups
 
         public async Task<ServiceResult> RevokeAsync(string userId, Guid id)
         {
-            var currentUser = await GetCurrentUserAsync(userId);
+            var currentUser = await userManager.GetUserWithGroupAsync(userId);
             if (currentUser?.Group == null) return new ServiceResult(ServiceOutcome.Forbidden);
 
             var updatedCount = await dataDb.Invitations
@@ -75,7 +68,7 @@ namespace DS.Application.Services.Groups
 
         public async Task<ServiceResult> RemoveAsync(string userId, string id)
         {
-            var currentUser = await GetCurrentUserAsync(userId);
+            var currentUser = await userManager.GetUserWithGroupAsync(userId);
             if (currentUser?.Group == null) return new ServiceResult(ServiceOutcome.Forbidden);
 
             if (currentUser.Id == id)
@@ -85,8 +78,7 @@ namespace DS.Application.Services.Groups
 
             await using var transaction = await dataDb.Database.BeginTransactionAsync();
 
-            await dataDb.Database.ExecuteSqlInterpolatedAsync(
-                $"SELECT 1 FROM \"Groups\" WHERE \"Id\" = {currentUser.Group.Id} FOR UPDATE");
+            await dataDb.LockGroupForUpdateAsync(currentUser.Group.Id);
             if (!await userManager.Users.AnyAsync(u =>
                 u.Id == currentUser.Id &&
                 u.Group.Id == currentUser.Group.Id))
