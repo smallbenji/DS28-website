@@ -81,6 +81,38 @@ notifikationer stadig dækker alle Identity-baserede oprettelsesveje.
 Infrastructure registreres samlet via `ConfigureDsInfrastructure`, inklusive
 de eksisterende jobs. Der ændres ikke databaseskema eller adgangsregler.
 
+**Beslutning 2026-10-20 (implementeret):** Den gentagne DI-opstart er samlet i
+`DS.Infrastructure/ConfigureInfrastructure.cs`. Website, Worker og testene
+delte tidligere fire næsten identiske kopier af data- og Identity-opsætningen,
+og de var begyndt at drive fra hinanden. Der tilføjes fire delte metoder:
+
+- `AddDsDataLayer(connectionString)` registrerer `DataDbContext`
+  (Npgsql, snake_case-navngivning, `UseOpenIddict`), `IDataDbContext` og
+  OpenIddict Core mod samme DbContext.
+- `ConfigureDsIdentityOptions()` samler `IdentityOptions`
+  (adgangskodekrav, unik email, `AuthenticatorIssuer`, `SchemaVersion.Version3`).
+- `AddDsIdentityCore()` kalder `ConfigureDsIdentityOptions` og registrerer
+  `AddIdentityCore<User>().AddRoles<Role>().AddEntityFrameworkStores<DataDbContext>()`.
+  Den returnerer `IdentityBuilder`, så en host selv kan kæde fx
+  `.AddUserManager<NotificationUserManager>().AddDefaultTokenProviders()`.
+- `AddDsHangfireStorage(connectionString)` registrerer Hangfire PostgreSql-lageret
+  med schema `hangfire` og `PrepareSchemaIfNecessary = false`.
+
+Website bruger `AddDsDataLayer` og `AddDsHangfireStorage`, beholder sin fulde
+`AddIdentity<User, Role>` (cookies, `SignInManager`) og tilføjer
+`ConfigureDsIdentityOptions()`. Worker bruger `AddDsDataLayer`,
+`ConfigureDsIdentityOptions()` og `AddDsHangfireStorage`. Testene bruger
+`AddDsDataLayer` og `AddDsIdentityCore`; `AccountClientChecks` kæder desuden
+user manager og token providers på som før. `NotificationUserManager` blev ikke
+lagt ind i den fælles `AddDsIdentityCore`, fordi `BoardAccessChecks` bevidst
+kører uden den (den kræver `EmailService`, som den test ikke registrerer).
+
+`AddDsIdentityCore` kaldes fortsat før en eventuel host-specifik Identity-kæde,
+så `NotificationUserManager` og token providers bevares som UserManager.
+Rækkefølgen omkring `AddIdentity`/`ConfigureDsIdentityOptions` er valgt, så de
+delte options sættes sidst og ikke overskrives. Routes, skema, adgangsregler og
+runtime-adfærd er uændrede.
+
 **Beslutning 2026-10-19 (implementeret):** Profil- og boardarbejdsgange ligger i
 Application som `MeService` under `Services/Profile` og `BoardService` under
 `Services/Boards`. Website leverer bruger-id og de eksisterende effektive claims
