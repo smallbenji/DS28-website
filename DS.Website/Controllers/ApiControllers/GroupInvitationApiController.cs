@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace DS.Website.Controllers
 {
     [AllowAnonymous]
+    [IgnoreAntiforgeryToken]
     [Route("api/v1/group-invitations")]
     public class GroupInvitationApiController(GroupInvitationService invitationService, UserManager<User> userManager, SignInManager<User> signInManager) : Controller
     {

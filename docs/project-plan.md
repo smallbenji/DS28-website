@@ -1232,6 +1232,48 @@ Ubesluttede punkter:
 
 ## Sikkerhed og auth-hærdning
 
+**Beslutning 2026-10-20 (implementeret):** MVC bruger global
+`AutoValidateAntiforgeryTokenAttribute`, så POST, PUT, PATCH og DELETE som
+udgangspunkt kræver et gyldigt request-token sammen med antiforgery-cookien.
+GET, HEAD, OPTIONS og TRACE valideres ikke af dette filter. Dette udvider den
+tidligere beskyttelse, som kun fandtes på OpenIddict-klientadministrationen.
+
+- `GET /api/v1/antiforgery` udsteder et ikke-cachebart token til både anonyme
+  og indloggede brugere. Den fælles axios-klient sender det som
+  `RequestVerificationToken` på ændringskald til samme origin. Samtidige kald
+  deler tokenhentningen; cachen ryddes efter vellykkede ændringskald og ved
+  HTTP 400, så login og andre identitetsskift ikke efterlader et gammelt token.
+  Afviste ændringskald genafsendes ikke automatisk.
+- Antiforgery-cookien er HttpOnly og SameSite=Strict med Secure i produktion;
+  lokal udvikling tillader HTTP som den eksisterende login-cookie.
+- Det eksisterende token-endpoint under OpenIddict-klientadministrationen
+  bevares. Brugeradministrationen har desuden
+  `GET /api/v1/user/reset-password-link/antiforgery` med samme adgangskrav
+  som oprettelse af nulstillingslinks. Begge udsteder kompatible tokens.
+- Efter eksplicit valg er `AuthApiController` (inklusive logout),
+  `PasswordResetApiController`, `InvitationApiController`,
+  `GroupInvitationApiController` og `GroupPreSignupApiController` undtaget.
+  De offentlige flows bevarer deres eksisterende adgangskode-, reset-token-
+  og invitationskontroller. Undtagelserne er en accepteret begrænsning, ikke
+  en teknisk nødvendighed: også anonyme flows kan bruge antiforgery-tokens,
+  login-CSRF er muligt, og gruppeinvitationer kan bruge en eksisterende session.
+  Der indføres ikke Origin/Referer-validering som alternativ i denne opgave.
+- `/connect/authorize`, `/connect/token` og `/connect/userinfo` er eksplicit
+  undtaget fra MVC-antiforgery af hensyn til OIDC-protokollen. OpenIddict
+  validerer protokolrequests; tokenudveksling bruger authorization code og
+  klientens eksisterende credentials/PKCE-politik, mens userinfo bruger
+  OpenIddict-autentifikation frem for Identity-cookien. Passthrough-actions
+  kører stadig MVC-filtre; undtagelsen er derfor virksom og bevidst.
+- Eksisterende GET-baseret logout og Google OAuth-redirect/callback ændres ikke.
+  Google-callback beholder sin state-kontrol; Google-disconnect og
+  profilbilledændringer er omfattet af den globale validering.
+
+HTTP-integrationstesten bruger Website's faktiske MVC-registrering og
+kontrollerer manglende/ugyldige/gyldige tokens, POST/PUT/DELETE, cacheforbud og
+token uden cookie. Ingen databaseskemaændring. CodeQL skal genkøres efter
+ændringerne; eksplicit undtagne endpoints kan fortsat give fund, der skal
+vurderes særskilt frem for at blive erklæret rettet.
+
 **Beslutning 2026-10-14:** Fire konkrete fund fra en hurtig gennemgang blev
 gennemgået. Tre blev rettet, og PKCE blev vurderet og forkastet.
 

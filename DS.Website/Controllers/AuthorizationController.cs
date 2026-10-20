@@ -12,11 +12,11 @@ using OpenIddict.Server.AspNetCore;
 
 namespace DS.Website.Controllers
 {
+    [IgnoreAntiforgeryToken]
     public class AuthorizationController(SignInManager<User> signInManager, UserManager<User> userManager, IOpenIddictApplicationManager applications) : Controller
     {
         [HttpGet("~/connect/authorize")]
         [HttpPost("~/connect/authorize")]
-        [IgnoreAntiforgeryToken]
         public async Task<IActionResult> Authorize()
         {
             var request = HttpContext.GetOpenIddictServerRequest() ??
@@ -60,7 +60,6 @@ namespace DS.Website.Controllers
         }
 
         [HttpPost("~/connect/token")]
-        [IgnoreAntiforgeryToken]
         public async Task<IActionResult> Exchange()
         {
             var request = HttpContext.GetOpenIddictServerRequest() ??

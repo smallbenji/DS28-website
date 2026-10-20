@@ -18,6 +18,7 @@ using Hangfire.PostgreSql;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
 using OpenIddict.Abstractions;
 using OpenIddict.Server;
 
@@ -162,6 +163,12 @@ public static class ServiceExtensions
             if (builder.Environment.IsDevelopment()) options.Cookie.SecurePolicy = CookieSecurePolicy.None;
         });
 
+        services.AddAntiforgery(options =>
+        {
+            options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+            if (builder.Environment.IsDevelopment()) options.Cookie.SecurePolicy = CookieSecurePolicy.None;
+        });
+
         services.AddScoped<IClaimsTransformation, ClaimsTransformer>();
 
         services.Configure<IdentityPasskeyOptions>(options =>
@@ -182,7 +189,10 @@ public static class ServiceExtensions
 
     public static WebApplicationBuilder AddMVC(this WebApplicationBuilder builder)
     {
-        builder.Services.AddControllersWithViews()
+        builder.Services.AddControllersWithViews(options =>
+        {
+            options.Filters.Add<AutoValidateAntiforgeryTokenAttribute>();
+        })
             .AddJsonOptions(options =>
             {
                 options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;

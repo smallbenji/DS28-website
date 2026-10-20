@@ -35,7 +35,6 @@ namespace DS.Website.Controllers
         }
 
         [HttpPost]
-        [ValidateAntiForgeryToken]
         public async Task<IActionResult> CreateClient([FromBody] OpenIddictClientUpdateDto data, CancellationToken cancellationToken)
         {
             if (!ModelState.IsValid) return BadRequest("Kontrollér klientens felter.");
@@ -46,7 +45,6 @@ namespace DS.Website.Controllers
         }
 
         [HttpPut("{id}")]
-        [ValidateAntiForgeryToken]
         public async Task<IActionResult> UpdateClient(string id, [FromBody] OpenIddictClientUpdateDto data, CancellationToken cancellationToken)
         {
             if (!ModelState.IsValid) return BadRequest("Kontrollér klientens felter.");
@@ -57,7 +55,6 @@ namespace DS.Website.Controllers
         }
 
         [HttpPost("{id}/rotate-secret")]
-        [ValidateAntiForgeryToken]
         public async Task<IActionResult> RotateSecret(string id, CancellationToken cancellationToken)
         {
             var result = await clientService.RotateSecret(id, cancellationToken);
@@ -66,7 +63,6 @@ namespace DS.Website.Controllers
         }
 
         [HttpDelete("{id}")]
-        [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteClient(string id, CancellationToken cancellationToken)
         {
             var result = await clientService.DeleteClient(id, cancellationToken);

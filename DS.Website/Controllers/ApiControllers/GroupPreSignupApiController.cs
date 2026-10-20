@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace DS.Website.Controllers
 {
     [AllowAnonymous]
+    [IgnoreAntiforgeryToken]
     [Route("/api/v1/group-pre-signup")]
     public class GroupPreSignupApiController(GroupPreSignupService preSignupService, SignInManager<User> signInManager) : Controller
     {

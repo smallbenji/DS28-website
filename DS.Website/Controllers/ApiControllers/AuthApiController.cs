@@ -12,6 +12,7 @@ namespace DS.Website.Controllers
 {
     [AllowAnonymous]
     [EnableRateLimiting("auth")]
+    [IgnoreAntiforgeryToken]
     [Route("/api/v1/auth")]
     public class AuthApiController(UserManager<User> userManager, SignInManager<User> signInManager, AccountService accountService) : Controller
     {

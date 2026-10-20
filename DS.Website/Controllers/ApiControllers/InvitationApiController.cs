@@ -7,6 +7,7 @@ using Microsoft.Extensions.Caching.Memory;
 namespace DS.Website.Controllers
 {
     [AllowAnonymous]
+    [IgnoreAntiforgeryToken]
     [Route("api/v1/invitation")]
     public class InvitationApiController(InvitationService invitationService, IMemoryCache memoryCache) : Controller
     {

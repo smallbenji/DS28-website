@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace DS.Website.Controllers
 {
     [AllowAnonymous]
+    [IgnoreAntiforgeryToken]
     [Route("api/v1/reset-password")]
     public class PasswordResetApiController(AccountService accountService) : Controller
     {
