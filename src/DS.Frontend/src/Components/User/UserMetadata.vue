@@ -7,19 +7,16 @@
             <div class="is-flex is-align-items-center mb-4">
                 <UserAvatar :user="selectedUser" size="large" class="mr-4" />
                 <Can role="UsersEditProfilePicture">
-                    <div>
-                        <div class="buttons mb-2">
-                            <BUpload v-model="selectedPicture" accept="image/*" :disabled="isUpdatingPicture">
-                                <BButton tag="a" type="is-primary" :loading="isUpdatingPicture">
-                                    {{ selectedUser.profilePicture ? 'Vælg nyt billede' : 'Vælg billede' }}
-                                </BButton>
-                            </BUpload>
-                            <BButton v-if="selectedUser.profilePicture" type="is-danger is-light"
-                                :disabled="isUpdatingPicture" @click="removePicture">
-                                Fjern
+                    <div class="buttons mb-2">
+                        <BUpload v-model="selectedPicture" accept="image/*" :disabled="isUpdatingPicture">
+                            <BButton tag="a" type="is-primary" :loading="isUpdatingPicture">
+                                {{ selectedUser.profilePicture ? 'Vælg nyt billede' : 'Vælg billede' }}
                             </BButton>
-                        </div>
-                        <p class="help">Profilbilledet ændres med det samme.</p>
+                        </BUpload>
+                        <BButton v-if="selectedUser.profilePicture" type="is-danger is-light"
+                            :disabled="isUpdatingPicture" @click="removePicture">
+                            Fjern
+                        </BButton>
                     </div>
                 </Can>
             </div>
