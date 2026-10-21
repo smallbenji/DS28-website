@@ -3,7 +3,7 @@
         <component :is="link.to && !isLocked(link.date) ? RouterLink : 'div'"
             v-for="link in links" :key="link.name" :to="link.to"
             class="link has-text-dark" :class="{'is-inactive': isLocked(link.date)}">
-            <span class="subtitle is-5 mb-1 has-text-weight-bold">
+            <span class="mb-1 has-text-weight-bold">
                 {{ link.name }}
             </span>
             <span v-if="link.date && isLocked(link.date)">
@@ -47,6 +47,7 @@ const isLocked = (targetDate: Date | null) => {
     background-color: white;
     border-radius: 10px;
     border: 1px solid rgba(0, 0, 0, 0.1);
+    flex-wrap: wrap;
     display: flex;
     gap: 1rem;
     padding: 1rem;
@@ -54,7 +55,8 @@ const isLocked = (targetDate: Date | null) => {
 
     .link {
         height: 8rem;
-        min-width: 12rem;
+        min-width: 14rem;
+        flex: 1;
         border-radius: 10px;
         display: flex;
         flex-direction: column;
@@ -83,34 +85,6 @@ const isLocked = (targetDate: Date | null) => {
             cursor: not-allowed;
 
         }
-
-        // &.is-inactive {
-        //     opacity: 0.7;
-        //     background-color: #fafafa;
-        //     cursor: not-allowed;
-        //     pointer-events: none;
-        //     overflow: hidden;
-
-        //     /* This creates the giant diagonal line going top-left to bottom-right */
-        //     &::before {
-        //         content: "";
-        //         position: absolute;
-        //         width: 150%; /* wider than 100% to fully cover the diagonal span */
-        //         height: 3px;  /* Thickness of the cross line */
-        //         background-color: rgba(255, 56, 96, 0.6); /* Red color with transparency */
-        //         transform: rotate(33deg); /* Perfectly fits a 12x8rem box aspect ratio */
-        //     }
-
-        //     /* This creates the giant diagonal line going bottom-left to top-right */
-        //     &::after {
-        //         content: "";
-        //         position: absolute;
-        //         width: 150%;
-        //         height: 3px;
-        //         background-color: rgba(255, 56, 96, 0.6);
-        //         transform: rotate(-33deg);
-        //     }
-        // }
     }
 }
 </style>
