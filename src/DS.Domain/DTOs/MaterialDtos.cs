@@ -38,3 +38,20 @@ public class CreateMaterialOrderDto
         };
     }
 }
+
+public class MaterialDto
+{
+    public MaterialDto() { }
+    public MaterialDto(Material material)
+    {
+        Id = material.Id;
+        Price = material.Price;
+        Name = material.Name;
+        Url = material.Url;
+    }
+
+    public int Id { get; set; }
+    public double Price { get; set; }
+    public string Name { get; set; }
+    public string Url { get; set; }
+}

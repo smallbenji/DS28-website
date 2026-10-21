@@ -23,4 +23,12 @@ namespace DS.Domain.DTOs
         public int GroupId { get; set; }
         public List<PatrolMembershipDto> Memberships { get; set; } = [];
     }
+
+    public class CreateScoutDto
+    {
+        public string Name { get; set; }
+        public DateTime Birthday { get; set; }
+        public Gender Gender { get; set; }
+        public int GroupId { get; set; }
+    }
 }

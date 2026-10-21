@@ -43,4 +43,9 @@ namespace DS.Domain.DTOs
             user.PhoneNumber = Phone;
         }
     }
+
+    public class UpdatePhoneDto
+    {
+        public string Phone { get; set; } = string.Empty;
+    }
 }
