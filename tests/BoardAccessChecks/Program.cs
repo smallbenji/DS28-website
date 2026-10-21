@@ -5,8 +5,8 @@ using DS.Infrastructure.Data;
 using DS.Application.Services.Boards;
 using DS.Domain.DTOs;
 using DS.Domain.Models;
-using DS.Website;
-using DS.Website.Controllers;
+using DS.Backend;
+using DS.Backend.Controllers.ApiControllers;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -44,7 +44,7 @@ await using (var connection = new NpgsqlConnection(connectionString))
         VALUES ('owner', 'owner', false, false, false, false, 0);
         INSERT INTO ds28.board (key, title, required_role, created_by_user_id)
         VALUES ('legacy', 'Legacy', 'ActivityView', 'owner'), ('orphan', 'Orphan', NULL, NULL);
-        INSERT INTO ds28.work_item (title) VALUES ('Existing uncolored card');
+        INSERT INTO ds28.work_item (title, assignee_user_id) VALUES ('Existing uncolored card', 'owner');
         """, connection).ExecuteNonQueryAsync();
 }
 
@@ -78,6 +78,7 @@ using var scope = provider.CreateScope();
 var db = scope.ServiceProvider.GetRequiredService<DataDbContext>();
 var manager = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
 Check((await db.WorkItems.SingleAsync(item => item.Title == "Existing uncolored card")).Color == null, "existing cards migrate without a color");
+Check((await db.WorkItems.Include(item => item.Assignees).SingleAsync(item => item.Title == "Existing uncolored card")).Assignees.Single().UserId == "owner", "assignee migration preserves existing assignment without index name collision");
 Check((await db.WorkItems.SingleAsync(item => item.Title == "Existing colored card")).Color == "#dbeafe", "board palette migration preserves existing card colors");
 Check(await db.BoardColors.CountAsync() == 20, "existing boards receive ten default palette colors each");
 foreach (var id in new[] { "member", "friend", "outsider", "admin" })
@@ -137,6 +138,12 @@ Check(await controller.UpdateCard(new WorkItemUpdateDto { Title = "Shared", Colo
 Check((await Board(boardId)).Cards.Single().Color == "#dbeafe", "invalid update preserves stored color");
 var search = (List<BoardMemberDto>)((OkObjectResult)await controller.SearchAssignees("outsider", boardId)).Value;
 Check(search.Single().Id == "outsider", "member can find existing ordinary users");
+Check(await controller.UpdateCard(new WorkItemUpdateDto { Title = "Shared", Color = "#dbeafe", AssigneeUserIds = [" member ", "friend", "member"] }, boardId, cardId) is OkResult, "card accepts multiple assignees and normalizes duplicate IDs");
+Check((await Board(boardId)).Cards.Single().Assignees.Select(user => user.Id).Order().SequenceEqual(new[] { "friend", "member" }), "card returns both assigned users");
+Check(await controller.UpdateCard(new WorkItemUpdateDto { Title = "Shared", AssigneeUserIds = ["member", "missing"] }, boardId, cardId) is BadRequestObjectResult, "unknown assignee rejects entire update");
+Check((await Board(boardId)).Cards.Single().Assignees.Count == 2, "invalid update preserves all assignees");
+Check(await controller.UpdateCard(new WorkItemUpdateDto { Title = "Shared", Color = "#dbeafe", AssigneeUserIds = ["friend"] }, boardId, cardId) is OkResult, "individual assignee can be removed");
+Check((await Board(boardId)).Cards.Single().Assignees.Single().Id == "friend", "removing one assignee preserves the other");
 
 ActAs("outsider", nameof(AppGroups.EventAdmin), nameof(AppRoles.ActivityAdmin));
 Check((await Boards()).Count == 0, "unrelated global administrator cannot list boards");
@@ -176,6 +183,7 @@ foreach (var role in new[] { nameof(AppGroups.SysAdmin), nameof(AppGroups.CampAd
 }
 Check(await controller.AddCardPlacement(new WorkItemPlacementCreateDto { ColumnId = hiddenColumn }, hiddenId, cardId) is OkResult, "administrator can share card across boards");
 Check((await Board(boardId)).Cards.Single().Placements.Count == 2, "administrator sees both shared placements");
+Check((await Board(hiddenId)).Cards.Single().Assignees.Single().Id == "friend", "assignees follow shared card across boards");
 foreach (var color in new[] { "#dbeafe", "#dcfce7", "#fef3c7", "#fee2e2", "#ede9fe", "#ccfbf1", "#ab1234", "#000000", "#ffffff" })
 {
     Check(await controller.UpdateCard(new WorkItemUpdateDto { Title = "Shared", Color = color }, boardId, cardId) is OkResult, $"can set palette color {color}");
@@ -193,6 +201,7 @@ Check((await Board(boardId)).Cards.Single().Placements.Single().BoardId == board
 Check(await controller.GetBoard(hiddenId) is ForbidResult, "shared card does not grant hidden board access");
 Check(await controller.UpdateCard(new WorkItemUpdateDto { Title = "Friend edit" }, boardId, cardId) is OkResult, "invited friend can edit cards");
 Check((await Board(boardId)).Cards.Single().Color == null, "member can remove card color");
+Check((await Board(boardId)).Cards.Single().Assignees.Count == 0, "empty assignee list clears assignments");
 foreach (var paletteColor in (await Board(boardId)).Colors)
 {
     Check(await controller.DeleteColor(boardId, paletteColor.Id) is OkResult, "ordinary member can remove palette color");

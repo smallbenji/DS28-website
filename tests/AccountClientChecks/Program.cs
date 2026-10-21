@@ -19,7 +19,8 @@ using DS.Infrastructure;
 using DS.Infrastructure.Data;
 using DS.Infrastructure.Identity;
 using DS.Infrastructure.OpenIddict;
-using DS.Website.Controllers;
+using DS.Backend.Controllers;
+using DS.Backend.Extensions;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
@@ -94,6 +95,7 @@ webBuilder.WebHost.UseUrls("http://127.0.0.1:0");
 webBuilder.Services.AddAuthentication().AddCookie();
 webBuilder.Services.AddAuthorization();
 webBuilder.Services.AddAntiforgery();
+webBuilder.AddMVC();
 webBuilder.Services.AddControllersWithViews().AddApplicationPart(typeof(UserApiController).Assembly);
 webBuilder.Services.AddSingleton(scope.ServiceProvider.GetRequiredService<UserService>());
 webBuilder.Services.AddSingleton(manager);
@@ -107,6 +109,7 @@ await using (var web = webBuilder.Build())
         {
             new Claim(ClaimTypes.NameIdentifier, observer.Id),
             new Claim(ClaimTypes.Role, nameof(AppRoles.UsersView)),
+            new Claim(ClaimTypes.Role, nameof(AppRoles.UsersDelete)),
             new Claim(ClaimTypes.Role, nameof(AppRoles.UsersResetPassword))
         }, "test"));
         await next(context);
@@ -134,6 +137,35 @@ await using (var web = webBuilder.Build())
     Check(validResponse.IsSuccessStatusCode, "reset-link endpoint accepts matching CSRF token and cookie");
     using var linkJson = JsonDocument.Parse(await validResponse.Content.ReadAsStringAsync());
     Check(linkJson.RootElement.GetProperty("link").GetString().Contains($"/reset-password/{user.Id}?token="), "protected endpoint still returns reset link");
+
+    using var sharedTokenResponse = await client.GetAsync("/api/v1/antiforgery");
+    Check(sharedTokenResponse.IsSuccessStatusCode && sharedTokenResponse.Headers.CacheControl?.NoStore == true, "shared CSRF endpoint issues non-cacheable tokens");
+    using var sharedTokenJson = JsonDocument.Parse(await sharedTokenResponse.Content.ReadAsStringAsync());
+    var sharedToken = sharedTokenJson.RootElement.GetProperty("token").GetString();
+    using var sharedTokenRequest = new HttpRequestMessage(HttpMethod.Post, resetPath);
+    sharedTokenRequest.Headers.Add("RequestVerificationToken", sharedToken);
+    using var sharedTokenResult = await client.SendAsync(sharedTokenRequest);
+    Check(sharedTokenResult.IsSuccessStatusCode, "shared token works on protected controller actions");
+
+    foreach (var method in new[] { HttpMethod.Put, HttpMethod.Delete })
+    {
+        var path = method == HttpMethod.Put ? "/api/v1/user" : "/api/v1/user/missing-csrf-test-user";
+        using var request = new HttpRequestMessage(method, path);
+        using var response = await client.SendAsync(request);
+        Check(response.StatusCode == HttpStatusCode.BadRequest, $"global CSRF filter protects {method}");
+    }
+
+    using var deleteRequest = new HttpRequestMessage(HttpMethod.Delete, "/api/v1/user/missing-csrf-test-user");
+    deleteRequest.Headers.Add("RequestVerificationToken", sharedToken);
+    using var deleteResponse = await client.SendAsync(deleteRequest);
+    Check(deleteResponse.StatusCode == HttpStatusCode.NotFound, "valid CSRF token allows DELETE to reach business validation");
+
+    using var cookielessHandler = new HttpClientHandler { UseCookies = false };
+    using var cookielessClient = new HttpClient(cookielessHandler) { BaseAddress = client.BaseAddress };
+    using var missingCookieRequest = new HttpRequestMessage(HttpMethod.Post, resetPath);
+    missingCookieRequest.Headers.Add("RequestVerificationToken", sharedToken);
+    using var missingCookieResponse = await cookielessClient.SendAsync(missingCookieRequest);
+    Check(missingCookieResponse.StatusCode == HttpStatusCode.BadRequest, "CSRF header without matching cookie is rejected");
     await web.StopAsync();
 }
 
