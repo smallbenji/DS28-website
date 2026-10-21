@@ -47,7 +47,7 @@ namespace DS.Backend.Controllers.ApiControllers
                     Title = "Tavler",
                     Url = "/board",
                     Icon = ["table-columns"],
-                    RequiredRole = null
+                    RequiredRole = nameof(AppRoles.BoardView)
                 },
 
                 // No roles needed

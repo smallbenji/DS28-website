@@ -31,6 +31,8 @@ namespace DS.Domain
         OrgView,
         OrgManage,
 
+        BoardView,
+
         ActivityView,
         ActivityAdmin,
 
@@ -86,6 +88,8 @@ namespace DS.Domain
                     nameof(AppRoles.MaterialView),
                     nameof(AppRoles.MaterialDelete),
                     nameof(AppRoles.MaterialDelete),
+
+                    nameof(AppRoles.BoardView),
                 ]
             },
             {
@@ -95,6 +99,8 @@ namespace DS.Domain
 
                     nameof(AppRoles.OrgView),
                     nameof(AppRoles.OrgManage),
+
+                    nameof(AppRoles.BoardView),
                 ]
             },
             {
@@ -117,6 +123,8 @@ namespace DS.Domain
                     nameof(AppRoles.AuditLogView),
                     nameof(AppRoles.ExportsView),
                     nameof(AppRoles.AdminAccess),
+
+                    nameof(AppRoles.BoardView),
                 ]
             },
             {
@@ -128,6 +136,8 @@ namespace DS.Domain
 
                     nameof(AppRoles.OrgView),
                     nameof(AppRoles.OrgManage),
+
+                    nameof(AppRoles.BoardView),
                 ]
             },
             {
@@ -139,6 +149,8 @@ namespace DS.Domain
 
                     nameof(AppRoles.OrgView),
                     nameof(AppRoles.OrgManage),
+
+                    nameof(AppRoles.BoardView),
                 ]
             },
             {
@@ -148,6 +160,8 @@ namespace DS.Domain
 
                     nameof(AppRoles.OrgView),
                     nameof(AppRoles.OrgManage),
+
+                    nameof(AppRoles.BoardView),
                 ]
             },
             {
@@ -157,12 +171,16 @@ namespace DS.Domain
 
                     nameof(AppRoles.OrgView),
                     nameof(AppRoles.OrgManage),
+
+                    nameof(AppRoles.BoardView),
                 ]
             },
             {
                 AppGroups.PersonalAssistant,
                 [
-                    nameof(AppRoles.OrgView)
+                    nameof(AppRoles.OrgView),
+
+                    nameof(AppRoles.BoardView),
                 ]
             },
             {
