@@ -1,0 +1,45 @@
+<template>
+    <div class="group-users mb-auto">
+        <p class="subtitle mb-2 px-4">
+            Brugere
+        </p>
+        <div class="px-4 mb-3">
+            <BButton size="is-small" @click="router.push('/group/members')">Administrer brugere</BButton>
+        </div>
+        <div class="group-user" v-for="user in Group.users">
+            <UserAvatar :user="user" size="small"/>
+            {{ user.firstName + " " + user.lastName }}
+        </div>
+    </div>
+</template>
+<script lang="ts" setup>
+import { BButton } from 'buefy';
+import { useRouter } from 'vue-router';
+const router = useRouter();
+import { useGroupStore } from '@ds28/shared-core/Stores/GroupStore';
+import { storeToRefs } from 'pinia';
+import UserAvatar from '../User/UserAvatar.vue';
+
+const groupStore = useGroupStore();
+const { Group } = storeToRefs(groupStore);
+</script>
+<style lang="scss">
+.group {
+    &-users {
+        min-width: 12rem;
+        background-color: white;
+        padding: 1rem 0;
+        border-radius: 10px;
+        border: 1px solid rgba(0, 0, 0, 0.1);
+        box-shadow: 5px 5px 5px 0 rgba(0, 0, 0, 0.1);
+    }
+
+    &-user {
+        padding: 0.25rem 1rem;
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+        // background-color: darkgray;
+    }
+}
+</style>

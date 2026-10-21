@@ -1,0 +1,24 @@
+import type { ImageReferenceDto } from "./file.types";
+import type { PasskeyDto } from "./passkeys.types";
+
+export interface MeDto {
+  isAuthenticated: boolean;
+  id: string;
+  name: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  title: string;
+  phone: string;
+  mustEnableTwoFactor: boolean;
+  isImpersonating: boolean;
+  roles: string[];
+  appRoles: string[];
+  passkeys: PasskeyDto[]
+  profilePicture: ImageReferenceDto | null;
+}
+
+export interface ImpersonationGroupDto {
+  name: string;
+  title: string;
+}

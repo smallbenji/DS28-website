@@ -1,0 +1,258 @@
+import { useGroupsStore } from "@ds28/shared-core/Stores/GroupsStore";
+import { useUserStore } from "@ds28/shared-core/Stores/UserStore";
+import { createRouter, createWebHistory, type RouteRecordRaw } from "vue-router";
+import { useLoading } from "buefy";
+import { useMeStore } from "@ds28/shared-core/Stores/MeStore";
+import { useGroupStore } from "@ds28/shared-core/Stores/GroupStore";
+import { useActivityStore } from "@ds28/shared-core/Stores/ActivityStore";
+import { useVersionStore } from "@ds28/shared-core/Stores/VersionStore";
+import { useBoardStore } from "@ds28/shared-core/Stores/BoardStore";
+
+const routes: RouteRecordRaw[] = [
+    {
+        path: "/admin/camp-settings",
+        component: () => import("@/Views/CampSettings.vue"),
+        meta: { requiresAuth: true, requiredRole: "PreSignupManage", pageTitle: "Lejrindstillinger", pageIcon: "sliders" }
+    },
+    {
+        path: "/group/members",
+        component: () => import("@/Views/GroupMembers.vue"),
+        meta: { requiresAuth: true, pageTitle: "Gruppens brugere", pageIcon: "users" }
+    },
+    {
+        path: "/group-invitation/:id",
+        component: () => import("@/Views/GroupInvitation.vue")
+    },
+    {
+        path: "/group-pre-signup",
+        component: () => import("@/Views/GroupPreSignup.vue"),
+        meta: { guestOnly: true }
+    },
+    {
+        path: "/",
+        component: () => import("@/Views/Home.vue"),
+        meta: { requiresHomeData: true, pageTitle: "HQ", pageIcon: "house", hideBack: true }
+    },
+    {
+        path: "/admin/user/:id?",
+        component: () => import("@/Views/User.vue"),
+        meta: { requiresUserData: true, pageTitle: "Brugerstyring", pageIcon: "user-pen" }
+    },
+    {
+        path: "/profile",
+        component: () => import("@/Views/Profile.vue"),
+        meta: { pageTitle: "Min profil", pageIcon: "user" }
+    },
+    {
+        path: "/admin/groups/:id?",
+        component: () => import("@/Views/Groups.vue"),
+        meta: { requiresGroupsData: true, pageTitle: "Gruppestyring", pageIcon: "users-gear" }
+    },
+    {
+        path: "/invitation/:id",
+        component: () => import("@/Views/Invitation.vue")
+    },
+    {
+        path: "/reset-password/:id",
+        component: () => import("@/Views/ResetPassword.vue")
+    },
+    {
+        path: "/login",
+        component: () => import("@/Views/Login.vue"),
+        meta: { guestOnly: true }
+    },
+    {
+        path: "/forgot-password",
+        component: () => import("@/Views/ForgotPassword.vue"),
+        meta: { guestOnly: true }
+    },
+    {
+        path: "/register",
+        component: () => import("@/Views/Register.vue"),
+        meta: { guestOnly: true }
+    },
+    {
+        path: "/twofactor-setup",
+        component: () => import("@/Views/TwoFactorSetup.vue")
+    },
+    {
+        path: "/group",
+        component: () => import("@/Views/Group.vue"),
+        meta: { requiresGroupData: true, pageTitle: "Gruppe", pageIcon: "users" }
+    },
+    {
+        path: "/group/pre-signup",
+        component: () => import("@/Views/GroupPreSignupEdit.vue"),
+        meta: { requiresAuth: true, pageTitle: "Forhåndstilmelding", pageIcon: "users" }
+    },
+    {
+        path: "/group/final-signup",
+        component: () => import("@/Views/GroupFinalSignup.vue"),
+        meta: { requiresAuth: true, requiresGroupData: true, pageTitle: "Endelig tilmelding", pageIcon: "users" }
+    },
+    {
+        path: "/activity",
+        component: () => import("@/Views/Activity.vue"),
+        meta: { requiresActivityTeamData: true, pageTitle: "Aktivitetsmodul", pageIcon: "fa-newspaper" }
+    },
+    {
+        path: "/activity/teams/:id?",
+        component: () => import("@/Views/TeamManagement.vue"),
+        meta: { requiresActivityTeamData: true, requiresActivityAdmin: true, pageTitle: "Teamstyring", pageIcon: "users-gear" }
+    },
+    {
+        path: "/activity/:id",
+        component: () => import("@/Views/ActivityDetail.vue"),
+        meta: { requiresActivityData: true, pageTitle: "Aktivitetsmodul", pageIcon: "fa-newspaper" }
+    },
+    {
+        path: "/admin",
+        component: () => import("@/Views/Admin.vue"),
+        meta: { requiresAuth: true, requiredRole: "AdminAccess", pageTitle: "Admin", pageIcon: "gear" }
+    },
+    {
+        path: "/admin/google",
+        component: () => import("@/Views/GoogleAdmin.vue"),
+        meta: { requiresAuth: true, requiredRole: "AdminAccess", pageTitle: "Google Drev", pageIcon: "globe" }
+    },
+    {
+        path: "/admin/openiddict",
+        component: () => import("@/Views/OpenIddictClients.vue"),
+        meta: { requiresAuth: true, requiredRole: "OpenIddictManage", pageTitle: "OpenIddict-klienter", pageIcon: "gear" }
+    },
+    {
+        path: "/org",
+        component: () => import("@/Views/OrgChart.vue"),
+        meta: { requiresAuth: true, requiredRole: "OrgView", pageTitle: "Organisation", pageIcon: "sitemap" }
+    },
+    {
+        path: "/admin/exports",
+        component: () => import("@/Views/Exports.vue"),
+        meta: { requiresAuth: true, requiredRole: "ExportsView", pageTitle: "Dataudtræk", pageIcon: "file-arrow-down" }
+    },
+    {
+        path: "/board",
+        component: () => import("@/Views/Board.vue"),
+        meta: { requiresAuth: true, requiredRole: "BoardView", requiresBoardsData: true, pageTitle: "Tavler", pageIcon: "table-columns" }
+    },
+    {
+        path: "/board/:id",
+        component: () => import("@/Views/BoardDetail.vue"),
+        meta: { requiresAuth: true, requiredRole: "BoardView", requiresBoardData: true, pageTitle: "Tavle", pageIcon: "table-columns" }
+    }
+];
+
+const router = createRouter({
+    history: createWebHistory(),
+    routes
+});
+
+router.beforeEach(async (to) => {
+    const Loading = useLoading();
+    // const loading = Loading.open({});
+    let loadingInstance: any = null;
+    let loadingTimeout: ReturnType<typeof setTimeout> | null = null;
+    
+    const meStore = useMeStore();
+    const userStore = useUserStore();
+    const groupsStore = useGroupsStore();
+    const groupStore = useGroupStore();
+    const activityStore = useActivityStore();
+    const versionStore = useVersionStore();
+    const boardStore = useBoardStore();
+
+    const promises = [];
+
+    loadingTimeout = setTimeout(() => {
+        loadingInstance = Loading.open({});
+    }, 100);
+
+    try {
+        promises.push(meStore.GET_ME());
+
+        if (to.meta.requiresUserData) {
+            promises.push(userStore.GET_USERS());
+            promises.push(userStore.GET_GROUPS());
+            promises.push(userStore.GET_ASSIGNABLE_GROUPS());
+            promises.push(groupsStore.GET_GROUPS());
+        }
+
+        if (to.meta.requiresHomeData) {
+            promises.push(versionStore.GET_VERSION());
+            promises.push(meStore.GET_HQ());
+        }
+
+        if (to.meta.requiresGroupsData && !to.meta.requiresUserData) {
+            promises.push(groupsStore.GET_GROUPS());
+        }
+
+        if (to.meta.requiresGroupData) {
+            promises.push(groupStore.GET_GROUP());
+        }
+
+        if (to.meta.requiresActivityTeamData) {
+            promises.push(activityStore.GET_TEAMS());
+        }
+
+        if (to.meta.requiresActivityData) {
+            const id = Array.isArray(to.params.id) ? to.params.id[0] : to.params.id;
+            if (id) {
+                promises.push(activityStore.GET_ACTIVITY(Number(id)));
+            }
+        }
+
+        if (to.meta.requiresBoardsData) {
+            promises.push(boardStore.GET_BOARDS());
+        }
+
+        if (to.meta.requiresBoardData) {
+            const id = Array.isArray(to.params.id) ? to.params.id[0] : to.params.id;
+            if (id) {
+                promises.push(boardStore.GET_BOARD(Number(id)));
+            }
+        }
+
+        if (promises.length > 0) {
+            await Promise.all(promises);
+        }
+
+        if (to.meta.requiresActivityAdmin && !meStore.Me?.appRoles.includes("ActivityAdmin")) {
+            return "/activity";
+        }
+
+        if (to.meta.requiresAuth && !meStore.Me?.isAuthenticated) {
+            return { path: "/login", query: { returnUrl: to.fullPath } };
+        }
+
+        if (typeof to.meta.requiredRole === "string" && !meStore.Me?.appRoles.includes(to.meta.requiredRole)) {
+            return "/";
+        }
+
+        if (to.meta.guestOnly && meStore.Me?.isAuthenticated) {
+            return "/";
+        }
+
+        const mustSetupTwoFactor = meStore.Me?.mustEnableTwoFactor;
+        if (mustSetupTwoFactor && to.path !== "/twofactor-setup") {
+            return "/twofactor-setup";
+        }
+        if (!mustSetupTwoFactor && to.path === "/twofactor-setup") {
+            return "/";
+        }
+
+        return true;
+    } catch (error) {
+        console.error("Navigation data prefetch failed:", error);
+        return false;
+    } finally {
+        // loading.close();
+        if (loadingTimeout) {
+            clearTimeout(loadingTimeout);
+        }
+        if (loadingInstance) {
+            loadingInstance.close();
+        }
+    }
+});
+
+export default router;

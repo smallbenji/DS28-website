@@ -1,0 +1,25 @@
+{
+  "name": "ds28-frontend-workspace",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "pnpm --filter @ds28/frontend dev",
+    "build": "pnpm --filter @ds28/frontend build",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm --filter @ds28/frontend test",
+    "watch": "pnpm --filter @ds28/frontend watch",
+    "preview": "pnpm --filter @ds28/frontend preview"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devEngines": {
+    "packageManager": {
+      "name": "pnpm",
+      "version": "12.14.0",
+      "onFail": "download"
+    }
+  },
+  "packageManager": "pnpm@12.14.0",
+  "type": "module"
+}
