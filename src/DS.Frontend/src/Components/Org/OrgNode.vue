@@ -84,16 +84,6 @@ const paStyle = computed(() => {
     const color = tintHex(props.node.position.color);
     return color ? { backgroundColor: color } : undefined;
 });
-
-function initials(name: string): string {
-    return name
-        .split(' ')
-        .filter((part) => part.length > 0)
-        .slice(0, 2)
-        .map((part) => part[0])
-        .join('')
-        .toUpperCase();
-}
 </script>
 
 <style lang="scss" scoped>
