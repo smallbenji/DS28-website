@@ -23,15 +23,16 @@ public class MaterialService(IDataDbContext dataDb)
         await dataDb.SaveChangesAsync();
     }
 
-    public async Task<ServiceResult<List<Material>>> GetMaterials(bool includeDeleted = false)
+    public async Task<ServiceResult<List<MaterialDto>>> GetMaterials(bool includeDeleted = false)
     {
         var query = includeDeleted
             ? dataDb.Materials.IgnoreQueryFilters()
             : dataDb.Materials;
 
-        return new ServiceResult<List<Material>>(ServiceOutcome.Success, await query
+        return new ServiceResult<List<MaterialDto>>(ServiceOutcome.Success, (await query
             .AsNoTracking()
-            .ToListAsync());
+            .ToListAsync()
+            ).Select(x => new MaterialDto(x)).ToList());
     }
 
     public async Task CreateMaterialOrder(CreateMaterialOrderDto dto)
