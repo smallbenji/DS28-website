@@ -1,16 +1,14 @@
 <template>
     <div class="group-titles">
         <div class="group-title">
-            <h1 class="title">
+            <h1>
                 {{ Group.name }}
             </h1>
-            <p class="subtitle is-6">
+            <div class="group-title-subtitle">
+                {{ Group.id }}
+                •
                 {{ districtLabel(Group.district) }}
-            </p>
-        </div>
-        <div class="flex"></div>
-        <div class="group-number">
-            {{ Group.id }}
+            </div>
         </div>
     </div>
 </template>
@@ -30,23 +28,21 @@ const { Group } = storeToRefs(groupStore);
     flex-direction: row;
     justify-content: space-between;
     width: 100%;
-    .flex {
-        flex: 1;
-    }
-
-    .group-title {
-        padding: 1rem;
-    }
     border: 1px solid rgba(0, 0, 0, 0.1);
     box-shadow: 5px 5px 5px 0 rgba(0, 0, 0, 0.1);
 
-    .group-number {
-        border-left: 1px solid rgba(0, 0, 0, 0.2);
-        display: flex;
-        align-items: center;
+    .group-title {
         padding: 1rem;
-        font-size: 1.25rem;
-        color: rgba(0, 0, 0, 0.5);
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 800;
+        }
+
+        .group-title-subtitle {
+            font-size: 0.85rem;
+            color: rgba(0, 0, 0, 0.5);
+        }
     }
 }
 </style>
