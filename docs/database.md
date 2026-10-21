@@ -424,7 +424,6 @@ erDiagram
         varchar title
         text description
         varchar color "nullable, #rrggbb"
-        text assignee_user_id FK "SET NULL"
         int owner_position_id FK "SET NULL"
         date due_date
         int priority
@@ -432,6 +431,11 @@ erDiagram
         timestamptz created_at
         timestamptz updated_at
         timestamptz deleted_at
+    }
+
+    work_item_assignee {
+        int work_item_id PK,FK "required, CASCADE"
+        text user_id PK,FK "required, CASCADE"
     }
 
     board_card {
@@ -456,6 +460,8 @@ erDiagram
     board ||--o{ board_card : "placerer"
     board_column ||--o{ board_card : "indeholder"
     work_item ||--o{ board_card : "placeres på"
+    work_item ||--o{ work_item_assignee : "har ansvarlige"
+    asp_net_users ||--o{ work_item_assignee : "er ansvarlig"
     work_item ||--o{ work_item_link : "linker til"
 ```
 
@@ -753,6 +759,13 @@ mindst syv dage gamle. Det er ren dataoprydning uden skemaændring.
 
 ## Projektstyring
 
+- `work_item_assignee` kobler et kort til nul eller flere ansvarlige brugere.
+  Begge kolonner er påkrævede: `work_item_id` refererer til `work_item.id`, og
+  `user_id` refererer til `asp_net_users.id`, begge med `ON DELETE CASCADE`.
+  Den sammensatte primærnøgle `(work_item_id, user_id)` forhindrer dubletter;
+  et ikke-unikt indeks på `user_id` understøtter opslag af brugerens opgaver.
+  Tildelinger er fælles for kortets tavleplaceringer og giver ikke tavleadgang.
+  `work_item` har ikke længere en enkelt `assignee_user_id`-kolonne.
 - `work_item.color` er en nullable `varchar(7)` uden standardværdi. `NULL`
   betyder ingen farve. En CHECK-constraint kræver lowercase sekscifret hex
   (`^#[0-9a-f]{6}$`). Farven tilhører kortet, ikke dets tavleplacering, og

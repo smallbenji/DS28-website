@@ -361,7 +361,8 @@ namespace DS.Application.Services.Boards
             if (!columnExists) return new ServiceResult(ServiceOutcome.Invalid, "Kolonnen findes ikke på boardet.");
 
             if (!TryNormalizeCardColor(data.Color, out var color)) return new ServiceResult(ServiceOutcome.Invalid, "Ugyldig kortfarve.");
-            if (!await IsValidAssigneeAsync(data.AssigneeUserId)) return new ServiceResult(ServiceOutcome.Invalid, "Den ansvarlige bruger findes ikke.");
+            var assigneeUserIds = NormalizeUserIds(data.AssigneeUserIds);
+            if (!await AreValidAssigneesAsync(assigneeUserIds)) return new ServiceResult(ServiceOutcome.Invalid, "En eller flere ansvarlige brugere findes ikke.");
             if (!await IsValidOwnerPositionAsync(data.OwnerPositionId)) return new ServiceResult(ServiceOutcome.Invalid, "Stillingen findes ikke.");
 
             var item = new WorkItem
@@ -369,7 +370,7 @@ namespace DS.Application.Services.Boards
                 Title = data.Title.Trim(),
                 Description = data.Description,
                 Color = color,
-                AssigneeUserId = NormalizeUserId(data.AssigneeUserId),
+                Assignees = assigneeUserIds.Select(userId => new WorkItemAssignee { UserId = userId }).ToList(),
                 OwnerPositionId = data.OwnerPositionId,
                 DueDate = data.DueDate,
                 Priority = data.Priority,
@@ -406,19 +407,23 @@ namespace DS.Application.Services.Boards
             if (!await CanSeeBoardAsync(actor, board)) return new ServiceResult(ServiceOutcome.Forbidden);
 
             var card = await dataDb.BoardCards
-                .Include(card => card.WorkItem)
+                .Include(card => card.WorkItem).ThenInclude(item => item.Assignees)
                 .FirstOrDefaultAsync(card => card.BoardId == id && card.WorkItemId == workItemId && card.WorkItem.DeletedAt == null);
             if (card == null) return new ServiceResult(ServiceOutcome.NotFound);
 
             if (!TryNormalizeCardColor(data.Color, out var color)) return new ServiceResult(ServiceOutcome.Invalid, "Ugyldig kortfarve.");
-            if (!await IsValidAssigneeAsync(data.AssigneeUserId)) return new ServiceResult(ServiceOutcome.Invalid, "Den ansvarlige bruger findes ikke.");
+            var assigneeUserIds = NormalizeUserIds(data.AssigneeUserIds);
+            if (!await AreValidAssigneesAsync(assigneeUserIds)) return new ServiceResult(ServiceOutcome.Invalid, "En eller flere ansvarlige brugere findes ikke.");
             if (!await IsValidOwnerPositionAsync(data.OwnerPositionId)) return new ServiceResult(ServiceOutcome.Invalid, "Stillingen findes ikke.");
 
             var item = card.WorkItem;
             item.Title = data.Title.Trim();
             item.Description = data.Description;
             item.Color = color;
-            item.AssigneeUserId = NormalizeUserId(data.AssigneeUserId);
+            item.Assignees.RemoveAll(assignee => !assigneeUserIds.Contains(assignee.UserId));
+            var existingUserIds = item.Assignees.Select(assignee => assignee.UserId).ToHashSet();
+            item.Assignees.AddRange(assigneeUserIds.Where(userId => !existingUserIds.Contains(userId))
+                .Select(userId => new WorkItemAssignee { UserId = userId }));
             item.OwnerPositionId = data.OwnerPositionId;
             item.DueDate = data.DueDate;
             item.Priority = data.Priority;
@@ -553,7 +558,7 @@ namespace DS.Application.Services.Boards
             return await dataDb.BoardCards
                 .AsNoTracking()
                 .Where(card => card.BoardId == boardId && card.WorkItem.DeletedAt == null)
-                .Include(card => card.WorkItem).ThenInclude(item => item.Assignee).ThenInclude(user => user.ProfilePicture)
+                .Include(card => card.WorkItem).ThenInclude(item => item.Assignees).ThenInclude(assignee => assignee.User).ThenInclude(user => user.ProfilePicture)
                 .Include(card => card.WorkItem).ThenInclude(item => item.OwnerPosition)
                 .Include(card => card.WorkItem).ThenInclude(item => item.Links)
                 .AsSplitQuery()
@@ -645,11 +650,11 @@ namespace DS.Application.Services.Boards
             return builder.ToString().TrimEnd('-');
         }
 
-        private async Task<bool> IsValidAssigneeAsync(string userId)
+        private async Task<bool> AreValidAssigneesAsync(List<string> userIds)
         {
-            if (string.IsNullOrWhiteSpace(userId)) return true;
+            if (userIds.Count == 0) return true;
 
-            return await userManager.FindByIdAsync(userId.Trim()) != null;
+            return await dataDb.Users.CountAsync(user => userIds.Contains(user.Id)) == userIds.Count;
         }
 
         private async Task<bool> IsValidOwnerPositionAsync(int? positionId)
@@ -724,9 +729,13 @@ namespace DS.Application.Services.Boards
             return wipLimit == null || wipLimit >= 1;
         }
 
-        private static string NormalizeUserId(string userId)
+        private static List<string> NormalizeUserIds(List<string> userIds)
         {
-            return string.IsNullOrWhiteSpace(userId) ? null : userId.Trim();
+            return (userIds ?? [])
+                .Where(userId => !string.IsNullOrWhiteSpace(userId))
+                .Select(userId => userId.Trim())
+                .Distinct()
+                .ToList();
         }
 
         private static List<string> NormalizeColumnTitles(List<string> titles)
@@ -791,11 +800,9 @@ namespace DS.Application.Services.Boards
                 Color = item.Color,
                 ColumnId = card.ColumnId,
                 Position = card.Position,
-                AssigneeUserId = item.AssigneeUserId,
-                AssigneeName = item.Assignee?.GetFullName(),
-                AssigneeProfilePicture = item.Assignee?.ProfilePicture is { Status: StoredFileStatus.Ready, DeletedAt: null } picture
-                    ? new ImageReferenceDto(picture)
-                    : null,
+                Assignees = item.Assignees.OrderBy(assignee => assignee.User.FirstName)
+                    .ThenBy(assignee => assignee.User.LastName).ThenBy(assignee => assignee.UserId)
+                    .Select(assignee => new UserSummaryDto(assignee.User)).ToList(),
                 OwnerPositionId = item.OwnerPositionId,
                 OwnerPositionTitle = item.OwnerPosition?.Title,
                 DueDate = item.DueDate,

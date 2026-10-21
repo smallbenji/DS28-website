@@ -58,15 +58,15 @@
                             </BField>
 
                             <section class="board-card-section">
-                                <h3 class="board-card-heading">Ansvarlig</h3>
+                                <h3 class="board-card-heading">Ansvarlige</h3>
 
-                                <div v-if="form.assigneeName" class="board-card-current">
-                                    <span class="tag is-light">{{ form.assigneeName }}</span>
-                                    <BButton size="is-small" class="is-ghost" aria-label="Fjern ansvarlig" title="Fjern ansvarlig" @click="clearAssignee">×</BButton>
+                                <div v-for="user in form.assignees" :key="user.id" class="board-card-current">
+                                    <span class="tag is-light">{{ user.firstName }} {{ user.lastName }}</span>
+                                    <BButton size="is-small" class="is-ghost" :aria-label="`Fjern ${user.firstName} ${user.lastName} som ansvarlig`" title="Fjern ansvarlig" @click="removeAssignee(user.id)">×</BButton>
                                 </div>
 
                                 <BButton size="is-small" class="is-ghost" :aria-expanded="assigneePickerOpen" @click="assigneePickerOpen = !assigneePickerOpen">
-                                    {{ assigneePickerOpen ? 'Luk søgning' : form.assigneeName ? 'Skift ansvarlig' : 'Tilføj ansvarlig' }}
+                                    {{ assigneePickerOpen ? 'Luk søgning' : 'Tilføj ansvarlig' }}
                                 </BButton>
                                 <div v-if="assigneePickerOpen" class="board-card-assignee-picker">
                                     <BField label="Søg efter bruger">
@@ -84,7 +84,7 @@
                                                 <div class="board-card-assignee-name">{{ user.firstName }} {{ user.lastName }}</div>
                                                 <div class="board-card-assignee-email">{{ user.email }}</div>
                                             </div>
-                                            <BButton size="is-small" type="is-primary" @click="selectAssignee(user)">Vælg</BButton>
+                                            <BButton size="is-small" type="is-primary" :disabled="form.assignees.some(assignee => assignee.id === user.id)" @click="selectAssignee(user)">{{ form.assignees.some(assignee => assignee.id === user.id) ? 'Tilføjet' : 'Tilføj' }}</BButton>
                                         </div>
                                     </div>
                                     <p v-else-if="assigneeSearch && !assigneeSearching" class="has-text-grey is-size-7">
@@ -207,9 +207,9 @@
                                     <dt>Prioritet</dt>
                                     <dd>{{ boardPriorityLabel(card?.priority ?? 0) }}</dd>
                                 </div>
-                                <div v-if="card?.assigneeName">
-                                    <dt>Ansvarlig</dt>
-                                    <dd>{{ card.assigneeName }}</dd>
+                                <div v-if="card?.assignees.length">
+                                    <dt>Ansvarlige</dt>
+                                    <dd v-for="user in card.assignees" :key="user.id">{{ user.firstName }} {{ user.lastName }}</dd>
                                 </div>
                                 <div v-if="card?.ownerPositionTitle">
                                     <dt>Stilling</dt>
@@ -261,6 +261,7 @@ import { useBoardStore } from '@/Stores/BoardStore';
 import RichTextEditor from '@/Components/RichText/RichTextEditor.vue';
 import RichTextViewer from '@/Components/RichText/RichTextViewer.vue';
 import { htmlToPlainText } from '@/lib/util';
+import type { UserSummaryDto } from '@/types';
 
 const props = defineProps<{
     modelValue: boolean;
@@ -300,8 +301,7 @@ const form = reactive({
     color: null as string | null,
     dueDate: '',
     priority: '0',
-    assigneeUserId: null as string | null,
-    assigneeName: null as string | null,
+    assignees: [] as UserSummaryDto[],
     ownerPositionId: null as number | null
 });
 
@@ -346,8 +346,7 @@ watch(
         form.color = props.card?.color ?? null;
         form.dueDate = props.card?.dueDate ?? '';
         form.priority = String(props.card?.priority ?? 0);
-        form.assigneeUserId = props.card?.assigneeUserId ?? null;
-        form.assigneeName = props.card?.assigneeName ?? null;
+        form.assignees = [...(props.card?.assignees ?? [])];
         form.ownerPositionId = props.card?.ownerPositionId ?? null;
 
         assigneePickerOpen.value = false;
@@ -517,16 +516,15 @@ async function doRemovePlacement(placement: WorkItemPlacementDto) {
 }
 
 function selectAssignee(user: BoardMemberDto) {
-    assigneePickerOpen.value = false;
-    form.assigneeUserId = user.id;
-    form.assigneeName = `${user.firstName} ${user.lastName}`.trim();
+    if (form.assignees.some(assignee => assignee.id === user.id)) return;
+
+    form.assignees.push({ id: user.id, firstName: user.firstName, lastName: user.lastName, profilePicture: null });
     assigneeSearch.value = '';
     assigneeResults.value = [];
 }
 
-function clearAssignee() {
-    form.assigneeUserId = null;
-    form.assigneeName = null;
+function removeAssignee(userId: string) {
+    form.assignees = form.assignees.filter(user => user.id !== userId);
 }
 
 async function save() {
@@ -543,7 +541,7 @@ async function save() {
             title: form.title.trim(),
             description: htmlToPlainText(form.description) ? form.description : null,
             color: form.color,
-            assigneeUserId: form.assigneeUserId,
+            assigneeUserIds: form.assignees.map(user => user.id),
             ownerPositionId: form.ownerPositionId,
             dueDate: form.dueDate ? form.dueDate : null,
             priority: Number(form.priority)

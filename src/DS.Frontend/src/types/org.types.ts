@@ -1,4 +1,5 @@
 import type { ImageReferenceDto } from "./file.types";
+import type { UserSummaryDto } from "./user.types";
 
 export interface OrgPositionDto {
     id: number;
@@ -8,7 +9,7 @@ export interface OrgPositionDto {
     isSystem: boolean;
     color: string | null;
     groups: string[];
-    holders: OrgPositionHolderDto[];
+    holders: UserSummaryDto[];
 }
 
 export interface OrgPositionHolderDto {

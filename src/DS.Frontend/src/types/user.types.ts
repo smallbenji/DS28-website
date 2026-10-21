@@ -15,3 +15,10 @@ export interface UserDto {
     lockoutEnd: string | null;
     profilePicture: ImageReferenceDto | null;
 }
+
+export interface UserSummaryDto {
+    id: string;
+    firstName: string;
+    lastName: string;
+    profilePicture: ImageReferenceDto | null;
+}

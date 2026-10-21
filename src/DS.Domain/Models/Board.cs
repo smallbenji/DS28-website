@@ -59,8 +59,7 @@ public class WorkItem : IAuditableEntity, ISoftDeleteable
     public string Description { get; set; }
     public string Color { get; set; }
 
-    public string AssigneeUserId { get; set; }
-    public User Assignee { get; set; }
+    public List<WorkItemAssignee> Assignees { get; set; } = [];
 
     public int? OwnerPositionId { get; set; }
     public OrgPosition OwnerPosition { get; set; }
@@ -76,6 +75,14 @@ public class WorkItem : IAuditableEntity, ISoftDeleteable
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
     public DateTime? DeletedAt { get; set; }
+}
+
+public class WorkItemAssignee
+{
+    public int WorkItemId { get; set; }
+    public WorkItem WorkItem { get; set; }
+    public string UserId { get; set; }
+    public User User { get; set; }
 }
 
 public class BoardCard

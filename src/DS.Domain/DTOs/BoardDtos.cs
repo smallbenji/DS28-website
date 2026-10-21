@@ -56,9 +56,7 @@ namespace DS.Domain.DTOs
         public string Color { get; set; }
         public int ColumnId { get; set; }
         public int Position { get; set; }
-        public string AssigneeUserId { get; set; }
-        public string AssigneeName { get; set; }
-        public ImageReferenceDto AssigneeProfilePicture { get; set; }
+        public List<UserSummaryDto> Assignees { get; set; } = [];
         public int? OwnerPositionId { get; set; }
         public string OwnerPositionTitle { get; set; }
         public DateOnly? DueDate { get; set; }
@@ -134,7 +132,7 @@ namespace DS.Domain.DTOs
         public string Title { get; set; }
         public string Description { get; set; }
         public string Color { get; set; }
-        public string AssigneeUserId { get; set; }
+        public List<string> AssigneeUserIds { get; set; } = [];
         public int? OwnerPositionId { get; set; }
         public DateOnly? DueDate { get; set; }
         public int Priority { get; set; }
@@ -146,7 +144,7 @@ namespace DS.Domain.DTOs
         public string Title { get; set; }
         public string Description { get; set; }
         public string Color { get; set; }
-        public string AssigneeUserId { get; set; }
+        public List<string> AssigneeUserIds { get; set; } = [];
         public int? OwnerPositionId { get; set; }
         public DateOnly? DueDate { get; set; }
         public int Priority { get; set; }

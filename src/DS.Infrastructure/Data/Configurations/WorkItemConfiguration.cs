@@ -28,13 +28,6 @@ public class WorkItemConfiguration : IEntityTypeConfiguration<WorkItem>
             .IsRequired()
             .HasDefaultValueSql("0");
 
-        builder.HasOne(x => x.Assignee)
-            .WithMany()
-            .HasForeignKey(x => x.AssigneeUserId)
-            .OnDelete(DeleteBehavior.SetNull);
-
-        builder.HasIndex(x => x.AssigneeUserId);
-
         builder.HasOne(x => x.OwnerPosition)
             .WithMany()
             .HasForeignKey(x => x.OwnerPositionId)

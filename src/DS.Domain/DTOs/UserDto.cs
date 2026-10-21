@@ -1,4 +1,5 @@
 using DS.Domain.Models;
+
 namespace DS.Domain.DTOs
 {
     public class UserDto
@@ -42,6 +43,28 @@ namespace DS.Domain.DTOs
             user.LastName = LastName;
             user.PhoneNumber = Phone;
         }
+    }
+
+    public class UserSummaryDto
+    {
+        public UserSummaryDto() { }
+
+        public UserSummaryDto(User user)
+        {
+            Id = user.Id;
+            FirstName = user.FirstName;
+            LastName = user.LastName;
+            ProfilePicture = user.ProfilePicture != null
+                && user.ProfilePicture.Status == StoredFileStatus.Ready
+                && user.ProfilePicture.DeletedAt == null
+                ? new ImageReferenceDto(user.ProfilePicture)
+                : null;
+        }
+
+        public string Id { get; set; }
+        public string FirstName { get; set; }
+        public string LastName { get; set; }
+        public ImageReferenceDto ProfilePicture { get; set; }
     }
 
     public class UpdatePhoneDto

@@ -9,7 +9,7 @@ namespace DS.Domain.DTOs
         public bool IsSystem { get; set; }
         public string Color { get; set; }
         public List<string> Groups { get; set; } = [];
-        public List<OrgPositionHolderDto> Holders { get; set; } = [];
+        public List<UserSummaryDto> Holders { get; set; } = [];
     }
 
     public class OrgPositionHolderDto

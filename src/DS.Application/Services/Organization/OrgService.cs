@@ -426,16 +426,7 @@ namespace DS.Application.Services.Organization
                     .ToList(),
                 Holders = position.Holders
                     .Where(holder => holder.User != null)
-                    .Select(holder => new OrgPositionHolderDto
-                    {
-                        UserId = holder.UserId,
-                        Name = holder.User.GetFullName(),
-                        ProfilePicture = holder.User.ProfilePicture != null
-                            && holder.User.ProfilePicture.Status == StoredFileStatus.Ready
-                            && holder.User.ProfilePicture.DeletedAt == null
-                            ? new ImageReferenceDto(holder.User.ProfilePicture)
-                            : null,
-                    })
+                    .Select(x => new UserSummaryDto(x.User))
                     .ToList(),
             };
         }

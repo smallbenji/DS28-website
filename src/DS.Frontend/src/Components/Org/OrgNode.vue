@@ -22,12 +22,8 @@
                 </b-taglist>
 
                 <ul v-if="node.position.holders.length" class="org-holders">
-                    <li v-for="holder in node.position.holders" :key="holder.userId" class="org-holder">
-                        <span class="org-holder-avatar">
-                            <img v-if="holder.profilePicture" :src="holder.profilePicture.url" :alt="holder.name" />
-                            <span v-else>{{ initials(holder.name) }}</span>
-                        </span>
-                        <span class="org-holder-name">{{ holder.name }}</span>
+                    <li v-for="holder in node.position.holders" :key="holder.id" class="org-holder">
+                        <UserDisplay :user="holder" />
                     </li>
                 </ul>
                 <p v-else class="org-empty">Ingen tilknyttet</p>
@@ -46,12 +42,8 @@
                 <span class="org-pa-title">Personlig assistent</span>
 
                 <ul v-if="node.pa.holders.length" class="org-holders">
-                    <li v-for="holder in node.pa.holders" :key="holder.userId" class="org-holder">
-                        <span class="org-holder-avatar">
-                            <img v-if="holder.profilePicture" :src="holder.profilePicture.url" :alt="holder.name" />
-                            <span v-else>{{ initials(holder.name) }}</span>
-                        </span>
-                        <span class="org-holder-name">{{ holder.name }}</span>
+                    <li v-for="holder in node.pa.holders" :key="holder.id" class="org-holder">
+                        <UserDisplay :user="holder" />
                     </li>
                 </ul>
                 <p v-else class="org-empty">Ingen tilknyttet</p>
@@ -75,6 +67,7 @@ import { BTaglist, BTag } from 'buefy';
 import type { OrgNodeModel } from '@/types';
 import { groupTitle } from '@/types';
 import { tintHex } from './orgPalette';
+import UserDisplay from '../User/UserDisplay.vue';
 
 defineOptions({ name: 'OrgNode' });
 
@@ -216,25 +209,6 @@ function initials(name: string): string {
 
 .org-holder + .org-holder {
     margin-top: 0.25rem;
-}
-
-.org-holder-avatar {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 1.75rem;
-    height: 1.75rem;
-    border-radius: 50%;
-    overflow: hidden;
-    background: hsl(0, 0%, 86%);
-    font-size: 0.7rem;
-    font-weight: 600;
-}
-
-.org-holder-avatar img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
 }
 
 .org-empty {

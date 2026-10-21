@@ -1,4 +1,4 @@
-import type { ImageReferenceDto } from './file.types';
+import type { UserSummaryDto } from './user.types';
 
 export interface BoardSummaryDto {
     id: number;
@@ -50,9 +50,7 @@ export interface WorkItemDto {
     color: string | null;
     columnId: number;
     position: number;
-    assigneeUserId: string | null;
-    assigneeName: string | null;
-    assigneeProfilePicture: ImageReferenceDto | null;
+    assignees: UserSummaryDto[];
     ownerPositionId: number | null;
     ownerPositionTitle: string | null;
     dueDate: string | null;
@@ -108,7 +106,7 @@ export interface WorkItemCreateDto {
     title: string;
     description: string | null;
     color: string | null;
-    assigneeUserId: string | null;
+    assigneeUserIds: string[];
     ownerPositionId: number | null;
     dueDate: string | null;
     priority: number;
@@ -119,7 +117,7 @@ export interface WorkItemUpdateDto {
     title: string;
     description: string | null;
     color: string | null;
-    assigneeUserId: string | null;
+    assigneeUserIds: string[];
     ownerPositionId: number | null;
     dueDate: string | null;
     priority: number;

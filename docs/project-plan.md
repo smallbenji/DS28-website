@@ -991,6 +991,22 @@ implementeret eller synlig i adminområdet.
 
 ### Projektstyring og Kanban-board
 
+**Beslutning 2026-10-21 (implementeret):** Et arbejdskort kan have nul eller
+flere ansvarlige brugere. Dette erstatter den tidligere enkelte ansvarlige
+bruger; den valgfrie ansvarlige stilling er uændret. Ansvarlige tilhører kortet
+og er fælles på tværs af tavleplaceringer. Tildeling giver ikke medlemskab eller
+adgang til tavler, og de eksisterende adgangsregler er uændrede.
+
+- Kortdialogen kan tilføje flere brugere og fjerne dem enkeltvis. Valgene gemmes
+  med kortet, og Annuller ændrer ikke de gemte tildelinger. Tavlekortet viser
+  profilbillede eller initialer for hver ansvarlig med navnet i et tooltip.
+- API'et modtager `assigneeUserIds`, normaliserer og deduplikerer ID'er og
+  afviser ukendte brugere. En tom liste fjerner alle ansvarlige. Svar bruger
+  `assignees` med `UserSummaryDto` (ID, fornavn, efternavn og profilbillede),
+  uden telefonnummer eller øvrige administrationsoplysninger.
+- `026_work_item_assignees.sql` flytter eksisterende tildelinger til
+  `work_item_assignee` og fjerner den gamle enkeltbruger-kolonne.
+
 **Beslutning 2026-10-19 (implementeret, træk og slip):** Tavlen viser en blå
 indsættelseslinje før eller efter det kort, musen peger på. Den øverste og
 nederste halvdel vælger placeringen, og kortet indsættes samme sted som

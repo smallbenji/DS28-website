@@ -16,7 +16,7 @@
         <p class="board-card-title">{{ card.title }}</p>
         <p v-if="descriptionPreview" class="board-card-description">{{ descriptionPreview }}</p>
 
-        <div v-if="card.dueDate || Number(card.priority) !== 0 || card.assigneeName" class="board-card-meta">
+        <div v-if="card.dueDate || Number(card.priority) !== 0 || card.assignees.length" class="board-card-meta">
             <span v-if="card.dueDate" class="board-card-due" :class="{ 'is-overdue': isOverdue }" :title="deadlineLabel">
                 <font-awesome-icon icon="calendar-day" aria-hidden="true" />
                 <span class="is-sr-only">{{ isOverdue ? 'Overskredet deadline:' : 'Deadline:' }}</span>
@@ -25,18 +25,20 @@
             <span v-if="Number(card.priority) !== 0" class="board-card-priority" :class="{ 'is-high': Number(card.priority) > 0 }" :title="priorityLabel" role="img" :aria-label="priorityLabel">
                 <i class="fas" :class="Number(card.priority) > 0 ? 'fa-arrow-up' : 'fa-arrow-down'" aria-hidden="true"></i>
             </span>
-            <BTooltip v-if="card.assigneeName" class="board-card-assignee" :label="card.assigneeName" :triggers="['hover', 'focus']" position="is-left">
-                <span class="board-card-avatar" tabindex="0" role="img" :aria-label="`Ansvarlig: ${card.assigneeName}`">
-                    <img v-if="assigneePictureUrl && !assigneePictureFailed" :src="assigneePictureUrl" alt="" loading="lazy" draggable="false" @error="assigneePictureFailed = true" />
-                    <span v-else aria-hidden="true">{{ assigneeInitials }}</span>
-                </span>
-            </BTooltip>
+            <div v-if="card.assignees.length" class="board-card-assignee">
+                <BTooltip v-for="user in card.assignees" :key="user.id" :label="`${user.firstName} ${user.lastName}`" :triggers="['hover', 'focus']" position="is-left">
+                    <span class="board-card-avatar" tabindex="0" role="img" :aria-label="`Ansvarlig: ${user.firstName} ${user.lastName}`">
+                        <img v-if="user.profilePicture?.url && failedPictures[user.id] !== user.profilePicture.url" :src="user.profilePicture.url" alt="" loading="lazy" draggable="false" @error="failedPictures[user.id] = user.profilePicture.url" />
+                        <span v-else aria-hidden="true">{{ `${user.firstName?.[0] ?? ''}${user.lastName?.[0] ?? ''}`.toLocaleUpperCase('da-DK') }}</span>
+                    </span>
+                </BTooltip>
+            </div>
         </div>
     </article>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onBeforeUnmount, ref, watch } from 'vue';
+import { computed, onMounted, onBeforeUnmount, ref } from 'vue';
 import { BTooltip } from 'buefy';
 import type { WorkItemDto } from '@/types';
 import { htmlToPlainText } from '@/lib/util';
@@ -63,13 +65,7 @@ const formattedDueDate = computed(() => dueDate.value ? shortDateFormat.format(d
 const isOverdue = computed(() => !props.isDoneColumn && !!props.card.dueDate && props.card.dueDate < today.value);
 const deadlineLabel = computed(() => dueDate.value ? `${isOverdue.value ? 'Overskredet deadline' : 'Deadline'}: ${fullDateFormat.format(dueDate.value)}` : '');
 const priorityLabel = computed(() => Number(props.card.priority) > 0 ? 'Høj prioritet' : 'Lav prioritet');
-const assigneePictureUrl = computed(() => props.card.assigneeProfilePicture?.url ?? null);
-const assigneePictureFailed = ref(false);
-watch(assigneePictureUrl, () => { assigneePictureFailed.value = false; });
-const assigneeInitials = computed(() => {
-    const names = props.card.assigneeName?.trim().split(/\s+/) ?? [];
-    return [names[0]?.[0], names.length > 1 ? names[names.length - 1]?.[0] : ''].join('').toLocaleUpperCase('da-DK');
-});
+const failedPictures = ref<Record<string, string>>({});
 
 function currentDate() {
     return new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Copenhagen' }).format(new Date());
@@ -267,6 +263,9 @@ function onDrop(event: DragEvent) {
 }
 
 .board-card-assignee {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
     margin-left: auto;
 }
 </style>
