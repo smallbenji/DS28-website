@@ -10,7 +10,7 @@ import { useBoardStore } from "@/Stores/BoardStore";
 
 const routes: RouteRecordRaw[] = [
     {
-        path: "/camp-settings",
+        path: "/admin/camp-settings",
         component: () => import("@/Views/CampSettings.vue"),
         meta: { requiresAuth: true, requiredRole: "PreSignupManage", pageTitle: "Lejrindstillinger", pageIcon: "sliders" }
     },
@@ -34,7 +34,7 @@ const routes: RouteRecordRaw[] = [
         meta: { requiresHomeData: true, pageTitle: "HQ", pageIcon: "house", hideBack: true }
     },
     {
-        path: "/user/:id?",
+        path: "/admin/user/:id?",
         component: () => import("@/Views/User.vue"),
         meta: { requiresUserData: true, pageTitle: "Brugerstyring", pageIcon: "user-pen" }
     },
@@ -44,7 +44,7 @@ const routes: RouteRecordRaw[] = [
         meta: { pageTitle: "Min profil", pageIcon: "user" }
     },
     {
-        path: "/groups/:id?",
+        path: "/admin/groups/:id?",
         component: () => import("@/Views/Groups.vue"),
         meta: { requiresGroupsData: true, pageTitle: "Gruppestyring", pageIcon: "users-gear" }
     },
@@ -126,7 +126,7 @@ const routes: RouteRecordRaw[] = [
         meta: { requiresAuth: true, requiredRole: "OrgView", pageTitle: "Organisation", pageIcon: "sitemap" }
     },
     {
-        path: "/exports",
+        path: "/admin/exports",
         component: () => import("@/Views/Exports.vue"),
         meta: { requiresAuth: true, requiredRole: "ExportsView", pageTitle: "Dataudtræk", pageIcon: "file-arrow-down" }
     },

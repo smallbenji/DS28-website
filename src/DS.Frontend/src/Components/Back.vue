@@ -82,7 +82,8 @@ function goBack() {
     if (back) {
         router.back();
     } else {
-        router.push('/');
+        router.push('..');
+        // router.push('/');
     }
 }
 

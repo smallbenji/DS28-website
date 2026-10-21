@@ -117,14 +117,14 @@ const filteredUsers = computed(() => {
 });
 
 const clearSelection = () => {
-    router.replace('/user');
+    router.replace('/admin/user');
 };
 
 const toggleUserSelection = (clickedUser: UserDto) => {
     if (selectedUser.value?.id === clickedUser.id) {
         clearSelection();
     } else {
-        router.replace(`/user/${clickedUser.id}`);
+        router.replace(`/admin/user/${clickedUser.id}`);
     }
 };
 

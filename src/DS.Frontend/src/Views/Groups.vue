@@ -125,14 +125,14 @@ const filteredGroups = computed(() => {
 });
 
 const clearSelection = () => {
-    router.replace('/groups');
+    router.replace('/admin/groups');
 };
 
 const toggleGroupSelection = (clickedGroup: GroupDto) => {
     if (selectedGroup.value?.id === clickedGroup.id) {
         clearSelection();
     } else {
-        router.replace(`/groups/${clickedGroup.id}`);
+        router.replace(`/admin/groups/${clickedGroup.id}`);
     }
 };
 

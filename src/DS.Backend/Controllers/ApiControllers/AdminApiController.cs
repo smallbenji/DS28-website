@@ -23,14 +23,14 @@ namespace DS.Backend.Controllers.ApiControllers
                         new HQPanelEntryDto
                         {
                             Title = "Brugerstyring",
-                            Url = "/user",
+                            Url = "/admin/user",
                             Icon = ["user-pen"],
                             RequiredRole = nameof(AppRoles.UsersView)
                         },
                         new HQPanelEntryDto
                         {
                             Title = "Gruppestyring",
-                            Url = "/groups",
+                            Url = "/admin/groups",
                             Icon = ["users-gear"],
                             RequiredRole = nameof(AppRoles.GroupsView)
                         }
@@ -45,7 +45,7 @@ namespace DS.Backend.Controllers.ApiControllers
                         new HQPanelEntryDto
                         {
                             Title = "Lejrindstillinger",
-                            Url = "/camp-settings",
+                            Url = "/admin/camp-settings",
                             Icon = ["sliders"],
                             RequiredRole = nameof(AppRoles.PreSignupManage)
                         }
@@ -60,7 +60,7 @@ namespace DS.Backend.Controllers.ApiControllers
                         new HQPanelEntryDto
                         {
                             Title = "Dataudtræk",
-                            Url = "/exports",
+                            Url = "/admin/exports",
                             Icon = ["file-arrow-down"],
                             RequiredRole = nameof(AppRoles.ExportsView)
                         },
