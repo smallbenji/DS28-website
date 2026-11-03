@@ -22,3 +22,4 @@ export * from './user.types';
 export * from './version.types';
 export * from './passkeys.types';
 export * from './material.types';
+export * from './forms.types';

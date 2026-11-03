@@ -1,21 +1,25 @@
 <template>
-    <div class="grid">
-        <component
-            v-for="(link, index) in Hq.shortcuts"
-            :key="index"
-            :is="isExternal(link.url) ? 'a' : 'router-link'"
-            :[isExternal(link.url)?'href':'to']="link.url"
-            :target="isExternal(link.url) ? '_blank' : undefined"
-            :rel="isExternal(link.url) ? 'noopener noreferrer' : undefined"
-            class="link-box"
-        >
-            <div>
-                <font-awesome-icon :icon="link.icon.length == 1 ? link.icon[0] : link.icon" />
-                <p>{{ link.title }}</p>
-            </div>
-        </component>
+    <div class="home">
+        <div class="grid">
+            <component
+                v-for="(link, index) in Hq.shortcuts"
+                :key="index"
+                :is="isExternal(link.url) ? 'a' : 'router-link'"
+                :[isExternal(link.url)?'href':'to']="link.url"
+                :target="isExternal(link.url) ? '_blank' : undefined"
+                :rel="isExternal(link.url) ? 'noopener noreferrer' : undefined"
+                class="link-box"
+                :aria-label="isExternal(link.url) ? link.title + ' (åbner i nyt vindue)' : link.title"
+            >
+                <div>
+                    <font-awesome-icon :icon="link.icon.length == 1 ? link.icon[0] : link.icon" aria-hidden="true" />
+                    <p>{{ link.title }}</p>
+                    <font-awesome-icon v-if="isExternal(link.url)" icon="up-right-from-square" class="external-icon" aria-hidden="true" />
+                </div>
+            </component>
+        </div>
+        <p class="home-version">{{ Version.version }}</p>
     </div>
-    <p class="center">{{ Version.version }}</p>
 </template>
 
 <script lang="ts" setup>
@@ -36,6 +40,24 @@ const isExternal = (url: string) => {
 </script>
 
 <style scoped>
+.home {
+    width: 100%;
+    padding: 1rem;
+}
+
+.home > .grid {
+    width: 100%;
+    margin: 0 auto;
+}
+
+.home-version {
+    margin: 1.5rem auto 0;
+    max-width: 52rem;
+    color: #595959;
+    font-size: 0.85rem;
+    text-align: center;
+}
+
 @media (max-width: 1024px) {
     .grid {
         display: flex;
@@ -68,6 +90,13 @@ const isExternal = (url: string) => {
         flex: 0 0 2rem;
         width: 2rem;
         font-size: 28px;
+    }
+
+    .link-box .external-icon {
+        flex: 0 0 auto;
+        width: auto;
+        font-size: 12px;
+        margin-left: auto;
     }
 
     .link-box p {

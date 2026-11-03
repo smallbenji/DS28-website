@@ -2,28 +2,59 @@
 import { computed } from 'vue';
 import { useRoute } from 'vue-router';
 import Back from '@/Components/Back.vue';
-import SearchMenu from '@/Components/SearchMenu.vue';
 
 const route = useRoute();
 const showBack = computed(() => !!route.meta.pageTitle);
 </script>
 
 <template>
-    <SearchMenu />
+    <a href="#main-content" class="skip-link">Spring til indhold</a>
     <template v-if="showBack">
         <Back />
-        <router-view />
+        <main id="main-content" tabindex="-1">
+            <router-view />
+        </main>
     </template>
-    <router-view v-else />
+    <main v-else id="main-content" tabindex="-1">
+        <router-view />
+    </main>
 </template>
 
 <style lang="scss">
+#main-content {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+
+    &:focus {
+        outline: none;
+    }
+}
+
+.skip-link {
+    position: absolute;
+    inset-inline-start: 1rem;
+    top: 0;
+    transform: translateY(-150%);
+    z-index: 100;
+    padding: 0.75rem 1rem;
+    background: #fff;
+    color: #1f1f1f;
+    border-radius: 4px;
+
+    &:focus {
+        transform: translateY(0);
+        outline: 2px solid #3273dc;
+        outline-offset: 2px;
+    }
+}
+
 // Flis-sproget er delt mellem HQ og /admin, og skal derfor ligge i en
 // altid indlæst fil. Lægtes disse regler i Home.vue ville de kun findes
 // efter at den view var blevet indlæst.
 .center {
     margin: 0 auto;
-    color: rgba(0, 0, 0, 0.1);
+    color: rgba(0, 0, 0, 0.4);
 }
 
 .grid {
@@ -46,15 +77,17 @@ const showBack = computed(() => !!route.meta.pageTitle);
 }
 
 .link-box {
+    position: relative;
     height: 8rem;
     width: 100%;
     background-color: #fff;
     border-radius: 10px;
     box-shadow: 5px 5px 5px 0 rgba(0, 0, 0, 0.05);
-    transition: 0.2s ease-in;
+    transition: background-color 0.2s ease-in;
     cursor: pointer;
     text-decoration: none;
     color: black;
+    display: block;
 
     @media (max-width: 1024px) {
         height: auto;
@@ -94,12 +127,21 @@ const showBack = computed(() => !!route.meta.pageTitle);
 
         svg {
             font-size: 44px;
-            color: rgba(0, 0, 0, 0.4);
-            transition: ease-in 0.2s;
+            color: rgba(0, 0, 0, 0.65);
+            transition: color 0.2s ease-in;
         }
 
-        svg:hover {
-            color: rgb(59, 130, 246);
+        .external-icon {
+            position: absolute;
+            inset-block-start: 0.75rem;
+            inset-inline-end: 0.75rem;
+            font-size: 14px;
+            color: rgba(0, 0, 0, 0.5);
+
+            @media (max-width: 1024px) {
+                position: static;
+                margin-inline-start: auto;
+            }
         }
 
         p {
@@ -107,8 +149,8 @@ const showBack = computed(() => !!route.meta.pageTitle);
             margin: 0;
             font-size: 18px;
             padding: 0;
-            color: rgba(0, 0, 0, 0.4);
-            transition: ease-in 0.2s;
+            color: rgba(0, 0, 0, 0.8);
+            transition: color 0.2s ease-in;
         }
     }
 
@@ -122,6 +164,11 @@ const showBack = computed(() => !!route.meta.pageTitle);
         svg {
             color: rgb(59, 130, 246);
         }
+    }
+
+    &:focus-visible {
+        outline: 2px solid rgb(59, 130, 246);
+        outline-offset: 2px;
     }
 }
 
@@ -166,10 +213,10 @@ const showBack = computed(() => !!route.meta.pageTitle);
     }
 
     th {
-        font-size: 0.7rem;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        color: #6b7280;
+        font-size: 0.75rem;
+        text-transform: none;
+        letter-spacing: normal;
+        color: #374151;
         font-weight: 600;
     }
 

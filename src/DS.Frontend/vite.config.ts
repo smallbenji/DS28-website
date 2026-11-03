@@ -7,7 +7,7 @@ import basicSsl from '@vitejs/plugin-basic-ssl'
 // https://vite.dev/config/
 export default defineConfig(({ command }) => {
   return {
-    plugins: [vue(), basicSsl(), VitePluginVueDevTools()],
+    plugins: [vue(), VitePluginVueDevTools()],
     resolve: {
       alias: {
         "@": fileURLToPath(new URL("./src", import.meta.url))
@@ -25,6 +25,9 @@ export default defineConfig(({ command }) => {
       }
     },
     server: {
+      ws: {
+        protocol: "ws"
+      },
       proxy: {
         '/api': {
           target: "https://localhost:44310",

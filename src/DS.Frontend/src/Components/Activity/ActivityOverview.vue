@@ -12,17 +12,17 @@
                 <span class="has-text-grey is-size-7">{{ filteredActivities.length }} af {{ ALL_ACTIVITIES.length }}</span>
             </div>
             <div class="activity-overview-filters">
-                <BField label="Søg" class="activity-overview-search">
-                    <BInput v-model="search" placeholder="Aktivitet eller team…" icon="magnifying-glass" />
+                <BField label="Søg" label-for="activity-search" class="activity-overview-search">
+                    <BInput :compat-fallthrough="false" id="activity-search" v-model="search" placeholder="Aktivitet eller team…" icon="magnifying-glass" />
                 </BField>
-                <BField label="Team">
-                    <BSelect v-model="teamFilter" expanded>
+                <BField label="Team" label-for="activity-teamFilter">
+                    <BSelect :compat-fallthrough="false" id="activity-teamFilter" v-model="teamFilter" expanded>
                         <option value="">Alle teams</option>
                         <option v-for="team in teams" :key="team.id" :value="String(team.id)">{{ team.name }}</option>
                     </BSelect>
                 </BField>
-                <BField label="Status">
-                    <BSelect v-model="statusFilter" expanded>
+                <BField label="Status" label-for="activity-statusFilter">
+                    <BSelect :compat-fallthrough="false" id="activity-statusFilter" v-model="statusFilter" expanded>
                         <option value="all">Alle statusser</option>
                         <option v-for="status in activityReviewStatuses" :key="status.value" :value="status.value">{{ status.label }}</option>
                     </BSelect>

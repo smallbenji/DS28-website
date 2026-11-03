@@ -1,3 +1,4 @@
+import { nextTick } from "vue";
 import { useGroupsStore } from "@/Stores/GroupsStore";
 import { useUserStore } from "@/Stores/UserStore";
 import { createRouter, createWebHistory, type RouteRecordRaw } from "vue-router";
@@ -9,6 +10,11 @@ import { useVersionStore } from "@/Stores/VersionStore";
 import { useBoardStore } from "@/Stores/BoardStore";
 
 const routes: RouteRecordRaw[] = [
+    {
+        path: "/forms/:id?",
+        component: () => import("@/Views/FormPreview.vue"),
+        meta: { pageTitle: "Formularvisning", pageIcon: "file-lines" }
+    },
     {
         path: "/admin/camp-settings",
         component: () => import("@/Views/CampSettings.vue"),
@@ -139,6 +145,16 @@ const routes: RouteRecordRaw[] = [
         path: "/board/:id",
         component: () => import("@/Views/BoardDetail.vue"),
         meta: { requiresAuth: true, requiredRole: "BoardView", requiresBoardData: true, pageTitle: "Tavle", pageIcon: "table-columns" }
+    },
+    {
+        path: "/access-denied",
+        component: () => import("@/Views/AccessDenied.vue"),
+        meta: { pageTitle: "Adgang nægtet", pageIcon: "ban" }
+    },
+    {
+        path: "/AccessDenied",
+        component: () => import("@/Views/AccessDenied.vue"),
+        meta: { pageTitle: "Adgang nægtet", pageIcon: "ban" }
     }
 ];
 
@@ -217,7 +233,7 @@ router.beforeEach(async (to) => {
         }
 
         if (to.meta.requiresActivityAdmin && !meStore.Me?.appRoles.includes("ActivityAdmin")) {
-            return "/activity";
+            return "/access-denied";
         }
 
         if (to.meta.requiresAuth && !meStore.Me?.isAuthenticated) {
@@ -225,7 +241,7 @@ router.beforeEach(async (to) => {
         }
 
         if (typeof to.meta.requiredRole === "string" && !meStore.Me?.appRoles.includes(to.meta.requiredRole)) {
-            return "/";
+            return "/access-denied";
         }
 
         if (to.meta.guestOnly && meStore.Me?.isAuthenticated) {
@@ -253,6 +269,14 @@ router.beforeEach(async (to) => {
             loadingInstance.close();
         }
     }
+});
+
+router.afterEach(async (to, _from, failure) => {
+    if (failure) return;
+
+    document.title = to.meta.pageTitle ? `${to.meta.pageTitle} – DS28 HQ` : 'DS28 HQ';
+    await nextTick();
+    document.getElementById('main-content')?.focus({ preventScroll: true });
 });
 
 export default router;

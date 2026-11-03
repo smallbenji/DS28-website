@@ -112,14 +112,14 @@
                     </section>
                 </div>
                 <div class="activity-detail-form" v-else-if="activeTab === 'catalog'">
-                    <BField label="Katalognavn">
-                        <BInput :disabled="!activity.canEdit || saving || reviewBusy" v-model="form.catalog.name" placeholder="Katalognavn" />
+                    <BField label="Katalognavn" label-for="catalog-name">
+                        <BInput :disabled="!activity.canEdit || saving || reviewBusy" :compat-fallthrough="false" id="catalog-name" v-model="form.catalog.name" placeholder="Katalognavn" />
                     </BField>
-                    <BField label="Resumé">
-                        <BInput :disabled="!activity.canEdit || saving || reviewBusy" v-model="form.catalog.summary" placeholder="Kort resumé" />
+                    <BField label="Resumé" label-for="catalog-summary">
+                        <BInput :disabled="!activity.canEdit || saving || reviewBusy" :compat-fallthrough="false" id="catalog-summary" v-model="form.catalog.summary" placeholder="Kort resumé" />
                     </BField>
-                    <BField label="Beskrivelse">
-                        <BInput :disabled="!activity.canEdit || saving || reviewBusy" v-model="form.catalog.description" type="textarea" placeholder="Beskrivelse" />
+                    <BField label="Beskrivelse" label-for="catalog-description">
+                        <BInput :disabled="!activity.canEdit || saving || reviewBusy" :compat-fallthrough="false" id="catalog-description" v-model="form.catalog.description" type="textarea" placeholder="Beskrivelse" />
                     </BField>
                 </div>
                 <div class="activity-detail-form activity-detail-files" v-else-if="activeTab === 'files'">

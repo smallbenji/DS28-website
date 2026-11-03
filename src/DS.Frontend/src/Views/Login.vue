@@ -5,7 +5,7 @@
 
                 <div class="card frame">
                     <header class="card-header">
-                        <p class="card-header-title is-centered">Login</p>
+                        <p class="card-header-title is-centered">Log ind</p>
                     </header>
 
                     <div class="card-content">

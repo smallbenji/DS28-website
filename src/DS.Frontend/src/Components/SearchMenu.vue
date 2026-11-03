@@ -1,14 +1,22 @@
 <template>
-    <BModal v-model="isOpen" has-modal-card>
+    <BButton v-if="Me?.isAuthenticated" class="search-menu-trigger" size="is-small" icon-left="magnifying-glass" @click="open">Søg moduler</BButton>
+    <BModal :destroy-on-hide="false" v-model="isOpen" has-modal-card aria-label="Søg moduler" close-button-aria-label="Luk modulsøgning">
         <div class="modal-card search-menu">
             <section class="modal-card-body">
+                <h2 class="title is-5 mb-3">Søg moduler</h2>
                 <BInput
                     ref="searchInput"
+                    aria-label="Søg efter modul"
                     v-model="query"
                     icon="magnifying-glass"
-                    placeholder="Søg efter modul..."
+                    placeholder="Eksempel: Gruppe"
                     @keydown="onInputKeydown"
                 />
+                <p v-if="loading" role="status" class="mt-3">Henter moduler…</p>
+                <BNotification v-if="loadError" type="is-danger" :closable="false" role="alert" class="mt-3">
+                    Modulerne kunne ikke hentes. Kontrollér forbindelsen, og prøv igen.
+                    <BButton class="mt-2" @click="loadShortcuts">Prøv igen</BButton>
+                </BNotification>
                 <div class="search-menu-list">
                     <button
                         v-for="(option, index) in filteredShortcuts"
@@ -18,14 +26,15 @@
                         :class="{ 'is-active': index === activeIndex }"
                         @mouseenter="activeIndex = index"
                         @click="onSelect(option)"
+                        :tabindex="0"
                     >
                         <font-awesome-icon
                             :icon="option.icon.length == 1 ? option.icon[0] : option.icon"
                         />
                         <span>{{ option.title }}</span>
                     </button>
-                    <p v-if="filteredShortcuts.length === 0" class="search-menu-empty">
-                        Ingen moduler matcher din søgning
+                    <p v-if="!loading && !loadError && filteredShortcuts.length === 0" class="search-menu-empty">
+                        Ingen moduler matcher din søgning. Prøv et andet søgeord.
                     </p>
                 </div>
             </section>
@@ -39,7 +48,7 @@
 </template>
 
 <script lang="ts" setup>
-import { BInput, BModal } from 'buefy';
+import { BButton, BInput, BModal, BNotification } from 'buefy';
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { storeToRefs } from 'pinia';
@@ -51,7 +60,17 @@ const meStore = useMeStore();
 const { Me, Hq } = storeToRefs(meStore);
 
 const isOpen = ref(false);
+let returnFocus: HTMLElement | null = null;
+
+watch(isOpen, async (open) => {
+    if (open) return;
+
+    await nextTick();
+    if (returnFocus?.isConnected) returnFocus.focus();
+});
 const query = ref('');
+const loading = ref(false);
+const loadError = ref(false);
 const activeIndex = ref(0);
 const searchInput = ref<InstanceType<typeof BInput> | null>(null);
 
@@ -85,6 +104,7 @@ const focusInput = () => {
 const open = async () => {
     if (!Me.value?.isAuthenticated) return;
 
+    returnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     query.value = '';
     activeIndex.value = 0;
     isOpen.value = true;
@@ -93,10 +113,18 @@ const open = async () => {
 
     if (Hq.value.shortcuts.length > 0) return;
 
+    await loadShortcuts();
+};
+
+const loadShortcuts = async () => {
+    loading.value = true;
+    loadError.value = false;
     try {
         await meStore.GET_HQ();
-    } catch (error) {
-        console.error('Could not load home shortcuts:', error);
+    } catch {
+        loadError.value = true;
+    } finally {
+        loading.value = false;
     }
 };
 
@@ -149,8 +177,12 @@ onUnmounted(() => window.removeEventListener('keydown', handleGlobalKeyDown));
 </script>
 
 <style lang="scss" scoped>
+.search-menu-trigger {
+    margin-inline-end: 0.5rem;
+}
+
 .search-menu {
-    width: calc(100% - 2.5rem);
+    width: calc(100% - 2rem);
     max-width: 32rem;
     overflow: hidden;
     border-radius: 10px;
@@ -167,6 +199,7 @@ onUnmounted(() => window.removeEventListener('keydown', handleGlobalKeyDown));
     margin-top: 0.75rem;
     max-height: 50vh;
     overflow-y: auto;
+    overscroll-behavior: contain;
 }
 
 .search-menu-item {
@@ -182,20 +215,27 @@ onUnmounted(() => window.removeEventListener('keydown', handleGlobalKeyDown));
     border: none;
     border-radius: 6px;
     cursor: pointer;
-    transition: 0.15s ease-in;
+    transition: background-color 0.15s ease-in, color 0.15s ease-in;
 
     svg {
         width: 1.25rem;
-        color: rgba(0, 0, 0, 0.4);
+        color: rgba(0, 0, 0, 0.6);
     }
 
     &:hover,
     &.is-active {
         background-color: rgba(59, 130, 246, 0.1);
+        color: rgba(0, 0, 0, 0.9);
 
         svg {
             color: rgb(59, 130, 246);
         }
+    }
+
+    &:focus-visible {
+        outline: 2px solid rgb(59, 130, 246);
+        outline-offset: 2px;
+        background-color: rgba(59, 130, 246, 0.1);
     }
 }
 
@@ -203,17 +243,17 @@ onUnmounted(() => window.removeEventListener('keydown', handleGlobalKeyDown));
     margin: 0;
     padding: 1rem 0.75rem;
     text-align: center;
-    color: rgba(0, 0, 0, 0.4);
+    color: #595959;
 }
 
 .search-menu-footer {
     display: flex;
     flex-wrap: wrap;
     justify-content: flex-end;
-    gap: 0.5rem 1rem;
-    padding: 0.5rem 1rem;
+    gap: 0.5rem 0.75rem;
+    padding: 0.5rem 0.75rem;
     font-size: 0.75rem;
-    color: rgba(0, 0, 0, 0.4);
+    color: rgba(0, 0, 0, 0.6);
     background-color: #fff;
     border-top: 1px solid rgba(0, 0, 0, 0.06);
 

@@ -48,10 +48,12 @@
                 <progress
                     class="progress is-small"
                     :class="progressClass(item)"
+                    :aria-label="item.label"
+                    :aria-valuetext="`${item.current} af ${item.target}. ${statusText(item)}`"
                     :value="item.current"
                     :max="item.target"
                 ></progress>
-                <p class="progress-status" :class="statusClass(item)">{{ statusText(item) }}</p>
+                <p class="progress-status">{{ statusText(item) }}</p>
             </div>
 
             <p class="progress-note">
@@ -89,10 +91,6 @@ function progressClass(item: SignupProgressDto) {
     if (item.status === 'reached') return 'is-success';
     if (item.status === 'halfway') return 'is-warning';
     return 'is-danger';
-}
-
-function statusClass(item: SignupProgressDto) {
-    return `has-text-${progressClass(item).replace('is-', '')}`;
 }
 
 function statusText(item: SignupProgressDto) {
@@ -163,7 +161,7 @@ onMounted(load);
 }
 
 .admin-heading svg {
-    color: rgba(0, 0, 0, 0.4);
+    color: #595959;
 }
 
 .progress-card {
@@ -183,16 +181,17 @@ onMounted(load);
 
 .progress-target {
     font-size: 1rem;
-    color: rgba(0, 0, 0, 0.4);
+    color: #595959;
 }
 
 .progress-status {
+    color: #595959;
     font-size: 0.85rem;
     margin-top: 0.35rem;
 }
 
 .progress-note {
     font-size: 0.8rem;
-    color: rgba(0, 0, 0, 0.4);
+    color: #595959;
 }
 </style>
