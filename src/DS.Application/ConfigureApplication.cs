@@ -1,4 +1,5 @@
 using DS.Application.FileStorage;
+using DS.Application.FormTemplates;
 using DS.Application.Seeders;
 using DS.Application.Services.Email;
 using DS.Application.Services.Groups;
@@ -20,6 +21,8 @@ public static class ConfigureApplication
     public static IServiceCollection ConfigureDsApplication(this IServiceCollection services)
     {
         services.AddScoped<ActivityService>();
+        services.AddScoped<FormTemplate, TestFormTemplate>();
+        services.AddScoped<FormTemplateService>();
         services.AddScoped<ActivityTeamService>();
         services.AddScoped<EmailService>();
         services.AddScoped<InvitationService>();

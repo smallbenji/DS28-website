@@ -1840,3 +1840,41 @@ Node-versionen og frontendens buildkommandoer er uændrede. Backendens
 releaseimages publiceres fortsat i GitHub Container Registry via
 versionstags. Et eksisterende versionstag flyttes ikke ved buildrettelser;
 rettelsen udgives som en ny patch-version.
+
+## Frontend og formularvisning
+
+### Navigation og tilgængelighed
+
+**Implementeret:** Modulsøgning kan åbnes med en synlig »Søg moduler«-knap
+samt Ctrl/Mellemrum eller Cmd/Mellemrum. Indlæsningsfejl vises med mulighed
+for at prøve igen. Sideskift opdaterer browserens sidetitel og flytter fokus til
+hovedindholdet. Gruppens brugerpanel stables under indholdet på smalle skærme.
+
+Gruppesiden viser ikke længere det hardkodede medlemstal 0. Aktivitetsønskerunde
+og aktivitetstilmelding vises som »Ikke tilgængelig endnu«, fordi kortene endnu
+ikke har destinationer. De tidligere hardkodede novemberdatoer i 2026 er fjernet
+fra kortene; de var ikke vedtagne åbningstidspunkter.
+
+### Formularskabeloner
+
+**Implementeret (2026-10-22):** Kode-definerede formularskabeloner ligger i
+Application under `FormTemplates`. Konkrete skabeloner registreres som
+`FormTemplate` i DI og findes via `FormTemplateService` ud fra deres unikke id;
+controlleren opretter ikke selv skabeloner. Dublerede id'er afvises ved oprettelse
+af servicen.
+
+- `GET /api/v1/forms/{id}` returnerer definitionen eller 404. Den eksisterende
+  `/api/v1/forms/test` bevares som alias til `test-form-template`.
+- Endpointet er fortsat offentligt og indeholder kun en testskabelon. Adgang til
+  fremtidige domænespecifikke skabeloner skal afklares, før de registreres her.
+- `src/DS.Frontend` har `FormService` og Pinia-storen `useFormStore` med valgt
+  skabelon, loading, fejl og nulstilling. Felttyper sendes som enum-navne i JSON.
+  `TemplateForm` renderer sektioner med tekst-, tal- og datofelter via Buefy og
+  modtager svar separat med `v-model`. Tal er tal/null; datoer er datostrenge
+  (`YYYY-MM-DD`), ikke tidsstempler.
+- **UI-udkast (2026-10-23):** `/forms/{id}` (eller `/forms` for testskabelonen)
+  viser sektionskort, loading/fejl med genforsøg, rydning af svar og en foldbar
+  JSON-visning. Testskabelonen demonstrerer alle tre felttyper. Svar findes kun
+  lokalt i siden; siden gør tydeligt opmærksom på, at intet gemmes. Layoutet er
+  et udspil, ikke et vedtaget domæneflow. Indsendelse, lagring og servervalidering
+  er ikke implementeret; der er ingen påstået gemmehandling.
