@@ -792,6 +792,14 @@ fallback når der ikke er noget billede. `UserMetadata.vue` har desuden et
 uploadfelt (gated med `<Can role="UsersEditProfilePicture">`), der sætter den
 valgte brugers billede med det samme via `PUT /api/v1/user/{id}/profile-picture`.
 
+- Profilbilleder beskæres før upload i både egen profil og brugeradministration.
+  Vue Advanced Cropper (MIT, Vue 3) erstatter den hjemmelavede beskæring og giver
+  lokal forhåndsvisning med træk/touch, zoom, rotation og spejling i et kvadratisk
+  udsnit. Knapper giver også tastaturbetjening af placering og billedværktøjer.
+  Først ved »Beskær og upload« sendes udsnittet som et 512 × 512 PNG-billede;
+  annullering ændrer ikke det eksisterende billede. Serverens billedbehandling og
+  adgangskontrol er uændret.
+
 Headerens brugermenu (`Back.vue`/`UserMenuTrigger.vue`) viser nu profilbilledet,
 navnet og brugerens gruppetitel i stedet for mailen. Titlen afledes i
 `AppAccess.ResolveGroupTitle` af den første matchende gruppe i

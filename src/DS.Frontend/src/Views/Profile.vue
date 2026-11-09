@@ -17,12 +17,8 @@
 
                 <div class="profile-picture-actions">
                     <div class="buttons is-right">
-                        <BUpload v-model="selectedPicture" accept="image/*"
-                            :disabled="isUpdatingPicture">
-                            <BButton tag="a" type="is-primary" :loading="isUpdatingPicture">
-                                {{ Me.profilePicture ? 'Vælg nyt billede' : 'Vælg billede' }}
-                            </BButton>
-                        </BUpload>
+                        <ProfilePictureUpload :has-picture="!!Me.profilePicture" :disabled="isUpdatingPicture"
+                            @confirm="updatePicture" />
                         <BButton v-if="Me.profilePicture" type="is-danger is-light"
                             :disabled="isUpdatingPicture" @click="removePicture">
                             Fjern
@@ -302,12 +298,13 @@
 <script lang="ts" setup>
 import { useAccountStore } from '@/Stores/AccountStore';
 import { useMeStore } from '@/Stores/MeStore';
-import { BButton, BField, BIcon, BInput, BModal, BUpload, useToast, BCheckbox } from 'buefy';
-import { computed, onMounted, ref, watch } from 'vue';
+import { BButton, BField, BIcon, BInput, BModal, useToast, BCheckbox } from 'buefy';
+import { computed, onMounted, ref } from 'vue';
 import { storeToRefs } from 'pinia';
 import TwoFactorSetupModal from '@/Components/Account/TwoFactorSetupModal.vue';
 import RecoveryCodesModal from '@/Components/Account/RecoveryCodesModal.vue';
 import UserAvatar from '@/Components/User/UserAvatar.vue';
+import ProfilePictureUpload from '@/Components/User/ProfilePictureUpload.vue';
 import NotificationService from '@/Services/NotificationService';
 import FileService from '@/Services/FileService';
 import type { NotificationPreferenceDto, PasskeyDto } from '@/types';
@@ -351,7 +348,6 @@ const isDisabling = ref(false);
 const showReset = ref(false);
 const isResetting = ref(false);
 
-const selectedPicture = ref<File | null>(null);
 const isUpdatingPicture = ref(false);
 
 const showName = ref(false);
@@ -360,7 +356,6 @@ const isUpdatingPhone = ref(false);
 const showPassword = ref(false);
 
 const updatePicture = async (file: File) => {
-    selectedPicture.value = null;
     isUpdatingPicture.value = true;
 
     try {
@@ -407,10 +402,6 @@ const removePicture = async () => {
         isUpdatingPicture.value = false;
     }
 };
-
-watch(selectedPicture, (file) => {
-    if (file) updatePicture(file);
-});
 
 onMounted(() => {
     accountStore.GET_STATUS();

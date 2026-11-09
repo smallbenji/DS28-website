@@ -8,11 +8,8 @@
                 <UserAvatar :user="selectedUser" size="large" class="mr-4" />
                 <Can role="UsersEditProfilePicture">
                     <div class="buttons mb-2">
-                        <BUpload v-model="selectedPicture" accept="image/*" :disabled="isUpdatingPicture">
-                            <BButton tag="a" type="is-primary" :loading="isUpdatingPicture">
-                                {{ selectedUser.profilePicture ? 'Vælg nyt billede' : 'Vælg billede' }}
-                            </BButton>
-                        </BUpload>
+                        <ProfilePictureUpload :has-picture="!!selectedUser.profilePicture" :disabled="isUpdatingPicture"
+                            @confirm="updatePicture" />
                         <BButton v-if="selectedUser.profilePicture" type="is-danger is-light"
                             :disabled="isUpdatingPicture" @click="removePicture">
                             Fjern
@@ -47,10 +44,11 @@
 import { useGroupsStore } from '@/Stores/GroupsStore';
 import { useUserStore } from '@/Stores/UserStore';
 import { storeToRefs } from 'pinia';
-import { computed, ref, watch } from 'vue';
-import { BButton, BUpload, useToast } from 'buefy';
+import { computed, ref } from 'vue';
+import { BButton, useToast } from 'buefy';
 import Can from '@/Components/Can.vue';
 import UserAvatar from '@/Components/User/UserAvatar.vue';
+import ProfilePictureUpload from '@/Components/User/ProfilePictureUpload.vue';
 import FileService from '@/Services/FileService';
 import type { UserDto } from '@/types';
 
@@ -65,11 +63,9 @@ const userStore = useUserStore();
 const fileService = new FileService();
 const { Groups: groups } = storeToRefs(groupStore);
 
-const selectedPicture = ref<File | null>(null);
 const isUpdatingPicture = ref(false);
 
 const updatePicture = async (file: File) => {
-    selectedPicture.value = null;
     isUpdatingPicture.value = true;
 
     try {
@@ -116,10 +112,6 @@ const removePicture = async () => {
         isUpdatingPicture.value = false;
     }
 };
-
-watch(selectedPicture, (file) => {
-    if (file) updatePicture(file);
-});
 
 const selectedGroupId = computed({
     get: () => props.selectedUser.group?.id != null ? String(props.selectedUser.group.id) : "",
