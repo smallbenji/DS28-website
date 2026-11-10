@@ -1,7 +1,7 @@
 <template>
     <section
         class="board-column"
-        :class="{ 'is-done': column.isDoneColumn, 'is-dragging': dragging, 'drop-before': columnTarget && !columnTarget.after, 'drop-after': columnTarget?.after, 'drop-append': appendTarget }"
+        :class="{ 'is-done': column.isDoneColumn, 'is-dragging': dragging, 'drop-before': columnTarget && !columnTarget.after, 'drop-after': columnTarget?.after, 'drop-append': cardTarget }"
         @dragover="onDragOver"
         @dragleave="onDragLeave"
         @drop="onDrop"
@@ -41,18 +41,19 @@
             </div>
         </header>
 
-        <div class="board-column-cards">
+        <div ref="cardsContainer" class="board-column-cards">
             <BoardCard
                 v-for="card in cards"
                 :key="card.id"
                 :card="card"
                 :can-manage="canManage"
                 :is-done-column="column.isDoneColumn"
+                :drop-indicator="dropIndicatorFor(card)"
                 @open="emit('openCard', $event)"
-                @drop-card="emit('dropCard', $event)"
             />
-            <p v-if="cards.length === 0" class="board-column-empty">Ingen kort</p>
-            <div v-if="appendTarget" class="board-column-drop" role="status">Slip kortet her</div>
+            <p v-if="visibleCards.length === 0" class="board-column-empty" :class="{ 'is-drop-target': cardTarget }">
+                {{ cardTarget ? 'Slip kortet her' : 'Ingen kort' }}
+            </p>
         </div>
 
         <BButton v-if="canManage" size="is-small" class="board-column-add is-ghost" @click="emit('addCard', column.id)">
@@ -64,10 +65,10 @@
 
 <script setup lang="ts">
 import { BButton } from 'buefy';
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import type { BoardColumnDto, WorkItemDto } from '@/types';
 import BoardCard from './BoardCard.vue';
-import { useBoardDrag } from './boardDrag';
+import { isSameDropTarget, useBoardDrag, type BoardDropTarget } from './boardDrag';
 
 const props = defineProps<{
     column: BoardColumnDto;
@@ -80,15 +81,40 @@ const emit = defineEmits<{
     addCard: [columnId: number];
     editColumn: [column: BoardColumnDto];
     deleteColumn: [column: BoardColumnDto];
-    dropCard: [payload: { targetCardId: string; draggedId: string; after: boolean }];
-    dropColumn: [payload: { columnId: number; draggedId: string }];
+    moveCard: [payload: { cardId: number; columnId: number; position: number }];
     reorderColumn: [payload: { targetColumnId: number; draggedColumnId: number; after: boolean }];
 }>();
 
 const drag = useBoardDrag();
-const dragging = computed(() => drag.value?.kind === 'column' && drag.value.id === Number(props.column.id));
-const columnTarget = computed(() => drag.value?.target?.kind === 'column' && drag.value.target.id === Number(props.column.id) ? drag.value.target : null);
-const appendTarget = computed(() => drag.value?.target?.kind === 'append' && drag.value.target.id === Number(props.column.id));
+const cardsContainer = ref<HTMLElement | null>(null);
+const columnId = computed(() => Number(props.column.id));
+const dragging = computed(() => drag.value?.kind === 'column' && drag.value.id === columnId.value);
+const draggedCardId = computed(() => drag.value?.kind === 'card' ? drag.value.id : null);
+const visibleCards = computed(() => props.cards.filter((card) => Number(card.id) !== draggedCardId.value));
+
+const columnTarget = computed(() => {
+    const target = drag.value?.target;
+
+    return target?.kind === 'column' && target.columnId === columnId.value ? target : null;
+});
+
+const cardTarget = computed(() => {
+    const target = drag.value?.target;
+
+    return target?.kind === 'card' && target.columnId === columnId.value ? target : null;
+});
+
+function dropIndicatorFor(card: WorkItemDto) {
+    const target = cardTarget.value;
+    if (!target) return null;
+
+    const index = visibleCards.value.indexOf(card);
+    if (index < 0) return null;
+    if (index === target.index) return 'before';
+    if (index === visibleCards.value.length - 1 && target.index === visibleCards.value.length) return 'after';
+
+    return null;
+}
 
 function onColumnDragStart(event: DragEvent) {
     if (!props.canManage) {
@@ -99,7 +125,35 @@ function onColumnDragStart(event: DragEvent) {
     event.dataTransfer?.setData('text/plain', `column:${props.column.id}`);
     if (event.dataTransfer) event.dataTransfer.effectAllowed = 'move';
 
-    drag.value = { kind: 'column', id: Number(props.column.id), target: null };
+    drag.value = { kind: 'column', id: columnId.value, target: null };
+}
+
+function cardInsertionIndex(clientY: number) {
+    const elements = Array.from(cardsContainer.value?.querySelectorAll<HTMLElement>('[data-card-id]') ?? [])
+        .filter((element) => Number(element.dataset.cardId) !== draggedCardId.value);
+    const index = elements.findIndex((element) => {
+        const bounds = element.getBoundingClientRect();
+
+        return clientY < bounds.top + bounds.height / 2;
+    });
+
+    return index < 0 ? elements.length : index;
+}
+
+function cardDropTarget(clientY: number): BoardDropTarget | null {
+    const index = cardInsertionIndex(clientY);
+    const currentIndex = props.cards.findIndex((card) => Number(card.id) === draggedCardId.value);
+    if (currentIndex === index) return null;
+
+    return { kind: 'card', columnId: columnId.value, index };
+}
+
+function columnDropTarget(event: DragEvent): BoardDropTarget | null {
+    if (dragging.value) return null;
+
+    const bounds = (event.currentTarget as HTMLElement).getBoundingClientRect();
+
+    return { kind: 'column', columnId: columnId.value, after: event.clientX > bounds.left + bounds.width / 2 };
 }
 
 function onDragOver(event: DragEvent) {
@@ -108,22 +162,14 @@ function onDragOver(event: DragEvent) {
     event.preventDefault();
     event.stopPropagation();
     if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
-    if (dragging.value) {
-        drag.value.target = null;
-        return;
-    }
 
-    const bounds = (event.currentTarget as HTMLElement).getBoundingClientRect();
-    drag.value.target = {
-        kind: drag.value.kind === 'card' ? 'append' : 'column',
-        id: Number(props.column.id),
-        after: event.clientX > bounds.left + bounds.width / 2
-    };
+    const target = drag.value.kind === 'card' ? cardDropTarget(event.clientY) : columnDropTarget(event);
+    if (!isSameDropTarget(drag.value.target, target)) drag.value.target = target;
 }
 
 function onDragLeave(event: DragEvent) {
     if ((event.currentTarget as HTMLElement).contains(event.relatedTarget as Node | null)) return;
-    if ((columnTarget.value || appendTarget.value) && drag.value) drag.value.target = null;
+    if ((columnTarget.value || cardTarget.value) && drag.value) drag.value.target = null;
 }
 
 function onDrop(event: DragEvent) {
@@ -133,12 +179,12 @@ function onDrop(event: DragEvent) {
     event.stopPropagation();
     const { kind, id, target } = drag.value;
     drag.value = null;
-    if (!target || target.id !== Number(props.column.id)) return;
+    if (!target || target.columnId !== columnId.value) return;
 
-    if (kind === 'card' && target.kind === 'append') {
-        emit('dropColumn', { columnId: props.column.id, draggedId: String(id) });
+    if (kind === 'card' && target.kind === 'card') {
+        emit('moveCard', { cardId: id, columnId: columnId.value, position: target.index });
     } else if (kind === 'column' && target.kind === 'column') {
-        emit('reorderColumn', { targetColumnId: props.column.id, draggedColumnId: id, after: target.after });
+        emit('reorderColumn', { targetColumnId: columnId.value, draggedColumnId: id, after: target.after });
     }
 }
 </script>
@@ -169,17 +215,6 @@ function onDrop(event: DragEvent) {
 
 .board-column.drop-append {
     border-color: #3273dc;
-}
-
-.board-column-drop {
-    border-top: 4px solid #3273dc;
-    padding: 0.4rem;
-    color: #2458a6;
-    background: #e8f0fd;
-    border-radius: 3px;
-    font-size: 0.8rem;
-    text-align: center;
-    pointer-events: none;
 }
 
 .board-column.is-done {
@@ -282,6 +317,15 @@ function onDrop(event: DragEvent) {
     color: rgba(0, 0, 0, 0.4);
     font-size: 0.85rem;
     padding: 0.5rem 0.35rem;
+    border: 1px dashed transparent;
+    border-radius: 4px;
+}
+
+.board-column-empty.is-drop-target {
+    border-color: #3273dc;
+    background: #e8f0fd;
+    color: #2458a6;
+    pointer-events: none;
 }
 
 .board-column-add {

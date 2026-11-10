@@ -1,16 +1,14 @@
 <template>
     <article
         class="board-card"
-        :class="{ 'is-done': isDoneColumn, 'is-dragging': isDragging, 'drop-before': dropTarget && !dropTarget.after, 'drop-after': dropTarget?.after }"
+        :class="{ 'is-done': isDoneColumn, 'is-dragging': isDragging, 'drop-before': dropIndicator === 'before', 'drop-after': dropIndicator === 'after' }"
         :style="{ backgroundColor: card.color ? `color-mix(in srgb, ${card.color} 40%, white)` : undefined }"
         :draggable="canManage"
+        :data-card-id="card.id"
         tabindex="0"
         @click="emit('open', card)"
         @keydown.enter="emit('open', card)"
         @dragstart="onDragStart"
-        @dragover="onDragOver"
-        @dragleave="onDragLeave"
-        @drop="onDrop"
     >
         <p class="board-card-number">DS-{{ card.id }}</p>
         <p class="board-card-title">{{ card.title }}</p>
@@ -48,11 +46,12 @@ const props = defineProps<{
     card: WorkItemDto;
     canManage: boolean;
     isDoneColumn: boolean;
+    dropIndicator: 'before' | 'after' | null;
 }>();
 
 const drag = useBoardDrag();
-const isDragging = computed(() => drag.value?.kind === 'card' && drag.value.id === Number(props.card.id));
-const dropTarget = computed(() => drag.value?.target?.kind === 'card' && drag.value.target.id === Number(props.card.id) ? drag.value.target : null);
+const dragImageCaptured = ref(false);
+const isDragging = computed(() => dragImageCaptured.value && drag.value?.kind === 'card' && drag.value.id === Number(props.card.id));
 
 const descriptionPreview = computed(() => htmlToPlainText(props.card.description));
 
@@ -82,7 +81,6 @@ onBeforeUnmount(() => {
 
 const emit = defineEmits<{
     open: [card: WorkItemDto];
-    dropCard: [payload: { targetCardId: string; draggedId: string; after: boolean }];
 }>();
 
 function onDragStart(event: DragEvent) {
@@ -94,39 +92,8 @@ function onDragStart(event: DragEvent) {
     event.dataTransfer?.setData('text/plain', `card:${props.card.id}`);
     if (event.dataTransfer) event.dataTransfer.effectAllowed = 'move';
     drag.value = { kind: 'card', id: Number(props.card.id), target: null };
-}
-
-function onDragOver(event: DragEvent) {
-    if (!props.canManage || drag.value?.kind !== 'card') return;
-
-    event.preventDefault();
-    event.stopPropagation();
-    if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
-    if (isDragging.value) {
-        drag.value.target = null;
-        return;
-    }
-
-    const bounds = (event.currentTarget as HTMLElement).getBoundingClientRect();
-    drag.value.target = { kind: 'card', id: Number(props.card.id), after: event.clientY > bounds.top + bounds.height / 2 };
-}
-
-function onDragLeave(event: DragEvent) {
-    if ((event.currentTarget as HTMLElement).contains(event.relatedTarget as Node | null)) return;
-    if (dropTarget.value && drag.value) drag.value.target = null;
-}
-
-function onDrop(event: DragEvent) {
-    if (!props.canManage || drag.value?.kind !== 'card') return;
-
-    event.preventDefault();
-    event.stopPropagation();
-    const draggedId = String(drag.value.id);
-    const target = dropTarget.value;
-    drag.value = null;
-    if (!target) return;
-
-    emit('dropCard', { targetCardId: String(props.card.id), draggedId, after: target.after });
+    dragImageCaptured.value = false;
+    requestAnimationFrame(() => { dragImageCaptured.value = true; });
 }
 </script>
 

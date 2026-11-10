@@ -79,11 +79,20 @@ export const useBoardStore = defineStore("board", () => {
     }
 
     async function REORDER_COLUMNS(boardId: number, columnOrder: string[]) {
+        reorderColumnsLocally(columnOrder);
         const success = await boardService.reorderColumns(boardId, columnOrder);
-        if (success) {
-            await GET_BOARD(boardId);
-        }
+        await GET_BOARD(boardId);
         return success;
+    }
+
+    function reorderColumnsLocally(columnOrder: string[]) {
+        const board = SelectedBoard.value;
+        if (!board) return;
+
+        const columns = columnOrder
+            .map((columnId) => board.columns.find((column) => Number(column.id) === Number(columnId)))
+            .filter((column) => column !== undefined);
+        if (columns.length === board.columns.length) board.columns = columns;
     }
 
     async function ADD_CARD(boardId: number, data: WorkItemCreateDto) {
@@ -103,11 +112,28 @@ export const useBoardStore = defineStore("board", () => {
     }
 
     async function MOVE_CARD(boardId: number, cardId: number, columnId: number, position: number) {
+        moveCardLocally(cardId, columnId, position);
         const success = await boardService.moveCard(boardId, cardId, { columnId, position });
-        if (success) {
-            await GET_BOARD(boardId);
-        }
+        await GET_BOARD(boardId);
         return success;
+    }
+
+    function moveCardLocally(cardId: number, columnId: number, position: number) {
+        const board = SelectedBoard.value;
+        const card = board?.cards.find((item) => Number(item.id) === cardId);
+        if (!board || !card) return;
+
+        const remaining = board.cards.filter((item) => item !== card);
+        const columnCards = remaining.filter((item) => Number(item.columnId) === columnId);
+        const anchor = columnCards[position];
+        const lastInColumn = columnCards[columnCards.length - 1];
+        const insertAt = anchor
+            ? remaining.indexOf(anchor)
+            : lastInColumn ? remaining.indexOf(lastInColumn) + 1 : remaining.length;
+
+        card.columnId = columnId;
+        remaining.splice(insertAt, 0, card);
+        board.cards = remaining;
     }
 
     async function REMOVE_CARD(boardId: number, cardId: number) {
