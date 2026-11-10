@@ -23,3 +23,4 @@ export * from './version.types';
 export * from './passkeys.types';
 export * from './material.types';
 export * from './forms.types';
+export * from './search.types';

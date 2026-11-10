@@ -1853,9 +1853,29 @@ rettelsen udgives som en ny patch-version.
 
 ### Navigation og tilgængelighed
 
-**Implementeret:** Modulsøgning kan åbnes med en synlig »Søg moduler«-knap
-samt Ctrl/Mellemrum eller Cmd/Mellemrum. Indlæsningsfejl vises med mulighed
-for at prøve igen. Sideskift opdaterer browserens sidetitel og flytter fokus til
+**Implementeret:** Søgningen kan åbnes med en synlig »Søg«-knap samt
+Ctrl/Mellemrum eller Cmd/Mellemrum. Indlæsningsfejl vises med mulighed for at
+prøve igen.
+
+**Besluttet og implementeret:** Søgningen finder ud over moduler også tavler,
+grupper og aktiviteter, men kun det, brugeren selv har adgang til. Filtreringen
+sker på serveren i `GET /api/v1/search`, som følger de samme regler som de
+enkelte moduler:
+
+- Tavler kræver `BoardView`. Lejrchef og SysAdmin ser alle tavler, andre kun
+  tavler, de er medlem af.
+- Med `GroupsView` findes alle grupper og åbnes i gruppestyringen. Uden den
+  findes kun brugerens egen gruppe, som åbnes på `/group`.
+- Aktiviteter kræver `ActivityView`. `ActivityAdmin` ser alle aktiviteter, andre
+  kun aktiviteter i teams, de er medlem af.
+
+Søgningen starter ved to tegn og viser højst fem resultater pr. type.
+Resultaterne grupperes i Moduler, Tavler, Grupper og Aktiviteter, og eksterne
+links markeres. Under »Vis som« følger søgningen den valgte rolle ligesom
+tavlerne. Senest brugte resultater og beskrivelser af moduler er foreslået,
+men ikke besluttet.
+
+Sideskift opdaterer browserens sidetitel og flytter fokus til
 hovedindholdet. Gruppens brugerpanel stables under indholdet på smalle skærme.
 
 Gruppesiden viser ikke længere det hardkodede medlemstal 0. Aktivitetsønskerunde
