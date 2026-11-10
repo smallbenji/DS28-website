@@ -135,6 +135,15 @@ namespace DS.Backend.Controllers
 The frontend uses Vue and Buefy. Use existing Buefy components and surrounding
 project patterns for forms, buttons, tables, notifications, and step flows.
 
+## Git commits and pull requests
+
+- Commit with the user's own git identity as configured in the repository
+  (`git config user.name` and `user.email`). Do not change the author or
+  committer.
+- Do not add `Co-Authored-By` trailers or other AI attribution, such as
+  "Generated with Claude Code", to commit messages or pull request
+  descriptions.
+
 ## Deployment
 
 - `DS.Worker` executes Hangfire jobs; Website only enqueues jobs and hosts the
