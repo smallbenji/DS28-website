@@ -32,8 +32,7 @@
                 @add-card="openNewCard"
                 @edit-column="openColumnEdit"
                 @delete-column="confirmDeleteColumn"
-                @drop-card="handleDropOnCard"
-                @drop-column="handleDropOnColumn"
+                @move-card="handleMoveCard"
                 @reorder-column="handleReorderColumn"
             />
         </div>
@@ -214,22 +213,8 @@ async function saveSettings() {
     }
 }
 
-function handleDropOnCard(payload: { targetCardId: string; draggedId: string; after: boolean }) {
-    if (!payload.draggedId || payload.targetCardId === payload.draggedId) return;
-
-    const target = board.value?.cards.find((card) => String(card.id) === String(payload.targetCardId));
-    if (!target) return;
-
-    const list = cardsFor(target.columnId).filter((card) => String(card.id) !== String(payload.draggedId));
-    const index = list.findIndex((card) => String(card.id) === String(payload.targetCardId));
-    void moveCard(payload.draggedId, target.columnId, index < 0 ? list.length : index + Number(payload.after));
-}
-
-function handleDropOnColumn(payload: { columnId: number; draggedId: string }) {
-    if (!payload.draggedId) return;
-
-    const list = cardsFor(payload.columnId).filter((card) => String(card.id) !== String(payload.draggedId));
-    void moveCard(payload.draggedId, payload.columnId, list.length);
+function handleMoveCard(payload: { cardId: number; columnId: number; position: number }) {
+    void moveCard(payload.cardId, payload.columnId, payload.position);
 }
 
 function handleReorderColumn(payload: { targetColumnId: number; draggedColumnId: number; after: boolean }) {
@@ -241,6 +226,7 @@ function handleReorderColumn(payload: { targetColumnId: number; draggedColumnId:
     const next = order.filter((columnId) => columnId !== order[from]);
     const targetIndex = next.indexOf(Number(payload.targetColumnId));
     next.splice(targetIndex + Number(payload.after), 0, order[from]);
+    if (next.every((columnId, index) => columnId === order[index])) return;
 
     void reorderColumns(next);
 }
@@ -256,8 +242,8 @@ async function reorderColumns(order: number[]) {
     }
 }
 
-async function moveCard(cardId: string, columnId: number, position: number) {
-    const success = await store.MOVE_CARD(boardId, Number(cardId), Number(columnId), position);
+async function moveCard(cardId: number, columnId: number, position: number) {
+    const success = await store.MOVE_CARD(boardId, cardId, Number(columnId), position);
     if (!success) {
         Toast.open({ message: 'Kortet kunne ikke flyttes.', type: 'is-danger' });
     }

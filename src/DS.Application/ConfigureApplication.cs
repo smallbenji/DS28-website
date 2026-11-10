@@ -10,6 +10,7 @@ using DS.Application.Services.Organization;
 using DS.Application.Services.Registration;
 using DS.Application.Services.Users;
 using DS.Application.Services.Boards;
+using DS.Application.Services.Search;
 using DS.Application.Services.Profile;
 using DS.Application.Services.Exports;
 using DS.Application.Services.Accounts;
@@ -33,6 +34,7 @@ public static class ConfigureApplication
         services.AddScoped<RegistrationSettingsService>();
         services.AddScoped<UserService>();
         services.AddScoped<BoardService>();
+        services.AddScoped<SearchService>();
         services.AddScoped<MeService>();
         services.AddScoped<ExportService>();
         services.AddScoped<AccountService>();

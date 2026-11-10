@@ -669,7 +669,7 @@ namespace DS.Application.Services.Boards
             return await VisibleBoards(actor).AnyAsync(candidate => candidate.Id == board.Id);
         }
 
-        private IQueryable<Board> VisibleBoards(BoardActor actor)
+        public IQueryable<Board> VisibleBoards(BoardActor actor)
         {
             var boards = dataDb.Boards.Where(board => board.DeletedAt == null);
             if (actor.CanSeeAllBoards) return boards;
