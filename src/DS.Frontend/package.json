@@ -20,7 +20,7 @@
     "@tiptap/pm": "^3.32.0",
     "@tiptap/starter-kit": "^3.33.0",
     "@tiptap/vue-3": "^3.33.0",
-    "axios": "^1.20.0",
+    "axios": "^1.21.1",
     "buefy": "^3.0.10",
     "dompurify": "^3.4.17",
     "esbuild": "^0.28.2",
