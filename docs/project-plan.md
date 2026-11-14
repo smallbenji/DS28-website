@@ -1906,3 +1906,48 @@ af servicen.
   lokalt i siden; siden gør tydeligt opmærksom på, at intet gemmes. Layoutet er
   et udspil, ikke et vedtaget domæneflow. Indsendelse, lagring og servervalidering
   er ikke implementeret; der er ingen påstået gemmehandling.
+
+### Historiske tilmeldinger fra 2024
+
+**Besluttet og klargjort (2026-11-14):** Første historiske import omfatter kun
+forhåndstilmeldinger og endelige tilmeldinger fra det gamle Fynsdistrikt-projekt.
+Historikken kobles til eksisterende DS28-grupper i to separate tabeller,
+`historic_presignup` og `historic_signup`; aktive tilmeldinger ændres ikke.
+Lejrår, gren, kilde-id, udtrækskontrolsum og importtidspunkt bevares.
+
+- `DS.RegistrationImporter` følger med Website-imaget og køres manuelt med
+  produktionsmiljøets `DS__ConnectionString`. Standard er prøvekørsel;
+  `--apply` erstatter årets historik transaktionelt og kan genkøres uden dubletter.
+  Importen er ikke et opstartsjob eller et tilbagevendende Worker-job.
+- **Ændret beslutning:** Et indbygget JSON-udtræk og et separat Python-eksporttrin
+  er fravalgt. Importeren læser direkte fra Firestore med en credentials-fil
+  angivet ved kørsel (`--firebase-credentials` eller `GOOGLE_APPLICATION_CREDENTIALS`)
+  og et eksplicit `--year`. Google service-account-nøgler og Firebase-klient-JSON
+  med `projectId`/`apiKey` understøttes; klientnøgler kræver læseadgang gennem
+  eksisterende Firebase-regler. Credentials og historiske datafiler medfølger
+  ikke image eller repository. Data normaliseres i hukommelsen, og hver kørsel
+  læser kilden på ny.
+- Grupper matches på entydigt præcist navn eller et eksplicit kort fra gammelt
+  gruppenummer til eksisterende DS28-id. Ingen grupper oprettes.
+- Forhåndstal og venskabsgruppetal bevares separat pr. gren. Endelige antal
+  gemmes pr. gren med dag 0 som patruljesummer og dag 1–8 som tilmeldt fremmøde.
+  Særskilte ledere uden dagsoplysninger har kun dag 0; manglende dagsrækker er
+  ukendt, ikke nul. Familiespejdere bevares som egen gren.
+- Ved undersøgelsen 2026-11-14 havde Firebase 16 forhåndstilmeldinger og 41
+  endelige dokumenter. To tomme
+  dokumenter uden gruppekobling udelades med registreret begrundelse. De øvrige
+  39 vedrører 38 grupper og indeholder råt 285 deltagere uden ledere plus 111
+  ledere. Disse summer er ikke et verificeret antal unikke personer.
+- **Uafklaret:** Svendborg har to endelige dokumenter med henholdsvis 10 og 12
+  deltagere inklusive ledere. Ingen af dem er automatisk valgt eller summeret
+  til en godkendt gruppetotal. Importen blokerer, indtil dubletten afklares;
+  eksplicit udeladelse understøttes via dokument-id.
+- `TestGruppe` (123456) har 43 forhåndstilmeldte og 1 endeligt tilmeldt i
+  rådata. Eksplicit udeladelse af et gruppenummer understøttes for begge tabeller;
+  testgrupper frasorteres ikke automatisk.
+- Produktionsimport er ikke udført. Visning og sammenligning i dashboardet er
+  ikke implementeret; eksisterende `ParticipantData` er uændret. Øvrige gamle
+  datatyper er uden for denne første import.
+
+Kørsel, databetydning og dubletoplysninger er beskrevet i
+[importvejledningen](../tools/historic_registration/README.md).

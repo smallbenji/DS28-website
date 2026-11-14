@@ -12,6 +12,7 @@ COPY src/ .
 COPY --from=node-build /src/DS.Backend/wwwroot/dist /src/DS.Backend/wwwroot/dist
 RUN dotnet restore DS.Backend/DS.Backend.csproj
 RUN dotnet publish DS.Backend/DS.Backend.csproj -c Release -o /app/publish
+RUN dotnet publish DS.RegistrationImporter/DS.RegistrationImporter.csproj -c Release -o /app/importer
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0
 WORKDIR /app
@@ -20,3 +21,4 @@ ENV ASPNETCORE_ENVIRONMENT=Production
 EXPOSE 8080
 ENTRYPOINT ["dotnet", "DS.Backend.dll"]
 COPY --from=build /app/publish ./
+COPY --from=build /app/importer ./importer/
