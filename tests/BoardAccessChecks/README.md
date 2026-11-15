@@ -18,6 +18,11 @@ updates preserving tags, validation, denied access, independent shared-card
 tags, live events, and composite database foreign keys rejecting cross-board
 assignments. Tag deletion must remove assignments without altering other boards.
 
+Inline tag creation checks cover optional `newTagNames` on card creation and
+updates, trimming, duplicate and existing-name reuse, color defaults, validation,
+board isolation, access control, rollback of card/tag writes on database failure,
+no live events after failure, and a successful retry without duplicate tags.
+
 Remote MCP checks invoke `BoardTools` with a test authentication service and the
 real board service/database. They cover tag creation, rename/recolour, deletion,
 card tag selection, omitted/null/empty semantics, conflicts, invalid input,
