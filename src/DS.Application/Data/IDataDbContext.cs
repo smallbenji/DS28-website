@@ -31,6 +31,8 @@ namespace DS.Application.Data
         DbSet<OrgPositionHolder> OrgPositionHolders { get; }
         DbSet<OrgPosition> OrgPositions { get; }
         DbSet<OrgPositionGroup> OrgPositionGroups { get; }
+        DbSet<BoardTag> BoardTags { get; }
+        DbSet<BoardCardTag> BoardCardTags { get; }
         DbSet<Board> Boards { get; }
         DbSet<BoardMember> BoardMembers { get; }
         DbSet<BoardColor> BoardColors { get; }

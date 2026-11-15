@@ -4,6 +4,7 @@ using DS.Domain.DTOs;
 using DS.Domain.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using System.Data.Common;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -38,6 +39,7 @@ namespace DS.Application.Services.Boards
                 .AsNoTracking()
                 .Include(board => board.Columns)
                 .Include(board => board.Colors)
+                .Include(board => board.Tags)
                 .AsSplitQuery()
                 .FirstOrDefaultAsync(board => board.Id == id && board.DeletedAt == null);
             if (board == null) return new ServiceResult(ServiceOutcome.NotFound);
@@ -155,6 +157,88 @@ namespace DS.Application.Services.Boards
             await dataDb.SaveChangesAsync();
 
             return new ServiceResult<int>(ServiceOutcome.Success, board.Id);
+        }
+
+        public async Task<ServiceResult<int>> CreateTag(BoardActor actor, BoardTagUpdateDto data, int id)
+        {
+            if (!await VisibleBoards(actor).AnyAsync(board => board.Id == id)) return new ServiceResult(ServiceOutcome.Forbidden);
+
+            if (data == null || !TryNormalizeShortText(data.Name, 64, out var name) || name == null)
+            {
+                return new ServiceResult(ServiceOutcome.Invalid, "Tagget skal have et navn på højst 64 tegn.");
+            }
+            if (!TryNormalizeCardColor(data.Color, out var color)) return new ServiceResult(ServiceOutcome.Invalid, "Ugyldig tagfarve.");
+
+            if (await TagNameExists(id, name)) return new ServiceResult(ServiceOutcome.Conflict, "Et tag med dette navn findes allerede på tavlen.");
+
+            var tag = new BoardTag { BoardId = id, Name = name, Color = color };
+            dataDb.BoardTags.Add(tag);
+            try
+            {
+                await dataDb.SaveChangesAsync();
+            }
+            catch (DbUpdateException exception) when (exception.InnerException is DbException { SqlState: "23505" })
+            {
+                dataDb.Entry(tag).State = EntityState.Detached;
+                return new ServiceResult(ServiceOutcome.Conflict, "Et tag med dette navn findes allerede på tavlen.");
+            }
+            await boardEvents.BoardChanged(id);
+
+            return new ServiceResult<int>(ServiceOutcome.Success, tag.Id);
+        }
+
+        public async Task<ServiceResult> UpdateTag(BoardActor actor, BoardTagUpdateDto data, int id, int tagId)
+        {
+            if (!await VisibleBoards(actor).AnyAsync(board => board.Id == id)) return new ServiceResult(ServiceOutcome.Forbidden);
+
+            if (data == null || !TryNormalizeShortText(data.Name, 64, out var name) || name == null)
+            {
+                return new ServiceResult(ServiceOutcome.Invalid, "Tagget skal have et navn på højst 64 tegn.");
+            }
+            if (!TryNormalizeCardColor(data.Color, out var color)) return new ServiceResult(ServiceOutcome.Invalid, "Ugyldig tagfarve.");
+
+            var tag = await dataDb.BoardTags.FirstOrDefaultAsync(tag => tag.Id == tagId && tag.BoardId == id);
+            if (tag == null) return new ServiceResult(ServiceOutcome.NotFound);
+            if (await TagNameExists(id, name, tagId)) return new ServiceResult(ServiceOutcome.Conflict, "Et tag med dette navn findes allerede på tavlen.");
+
+            tag.Name = name;
+            tag.Color = color;
+            try
+            {
+                await dataDb.SaveChangesAsync();
+            }
+            catch (DbUpdateException exception) when (exception.InnerException is DbException { SqlState: "23505" })
+            {
+                await dataDb.Entry(tag).ReloadAsync();
+                return new ServiceResult(ServiceOutcome.Conflict, "Et tag med dette navn findes allerede på tavlen.");
+            }
+            await boardEvents.BoardChanged(id);
+
+            return new ServiceResult(ServiceOutcome.Success);
+        }
+
+        public async Task<ServiceResult> DeleteTag(BoardActor actor, int id, int tagId)
+        {
+            if (!await VisibleBoards(actor).AnyAsync(board => board.Id == id)) return new ServiceResult(ServiceOutcome.Forbidden);
+
+            var tag = await dataDb.BoardTags.FirstOrDefaultAsync(tag => tag.Id == tagId && tag.BoardId == id);
+            if (tag == null) return new ServiceResult(ServiceOutcome.NotFound);
+
+            dataDb.BoardTags.Remove(tag);
+            await dataDb.SaveChangesAsync();
+            await boardEvents.BoardChanged(id);
+
+            return new ServiceResult(ServiceOutcome.Success);
+        }
+
+        private async Task<bool> TagNameExists(int boardId, string name, int? exceptId = null)
+        {
+            return await dataDb.BoardTags.AnyAsync(tag => tag.BoardId == boardId && tag.Id != exceptId && tag.Name.ToLower() == name.ToLower());
+        }
+
+        private async Task<bool> AreValidTagsAsync(int boardId, List<int> tagIds)
+        {
+            return tagIds.Count == 0 || await dataDb.BoardTags.CountAsync(tag => tag.BoardId == boardId && tagIds.Contains(tag.Id)) == tagIds.Count;
         }
 
         public async Task<ServiceResult<int>> CreateColor(BoardActor actor, BoardColorUpdateDto data, int id)
@@ -375,6 +459,9 @@ namespace DS.Application.Services.Boards
             if (!await AreValidAssigneesAsync(assigneeUserIds)) return new ServiceResult(ServiceOutcome.Invalid, "En eller flere ansvarlige brugere findes ikke.");
             if (!await IsValidOwnerPositionAsync(data.OwnerPositionId)) return new ServiceResult(ServiceOutcome.Invalid, "Stillingen findes ikke.");
 
+            var tagIds = (data.TagIds ?? []).Distinct().ToList();
+            if (!await AreValidTagsAsync(id, tagIds)) return new ServiceResult(ServiceOutcome.Invalid, "Et eller flere tags findes ikke på tavlen.");
+
             var item = new WorkItem
             {
                 Title = data.Title.Trim(),
@@ -400,6 +487,7 @@ namespace DS.Application.Services.Boards
                 BoardId = id,
                 ColumnId = data.ColumnId,
                 WorkItem = item,
+                Tags = tagIds.Select(tagId => new BoardCardTag { BoardId = id, BoardTagId = tagId }).ToList(),
                 Position = lastPosition + 1,
             });
 
@@ -418,6 +506,7 @@ namespace DS.Application.Services.Boards
             if (!await CanSeeBoardAsync(actor, board)) return new ServiceResult(ServiceOutcome.Forbidden);
 
             var card = await dataDb.BoardCards
+                .Include(card => card.Tags)
                 .Include(card => card.WorkItem).ThenInclude(item => item.Assignees)
                 .FirstOrDefaultAsync(card => card.BoardId == id && card.WorkItemId == workItemId && card.WorkItem.DeletedAt == null);
             if (card == null) return new ServiceResult(ServiceOutcome.NotFound);
@@ -426,6 +515,20 @@ namespace DS.Application.Services.Boards
             var assigneeUserIds = NormalizeUserIds(data.AssigneeUserIds);
             if (!await AreValidAssigneesAsync(assigneeUserIds)) return new ServiceResult(ServiceOutcome.Invalid, "En eller flere ansvarlige brugere findes ikke.");
             if (!await IsValidOwnerPositionAsync(data.OwnerPositionId)) return new ServiceResult(ServiceOutcome.Invalid, "Stillingen findes ikke.");
+
+            var tagIds = data.TagIds?.Distinct().ToList();
+            if (tagIds != null && !await AreValidTagsAsync(id, tagIds))
+            {
+                return new ServiceResult(ServiceOutcome.Invalid, "Et eller flere tags findes ikke på tavlen.");
+            }
+
+            if (tagIds != null)
+            {
+                card.Tags.RemoveAll(link => !tagIds.Contains(link.BoardTagId));
+                var existingTagIds = card.Tags.Select(link => link.BoardTagId).ToHashSet();
+                card.Tags.AddRange(tagIds.Where(tagId => !existingTagIds.Contains(tagId))
+                    .Select(tagId => new BoardCardTag { BoardId = id, BoardTagId = tagId }));
+            }
 
             var item = card.WorkItem;
             item.Title = data.Title.Trim();
@@ -590,6 +693,7 @@ namespace DS.Application.Services.Boards
                 .Include(card => card.WorkItem).ThenInclude(item => item.Assignees).ThenInclude(assignee => assignee.User).ThenInclude(user => user.ProfilePicture)
                 .Include(card => card.WorkItem).ThenInclude(item => item.OwnerPosition)
                 .Include(card => card.WorkItem).ThenInclude(item => item.Links)
+                .Include(card => card.Tags).ThenInclude(link => link.BoardTag)
                 .AsSplitQuery()
                 .OrderBy(card => card.ColumnId).ThenBy(card => card.Position).ThenBy(card => card.Id)
                 .ToListAsync();
@@ -811,6 +915,8 @@ namespace DS.Application.Services.Boards
                     })
                     .ToList(),
                 Cards = cards.Select(card => ToCardDto(card, placements)).ToList(),
+                Tags = board.Tags.OrderBy(tag => tag.Name).ThenBy(tag => tag.Id)
+                    .Select(tag => new BoardTagDto { Id = tag.Id, Name = tag.Name, Color = tag.Color }).ToList(),
                 Colors = board.Colors.OrderBy(color => color.Id)
                     .Select(color => new BoardColorDto { Id = color.Id, Name = color.Name, Color = color.Color })
                     .ToList(),
@@ -823,6 +929,8 @@ namespace DS.Application.Services.Boards
 
             return new WorkItemDto
             {
+                Tags = card.Tags.OrderBy(link => link.BoardTag.Name).ThenBy(link => link.BoardTagId)
+                    .Select(link => new BoardTagDto { Id = link.BoardTagId, Name = link.BoardTag.Name, Color = link.BoardTag.Color }).ToList(),
                 Id = item.Id,
                 Title = item.Title,
                 Description = item.Description,

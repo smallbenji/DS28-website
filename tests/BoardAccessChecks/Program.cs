@@ -193,6 +193,26 @@ Check((await Board(boardId)).Cards.Single().Assignees.Count == 2, "invalid updat
 Check(await controller.UpdateCard(new WorkItemUpdateDto { Title = "Shared", Color = "#dbeafe", AssigneeUserIds = ["friend"] }, boardId, cardId) is OkResult, "individual assignee can be removed");
 Check((await Board(boardId)).Cards.Single().Assignees.Single().Id == "friend", "removing one assignee preserves the other");
 
+var releaseTag = (int)((OkObjectResult)await controller.CreateTag(new BoardTagUpdateDto { Name = " v0.2.13 ", Color = "#DBEAFE" }, boardId)).Value;
+var fixTag = (int)((OkObjectResult)await controller.CreateTag(new BoardTagUpdateDto { Name = "Fix" }, boardId)).Value;
+Check((await Board(boardId)).Tags.Single(tag => tag.Id == releaseTag).Color == "#dbeafe", "tag color and name are normalized");
+Check(await controller.CreateTag(new BoardTagUpdateDto { Name = "V0.2.13" }, boardId) is ConflictObjectResult, "tag names are case-insensitively unique per board");
+Check(await controller.CreateTag(new BoardTagUpdateDto { Name = " " }, boardId) is BadRequestObjectResult, "empty tag name rejected");
+Check(await controller.CreateTag(new BoardTagUpdateDto { Name = new string('x', 65) }, boardId) is BadRequestObjectResult, "long tag name rejected");
+Check(await controller.CreateTag(new BoardTagUpdateDto { Name = "Bad", Color = "red" }, boardId) is BadRequestObjectResult, "invalid tag color rejected");
+Check(await controller.UpdateCard(new WorkItemUpdateDto { Title = "Shared", AssigneeUserIds = ["friend"], TagIds = [releaseTag, fixTag, releaseTag] }, boardId, cardId) is OkResult, "card accepts multiple tags and deduplicates IDs");
+Check((await Board(boardId)).Cards.Single().Tags.Count == 2, "assigned tags returned on card");
+Check(await controller.UpdateCard(new WorkItemUpdateDto { Title = "Shared", AssigneeUserIds = ["friend"] }, boardId, cardId) is OkResult, "legacy update without tagIds succeeds");
+Check((await Board(boardId)).Cards.Single().Tags.Count == 2, "legacy update preserves tags");
+Check(await controller.UpdateCard(new WorkItemUpdateDto { Title = "Must not save", TagIds = [-1] }, boardId, cardId) is BadRequestObjectResult, "unknown tag rejects entire card update");
+Check((await Board(boardId)).Cards.Single().Title == "Shared", "invalid tag does not partially update card");
+
+var taggedCardId = (int)((OkObjectResult)await controller.CreateCard(new WorkItemCreateDto { Title = "Tagged on creation", ColumnId = columnId, TagIds = [releaseTag, fixTag] }, boardId)).Value;
+Check((await Board(boardId)).Cards.Single(card => card.Id == taggedCardId).Tags.Count == 2, "new card persists tag assignments atomically");
+Check(await controller.CreateCard(new WorkItemCreateDto { Title = "Invalid", ColumnId = columnId, TagIds = [-1] }, boardId) is BadRequestObjectResult, "unknown tag rejects new card");
+Check(await controller.RemoveCard(boardId, taggedCardId) is OkResult, "tagged placement can be removed");
+Check((await Board(boardId)).Cards.Count == 1, "removing tagged placement preserves existing card");
+
 ActAs("outsider", nameof(AppGroups.EventAdmin), nameof(AppRoles.ActivityAdmin));
 Check((await Boards()).Count == 0, "unrelated global administrator cannot list boards");
 var denied = new Dictionary<string, IActionResult>
@@ -213,6 +233,9 @@ var denied = new Dictionary<string, IActionResult>
     ["move card"] = await controller.MoveCard(new WorkItemMoveDto { ColumnId = columnId }, boardId, cardId),
     ["remove card"] = await controller.RemoveCard(boardId, cardId),
     ["placement"] = await controller.AddCardPlacement(new WorkItemPlacementCreateDto { ColumnId = columnId }, boardId, cardId),
+    ["create tag"] = await controller.CreateTag(new BoardTagUpdateDto { Name = "Denied" }, boardId),
+    ["update tag"] = await controller.UpdateTag(new BoardTagUpdateDto { Name = "Denied" }, boardId, releaseTag),
+    ["delete tag"] = await controller.DeleteTag(boardId, releaseTag),
     ["create palette color"] = await controller.CreateColor(new BoardColorUpdateDto { Name = "Denied", Color = "#123456" }, boardId),
     ["update palette color"] = await controller.UpdateColor(new BoardColorUpdateDto { Name = "Denied", Color = "#123456" }, boardId, paletteId),
     ["delete palette color"] = await controller.DeleteColor(boardId, paletteId),
@@ -244,6 +267,38 @@ Check((await Board(hiddenId)).Cards.Single().Color == "#ab1234", "palette edits 
 Check(await controller.DeleteColor(boardId, paletteId) is OkResult, "palette color can be deleted");
 Check((await Board(boardId)).Cards.Single().Color == "#ab1234", "deleting palette color preserves existing card color");
 Check((await Board(hiddenId)).Colors.All(color => color.Color != "#ab1234"), "shared card does not expose source board palette");
+
+var privateTag = (int)((OkObjectResult)await controller.CreateTag(new BoardTagUpdateDto { Name = "Private" }, hiddenId)).Value;
+Check(await controller.UpdateCard(new WorkItemUpdateDto { Title = "Shared", TagIds = [privateTag] }, hiddenId, cardId) is OkResult, "shared card accepts target board tags");
+Check((await Board(boardId)).Cards.Single().Tags.Count == 2, "tag assignment on other board does not alter source placement");
+Check((await Board(hiddenId)).Cards.Single().Tags.Single().Id == privateTag, "shared placement returns only its own board tags");
+Check(await controller.UpdateCard(new WorkItemUpdateDto { Title = "Shared", TagIds = [privateTag] }, boardId, cardId) is BadRequestObjectResult, "cross-board tag assignment rejected");
+Check(await controller.UpdateTag(new BoardTagUpdateDto { Name = "Changed" }, boardId, privateTag) is NotFoundResult, "cross-board tag edit rejected");
+Check(await controller.DeleteTag(boardId, privateTag) is NotFoundResult, "cross-board tag deletion rejected");
+Check(await controller.UpdateTag(new BoardTagUpdateDto { Name = "v0.2.14", Color = "#000000" }, boardId, releaseTag) is OkResult, "tag can be renamed and recolored");
+Check((await Board(boardId)).Cards.Single().Tags.Single(tag => tag.Id == releaseTag).Name == "v0.2.14", "renaming propagates to assigned cards");
+Check(await controller.UpdateTag(new BoardTagUpdateDto { Name = "Fix" }, boardId, releaseTag) is ConflictObjectResult, "rename cannot duplicate another tag");
+Check(await controller.DeleteTag(boardId, fixTag) is OkResult, "tag can be deleted");
+Check((await Board(boardId)).Cards.Single().Tags.Single().Id == releaseTag, "deleting tag removes only its assignments");
+Check((await Board(hiddenId)).Cards.Single().Tags.Single().Id == privateTag, "deleting source tag leaves other board tags intact");
+Check(await controller.UpdateCard(new WorkItemUpdateDto { Title = "Shared", TagIds = [] }, boardId, cardId) is OkResult, "empty tagIds clears selection");
+Check((await Board(boardId)).Cards.Single().Tags.Count == 0, "all tags cleared from selected placement");
+Check(boardEvents.Changes.Contains(hiddenId), "tag changes publish live updates");
+
+await using (var tagConnection = new NpgsqlConnection(connectionString))
+{
+    await tagConnection.OpenAsync();
+    var sourcePlacementId = await new NpgsqlCommand($"SELECT id FROM ds28.board_card WHERE board_id = {boardId} AND work_item_id = {cardId}", tagConnection).ExecuteScalarAsync();
+    try
+    {
+        await new NpgsqlCommand($"INSERT INTO ds28.board_card_tag (board_id, board_card_id, board_tag_id) VALUES ({boardId}, {sourcePlacementId}, {privateTag})", tagConnection).ExecuteNonQueryAsync();
+        throw new Exception("Cross-board foreign key was not enforced");
+    }
+    catch (PostgresException exception) when (exception.SqlState == "23503")
+    {
+        Check(true, "database rejects cross-board tag assignment independently of service");
+    }
+}
 
 ActAs("friend");
 Check((await Board(boardId)).Cards.Single().Placements.Single().BoardId == boardId, "shared card hides inaccessible board metadata");

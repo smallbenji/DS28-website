@@ -9,6 +9,7 @@
             <div v-if="canManage" class="board-detail-actions">
                 <BButton size="is-small" class="is-ghost" @click="membersOpen = true">Medlemmer og invitation</BButton>
                 <BButton size="is-small" class="is-ghost" @click="colorsOpen = true">Farver</BButton>
+                <BButton size="is-small" class="is-ghost" @click="tagsOpen = true">Tags</BButton>
                 <BButton size="is-small" class="is-ghost" @click="openColumnCreate">
                     <font-awesome-icon icon="plus" />
                     <span>Kolonne</span>
@@ -16,6 +17,16 @@
                 <BButton size="is-small" class="is-ghost" @click="openSettings">Indstillinger</BButton>
             </div>
         </header>
+
+        <div v-if="board?.tags?.length" class="board-tag-filter">
+            <BField label="Filtrer på tag">
+                <BSelect v-model="selectedTagId" aria-label="Filtrer på tag">
+                    <option :value="null">Alle kort</option>
+                    <option v-for="tag in board.tags" :key="tag.id" :value="Number(tag.id)">{{ tag.name }}</option>
+                </BSelect>
+            </BField>
+            <p v-if="selectedTagId !== null" class="help" role="status">{{ filteredCards.length }} kort matcher. Fjern tagfilteret for at flytte kort og kolonner.</p>
+        </div>
 
         <p v-if="loading && !board" role="status">Indlæser tavle…</p>
 
@@ -27,7 +38,7 @@
                 :key="column.id"
                 :column="column"
                 :cards="cardsFor(column.id)"
-                :can-manage="canManage"
+                :can-manage="canManage && selectedTagId === null"
                 @open-card="openCard"
                 @add-card="openNewCard"
                 @edit-column="openColumnEdit"
@@ -76,17 +87,19 @@
         </BModal>
         <BoardMembersModal v-model="membersOpen" :board-id="boardId" />
         <BoardColorsModal v-model="colorsOpen" :board-id="boardId" />
+        <BoardTagsModal v-model="tagsOpen" :board-id="boardId" />
     </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, provide, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, provide, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
-import { BButton, BCheckbox, BField, BInput, BModal, useDialog, useToast } from 'buefy';
+import { BButton, BCheckbox, BField, BInput, BModal, BSelect, useDialog, useToast } from 'buefy';
 import type { HubConnection } from '@microsoft/signalr';
 import type { BoardColumnDto, WorkItemDto } from '@/types';
 import { useBoardStore } from '@/Stores/BoardStore';
 import BoardMembersModal from '@/Components/Board/BoardMembersModal.vue';
+import BoardTagsModal from '@/Components/Board/BoardTagsModal.vue';
 import BoardColorsModal from '@/Components/Board/BoardColorsModal.vue';
 import BoardColumn from '@/Components/Board/BoardColumn.vue';
 import BoardCardModal from '@/Components/Board/BoardCardModal.vue';
@@ -121,14 +134,21 @@ const editingColumn = ref<BoardColumnDto | null>(null);
 const settingsOpen = ref(false);
 const membersOpen = ref(false);
 const colorsOpen = ref(false);
+const tagsOpen = ref(false);
+const selectedTagId = ref<number | null>(null);
 const savingSettings = ref(false);
 const settings = ref({ title: '', description: '', isArchived: false });
 
 const board = computed(() => store.SelectedBoard);
 const canManage = computed(() => board.value !== null);
 
+const filteredCards = computed(() => (board.value?.cards ?? []).filter(card => selectedTagId.value === null || card.tags?.some(tag => Number(tag.id) === selectedTagId.value)));
+watch(() => board.value?.tags, tags => {
+    if (selectedTagId.value !== null && !tags?.some(tag => Number(tag.id) === selectedTagId.value)) selectedTagId.value = null;
+});
+
 function cardsFor(columnId: number): WorkItemDto[] {
-    return (board.value?.cards ?? []).filter((card) => String(card.columnId) === String(columnId));
+    return filteredCards.value.filter((card) => String(card.columnId) === String(columnId));
 }
 
 function openCard(card: WorkItemDto) {
@@ -315,11 +335,21 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
+.board-tag-filter {
+    margin-bottom: 1rem;
+}
+
+.board-tag-filter :deep(.select),
+.board-tag-filter :deep(select) {
+    max-width: 100%;
+}
+
 .board-detail {
     display: flex;
     flex-direction: column;
     flex: 1;
     min-height: 0;
+    min-width: 0;
     padding: 1rem;
     background: #fafbfc;
     border-radius: 8px;
@@ -348,6 +378,7 @@ onBeforeUnmount(() => {
 
 .board-detail-actions {
     display: flex;
+    flex-wrap: wrap;
     gap: 0.5rem;
 }
 

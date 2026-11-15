@@ -11,3 +11,9 @@ Card color checks cover migration defaults, preserved colors across upgrades,
 named board palette CRUD, board isolation, validation, creation, updates,
 clearing, database constraints and shared colors across boards. Palette edits
 and deletion must not recolor existing cards.
+
+Tag checks cover migration, optional colors, case-insensitive name uniqueness,
+multiple tag assignments, creation and deletion of tagged placements, legacy
+updates preserving tags, validation, denied access, independent shared-card
+tags, live events, and composite database foreign keys rejecting cross-board
+assignments. Tag deletion must remove assignments without altering other boards.

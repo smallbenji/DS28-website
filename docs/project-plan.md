@@ -1262,6 +1262,31 @@ Implementeringsnoter (2026-10-16, modal og rig tekst):
 - Tiptap monteres, når modalen åbnes, og afmonteres igen ved lukning, så
   editoren aldrig sidder skjult i et skjult element.
 
+**Implementeret (DS-27, 2026-11-15):** Tavler har egne tags med entydigt navn
+(op til 64 tegn, uden forskel på store/små bogstaver) og valgfri hex-farve.
+Medlemmer samt SysAdmin/CampAdmin kan oprette, redigere og slette tags via
+Tags på tavlen. En sletning fjerner tagget fra tavlens kort.
+
+- Et kort kan have flere tags pr. tavleplacering. Tags vælges i kortpanelet og
+  vises på kortet. Tags følger ikke med til andre tavler, når et kort deles;
+  hver tavle har sin egen markering og afslører ingen tags fra skjulte tavler.
+- Tagfilteret viser kort med det valgte tag. Flytning af kort og kolonner er
+  slået fra under filtrering, så skjulte kort ikke giver en forkert rækkefølge.
+  Fjernes et valgt tag, nulstilles filteret til alle kort.
+- Tags supplerer `Ikke udgivet` og ændrer ikke arbejdsgangen fra I gang via
+  Ikke udgivet til Færdig. Release-tags sættes manuelt i denne version.
+  Automatisk kobling til GitHub-merges eller deployede tags er fortsat uafklaret
+  og kræver en særskilt integration; der udledes ingen release fra en merge.
+- API'et tilbyder oprettelse, opdatering og sletning under
+  `/api/v1/boards/{id}/tags`. Tavlesvaret og kortsvaret har `tags`, og
+  kortoprettelse/-opdatering accepterer `tagIds`. Ved opdatering bevarer udeladt
+  eller null `tagIds` tildelingerne for ældre klienter/MCP, mens `[]` rydder dem.
+  Server og sammensatte fremmednøgler afviser tags fra andre tavler. Navne og
+  farver på eksisterende tildelinger opdateres gennem deres fælles tagdefinition.
+- Ændringer udsender tavlens eksisterende SignalR-hændelse. Migration
+  `029_board_tags.sql` tilføjer tabeller og constraints uden at ændre eller
+  fjerne eksisterende data, så den tidligere release kan fortsætte uden tags.
+
 **Beslutning 2026-10-16 (implementeret):** Færdig-status er **placeringsbestemt**,
 ikke global. Det globale `work_item.is_done` er droppet; "færdig" betyder, at
 kortets kolonne på den pågældende tavle er markeret som færdig-kolonne
