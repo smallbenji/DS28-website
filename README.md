@@ -52,6 +52,10 @@ API key. Rebuild after code changes with `graphify update .`; run
 graph with `graphify query "<question>"` using English symbol names, or open
 `graphify-out/graph.html`.
 
+Install `graphify hook install` to rebuild the graph in the background after
+commit, checkout, merge and rebase. The hooks live in `.git/hooks` and are
+therefore local to the machine, not part of the repository.
+
 ## Services
 
 - Wordpress (The main site)
