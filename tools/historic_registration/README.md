@@ -1,16 +1,39 @@
 # Historiske tilmeldinger direkte fra Firebase
 
-`DS.RegistrationImporter` følger med Website-imaget i `/app/importer`.
-Den læser `Grupper`, `Forhaand` og `Patruljer` direkte fra Firestore og behandler
+`DS.RegistrationImporter` følger med Website- og Worker-imaget. Den læser
+`Grupper`, `Forhaand` og `Patruljer` direkte fra Firestore og behandler
 data i hukommelsen. Der er ingen indbygget datafil, eksportfil eller Python-trin.
-Importen køres manuelt og starter aldrig automatisk ved deploy.
+
+Importen startes normalt som et baggrundsjob i workeren fra
+**Admin → Historisk tilmelding**. Knappen er kun tilgængelig for brugere med
+`AdminAccess` (`SysAdmin`). Jobbet kører med `--apply` og erstatter det
+konfigurerede lejrår. Prøvekørsel og fejlsøgning kan fortsat gøres med
+kommandolinjen nedenfor.
+
+## Opsætning i produktion
+
+Sæt miljøvariablerne på både Website og Worker, så knappen kan sætte jobbet i kø,
+og workeren kan køre det:
+
+| Variabel | Indhold |
+| --- | --- |
+| `DS__HistoricRegistration__FirebaseCredentials` | Credentials som JSON eller en sti til en JSON-fil |
+| `DS__HistoricRegistration__Year` | Lejrår, fx `2024` |
+| `DS__HistoricRegistration__GroupMap` | Valgfrit gruppekort som JSON eller en sti til en JSON-fil |
+| `DS__HistoricRegistration__ExcludeSignupDocuments` | Valgfri kommasepareret liste af Firestore-dokument-id'er |
+| `DS__HistoricRegistration__ExcludeGroupNumbers` | Valgfri kommasepareret liste af gamle gruppenumre |
+
+Credentials og gruppekort kan indsættes direkte som JSON i miljøvariablen, så
+der ikke skal monteres filer i containeren. De må ikke lægges i repository eller
+image. Workeren bruger samme `DS__ConnectionString` som Website.
 
 ## Credentials
 
-Angiv en lokal JSON-fil med `--firebase-credentials` eller sæt
-`GOOGLE_APPLICATION_CREDENTIALS` til filens sti. Filen skal være tilgængelig inde
-i containeren. Montér den som en read-only secret i dit deploymiljø; credentials
-skal ikke tilføjes til repository eller image.
+Angiv en lokal JSON-fil med `--firebase-credentials`, sæt
+`GOOGLE_APPLICATION_CREDENTIALS` til filens sti, eller indsæt JSON'en i
+`DS__HistoricRegistration__FirebaseCredentials`. Filen skal være tilgængelig inde
+i containeren, når der bruges en sti. Montér den som en read-only secret i dit
+deploymiljø; credentials skal ikke tilføjes til repository eller image.
 
 To formater understøttes:
 
@@ -30,11 +53,13 @@ herunder refresh-token-filer, afvises.
 
 Se også [Firestores autentificeringsdokumentation](https://firebase.google.com/docs/firestore/use-rest-api).
 
-## Kørsel efter deploy
+## Kommandolinje til prøvekørsel og fejlsøgning
 
 Website skal først have kørt DbUp-migrationerne. Importeren bruger
 `DS__ConnectionString` fra den kørende HQ-container. Eksemplerne antager, at
 credentials-filen er monteret på `/run/secrets/historic-firebase.json`.
+Jobbet fra Admin-siden kører med `--apply`; fejl vises i Hangfire og i
+worker-loggen.
 
 Start med en prøvekørsel:
 

@@ -13,7 +13,7 @@ namespace DS.RegistrationImporter
             return RunAsync(args);
         }
 
-        internal static async Task<int> RunAsync(string[] args, HttpClient? firebaseClient = null)
+        internal static async Task<int> RunAsync(string[] args, HttpClient? firebaseClient = null, string? connectionString = null)
         {
             try
             {
@@ -69,8 +69,8 @@ namespace DS.RegistrationImporter
                 if (presignups.Count == 0) throw new ImportValidationException("Alle forhåndstilmeldinger er udeladt.");
                 if (signups.Count == 0) throw new ImportValidationException("Alle endelige tilmeldinger er udeladt.");
                 var rows = presignups.Concat(signups).ToList();
-                var manualMapping = mappingPath == null ? new Dictionary<string, int>() : JsonSerializer.Deserialize<Dictionary<string, int>>(await File.ReadAllTextAsync(mappingPath))!;
-                var connectionString = Environment.GetEnvironmentVariable("DS__ConnectionString");
+                var manualMapping = mappingPath == null ? new Dictionary<string, int>() : JsonSerializer.Deserialize<Dictionary<string, int>>(await ReadJsonAsync(mappingPath))!;
+                connectionString ??= Environment.GetEnvironmentVariable("DS__ConnectionString");
                 if (string.IsNullOrWhiteSpace(connectionString)) throw new ImportValidationException("DS__ConnectionString mangler.");
                 await using var connection = new NpgsqlConnection(connectionString);
                 await connection.OpenAsync();
@@ -141,6 +141,11 @@ namespace DS.RegistrationImporter
                 if (error is ImportValidationException) Console.Error.WriteLine(error.Message);
                 return 1;
             }
+        }
+
+        private static async Task<string> ReadJsonAsync(string source)
+        {
+            return source.TrimStart().StartsWith('{') ? source : await File.ReadAllTextAsync(source);
         }
 
         private static void CheckDuplicates(List<ImportRow> rows, string label, List<string> errors)

@@ -1915,10 +1915,22 @@ Historikken kobles til eksisterende DS28-grupper i to separate tabeller,
 `historic_presignup` og `historic_signup`; aktive tilmeldinger ændres ikke.
 Lejrår, gren, kilde-id, udtrækskontrolsum og importtidspunkt bevares.
 
-- `DS.RegistrationImporter` følger med Website-imaget og køres manuelt med
-  produktionsmiljøets `DS__ConnectionString`. Standard er prøvekørsel;
-  `--apply` erstatter årets historik transaktionelt og kan genkøres uden dubletter.
-  Importen er ikke et opstartsjob eller et tilbagevendende Worker-job.
+- `DS.RegistrationImporter` følger med Website- og Worker-imaget. Importen køres
+  som et on-demand Worker-job, som en bruger med `AdminAccess` (`SysAdmin`)
+  starter fra Admin-siden. Jobbet bruger `--apply` og erstatter det konfigurerede
+  lejrår transaktionelt; genkørsel giver ikke dubletter. Det er ikke et
+  opstartsjob eller et tilbagevendende job. Kommandolinjen i Website-imaget
+  bevares til prøvekørsel og fejlsøgning.
+- **Ændret beslutning (2026-11-15):** Importen konfigureres med
+  `DS__HistoricRegistration__FirebaseCredentials`,
+  `DS__HistoricRegistration__Year`, valgfrit
+  `DS__HistoricRegistration__GroupMap`,
+  `DS__HistoricRegistration__ExcludeSignupDocuments` og
+  `DS__HistoricRegistration__ExcludeGroupNumbers`. Credentials og gruppekort
+  accepteres både som JSON-indhold i miljøvariablen og som sti til en fil.
+  Web-adgangen kræver `AdminAccess`, og endpointet afviser start, hvis
+  credentials eller lejrår mangler. Jobbet køres af workeren med samme
+  `DS__ConnectionString` som Website; Website sætter det kun i kø.
 - **Ændret beslutning:** Et indbygget JSON-udtræk og et separat Python-eksporttrin
   er fravalgt. Importeren læser direkte fra Firestore med en credentials-fil
   angivet ved kørsel (`--firebase-credentials` eller `GOOGLE_APPLICATION_CREDENTIALS`)

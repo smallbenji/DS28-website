@@ -21,5 +21,6 @@ namespace DS.Domain
         public string GoogleClientSecret { get; set; }
         public string GoogleRedirectUri { get; set; }
         public string GoogleDriveBaseFolderId { get; set; }
+        public HistoricRegistrationSettings HistoricRegistration { get; set; } = new();
     }
 }
