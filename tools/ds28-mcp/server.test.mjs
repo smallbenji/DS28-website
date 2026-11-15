@@ -12,6 +12,9 @@ const created = [];
 const moved = [];
 const updated = [];
 const deleted = [];
+const tagsCreated = [];
+const tagsUpdated = [];
+const tagsDeleted = [];
 
 function startStubServer() {
     const server = http.createServer((request, response) => {
@@ -61,11 +64,28 @@ function startStubServer() {
                         priority: "1",
                         dueDate: "2026-11-20",
                         assignees: [{ id: "u-1", firstName: "Ada", lastName: "Lovelace" }],
+                        tags: [{ id: "1", name: "v0.2.13", color: "#dbeafe" }],
                         placements: [{ boardId: "1", columnId: "10" }],
                     },
                 ],
                 colors: [{ id: "3", name: "Blå", color: "#3366ff" }],
+                tags: [{ id: "1", name: "v0.2.13", color: "#dbeafe" }, { id: "2", name: "Fix", color: null }],
             });
+        }
+        if (request.url === "/api/v1/boards/2" || request.url.startsWith("/api/v1/boards/2/tags")) return send(403);
+        if (request.method === "POST" && request.url === "/api/v1/boards/1/tags") {
+            return readBody(body => {
+                if (body.name === "v0.2.13") return send(409, "Tagget findes allerede.");
+                tagsCreated.push(body);
+                send(200, 3);
+            });
+        }
+        if (request.method === "PUT" && request.url === "/api/v1/boards/1/tags/1") {
+            return readBody(body => { tagsUpdated.push(body); send(200); });
+        }
+        if (request.method === "DELETE" && request.url === "/api/v1/boards/1/tags/1") {
+            tagsDeleted.push(1);
+            return send(200);
         }
         if (request.method === "GET" && request.url.startsWith("/api/v1/boards/assignees")) {
             return send(200, [
@@ -146,7 +166,7 @@ test("MCP-serveren læser tavler og opretter kort gennem DS28-API'et", async () 
         assert.equal(init.result.protocolVersion, "2025-06-18");
 
         const tools = await client.call("tools/list", {});
-        assert.deepEqual(tools.result.tools.map(tool => tool.name), ["list_boards", "get_board", "create_card", "move_card", "update_card", "delete_card"]);
+        assert.deepEqual(tools.result.tools.map(tool => tool.name), ["list_boards", "get_board", "create_card", "move_card", "update_card", "delete_card", "create_tag", "update_tag", "delete_tag"]);
 
         const boards = await client.call("tools/call", { name: "list_boards", arguments: {} });
         assert.match(boards.result.content[0].text, /id 1: Vejfest/);
@@ -255,6 +275,68 @@ test("MCP-serveren kræver et gyldigt adgangstoken", async () => {
     } finally {
         withoutToken.child.kill();
         wrongToken.child.kill();
+        server.close();
+    }
+});
+
+
+test("MCP understøtter tags med bevaret valg, rydning, validering og tagadministration", async () => {
+    const server = await startStubServer();
+    const client = startClient(`http://127.0.0.1:${server.address().port}`);
+    const call = async (name, args) => (await client.call("tools/call", { name, arguments: { boardId: 1, ...args } })).result;
+    try {
+        const board = await call("get_board", {});
+        assert.match(board.content[0].text, /id 1: v0.2.13 \| farve #dbeafe/);
+        assert.match(board.content[0].text, /tags: v0.2.13 \(id 1\)/);
+        const createCount = created.length;
+        const tagged = await call("create_card", { title: "Tagged", columnId: 10, tagIds: [2, 1, 2] });
+        assert.equal(tagged.isError, undefined);
+        assert.deepEqual(created[createCount].tagIds, [2, 1]);
+        for (const tagIds of [[99], ["1"], [-1]]) {
+            assert.equal((await call("create_card", { title: "Invalid", columnId: 10, tagIds })).isError, true);
+        }
+        assert.equal(created.length, createCount + 1);
+        let before = updated.length;
+        await call("update_card", { cardId: 42, title: "Keep tags" });
+        assert.equal(Object.hasOwn(updated[before], "tagIds"), false);
+        before = updated.length;
+        await call("update_card", { cardId: 42, title: "Keep tags", tagIds: null });
+        assert.equal(Object.hasOwn(updated[before], "tagIds"), false);
+        before = updated.length;
+        await call("update_card", { cardId: 42, tagIds: [] });
+        assert.deepEqual(updated[before].tagIds, []);
+        before = updated.length;
+        const selected = await call("update_card", { cardId: 42, tagIds: [2, 1, 2] });
+        assert.match(selected.content[0].text, /tags/);
+        assert.deepEqual(updated[before].tagIds, [2, 1]);
+        before = updated.length;
+        const unchanged = await call("update_card", { cardId: 42, tagIds: [1, 1] });
+        assert.match(unchanged.content[0].text, /uændret/);
+        assert.equal(updated.length, before);
+        assert.equal((await call("update_card", { cardId: 42, title: "Invalid", tagIds: [99] })).isError, true);
+        assert.equal(updated.length, before);
+
+        const tag = await call("create_tag", { name: " v0.2.14 " });
+        assert.match(tag.content[0].text, /tag 3 "v0.2.14"/);
+        assert.deepEqual(tagsCreated.at(-1), { name: "v0.2.14", color: null });
+        await call("update_tag", { tagId: 1, name: "v0.2.15" });
+        assert.deepEqual(tagsUpdated.at(-1), { name: "v0.2.15", color: "#dbeafe" });
+        await call("update_tag", { tagId: 1, color: "" });
+        assert.deepEqual(tagsUpdated.at(-1), { name: "v0.2.13", color: "" });
+        await call("update_tag", { tagId: 1, color: null });
+        assert.equal(tagsUpdated.at(-1).color, "#dbeafe");
+        const deletedTag = await call("delete_tag", { tagId: 1 });
+        assert.match(deletedTag.content[0].text, /fjernede det fra tavlens kort/);
+        assert.equal(tagsDeleted.at(-1), 1);
+        const updates = tagsUpdated.length;
+        assert.equal((await call("update_tag", { tagId: 99, name: "Hidden" })).isError, true);
+        assert.equal(tagsUpdated.length, updates);
+        assert.equal((await call("create_tag", { name: "v0.2.13" })).isError, true);
+        for (const name of ["create_tag", "update_tag", "delete_tag"]) {
+            assert.equal((await call(name, { boardId: 2, tagId: 1, name: "Denied" })).isError, true);
+        }
+    } finally {
+        client.child.kill();
         server.close();
     }
 });

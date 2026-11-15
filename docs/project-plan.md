@@ -1351,7 +1351,8 @@ nedenfor.
 
 - MCP-serveren kører lokalt over stdio og er registreret i `opencode.json` med
   værktøjerne `list_boards`, `get_board`, `create_card`, `update_card`,
-  `move_card` og `delete_card`. Alle kald går til `/api/v1/boards` med samme
+  `move_card`, `delete_card`, `create_tag`, `update_tag` og `delete_tag`.
+  Alle kald går til `/api/v1/boards` med samme
   adgangskontrol som brugerens egen konto, så medlemskab, SysAdmin/CampAdmin og
   API-validering gælder uændret.
 - MCP-serveren sender et personligt adgangstoken som `Authorization: Bearer`
@@ -1375,6 +1376,30 @@ nedenfor.
 - Tests: `node --test tools/ds28-mcp/*.test.mjs` dækker hjælpefunktionerne og
   hele forløbet mod en stub-server.
 
+**Implementeret (DS-33, 2026-11-15):** Både stdio- og HTTP-MCP understøtter
+DS-27's tavleafgrænsede tags. `get_board` viser tagdefinitionernes id, navn og
+valgfri farve samt tag-id'er på hvert kort. `create_card` og `update_card`
+accepterer `tagIds` fra samme tavle. Dubletter fjernes, ukendte id'er afvises.
+Udeladt/null `tagIds` betyder ingen tags ved oprettelse og bevar ved opdatering;
+`[]` rydder kun den aktuelle tavleplacerings tags. Der sættes ikke tags på
+andre tavler gennem et delt kort.
+
+- `create_tag` opretter en definition med entydigt navn og valgfri farve og
+  returnerer dens id. Det tildeler ikke tagget til kort.
+- `update_tag` ændrer navn og/eller farve på definitionen og dermed alle dens
+  tildelinger på tavlen. Udeladt/null navn eller farve bevares; tom `color`
+  fjerner farven. Et tomt navn afvises. `delete_tag` sletter definitionen og
+  dens tildelinger, mens kort og tags på andre tavler bevares.
+- Remote-værktøjerne bruger fortsat `BoardService` med den autentificerede
+  bruger; stdio bruger de eksisterende HTTP-endpoints med personligt token.
+  Adgangskontrol og tavleafgrænsning er uændret. Ingen databaseændring og ingen
+  automatisk kobling til GitHub-releases eller deploy.
+- Node-tests dækker hjælperne og stdio-protokollen mod en stub-API.
+  `BoardAccessChecks` kalder remote-værktøjerne med en test-autentificeret
+  bruger mod en isoleret PostgreSQL-database og dækker afgrænsning, CRUD,
+  bevar/ryd-semantik og delte kort. OAuth/transportens loginflow er ikke en del
+  af denne test.
+
 **Beslutning 2026-11-16 (implementeret):** Website udstiller et remote
 MCP-endpoint på `/mcp`, så cloud-agenter kan bruge tavlerne. Codex Cloud og
 ChatGPT web kan ikke nå en MCP-server, der kører lokalt på udviklerens maskine,
@@ -1382,8 +1407,8 @@ og den eksisterende stdio-server i `tools/ds28-mcp` kan derfor kun bruges
 lokalt.
 
 - Endpointet ligger i Website med `ModelContextProtocol.AspNetCore` og kortes
-  seks værktøjer (`list_boards`, `get_board`, `create_card`, `update_card`,
-  `move_card`, `delete_card`) i `src/DS.Backend/Mcp/BoardTools.cs`. Der
+  ni værktøjer (`list_boards`, `get_board`, `create_card`, `update_card`,
+  `move_card`, `delete_card`, `create_tag`, `update_tag`, `delete_tag`) i `src/DS.Backend/Mcp/BoardTools.cs`. Der
   indføres ingen ekstra tjeneste eller container.
 - Værktøjerne kalder `BoardService` direkte med samme `BoardActor` som
   controllerne, så medlemskab, SysAdmin/CampAdmin, validering og

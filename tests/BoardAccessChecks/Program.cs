@@ -1,4 +1,7 @@
 using DS.Domain;
+using DS.Backend.Mcp;
+using Microsoft.AspNetCore.Authentication;
+using ModelContextProtocol;
 using DbUp;
 using DS.Infrastructure;
 using DS.Infrastructure.Data;
@@ -119,6 +122,7 @@ var services = new ServiceCollection();
 services.AddLogging();
 services.AddDsDataLayer(connectionString);
 services.AddDsIdentityCore();
+services.AddSingleton<IAuthenticationService, TestMcpAuthentication>();
 using var provider = services.BuildServiceProvider();
 using var scope = provider.CreateScope();
 var db = scope.ServiceProvider.GetRequiredService<DataDbContext>();
@@ -135,8 +139,22 @@ foreach (var id in new[] { "member", "friend", "outsider", "admin" })
 var boardEvents = new RecordingBoardEvents();
 var controller = new BoardApiController(new BoardService(db, manager, boardEvents), manager)
 {
-    ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() }
+    ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext { RequestServices = scope.ServiceProvider } }
 };
+var mcp = new BoardTools(new BoardService(db, manager, boardEvents), new HttpContextAccessor { HttpContext = controller.HttpContext }, manager);
+async Task RejectMcp(Func<Task<string>> action, string message)
+{
+    try
+    {
+        await action();
+    }
+    catch (McpException)
+    {
+        Check(true, message);
+        return;
+    }
+    throw new Exception(message);
+}
 void ActAs(string id, params string[] roles)
 {
     controller.HttpContext.User = new ClaimsPrincipal(new ClaimsIdentity(
@@ -300,6 +318,42 @@ await using (var tagConnection = new NpgsqlConnection(connectionString))
     }
 }
 
+ActAs("owner");
+var remoteTagText = await mcp.CreateTag(boardId, " Remote release ", "#DBEAFE");
+var remoteTag = (await Board(boardId)).Tags.Single(tag => tag.Name == "Remote release");
+Check(remoteTagText.Contains($"tag {remoteTag.Id}") && remoteTag.Color == "#dbeafe", "remote MCP creates normalized tag and returns its id");
+await RejectMcp(() => mcp.CreateTag(boardId, "REMOTE RELEASE"), "remote MCP reports duplicate tag conflict");
+await RejectMcp(() => mcp.CreateTag(boardId, "Bad color", "red"), "remote MCP reports invalid tag color");
+await mcp.UpdateTag(boardId, remoteTag.Id, name: "MCP release");
+Check((await Board(boardId)).Tags.Single(tag => tag.Id == remoteTag.Id).Color == "#dbeafe", "remote tag rename preserves omitted color");
+await mcp.UpdateTag(boardId, remoteTag.Id, color: "");
+Check((await Board(boardId)).Tags.Single(tag => tag.Id == remoteTag.Id).Color == null, "remote tag empty color clears it");
+await RejectMcp(() => mcp.UpdateTag(boardId, privateTag, name: "Denied"), "remote MCP cannot rename another board's tag");
+await RejectMcp(() => mcp.DeleteTag(boardId, privateTag), "remote MCP cannot delete another board's tag");
+await RejectMcp(() => mcp.CreateTag(hiddenId, "Denied"), "remote MCP cannot create tags on hidden board");
+await RejectMcp(() => mcp.GetBoard(hiddenId), "remote MCP cannot read hidden board tags");
+await mcp.CreateCard(boardId, "MCP tagged", columnId: columnId, tagIds: [remoteTag.Id, remoteTag.Id]);
+var remoteCard = (await Board(boardId)).Cards.Single(card => card.Title == "MCP tagged");
+Check(remoteCard.Tags.Single().Id == remoteTag.Id, "remote MCP creates card with normalized tag selection");
+await mcp.UpdateCard(boardId, remoteCard.Id, title: "MCP renamed");
+Check((await Board(boardId)).Cards.Single(card => card.Id == remoteCard.Id).Tags.Single().Id == remoteTag.Id, "remote card update preserves omitted tags");
+await mcp.UpdateCard(boardId, remoteCard.Id, title: "MCP null", tagIds: null);
+Check((await Board(boardId)).Cards.Single(card => card.Id == remoteCard.Id).Tags.Single().Id == remoteTag.Id, "remote card update preserves null tags");
+Check((await mcp.UpdateCard(boardId, remoteCard.Id, tagIds: [remoteTag.Id])).Contains("uændret"), "remote MCP recognizes unchanged tag selection");
+await mcp.UpdateCard(boardId, remoteCard.Id, tagIds: [remoteTag.Id, releaseTag, remoteTag.Id]);
+Check((await Board(boardId)).Cards.Single(card => card.Id == remoteCard.Id).Tags.Count == 2, "remote MCP sets multiple tags");
+await RejectMcp(() => mcp.UpdateCard(boardId, remoteCard.Id, title: "Must not save", tagIds: [privateTag]), "remote MCP rejects cross-board tags before mutation");
+Check((await Board(boardId)).Cards.Single(card => card.Id == remoteCard.Id).Title == "MCP null", "remote invalid tag does not partially update card");
+var remoteBoardText = await mcp.GetBoard(boardId);
+Check(remoteBoardText.Contains($"id {remoteTag.Id}: MCP release | farve ingen") && remoteBoardText.Contains($"MCP release (id {remoteTag.Id})"), "remote get_board includes tag definitions and card tag ids");
+Check(!remoteBoardText.Contains($"id {privateTag}: Private"), "remote get_board hides another board's tag definition");
+await mcp.UpdateCard(boardId, remoteCard.Id, tagIds: []);
+Check((await Board(boardId)).Cards.Single(card => card.Id == remoteCard.Id).Tags.Count == 0, "remote empty tagIds clears assignments");
+await mcp.UpdateCard(boardId, remoteCard.Id, tagIds: [remoteTag.Id]);
+await mcp.DeleteTag(boardId, remoteTag.Id);
+Check((await Board(boardId)).Cards.Single(card => card.Id == remoteCard.Id).Tags.Count == 0, "remote tag deletion clears its assignments");
+await mcp.DeleteCard(boardId, remoteCard.Id);
+
 ActAs("friend");
 Check((await Board(boardId)).Cards.Single().Placements.Single().BoardId == boardId, "shared card hides inaccessible board metadata");
 Check(await controller.GetBoard(hiddenId) is ForbidResult, "shared card does not grant hidden board access");
@@ -340,4 +394,19 @@ sealed class RecordingBoardEvents : IBoardEventPublisher
         Changes.Add(boardId);
         return Task.CompletedTask;
     }
+}
+
+
+sealed class TestMcpAuthentication : IAuthenticationService
+{
+    public Task<AuthenticateResult> AuthenticateAsync(HttpContext context, string scheme)
+    {
+        if (scheme != McpAuthenticationHandler.SchemeName) throw new InvalidOperationException("Unexpected authentication scheme");
+        return Task.FromResult(AuthenticateResult.Success(new AuthenticationTicket(context.User, scheme)));
+    }
+
+    public Task ChallengeAsync(HttpContext context, string scheme, AuthenticationProperties properties) => Task.CompletedTask;
+    public Task ForbidAsync(HttpContext context, string scheme, AuthenticationProperties properties) => Task.CompletedTask;
+    public Task SignInAsync(HttpContext context, string scheme, ClaimsPrincipal principal, AuthenticationProperties properties) => Task.CompletedTask;
+    public Task SignOutAsync(HttpContext context, string scheme, AuthenticationProperties properties) => Task.CompletedTask;
 }

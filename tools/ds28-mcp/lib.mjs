@@ -54,6 +54,16 @@ export function resolveColumn(columns, columnId, columnTitle) {
     return Number(match.id);
 }
 
+export function resolveTagIds(tags, tagIds) {
+    if (!Array.isArray(tagIds) || tagIds.some(id => !Number.isInteger(id) || id <= 0)) {
+        throw new Error("tagIds skal være en liste af positive heltal fra get_board.");
+    }
+    const known = new Set((tags ?? []).map(tag => Number(tag.id)));
+    const result = [...new Set(tagIds)];
+    if (result.some(id => !known.has(id))) throw new Error("Et eller flere tags findes ikke på tavlen. Brug tag-id'er fra get_board.");
+    return result;
+}
+
 export function matchUser(users, wanted) {
     const query = String(wanted ?? "").trim().toLowerCase();
     if (!query) throw new Error("Angiv et navn eller en email som ansvarlig.");
@@ -92,6 +102,12 @@ export function formatBoard(board) {
         }
     }
 
+    lines.push("", "Tags:");
+    if (!board.tags?.length) lines.push("- (ingen)");
+    for (const tag of board.tags ?? []) {
+        lines.push(`- id ${tag.id}: ${tag.name} | farve ${tag.color ?? "ingen"}`);
+    }
+
     lines.push("", "Kort:");
     if (!board.cards.length) lines.push("- (ingen)");
 
@@ -105,6 +121,7 @@ export function formatBoard(board) {
         if (priority < 0) meta.push("lav prioritet");
         if (card.dueDate) meta.push(`frist ${card.dueDate}`);
         if (card.color) meta.push(`farve ${card.color}`);
+        if (card.tags?.length) meta.push(`tags: ${card.tags.map(tag => `${tag.name} (id ${tag.id})`).join(", ")}`);
         if (assignees.length) meta.push(`ansvarlige: ${assignees.join(", ")}`);
 
         lines.push(`- DS-${card.id} ${card.title} | ${meta.join(" | ")}`);
