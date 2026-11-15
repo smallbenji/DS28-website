@@ -177,7 +177,7 @@ public static class ServiceExtensions
         {
             options.LoginPath = "/login";
             options.LogoutPath = "/logout";
-            options.AccessDeniedPath = "/AccessDenied";
+            options.AccessDeniedPath = "/access-denied";
             options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
         });
 
