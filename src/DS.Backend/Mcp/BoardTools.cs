@@ -6,6 +6,7 @@ using DS.Application.Services.Boards;
 using DS.Domain;
 using DS.Domain.DTOs;
 using DS.Domain.Models;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Identity;
 using ModelContextProtocol;
 using ModelContextProtocol.Server;
@@ -19,7 +20,7 @@ namespace DS.Backend.Mcp
         [Description("List DS28 Kanban boards the logged-in user can see, with board id and card count.")]
         public async Task<string> ListBoards()
         {
-            var result = await boards.GetBoards(Actor());
+            var result = await boards.GetBoards(await ActorAsync());
 
             return BoardText.Boards(Unwrap(result));
         }
@@ -28,7 +29,7 @@ namespace DS.Backend.Mcp
         [Description("Read one DS28 Kanban board: columns with ids, colour palette, and all cards with DS-number, column, priority, due date, colour, assignees and description.")]
         public async Task<string> GetBoard([Description("Board id from list_boards.")] int boardId)
         {
-            var result = await boards.GetBoard(Actor(), boardId);
+            var result = await boards.GetBoard(await ActorAsync(), boardId);
 
             return BoardText.Board(Unwrap(result));
         }
@@ -47,7 +48,7 @@ namespace DS.Backend.Mcp
             if (!new[] { -1, 0, 1 }.Contains(priority)) throw new McpException("priority skal være -1, 0 eller 1.");
             if (string.IsNullOrWhiteSpace(title)) throw new McpException("title må ikke være tom.");
 
-            var actor = Actor();
+            var actor = await ActorAsync();
             var columns = Unwrap(await boards.GetColumns(actor, boardId));
             var columnIdValue = BoardInputs.ResolveColumn(columns, columnId, column);
 
@@ -81,7 +82,7 @@ namespace DS.Backend.Mcp
         {
             if (priority.HasValue && !new[] { -1, 0, 1 }.Contains(priority.Value)) throw new McpException("priority skal være -1, 0 eller 1.");
 
-            var actor = Actor();
+            var actor = await ActorAsync();
             var board = Unwrap(await boards.GetBoard(actor, boardId));
             var card = board.Cards.FirstOrDefault(candidate => candidate.Id == cardId);
             if (card == null) throw new McpException($"Kortet DS-{cardId} findes ikke på tavle {boardId}.");
@@ -146,7 +147,7 @@ namespace DS.Backend.Mcp
             [Description("Target column id from get_board.")] int? columnId = null,
             [Description("Zero-based position in the target column. Defaults to the end.")] int? position = null)
         {
-            var actor = Actor();
+            var actor = await ActorAsync();
             var board = Unwrap(await boards.GetBoard(actor, boardId));
             var card = board.Cards.FirstOrDefault(candidate => candidate.Id == cardId);
             if (card == null) throw new McpException($"Kortet DS-{cardId} findes ikke på tavle {boardId}.");
@@ -168,7 +169,7 @@ namespace DS.Backend.Mcp
             [Description("Board id from list_boards.")] int boardId,
             [Description("Card number from DS-<id>, for example 42 for DS-42.")] int cardId)
         {
-            var actor = Actor();
+            var actor = await ActorAsync();
             var board = Unwrap(await boards.GetBoard(actor, boardId));
             var card = board.Cards.FirstOrDefault(candidate => candidate.Id == cardId);
             if (card == null) throw new McpException($"Kortet DS-{cardId} findes ikke på tavle {boardId}.");
@@ -182,9 +183,13 @@ namespace DS.Backend.Mcp
                 : $"Slettede DS-{cardId} fra tavle {boardId}.";
         }
 
-        private BoardActor Actor()
+        private async Task<BoardActor> ActorAsync()
         {
-            var user = httpContextAccessor.HttpContext?.User;
+            var context = httpContextAccessor.HttpContext;
+            if (context == null) throw new McpException("Ingen bruger er logget ind.");
+
+            var authentication = await context.AuthenticateAsync(McpAuthenticationHandler.SchemeName);
+            var user = authentication.Principal;
             if (user == null) throw new McpException("Ingen bruger er logget ind.");
 
             var canSeeAllBoards = user.IsInRole(nameof(AppGroups.SysAdmin)) || user.IsInRole(nameof(AppGroups.CampAdmin));

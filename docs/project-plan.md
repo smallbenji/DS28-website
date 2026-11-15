@@ -1362,8 +1362,14 @@ lokalt.
   indføres ingen ekstra tjeneste eller container.
 - Værktøjerne kalder `BoardService` direkte med samme `BoardActor` som
   controllerne, så medlemskab, SysAdmin/CampAdmin, validering og
-  tavlesynlighed er uændret. `MapMcp("/mcp").RequireAuthorization()` kræver
-  login med cookie eller personligt adgangstoken, ligesom API'et.
+  tavlesynlighed er uændret.
+- `/mcp` bruger autentificeringsschemet `Mcp`. Det accepterer både et
+  OpenIddict-access-token fra `/connect/token` og et personligt adgangstoken,
+  og svarer `401` med `WWW-Authenticate` i stedet for at omdirigere til
+  login-siden. Cookielogin bruges ikke på endpointet.
+- `/.well-known/oauth-protected-resource` beskriver ressourcen, så en
+  MCP-klient kan finde autorisationsserveren. Den bygges ud fra forespørgslens
+  origin og indeholder ingen konfiguration.
 - Værktøjsnavne, parametre og den danske tekst svarer til stdio-serveren, så en
   agent kan skifte mellem de to uden at lære nye værktøjer.
 - `update_card` ændrer kun de angivne felter og læser kortet først, fordi
@@ -1373,14 +1379,41 @@ lokalt.
   så der er ikke behov for et delt session-lager, men en genstart afbryder
   igangværende MCP-sessioner.
 - Brug i Codex er `[mcp_servers.ds28-boards]` med `url` og
-  `bearer_token_env_var`. ChatGPT web kræver desuden en offentlig URL og
-  sandsynligvis OAuth frem for et personligt token; det er ikke afklaret.
+  `bearer_token_env_var`. Codex kan også logge ind via OAuth.
 - Den lokale stdio-server består til OpenCode og lokal udvikling og går fortsat
   over HTTP-API'et. Den er ikke nødvendig for cloud-agenter.
 - Verifikation: `dotnet build` og de rene hjælpefunktioner i
-  `tests/BoardAccessChecks` dækker kolonneopslag, navnematch og korttekst.
-  Selve HTTP-forløbet er ikke kørt mod en kørende instans i denne ændring, så
-  første kald efter deploy skal bekræftes med `initialize` og `tools/list`.
+  `tests/BoardAccessChecks` dækker kolonneopslag, navnematch, korttekst og
+  mapping fra `sub` til bruger-id. Selve HTTP-forløbet er ikke kørt mod en
+  kørende instans i denne ændring, så første kald efter deploy skal bekræftes
+  med `initialize` og `tools/list`.
+
+**Beslutning 2026-11-16 (implementeret):** MCP-endpointet accepterer
+OpenIddict-access-tokens, så ChatGPT-connectoren og Codex kan logge ind i
+stedet for at dele et personligt adgangstoken. OpenIddicts eksisterende
+autorisationsserver genbruges; der indføres ingen ny identitetsudbyder.
+
+- Årsagen var `invalid_target` (`ID2190`): ChatGPT sender
+  `resource=https://hq.distriktssommerlejr.dk/mcp`, og OpenIddict afviser en
+  `resource`, der ikke er registreret i serverens options. `resource`
+  valideres derfor ikke længere (`DisableResourceValidation`), og tokens
+  bindes ikke til en bestemt ressource. Det er acceptabelt, fordi der kun
+  findes denne ene API og kun operatør-oprettede klienter; ved en anden
+  ressource skal ressourcen registreres og `rsrc:`-rettigheden sættes pr.
+  klient i stedet.
+- Access-tokens kan være krypterede (JWE), så schemet forsøger først
+  OpenIddict-validering og falder derefter tilbage til opslag af et personligt
+  adgangstoken. Det gør valget uafhængigt af tokenformatet.
+- Access-tokenets `sub` mappes til bruger-id, så `BoardActor` og
+  rolleopfølgningen virker som ved cookie- og tokenlogin.
+- Klienter oprettes fortsat manuelt under OpenIddict-klienter med
+  connectorens redirect-URI. Dynamisk klientregistrering (DCR) og CIMD er ikke
+  implementeret; ChatGPT-connectoren skal derfor have en præregistreret
+  klient, og dens redirect-URI skal opdateres, hvis connectoren genskabes.
+- Verifikation: `dotnet build`, de rene checks i `tests/BoardAccessChecks` og
+  et `initialize`/`tools/list`-kald mod produktion med personligt token.
+  OAuth-forløbet er ikke kørt igennem lokalt, fordi der hverken er database
+  eller Docker på udviklingsmaskinen.
 
 **Beslutning 2026-11-15 (implementeret):** Personlige adgangstokens afløser
 email og adgangskode i MCP-værktøjet. En bruger kan oprette, se én gang og

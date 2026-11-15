@@ -59,6 +59,15 @@ var boardText = DS.Backend.Mcp.BoardText.Board(new BoardDetailDto
 Check(boardText.Contains("Blå: #3366ff"), "MCP-tekst viser tavlens farvepalette");
 Check(boardText.Contains("DS-42 Fejl | kolonne I gang (id 4) | frist 2026-11-20 | farve #3366ff | ansvarlige: Ada Lovelace"), "MCP-tekst viser kortets felter");
 
+var subjectOnly = new ClaimsPrincipal(new ClaimsIdentity([new Claim("sub", "user-1")]));
+Check(DS.Backend.Mcp.McpAuthenticationHandler.WithUserId(subjectOnly).FindFirst(ClaimTypes.NameIdentifier)?.Value == "user-1", "MCP bruger tokenets sub som bruger-id");
+
+var alreadyMapped = new ClaimsPrincipal(new ClaimsIdentity([
+    new Claim(ClaimTypes.NameIdentifier, "user-2"),
+    new Claim("sub", "user-1")
+]));
+Check(DS.Backend.Mcp.McpAuthenticationHandler.WithUserId(alreadyMapped).FindFirst(ClaimTypes.NameIdentifier)?.Value == "user-2", "MCP overskriver ikke et eksisterende bruger-id");
+
 if (string.IsNullOrWhiteSpace(connectionString) || new NpgsqlConnectionStringBuilder(connectionString).Database != "ds28_board_access_tests")
 {
     throw new InvalidOperationException("Use run.sh to start a disposable ds28_board_access_tests database.");
