@@ -14,6 +14,7 @@ using DS.Application.Services.Search;
 using DS.Application.Services.Profile;
 using DS.Application.Services.Exports;
 using DS.Application.Services.Accounts;
+using DS.Application.Services.AccessTokens;
 using Microsoft.Extensions.DependencyInjection;
 using DS.Application.Services.Materials;
 
@@ -38,6 +39,7 @@ public static class ConfigureApplication
         services.AddScoped<MeService>();
         services.AddScoped<ExportService>();
         services.AddScoped<AccountService>();
+        services.AddScoped<AccessTokenService>();
         services.AddScoped<GroupService>();
         services.AddScoped<GroupPreSignupService>();
         services.AddScoped<GroupInfoService>();

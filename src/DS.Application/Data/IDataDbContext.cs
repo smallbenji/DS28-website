@@ -41,6 +41,7 @@ namespace DS.Application.Data
         DbSet<MaterialOrder> MaterialOrders { get; }
 
         DbSet<UserNotificationPreference> NotificationPreferences { get; }
+        DbSet<UserAccessToken> AccessTokens { get; }
         Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
     }
 }

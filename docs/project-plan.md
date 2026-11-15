@@ -1280,6 +1280,56 @@ Implementeringsnote (2026-10-16, statusvælger):
   fortryder kun ikke-gemte ændringer i kortets øvrige felter. Læsetilstand
   har fortsat ingen redigeringshandlinger. Der er ingen skemaændring.
 
+**Beslutning 2026-11-15 (implementeret):** Et lokalt MCP-værktøj i
+`tools/ds28-mcp` giver en AI-agent læse- og opretteadgang til tavlerne gennem
+det eksisterende HTTP-API. Værktøjet er udviklingssupport og ændrer ikke
+produktets adgangsregler; det bruger det personlige adgangstoken beskrevet
+nedenfor.
+
+- MCP-serveren kører lokalt over stdio og er registreret i `opencode.json` med
+  værktøjerne `list_boards`, `get_board`, `create_card` og `move_card`. Alle
+  kald går til `/api/v1/boards` med samme adgangskontrol som brugerens egen
+  konto, så medlemskab, SysAdmin/CampAdmin og API-validering gælder uændret.
+- MCP-serveren sender et personligt adgangstoken som `Authorization: Bearer`
+  (`DS28_MCP_TOKEN`) i stedet for at logge ind med email og adgangskode.
+  Tokenet oprettes og tilbagekaldes under profilen og arver brugerens
+  rettigheder. Det ligger i `tools/ds28-mcp/.env`, som er ignoreret af git, med
+  `tools/ds28-mcp/.env.example` som skabelon.
+- Kort oprettes med titel, kolonne (id eller titel), valgfri beskrivelse,
+  prioritet og deadline. Ren tekst laves om til HTML-afsnit, fordi
+  `work_item.description` gemmer HTML. `move_card` flytter et kort til en
+  anden kolonne på samme tavle og kan angive placering; uden placering havner
+  kortet bagerst. Redigering, sletning, ansvarlige og farver er ikke med.
+- Tests: `node --test tools/ds28-mcp/*.test.mjs` dækker hjælpefunktionerne og
+  hele forløbet mod en stub-server.
+
+**Beslutning 2026-11-15 (implementeret):** Personlige adgangstokens afløser
+email og adgangskode i MCP-værktøjet. En bruger kan oprette, se én gang og
+tilbagekalde tokens under profilen; `DS28_MCP_EMAIL`/`DS28_MCP_PASSWORD` er
+droppet.
+
+- `user_access_token` gemmer kun en SHA-256-hash af tokenet sammen med navn,
+  oprettelsesdato, valgfrit udløb (standard 90 dage) og eventuel
+  tilbagekaldelsesdato. Den rå token vises kun ved oprettelsen.
+- `AccessTokenApiController` udstiller `GET`, `POST` og `DELETE
+  /api/v1/access-tokens` for den indloggede bruger, og profilens side bruger
+  dem.
+- Et `AccessToken`-authentikationsscheme læser `Authorization: Bearer` og
+  sætter brugerens id; `IdentityOrAccessToken` vælger mellem cookie og token.
+  Den eksisterende `ClaimsTransformer` tilføjer grupper og stillinger, så
+  tavlemedlemskab, SysAdmin/CampAdmin og validering er uændret. Låste brugere
+  afvises.
+- Tokenet arver brugerens rettigheder. Skal en agent have svagere adgang,
+  oprettes en særskilt bruger med eget tavlemedlemskab.
+- Den globale `AutoValidateAntiforgeryTokenAttribute` er erstattet af
+  `CookieAntiforgeryFilter`: cookie-kald på sikre metoder og Bearer-kald
+  springes over, `[IgnoreAntiforgeryToken]` respekteres, og cookie-baserede
+  ændringskald kræver fortsat et gyldigt antiforgery-token. Bearer-kald er ikke
+  CSRF-udsatte, fordi browseren ikke sender headeren automatisk.
+- Tests: `bash tests/AccessTokenChecks/run.sh` dækker oprettelse, hash-lagring,
+  udløb, tilbagekaldelse, låste brugere, Bearer-handleren og
+  antiforgery-reglerne.
+
 Ubesluttede punkter:
 - Hvem må rydde døde links, og skal et kort blokere sletning af et
   domæneobjekt eller blot miste linket?
@@ -1288,9 +1338,12 @@ Ubesluttede punkter:
 
 ## Sikkerhed og auth-hærdning
 
-**Beslutning 2026-10-20 (implementeret):** MVC bruger global
+**Beslutning 2026-10-20 (delvist erstattet 2026-11-15):** MVC brugte global
 `AutoValidateAntiforgeryTokenAttribute`, så POST, PUT, PATCH og DELETE som
-udgangspunkt kræver et gyldigt request-token sammen med antiforgery-cookien.
+udgangspunkt krævede et gyldigt request-token sammen med antiforgery-cookien.
+Den globale attribut er senere erstattet af `CookieAntiforgeryFilter`, som
+bevarer kravet for cookie-kald og undtager Bearer-kald; se beslutningen om
+adgangstokens.
 GET, HEAD, OPTIONS og TRACE valideres ikke af dette filter. Dette udvider den
 tidligere beskyttelse, som kun fandtes på OpenIddict-klientadministrationen.
 
