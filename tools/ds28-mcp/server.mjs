@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 import { createInterface } from "node:readline";
 import http from "node:http";
 import https from "node:https";
-import { formatBoard, formatBoards, parseEnvFile, resolveColumn, toHtml } from "./lib.mjs";
+import { formatBoard, formatBoards, matchUser, parseEnvFile, resolveColumn, toHtml } from "./lib.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const envPath = join(here, ".env");
@@ -185,6 +185,126 @@ const tools = [
             return `Flyttede DS-${cardId} til kolonnen "${columnTitle}" på tavle ${boardId} som nr. ${position + 1}.`;
         },
     },
+    {
+        name: "update_card",
+        description: "Update an existing DS28 card. Fields that are omitted keep their current value. Empty values clear description, due date, color or assignees.",
+        inputSchema: {
+            type: "object",
+            properties: {
+                boardId: { type: "integer", description: "Board id from list_boards." },
+                cardId: { type: "integer", description: "Card number from DS-<id>, for example 42 for DS-42." },
+                title: { type: "string", description: "New title." },
+                description: { type: "string", description: "Plain text or HTML. Empty string clears the description." },
+                priority: { type: "integer", enum: [-1, 0, 1], description: "-1 low, 0 normal, 1 high." },
+                dueDate: { type: ["string", "null"], description: "Due date as YYYY-MM-DD, or null/empty to clear it." },
+                color: { type: ["string", "null"], description: "Hex color from the board palette, for example \"#3366ff\". Null or empty clears the color." },
+                assignees: {
+                    type: "array",
+                    items: { type: "string" },
+                    description: "Full names or emails of the responsible users. Replaces the current assignees; an empty list clears them.",
+                },
+            },
+            required: ["boardId", "cardId"],
+            additionalProperties: false,
+        },
+        handler: async args => {
+            const boardId = Number(args.boardId);
+            if (!Number.isInteger(boardId)) throw new Error("boardId skal være et helt tal.");
+
+            const cardId = Number(args.cardId);
+            if (!Number.isInteger(cardId)) throw new Error("cardId skal være et helt tal, fx 42 for DS-42.");
+
+            const board = await api("GET", `/api/v1/boards/${boardId}`);
+            const card = board.cards.find(candidate => Number(candidate.id) === cardId);
+            if (!card) throw new Error(`Kortet DS-${cardId} findes ikke på tavle ${boardId}.`);
+
+            const changes = [];
+
+            const title = args.title === undefined ? card.title : String(args.title).trim();
+            if (!title) throw new Error("title må ikke være tom.");
+            if (title !== card.title) changes.push("titel");
+
+            const description = args.description === undefined ? card.description : toHtml(args.description ?? "");
+            if ((description ?? null) !== (card.description ?? null)) changes.push("beskrivelse");
+
+            const currentPriority = Number(card.priority ?? 0);
+            const priority = args.priority === undefined ? currentPriority : Number(args.priority);
+            if (![-1, 0, 1].includes(priority)) throw new Error("priority skal være -1, 0 eller 1.");
+            if (priority !== currentPriority) changes.push("prioritet");
+
+            let dueDate = card.dueDate ?? null;
+            if (args.dueDate !== undefined) {
+                dueDate = args.dueDate ? String(args.dueDate) : null;
+                if (dueDate !== null && !/^\d{4}-\d{2}-\d{2}$/.test(dueDate)) {
+                    throw new Error("dueDate skal være YYYY-MM-DD eller tom.");
+                }
+            }
+            if (dueDate !== (card.dueDate ?? null)) changes.push("frist");
+
+            const color = args.color === undefined ? (card.color ?? null) : (args.color ? String(args.color) : null);
+            if (color !== (card.color ?? null)) changes.push("farve");
+
+            let assigneeUserIds = (card.assignees ?? []).map(user => user.id);
+            if (args.assignees !== undefined) {
+                if (!Array.isArray(args.assignees)) throw new Error("assignees skal være en liste af navne eller emails.");
+
+                assigneeUserIds = [];
+                for (const wanted of args.assignees) {
+                    const users = await api("GET", `/api/v1/boards/assignees?search=${encodeURIComponent(String(wanted))}&boardId=${boardId}`);
+                    const user = matchUser(users, wanted);
+                    if (!assigneeUserIds.includes(user.id)) assigneeUserIds.push(user.id);
+                }
+
+                const before = (card.assignees ?? []).map(user => user.id).sort().join(",");
+                if ([...assigneeUserIds].sort().join(",") !== before) changes.push("ansvarlige");
+            }
+
+            if (!changes.length) return `DS-${cardId} er uændret på tavle ${boardId}.`;
+
+            await api("PUT", `/api/v1/boards/${boardId}/cards/${cardId}`, {
+                title,
+                description,
+                color,
+                assigneeUserIds,
+                ownerPositionId: card.ownerPositionId ?? null,
+                dueDate,
+                priority,
+            });
+
+            return `Opdaterede DS-${cardId} på tavle ${boardId}: ${changes.join(", ")}.`;
+        },
+    },
+    {
+        name: "delete_card",
+        description: "Remove a DS28 card from a board. The card itself is soft-deleted when this was its last board.",
+        inputSchema: {
+            type: "object",
+            properties: {
+                boardId: { type: "integer", description: "Board id from list_boards." },
+                cardId: { type: "integer", description: "Card number from DS-<id>, for example 42 for DS-42." },
+            },
+            required: ["boardId", "cardId"],
+            additionalProperties: false,
+        },
+        handler: async args => {
+            const boardId = Number(args.boardId);
+            if (!Number.isInteger(boardId)) throw new Error("boardId skal være et helt tal.");
+
+            const cardId = Number(args.cardId);
+            if (!Number.isInteger(cardId)) throw new Error("cardId skal være et helt tal, fx 42 for DS-42.");
+
+            const board = await api("GET", `/api/v1/boards/${boardId}`);
+            const card = board.cards.find(candidate => Number(candidate.id) === cardId);
+            if (!card) throw new Error(`Kortet DS-${cardId} findes ikke på tavle ${boardId}.`);
+
+            await api("DELETE", `/api/v1/boards/${boardId}/cards/${cardId}`);
+
+            const otherBoards = (card.placements ?? []).length - 1;
+            return otherBoards > 0
+                ? `Fjernede DS-${cardId} fra tavle ${boardId}. Kortet ligger fortsat på ${otherBoards} andre tavler.`
+                : `Slettede DS-${cardId} fra tavle ${boardId}.`;
+        },
+    },
 ];
 
 async function callTool(params) {
@@ -216,7 +336,7 @@ async function handleLine(line) {
                 protocolVersion: message.params?.protocolVersion ?? "2025-06-18",
                 capabilities: { tools: {} },
                 serverInfo: { name: "ds28-boards", version: "1.0.0" },
-                instructions: "Værktøjer til at læse, oprette og flytte kort på DS28 Kanban-tavler. Brug list_boards, derefter get_board for kolonne-id'er, og create_card eller move_card.",
+                instructions: "Værktøjer til at læse og ændre kort på DS28 Kanban-tavler. Brug list_boards, derefter get_board for kolonne-id'er, kortnumre og farver, og create_card, update_card, move_card eller delete_card.",
             });
         case "ping":
             return respond(message.id, {});

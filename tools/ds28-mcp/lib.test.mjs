@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { formatBoards, parseEnvFile, resolveColumn, toHtml } from "./lib.mjs";
+import { formatBoard, formatBoards, matchUser, parseEnvFile, resolveColumn, toHtml } from "./lib.mjs";
 
 test("parseEnvFile læser nøgler, ignorerer kommentarer og fjerner citationstegn", () => {
     const values = parseEnvFile(`
@@ -41,4 +41,31 @@ test("formatBoards viser id, titel og arkivering", () => {
     assert.match(text, /id 2: Vejfest \(5 kort\)/);
     assert.match(text, /Gammel \[arkiveret\]/);
     assert.equal(formatBoards([]), "Ingen tavler fundet.");
+});
+
+test("matchUser kræver et entydigt navn eller en email", () => {
+    const users = [
+        { id: "u-1", firstName: "Ada", lastName: "Lovelace", email: "ada@example.com" },
+        { id: "u-2", firstName: "Ada", lastName: "Lovelace Jr", email: "ada.jr@example.com" },
+    ];
+
+    assert.equal(matchUser(users, " ada lovelace ").id, "u-1");
+    assert.equal(matchUser(users, "ADA@EXAMPLE.COM").id, "u-1");
+    assert.throws(() => matchUser(users, "Ada"), /forslag: Ada Lovelace/);
+    assert.throws(() => matchUser([users[0], { ...users[0], id: "u-3" }], "Ada Lovelace"), /flere brugere/);
+    assert.throws(() => matchUser(users, "Niels"), /ingen brugere/);
+    assert.throws(() => matchUser(users, "  "), /Angiv/);
+});
+
+test("formatBoard viser farvepalette og kortets farve", () => {
+    const text = formatBoard({
+        id: 1,
+        title: "Vejfest",
+        columns: [{ id: 10, title: "Backlog" }],
+        colors: [{ id: 3, name: "Blå", color: "#3366ff" }],
+        cards: [{ id: 42, title: "Fejl", columnId: 10, color: "#3366ff", priority: 0, assignees: [] }],
+    });
+
+    assert.match(text, /Farver:\n- Blå: #3366ff/);
+    assert.match(text, /DS-42 Fejl \| kolonne Backlog \(id 10\) \| farve #3366ff/);
 });

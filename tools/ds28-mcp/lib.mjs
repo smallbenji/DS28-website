@@ -54,6 +54,25 @@ export function resolveColumn(columns, columnId, columnTitle) {
     return Number(match.id);
 }
 
+export function matchUser(users, wanted) {
+    const query = String(wanted ?? "").trim().toLowerCase();
+    if (!query) throw new Error("Angiv et navn eller en email som ansvarlig.");
+
+    const exact = users.filter(user =>
+        `${user.firstName} ${user.lastName}`.trim().toLowerCase() === query
+        || String(user.email ?? "").toLowerCase() === query);
+
+    if (exact.length === 1) return exact[0];
+
+    const candidates = (exact.length ? exact : users)
+        .map(user => `${user.firstName} ${user.lastName} <${user.email}>`)
+        .join(", ");
+
+    if (exact.length > 1) throw new Error(`"${wanted}" matcher flere brugere: ${candidates}`);
+    if (candidates) throw new Error(`"${wanted}" matcher ingen brugere præcist (forslag: ${candidates}).`);
+    throw new Error(`"${wanted}" matcher ingen brugere.`);
+}
+
 export function formatBoard(board) {
     const lines = [
         `Tavle: ${board.title} (id ${board.id})${board.isArchived ? " [arkiveret]" : ""}`,
@@ -64,6 +83,13 @@ export function formatBoard(board) {
     lines.push("", "Kolonner:");
     for (const column of board.columns) {
         lines.push(`- id ${column.id}: ${column.title}${column.isDoneColumn ? " (færdig)" : ""}`);
+    }
+
+    if (board.colors?.length) {
+        lines.push("", "Farver:");
+        for (const color of board.colors) {
+            lines.push(`- ${color.name}: ${color.color}`);
+        }
     }
 
     lines.push("", "Kort:");
@@ -78,6 +104,7 @@ export function formatBoard(board) {
         if (priority > 0) meta.push("høj prioritet");
         if (priority < 0) meta.push("lav prioritet");
         if (card.dueDate) meta.push(`frist ${card.dueDate}`);
+        if (card.color) meta.push(`farve ${card.color}`);
         if (assignees.length) meta.push(`ansvarlige: ${assignees.join(", ")}`);
 
         lines.push(`- DS-${card.id} ${card.title} | ${meta.join(" | ")}`);
