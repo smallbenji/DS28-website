@@ -170,6 +170,46 @@
                         </div>
                     </div>
                 </div>
+
+                <div class="card profile-grid-wide">
+                    <header class="card-header">
+                        <p class="card-header-title">Adgangstokens</p>
+                    </header>
+                    <div class="card-content">
+                        <p class="mb-3">
+                            Adgangstokens bruges af værktøjer og scripts, så de kan læse og skrive i DS28 uden din
+                            adgangskode. Behandl dem som adgangskoder, og tilbagekald dem, du ikke bruger.
+                        </p>
+
+                        <p v-if="tokens.length === 0" class="has-text-grey mb-3">
+                            Du har ingen aktive adgangstokens.
+                        </p>
+                        <div v-for="token in tokens" :key="token.id" class="tfa-passkey">
+                            <div class="tfa-passkey-info">
+                                <BIcon icon="key" />
+                                <div>
+                                    <p class="has-text-weight-medium">{{ token.name }}</p>
+                                    <p class="has-text-grey">
+                                        Oprettet {{ formatTokenDate(token.createdAt) }}
+                                        <template v-if="token.expiresAt">
+                                            · udløber {{ formatTokenDate(token.expiresAt) }}
+                                        </template>
+                                    </p>
+                                </div>
+                            </div>
+                            <BButton type="is-danger is-light" size="is-small" icon-left="trash"
+                                @click="revokeToken(token.id)">
+                                Tilbagekald
+                            </BButton>
+                        </div>
+
+                        <div class="buttons mt-3">
+                            <BButton type="is-primary" icon-left="plus" @click="openCreateToken">
+                                Opret token
+                            </BButton>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -249,6 +289,56 @@
     <TwoFactorSetupModal v-model:active="showSetup" @enabled="onEnabled" />
     <RecoveryCodesModal v-model:active="showRecoveryCodes" :codes="recoveryCodes" />
 
+    <BModal v-model="showCreateToken" has-modal-card>
+        <div class="modal-card">
+            <header class="modal-card-head">
+                <p class="modal-card-title">Opret adgangstoken</p>
+            </header>
+            <section class="modal-card-body">
+                <BField label="Navn">
+                    <BInput v-model="tokenName" placeholder="Fx MCP eller CI" maxlength="64" />
+                </BField>
+                <BField label="Udløber om">
+                    <BSelect v-model="tokenExpiryDays" expanded>
+                        <option :value="30">30 dage</option>
+                        <option :value="90">90 dage</option>
+                        <option :value="365">1 år</option>
+                    </BSelect>
+                </BField>
+            </section>
+            <footer class="modal-card-foot">
+                <div class="buttons">
+                    <BButton type="is-primary" :loading="isCreatingToken" @click="createToken">
+                        Opret
+                    </BButton>
+                    <BButton @click="showCreateToken = false">Annuller</BButton>
+                </div>
+            </footer>
+        </div>
+    </BModal>
+
+    <BModal v-model="showCreatedToken" has-modal-card>
+        <div class="modal-card">
+            <header class="modal-card-head">
+                <p class="modal-card-title">Dit nye adgangstoken</p>
+            </header>
+            <section class="modal-card-body">
+                <p class="mb-3">
+                    Kopiér token nu. Du kan ikke se det igen. Brug det i stedet for din adgangskode i værktøjet.
+                </p>
+                <BField label="Token">
+                    <BInput :model-value="createdToken" readonly @focus="$event.target.select()" />
+                </BField>
+            </section>
+            <footer class="modal-card-foot">
+                <div class="buttons">
+                    <BButton type="is-primary" icon-left="copy" @click="copyToken">Kopiér</BButton>
+                    <BButton @click="showCreatedToken = false">Luk</BButton>
+                </div>
+            </footer>
+        </div>
+    </BModal>
+
     <BModal v-model="showDisable" has-modal-card>
         <div class="modal-card">
             <header class="modal-card-head">
@@ -298,7 +388,7 @@
 <script lang="ts" setup>
 import { useAccountStore } from '@/Stores/AccountStore';
 import { useMeStore } from '@/Stores/MeStore';
-import { BButton, BField, BIcon, BInput, BModal, useToast, BCheckbox } from 'buefy';
+import { BButton, BField, BIcon, BInput, BModal, BSelect, useToast, BCheckbox } from 'buefy';
 import { computed, onMounted, ref } from 'vue';
 import { storeToRefs } from 'pinia';
 import TwoFactorSetupModal from '@/Components/Account/TwoFactorSetupModal.vue';
@@ -306,14 +396,16 @@ import RecoveryCodesModal from '@/Components/Account/RecoveryCodesModal.vue';
 import UserAvatar from '@/Components/User/UserAvatar.vue';
 import ProfilePictureUpload from '@/Components/User/ProfilePictureUpload.vue';
 import NotificationService from '@/Services/NotificationService';
+import AccessTokenService from '@/Services/AccessTokenService';
 import FileService from '@/Services/FileService';
-import type { NotificationPreferenceDto, PasskeyDto } from '@/types';
+import type { AccessTokenDto, NotificationPreferenceDto, PasskeyDto } from '@/types';
 import { formatDate } from '@/lib/util';
 
 const Toast = useToast();
 const accountStore = useAccountStore();
 const meStore = useMeStore();
 const notificationService = new NotificationService();
+const accessTokenService = new AccessTokenService();
 const fileService = new FileService();
 const { Status } = storeToRefs(accountStore);
 const { Me } = storeToRefs(meStore);
@@ -349,6 +441,14 @@ const showReset = ref(false);
 const isResetting = ref(false);
 
 const isUpdatingPicture = ref(false);
+
+const tokens = ref<AccessTokenDto[]>([]);
+const showCreateToken = ref(false);
+const showCreatedToken = ref(false);
+const isCreatingToken = ref(false);
+const tokenName = ref('');
+const tokenExpiryDays = ref(90);
+const createdToken = ref('');
 
 const showName = ref(false);
 const showPhone = ref(false);
@@ -410,7 +510,71 @@ onMounted(() => {
     phone.value = Me.value?.phone ?? '';
     passkeys.value = Me.value?.passkeys ?? null;
     loadNotifications();
+    loadTokens();
 });
+
+const loadTokens = async () => {
+    tokens.value = await accessTokenService.getTokens();
+};
+
+const openCreateToken = () => {
+    tokenName.value = '';
+    tokenExpiryDays.value = 90;
+    showCreateToken.value = true;
+};
+
+const createToken = async () => {
+    if (!tokenName.value.trim()) {
+        Toast.open({
+            message: 'Giv tokenet et navn.',
+            type: 'is-warning'
+        });
+        return;
+    }
+
+    isCreatingToken.value = true;
+
+    try {
+        const created = await accessTokenService.createToken(tokenName.value, tokenExpiryDays.value);
+        createdToken.value = created.token;
+        showCreateToken.value = false;
+        showCreatedToken.value = true;
+        await loadTokens();
+    } catch {
+        Toast.open({
+            message: 'Der skete en fejl under oprettelse af tokenet',
+            type: 'is-danger'
+        });
+    } finally {
+        isCreatingToken.value = false;
+    }
+};
+
+const revokeToken = async (id: number) => {
+    try {
+        await accessTokenService.revokeToken(id);
+        await loadTokens();
+        Toast.open({
+            message: 'Tokenet er tilbagekaldt!',
+            type: 'is-success'
+        });
+    } catch {
+        Toast.open({
+            message: 'Der skete en fejl under tilbagekaldelse af tokenet',
+            type: 'is-danger'
+        });
+    }
+};
+
+const copyToken = async () => {
+    await navigator.clipboard.writeText(createdToken.value);
+    Toast.open({
+        message: 'Tokenet er kopieret',
+        type: 'is-success'
+    });
+};
+
+const formatTokenDate = (value: string) => new Date(value).toLocaleDateString('da-DK');
 
 const loadNotifications = async () => {
     try {

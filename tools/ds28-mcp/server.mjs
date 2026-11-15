@@ -17,14 +17,9 @@ if (existsSync(envPath)) {
 }
 
 const baseUrl = (process.env.DS28_MCP_URL ?? "https://localhost:44310").replace(/\/+$/, "");
-const email = process.env.DS28_MCP_EMAIL;
-const password = process.env.DS28_MCP_PASSWORD;
+const token = process.env.DS28_MCP_TOKEN;
 // shortcut: certifikatvalidering er slået fra som standard til den lokale udviklingsserver, sæt DS28_MCP_INSECURE_TLS=0 ved et rigtigt certifikat
 const rejectUnauthorized = process.env.DS28_MCP_INSECURE_TLS === "0";
-const safeMethods = new Set(["GET", "HEAD", "OPTIONS", "TRACE"]);
-
-const cookies = new Map();
-let antiforgeryToken = null;
 
 function request(method, path, body) {
     return new Promise((resolve, reject) => {
@@ -32,15 +27,10 @@ function request(method, path, body) {
         const payload = body === undefined ? undefined : JSON.stringify(body);
         const headers = { Accept: "application/json" };
 
+        if (token) headers.Authorization = `Bearer ${token}`;
         if (payload !== undefined) {
             headers["Content-Type"] = "application/json";
             headers["Content-Length"] = Buffer.byteLength(payload);
-        }
-        if (cookies.size) {
-            headers.Cookie = [...cookies].map(([name, value]) => `${name}=${value}`).join("; ");
-        }
-        if (antiforgeryToken && !safeMethods.has(method)) {
-            headers.RequestVerificationToken = antiforgeryToken;
         }
 
         const transport = url.protocol === "https:" ? https : http;
@@ -48,12 +38,6 @@ function request(method, path, body) {
             const chunks = [];
             response.on("data", chunk => chunks.push(chunk));
             response.on("end", () => {
-                for (const header of response.headers["set-cookie"] ?? []) {
-                    const pair = header.split(";")[0];
-                    const index = pair.indexOf("=");
-                    if (index > 0) cookies.set(pair.slice(0, index).trim(), pair.slice(index + 1));
-                }
-
                 resolve({
                     status: response.statusCode,
                     location: response.headers.location,
@@ -76,55 +60,16 @@ function parseJson(text) {
     }
 }
 
-async function refreshAntiforgeryToken() {
-    const response = await request("GET", "/api/v1/antiforgery");
-    const token = parseJson(response.body)?.token;
-
-    if (response.status !== 200 || !token) {
-        throw new Error(`Kunne ikke hente antiforgery-token (HTTP ${response.status}).`);
-    }
-
-    antiforgeryToken = token;
-}
-
-async function login() {
-    if (!email || !password) {
-        throw new Error("Sæt DS28_MCP_EMAIL og DS28_MCP_PASSWORD i tools/ds28-mcp/.env.");
-    }
-
-    cookies.clear();
-    antiforgeryToken = null;
-
-    const response = await request("POST", "/api/v1/auth/login", { email, password });
-    const data = parseJson(response.body);
-
-    if (response.status !== 200) {
-        throw new Error(`Login fejlede (HTTP ${response.status}): ${typeof data === "string" ? data : response.body}`);
-    }
-    if (data?.requiresTwoFactor) {
-        throw new Error("Kontoen kræver 2FA. Brug en DS28-konto uden 2FA til MCP'en.");
-    }
-
-    await refreshAntiforgeryToken();
-}
-
 async function api(method, path, body) {
-    if (!cookies.size) await login();
-
-    let response = await request(method, path, body);
-    const retry = response.status === 401
-        || (response.status >= 300 && response.status < 400)
-        || (response.status === 400 && !response.body);
-
-    if (retry) {
-        if (response.status === 400) await refreshAntiforgeryToken();
-        else await login();
-
-        response = await request(method, path, body);
+    if (!token) {
+        throw new Error("Sæt DS28_MCP_TOKEN i tools/ds28-mcp/.env. Opret tokenet under profilen i DS28.");
     }
 
-    if (!safeMethods.has(method)) antiforgeryToken = null;
+    const response = await request(method, path, body);
 
+    if (response.status === 401) {
+        throw new Error("Adgangstokenet er ugyldigt, udløbet eller tilbagekaldt.");
+    }
     if (response.status === 403) {
         throw new Error("Ingen adgang: kontoen er ikke medlem af tavlen og er ikke SysAdmin/CampAdmin.");
     }

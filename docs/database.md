@@ -329,6 +329,16 @@ erDiagram
         varchar notification_type PK
     }
 
+    user_access_token {
+        int id PK
+        text user_id FK "CASCADE"
+        varchar name
+        char token_hash UK
+        timestamptz created_at
+        timestamptz expires_at
+        timestamptz revoked_at
+    }
+
     asp_net_users ||--o{ asp_net_user_roles : "har roller"
     asp_net_roles ||--o{ asp_net_user_roles : "tildeles"
     asp_net_users ||--o{ asp_net_user_claims : "har claims"
@@ -339,6 +349,7 @@ erDiagram
     asp_net_users ||--o{ activity_team_membership : "er medlem af"
     asp_net_users ||--o{ user_invitation : "oprettes via"
     asp_net_users ||--o{ user_notification_preference : "abonnerer på"
+    asp_net_users ||--o{ user_access_token : "har adgangstokens"
     asp_net_users ||--o| stored_file : "har profilbillede"
     asp_net_users ||--o{ stored_file : "uploader"
 ```
@@ -764,6 +775,11 @@ mindst syv dage gamle. Det er ren dataoprydning uden skemaændring.
   app-instans med den rigtige nøglering. Der holdes højst én række ad gangen:
   ved en ny forbindelse slettes den gamle, og `connected_by_user_id` har
   `ON DELETE SET NULL`, så en slettet bruger ikke fjerner forbindelsen.
+- `user_access_token` gemmer personlige adgangstokens til værktøjer og
+  scripts. Kun SHA-256-hashen i `token_hash` gemmes (unik), så den rå token
+  ikke kan gendannes fra databasen og kun vises én gang ved oprettelse.
+  `expires_at` kan være sat; `revoked_at` markerer et tilbagekaldt token, som
+  bliver liggende, mens `user_id` har `ON DELETE CASCADE`.
 - `scout_activity_timeslot` findes i databasen, men har ingen tilsvarende
   entitet i `DataDbContext`.
 - `org_position` danner et træ via `parent_position_id` (selvreference,

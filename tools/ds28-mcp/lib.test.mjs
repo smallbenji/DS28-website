@@ -6,14 +6,12 @@ test("parseEnvFile læser nøgler, ignorerer kommentarer og fjerner citationsteg
     const values = parseEnvFile(`
 # kommentar
 DS28_MCP_URL=https://localhost:44310
-DS28_MCP_PASSWORD="hemmeligt=sjaldsynt"
-DS28_MCP_EMAIL='mig@example.com'
+DS28_MCP_TOKEN="hemmeligt=sjaldsynt"
 `);
 
     assert.deepEqual(values, {
+        DS28_MCP_TOKEN: "hemmeligt=sjaldsynt",
         DS28_MCP_URL: "https://localhost:44310",
-        DS28_MCP_PASSWORD: "hemmeligt=sjaldsynt",
-        DS28_MCP_EMAIL: "mig@example.com",
     });
 });
 

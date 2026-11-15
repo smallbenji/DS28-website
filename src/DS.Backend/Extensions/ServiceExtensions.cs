@@ -13,6 +13,7 @@ using DS.Infrastructure.Data;
 using DS.Infrastructure.Exports;
 using DS.Application.Services.Exports;
 using DS.Backend.Services;
+using DS.Backend.Authentication;
 using Hangfire;
 using Hangfire.PostgreSql;
 using Microsoft.AspNetCore.Authentication;
@@ -154,6 +155,22 @@ public static class ServiceExtensions
                 options.UseAspNetCore();
             });
 
+        services.AddAuthentication(options =>
+        {
+            options.DefaultScheme = AccessTokenAuthenticationHandler.CookieOrTokenScheme;
+            options.DefaultAuthenticateScheme = AccessTokenAuthenticationHandler.CookieOrTokenScheme;
+            options.DefaultChallengeScheme = AccessTokenAuthenticationHandler.CookieOrTokenScheme;
+            options.DefaultForbidScheme = AccessTokenAuthenticationHandler.CookieOrTokenScheme;
+        })
+            .AddScheme<AuthenticationSchemeOptions, AccessTokenAuthenticationHandler>(AccessTokenAuthenticationHandler.SchemeName, null)
+            .AddPolicyScheme(AccessTokenAuthenticationHandler.CookieOrTokenScheme, "Identity-cookie eller adgangstoken", options =>
+            {
+                options.ForwardDefaultSelector = context =>
+                    context.Request.Headers.Authorization.ToString().StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase)
+                        ? AccessTokenAuthenticationHandler.SchemeName
+                        : IdentityConstants.ApplicationScheme;
+            });
+
         services.ConfigureApplicationCookie(options =>
         {
             options.LoginPath = "/login";
@@ -189,7 +206,7 @@ public static class ServiceExtensions
     {
         builder.Services.AddControllersWithViews(options =>
         {
-            options.Filters.Add<AutoValidateAntiforgeryTokenAttribute>();
+            options.Filters.Add<CookieAntiforgeryFilter>();
         })
             .AddJsonOptions(options =>
             {

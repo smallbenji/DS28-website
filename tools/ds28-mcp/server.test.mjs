@@ -7,26 +7,18 @@ import { fileURLToPath } from "node:url";
 import http from "node:http";
 
 const here = dirname(fileURLToPath(import.meta.url));
-const antiforgeryToken = "test-token";
+const bearerToken = "ds28_test-token";
 const created = [];
 
 function startStubServer() {
     const server = http.createServer((request, response) => {
-        const send = (status, body, cookie) => {
-            const headers = { "Content-Type": "application/json" };
-            if (cookie) headers["Set-Cookie"] = cookie;
-            response.writeHead(status, headers);
+        const send = (status, body) => {
+            response.writeHead(status, { "Content-Type": "application/json" });
             response.end(body === undefined ? "" : JSON.stringify(body));
         };
 
-        if (request.method === "POST" && request.url === "/api/v1/auth/login") {
-            return send(200, {}, "auth=yes; Path=/");
-        }
-        if (request.url === "/api/v1/antiforgery") {
-            return send(200, { token: antiforgeryToken }, "af=1; Path=/");
-        }
-        if (!request.headers.cookie?.includes("auth=yes")) {
-            return send(302, undefined);
+        if (request.headers.authorization !== `Bearer ${bearerToken}`) {
+            return send(401, undefined);
         }
 
         if (request.method === "GET" && request.url === "/api/v1/boards") {
@@ -64,10 +56,6 @@ function startStubServer() {
             });
         }
         if (request.method === "POST" && request.url === "/api/v1/boards/1/cards") {
-            if (request.headers.requestverificationtoken !== antiforgeryToken) {
-                return send(400, undefined);
-            }
-
             let body = "";
             request.on("data", chunk => { body += chunk; });
             request.on("end", () => {
@@ -85,13 +73,12 @@ function startStubServer() {
     });
 }
 
-function startClient(url) {
+function startClient(url, token = bearerToken) {
     const child = spawn(process.execPath, [join(here, "server.mjs")], {
         env: {
             ...process.env,
             DS28_MCP_URL: url,
-            DS28_MCP_EMAIL: "test@example.com",
-            DS28_MCP_PASSWORD: "kode",
+            DS28_MCP_TOKEN: token,
             DS28_MCP_INSECURE_TLS: "0",
         },
         stdio: ["pipe", "pipe", "inherit"],
@@ -163,6 +150,27 @@ test("MCP-serveren læser tavler og opretter kort gennem DS28-API'et", async () 
         assert.equal(unknown.result.isError, true);
     } finally {
         client.child.kill();
+        server.close();
+    }
+});
+
+test("MCP-serveren kræver et gyldigt adgangstoken", async () => {
+    const server = await startStubServer();
+    const url = `http://127.0.0.1:${server.address().port}`;
+    const withoutToken = startClient(url, "");
+    const wrongToken = startClient(url, "ds28_forkert");
+
+    try {
+        const missing = await withoutToken.call("tools/call", { name: "list_boards", arguments: {} });
+        assert.equal(missing.result.isError, true);
+        assert.match(missing.result.content[0].text, /DS28_MCP_TOKEN/);
+
+        const rejected = await wrongToken.call("tools/call", { name: "list_boards", arguments: {} });
+        assert.equal(rejected.result.isError, true);
+        assert.match(rejected.result.content[0].text, /ugyldigt, udløbet eller tilbagekaldt/);
+    } finally {
+        withoutToken.child.kill();
+        wrongToken.child.kill();
         server.close();
     }
 });
