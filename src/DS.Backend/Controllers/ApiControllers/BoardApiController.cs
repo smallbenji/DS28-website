@@ -69,6 +69,30 @@ namespace DS.Backend.Controllers.ApiControllers
             return this.ToActionResult(result);
         }
 
+        [HttpPost("{id:int}/tags")]
+        public async Task<IActionResult> CreateTag([FromBody] BoardTagUpdateDto data, int id)
+        {
+            var result = await service.CreateTag(GetActor(), data, id);
+
+            return this.ToActionResult(result);
+        }
+
+        [HttpPut("{id:int}/tags/{tagId:int}")]
+        public async Task<IActionResult> UpdateTag([FromBody] BoardTagUpdateDto data, int id, int tagId)
+        {
+            var result = await service.UpdateTag(GetActor(), data, id, tagId);
+
+            return this.ToActionResult(result);
+        }
+
+        [HttpDelete("{id:int}/tags/{tagId:int}")]
+        public async Task<IActionResult> DeleteTag(int id, int tagId)
+        {
+            var result = await service.DeleteTag(GetActor(), id, tagId);
+
+            return this.ToActionResult(result);
+        }
+
         [HttpPost("{id:int}/colors")]
         public async Task<IActionResult> CreateColor([FromBody] BoardColorUpdateDto data, int id)
         {

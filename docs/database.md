@@ -829,6 +829,23 @@ mindst syv dage gamle. Det er ren dataoprydning uden skemaændring.
   tomt/blankt navn. `color` er påkrævet `varchar(7)` med samme lowercase
   hex-CHECK som kortets farve. Der er ingen unikhedskrav på navn eller farve,
   ingen fast grænse på antallet af rækker og ingen relation til arbejdskort.
+- `board_tag` er tavlens tags. `id` er en identity-primærnøgle; påkrævet
+  `board_id` refererer til `board.id` med `ON DELETE CASCADE`. `name` er
+  påkrævet `varchar(64)` med CHECK mod blanke navne. Et unikt udtryksindeks
+  `(board_id, lower(name))` gør navnet entydigt uden forskel på store/små
+  bogstaver inden for tavlen. `color` er nullable `varchar(7)` med lowercase
+  sekscifret hex-CHECK; NULL betyder ingen farve. Den alternative nøgle
+  `(board_id, id)` understøtter tavleafgrænsede referencer.
+- `board_card_tag` kobler nul eller flere tags til en bestemt tavleplacering.
+  `board_id`, `board_card_id` og `board_tag_id` er påkrævede heltal.
+  Primærnøglen `(board_card_id, board_tag_id)` forhindrer dobbelt tildeling.
+  Sammensatte fremmednøgler `(board_id, board_card_id)` og
+  `(board_id, board_tag_id)` refererer til henholdsvis `board_card(board_id, id)`
+  og `board_tag(board_id, id)`, begge med `ON DELETE CASCADE`. Tildeling på tværs
+  af tavler afvises dermed også i databasen. Begge fremmednøgler har et
+  ikke-unikt indeks. `board_card` har desuden en alternativ unik nøgle på
+  `(board_id, id)` til denne relation. Sletning af en tagdefinition eller en
+  placering fjerner dens tildelinger; et delt `work_item` bevares.
 - `board_member` giver medlemsadgang til en tavle. Begge kolonner er påkrævede;
   den sammensatte primærnøgle `(board_id, user_id)` forhindrer dobbelt medlemskab.
   `board_id` refererer til `board.id`, og `user_id` refererer til

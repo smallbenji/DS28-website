@@ -1,6 +1,7 @@
 import type {
     BoardColumnCreateDto,
     BoardColorUpdateDto,
+    BoardTagUpdateDto,
     BoardColumnDto,
     BoardColumnUpdateDto,
     BoardCreateDto,
@@ -39,6 +40,18 @@ export default class BoardService {
 
     public async getMembers(boardId: number): Promise<BoardMemberDto[]> {
         return await apiGet<BoardMemberDto[]>(`/api/v1/boards/${boardId}/members`);
+    }
+
+    public async createTag(boardId: number, data: BoardTagUpdateDto): Promise<void> {
+        await apiPost<void>(`/api/v1/boards/${boardId}/tags`, data);
+    }
+
+    public async updateTag(boardId: number, tagId: number, data: BoardTagUpdateDto): Promise<void> {
+        await apiPut<void>(`/api/v1/boards/${boardId}/tags/${tagId}`, data);
+    }
+
+    public async deleteTag(boardId: number, tagId: number): Promise<void> {
+        await apiDelete<void>(`/api/v1/boards/${boardId}/tags/${tagId}`);
     }
 
     public async createColor(boardId: number, data: BoardColorUpdateDto): Promise<void> {

@@ -11,6 +11,7 @@
         @dragstart="onDragStart"
     >
         <p class="board-card-number">DS-{{ card.id }}</p>
+        <div v-if="card.tags?.length" class="tags mb-2"><BoardTagBadge v-for="tag in card.tags" :key="tag.id" :tag="tag" /></div>
         <p class="board-card-title">{{ card.title }}</p>
         <p v-if="descriptionPreview" class="board-card-description">{{ descriptionPreview }}</p>
 
@@ -37,6 +38,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, onBeforeUnmount, ref } from 'vue';
+import BoardTagBadge from './BoardTagBadge.vue';
 import { BTooltip } from 'buefy';
 import type { WorkItemDto } from '@/types';
 import { htmlToPlainText } from '@/lib/util';

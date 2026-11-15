@@ -45,6 +45,15 @@
                                 </div>
                             </BField>
 
+                            <BField label="Tags på denne tavle">
+                                <div class="board-card-tags">
+                                    <p v-if="!availableTags.length" class="help">Ingen tags. Opret dem via Tags på tavlen.</p>
+                                    <BCheckbox v-for="tag in availableTags" :key="tag.id" v-model="form.tagIds" :native-value="Number(tag.id)" :disabled="saving">
+                                        <BoardTagBadge :tag="tag" />
+                                    </BCheckbox>
+                                </div>
+                            </BField>
+
                             <BField label="Deadline">
                                 <BInput v-model="form.dueDate" type="date" />
                             </BField>
@@ -253,11 +262,12 @@
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue';
-import { BButton, BDropdown, BDropdownItem, BField, BInput, BModal, BSelect, useDialog, useToast } from 'buefy';
+import { BButton, BCheckbox, BDropdown, BDropdownItem, BField, BInput, BModal, BSelect, useDialog, useToast } from 'buefy';
 import BoardService from '@/Services/BoardService';
 import OrgService from '@/Services/OrgService';
 import { boardPriorityLabel, boardPriorityOptions, type BoardColumnDto, type OrgPositionDto, type BoardMemberDto, type WorkItemDto, type WorkItemPlacementDto } from '@/types';
 import { useBoardStore } from '@/Stores/BoardStore';
+import BoardTagBadge from './BoardTagBadge.vue';
 import RichTextEditor from '@/Components/RichText/RichTextEditor.vue';
 import RichTextViewer from '@/Components/RichText/RichTextViewer.vue';
 import { htmlToPlainText } from '@/lib/util';
@@ -296,6 +306,7 @@ const statusLoading = ref<Record<number, boolean>>({});
 let searchTimeout: ReturnType<typeof setTimeout> | null = null;
 
 const form = reactive({
+    tagIds: [] as number[],
     title: '',
     description: '',
     color: null as string | null,
@@ -309,6 +320,8 @@ const open = computed({
     get: () => props.modelValue,
     set: (value: boolean) => emit('update:modelValue', value)
 });
+
+const availableTags = computed(() => store.SelectedBoard?.tags ?? []);
 
 const isNew = computed(() => props.card === null);
 
@@ -341,6 +354,7 @@ watch(
     () => {
         if (!props.modelValue) return;
 
+        form.tagIds = (props.card?.tags ?? []).map(tag => Number(tag.id));
         form.title = props.card?.title ?? '';
         form.description = props.card?.description ?? '';
         form.color = props.card?.color ?? null;
@@ -538,6 +552,7 @@ async function save() {
     saving.value = true;
     try {
         const base = {
+            tagIds: form.tagIds,
             title: form.title.trim(),
             description: htmlToPlainText(form.description) ? form.description : null,
             color: form.color,
@@ -602,6 +617,13 @@ async function doRemove() {
 </script>
 
 <style scoped>
+.board-card-tags {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+}
+
 .board-card-color-options {
     display: flex;
     flex-wrap: wrap;

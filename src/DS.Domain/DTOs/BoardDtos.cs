@@ -23,7 +23,21 @@ namespace DS.Domain.DTOs
         public bool IsArchived { get; set; }
         public List<BoardColumnDto> Columns { get; set; } = [];
         public List<WorkItemDto> Cards { get; set; } = [];
+        public List<BoardTagDto> Tags { get; set; } = [];
         public List<BoardColorDto> Colors { get; set; } = [];
+    }
+
+    public class BoardTagDto
+    {
+        public int Id { get; set; }
+        public string Name { get; set; }
+        public string Color { get; set; }
+    }
+
+    public class BoardTagUpdateDto
+    {
+        public string Name { get; set; }
+        public string Color { get; set; }
     }
 
     public class BoardColorDto
@@ -50,6 +64,7 @@ namespace DS.Domain.DTOs
 
     public class WorkItemDto
     {
+        public List<BoardTagDto> Tags { get; set; } = [];
         public int Id { get; set; }
         public string Title { get; set; }
         public string Description { get; set; }
@@ -128,6 +143,7 @@ namespace DS.Domain.DTOs
 
     public class WorkItemCreateDto
     {
+        public List<int> TagIds { get; set; } = [];
         public int ColumnId { get; set; }
         public string Title { get; set; }
         public string Description { get; set; }
@@ -141,6 +157,7 @@ namespace DS.Domain.DTOs
 
     public class WorkItemUpdateDto
     {
+        public List<int> TagIds { get; set; }
         public string Title { get; set; }
         public string Description { get; set; }
         public string Color { get; set; }

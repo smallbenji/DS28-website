@@ -22,6 +22,18 @@ export interface BoardDetailDto {
     columns: BoardColumnDto[];
     cards: WorkItemDto[];
     colors: BoardColorDto[];
+    tags: BoardTagDto[];
+}
+
+export interface BoardTagDto {
+    id: number;
+    name: string;
+    color: string | null;
+}
+
+export interface BoardTagUpdateDto {
+    name: string;
+    color: string | null;
 }
 
 export interface BoardColorDto {
@@ -44,6 +56,7 @@ export interface BoardColumnDto {
 }
 
 export interface WorkItemDto {
+    tags: BoardTagDto[];
     id: number;
     title: string;
     description: string | null;
@@ -102,6 +115,7 @@ export interface BoardColumnUpdateDto {
 }
 
 export interface WorkItemCreateDto {
+    tagIds?: number[];
     columnId: number;
     title: string;
     description: string | null;
@@ -114,6 +128,7 @@ export interface WorkItemCreateDto {
 }
 
 export interface WorkItemUpdateDto {
+    tagIds?: number[];
     title: string;
     description: string | null;
     color: string | null;

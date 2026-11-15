@@ -58,6 +58,8 @@ public class DataDbContext : IdentityDbContext<User, Role, string>, IDataDbConte
     public DbSet<OrgPositionGroup> OrgPositionGroups { get; set; }
     public DbSet<OrgPositionHolder> OrgPositionHolders { get; set; }
 
+    public DbSet<BoardTag> BoardTags { get; set; }
+    public DbSet<BoardCardTag> BoardCardTags { get; set; }
     public DbSet<Board> Boards { get; set; }
     public DbSet<BoardMember> BoardMembers { get; set; }
     public DbSet<BoardColor> BoardColors { get; set; }
