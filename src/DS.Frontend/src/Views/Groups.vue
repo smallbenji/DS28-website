@@ -47,6 +47,7 @@
                         />
                     </div>
                     <div class="column">
+                        <GroupRegistrationHistory v-if="selectedGroup && canViewHistory" :key="selectedGroup.id" :group-id="selectedGroup.id" />
                         <GroupUsers v-if="selectedGroup" :selected-group="selectedGroup" />
                         <GroupPatrols 
                             v-if="selectedGroup" 
@@ -84,6 +85,12 @@ import GroupUsers from '@/Components/Groups/GroupsUsers.vue';
 import GroupPatrols from '@/Components/Groups/GroupsPatrols.vue';
 import GroupScouts from '@/Components/Groups/GroupsScouts.vue';
 import { districtLabel, type GroupDto, type PatrolDto, type ScoutDto } from '@/types';
+
+import GroupRegistrationHistory from '@/Components/Groups/GroupRegistrationHistory.vue';
+import { useMeStore } from '@/Stores/MeStore';
+
+const meStore = useMeStore();
+const canViewHistory = computed(() => meStore.Me?.appRoles.includes('AdminAccess') ?? false);
 
 const Toast = useToast();
 
