@@ -17,3 +17,10 @@ multiple tag assignments, creation and deletion of tagged placements, legacy
 updates preserving tags, validation, denied access, independent shared-card
 tags, live events, and composite database foreign keys rejecting cross-board
 assignments. Tag deletion must remove assignments without altering other boards.
+
+Remote MCP checks invoke `BoardTools` with a test authentication service and the
+real board service/database. They cover tag creation, rename/recolour, deletion,
+card tag selection, omitted/null/empty semantics, conflicts, invalid input,
+shared-board isolation and denied access. They do not exercise the HTTP MCP
+transport or OAuth login. Local stdio protocol tests are run separately with
+`node --test tools/ds28-mcp/*.test.mjs`.

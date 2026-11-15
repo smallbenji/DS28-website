@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 import { createInterface } from "node:readline";
 import http from "node:http";
 import https from "node:https";
-import { formatBoard, formatBoards, matchUser, parseEnvFile, resolveColumn, toHtml } from "./lib.mjs";
+import { formatBoard, formatBoards, matchUser, parseEnvFile, resolveColumn, resolveTagIds, toHtml } from "./lib.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const envPath = join(here, ".env");
@@ -90,7 +90,7 @@ const tools = [
     },
     {
         name: "get_board",
-        description: "Read one DS28 Kanban board: columns with ids and all cards with DS-number, column, priority, due date, assignees and description.",
+        description: "Read one DS28 Kanban board: columns with ids, colour palette, board tags with ids/names/colours and all cards with DS-number, column, priority, due date, colour, assignees, assigned tags and description.",
         inputSchema: {
             type: "object",
             properties: { boardId: { type: "integer", description: "Board id from list_boards." } },
@@ -117,6 +117,7 @@ const tools = [
                 description: { type: "string", description: "Plain text or HTML. Plain text becomes paragraphs." },
                 priority: { type: "integer", enum: [-1, 0, 1], description: "-1 low, 0 normal, 1 high. Defaults to 0." },
                 dueDate: { type: "string", description: "Due date as YYYY-MM-DD." },
+                tagIds: { type: ["array", "null"], items: { type: "integer", minimum: 1 }, description: "Tag ids from this board in get_board. Omitted/null means no tags on a new card." },
             },
             required: ["boardId", "title"],
             additionalProperties: false,
@@ -136,7 +137,9 @@ const tools = [
             const columnId = resolveColumn(columns, args.columnId, args.column);
             const columnTitle = columns.find(column => Number(column.id) === columnId).title;
 
+            const tagIds = args.tagIds == null ? undefined : resolveTagIds((await api("GET", `/api/v1/boards/${boardId}`)).tags, args.tagIds);
             const id = await api("POST", `/api/v1/boards/${boardId}/cards`, {
+                ...(tagIds === undefined ? {} : { tagIds }),
                 columnId,
                 title: args.title,
                 description: toHtml(args.description),
@@ -187,7 +190,7 @@ const tools = [
     },
     {
         name: "update_card",
-        description: "Update an existing DS28 card. Fields that are omitted keep their current value. Empty values clear description, due date, color or assignees.",
+        description: "Update an existing DS28 card. Fields that are omitted keep their current value. Empty values clear description, due date, color or assignees. Omitted/null tagIds preserve tags; [] clears tags on this board.",
         inputSchema: {
             type: "object",
             properties: {
@@ -198,6 +201,7 @@ const tools = [
                 priority: { type: "integer", enum: [-1, 0, 1], description: "-1 low, 0 normal, 1 high." },
                 dueDate: { type: ["string", "null"], description: "Due date as YYYY-MM-DD, or null/empty to clear it." },
                 color: { type: ["string", "null"], description: "Hex color from the board palette, for example \"#3366ff\". Null or empty clears the color." },
+                tagIds: { type: ["array", "null"], items: { type: "integer", minimum: 1 }, description: "Tag ids from this board in get_board. Omitted/null preserves tags; [] clears tags on this board only." },
                 assignees: {
                     type: "array",
                     items: { type: "string" },
@@ -259,9 +263,13 @@ const tools = [
                 if ([...assigneeUserIds].sort().join(",") !== before) changes.push("ansvarlige");
             }
 
+            const tagIds = args.tagIds == null ? undefined : resolveTagIds(board.tags, args.tagIds);
+            if (tagIds !== undefined && [...tagIds].sort((a, b) => a - b).join(",") !== (card.tags ?? []).map(tag => Number(tag.id)).sort((a, b) => a - b).join(",")) changes.push("tags");
+
             if (!changes.length) return `DS-${cardId} er uændret på tavle ${boardId}.`;
 
             await api("PUT", `/api/v1/boards/${boardId}/cards/${cardId}`, {
+                ...(tagIds === undefined ? {} : { tagIds }),
                 title,
                 description,
                 color,
@@ -305,6 +313,71 @@ const tools = [
                 : `Slettede DS-${cardId} fra tavle ${boardId}.`;
         },
     },
+    {
+        name: "create_tag",
+        description: "Create a tag on one DS28 board with a unique name and optional hex colour. Returns its tag id. Does not assign it to cards.",
+        inputSchema: {
+            type: "object",
+            properties: {
+                boardId: { type: "integer", description: "Board id from list_boards." },
+                name: { type: "string", maxLength: 64, description: "Tag name, unique on this board ignoring case." },
+                color: { type: ["string", "null"], description: "Optional hex colour. Omitted, null or empty means no colour." },
+            },
+            required: ["boardId", "name"],
+            additionalProperties: false,
+        },
+        handler: async args => {
+            const boardId = Number(args.boardId);
+            if (!Number.isInteger(boardId)) throw new Error("boardId skal være et helt tal.");
+            if (typeof args.name !== "string" || !args.name.trim() || args.name.trim().length > 64) throw new Error("Tagget skal have et navn på højst 64 tegn.");
+            const name = args.name.trim();
+            const tagId = await api("POST", `/api/v1/boards/${boardId}/tags`, { name, color: args.color ?? null });
+            return `Oprettet tag ${tagId} "${name}" på tavle ${boardId}.`;
+        },
+    },
+    {
+        name: "update_tag",
+        description: "Rename or recolour a tag on a DS28 board. Changes apply to every card using it on this board. Omitted/null fields are preserved; empty color removes the colour.",
+        inputSchema: {
+            type: "object",
+            properties: {
+                boardId: { type: "integer", description: "Board id from list_boards." },
+                tagId: { type: "integer", description: "Tag id from this board in get_board." },
+                name: { type: ["string", "null"], maxLength: 64, description: "New unique name. Omitted/null preserves it." },
+                color: { type: ["string", "null"], description: "New hex colour. Omitted/null preserves it; empty string removes it." },
+            },
+            required: ["boardId", "tagId"],
+            additionalProperties: false,
+        },
+        handler: async args => {
+            const boardId = Number(args.boardId), tagId = Number(args.tagId);
+            if (!Number.isInteger(boardId) || !Number.isInteger(tagId)) throw new Error("boardId og tagId skal være heltal.");
+            const board = await api("GET", `/api/v1/boards/${boardId}`);
+            const tag = (board.tags ?? []).find(tag => Number(tag.id) === tagId);
+            if (!tag) throw new Error("Tagget findes ikke på tavlen.");
+            await api("PUT", `/api/v1/boards/${boardId}/tags/${tagId}`, { name: args.name ?? tag.name, color: args.color ?? tag.color });
+            return `Opdaterede tag ${tagId} på tavle ${boardId}.`;
+        },
+    },
+    {
+        name: "delete_tag",
+        description: "Delete a tag from a DS28 board and remove it from all cards on that board. Cards and tags on other boards are preserved.",
+        inputSchema: {
+            type: "object",
+            properties: {
+                boardId: { type: "integer", description: "Board id from list_boards." },
+                tagId: { type: "integer", description: "Tag id from this board in get_board." },
+            },
+            required: ["boardId", "tagId"],
+            additionalProperties: false,
+        },
+        handler: async args => {
+            const boardId = Number(args.boardId), tagId = Number(args.tagId);
+            if (!Number.isInteger(boardId) || !Number.isInteger(tagId)) throw new Error("boardId og tagId skal være heltal.");
+            await api("DELETE", `/api/v1/boards/${boardId}/tags/${tagId}`);
+            return `Slettede tag ${tagId} fra tavle ${boardId} og fjernede det fra tavlens kort.`;
+        },
+    },
 ];
 
 async function callTool(params) {
@@ -336,7 +409,7 @@ async function handleLine(line) {
                 protocolVersion: message.params?.protocolVersion ?? "2025-06-18",
                 capabilities: { tools: {} },
                 serverInfo: { name: "ds28-boards", version: "1.0.0" },
-                instructions: "Værktøjer til at læse og ændre kort på DS28 Kanban-tavler. Brug list_boards, derefter get_board for kolonne-id'er, kortnumre og farver, og create_card, update_card, move_card eller delete_card.",
+                instructions: "Værktøjer til at læse og ændre kort på DS28 Kanban-tavler. Brug list_boards, derefter get_board for kolonne-id'er, kortnumre, farver og tag-id'er. Brug create_card, update_card, move_card eller delete_card til kort og create_tag, update_tag eller delete_tag til tavlens tags. Udeladte/null tagIds bevares ved opdatering; [] fjerner tags på denne tavle.",
             });
         case "ping":
             return respond(message.id, {});

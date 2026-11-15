@@ -26,7 +26,7 @@ namespace DS.Backend.Mcp
         }
 
         [McpServerTool(Name = "get_board", ReadOnly = true)]
-        [Description("Read one DS28 Kanban board: columns with ids, colour palette, and all cards with DS-number, column, priority, due date, colour, assignees and description.")]
+        [Description("Read one DS28 Kanban board: columns with ids, colour palette, board tags with ids/names/colours, and all cards with DS-number, column, priority, due date, colour, assignees, assigned tags and description.")]
         public async Task<string> GetBoard([Description("Board id from list_boards.")] int boardId)
         {
             var result = await boards.GetBoard(await ActorAsync(), boardId);
@@ -43,7 +43,8 @@ namespace DS.Backend.Mcp
             [Description("Column id from get_board. Use either column or columnId.")] int? columnId = null,
             [Description("Plain text or HTML. Plain text becomes paragraphs.")] string description = null,
             [Description("-1 low, 0 normal, 1 high. Defaults to 0.")] int priority = 0,
-            [Description("Due date as YYYY-MM-DD.")] string dueDate = null)
+            [Description("Due date as YYYY-MM-DD.")] string dueDate = null,
+            [Description("Tag ids from this board in get_board. Replaces the selection; omitted or null means no tags on a new card.")] int[] tagIds = null)
         {
             if (!new[] { -1, 0, 1 }.Contains(priority)) throw new McpException("priority skal være -1, 0 eller 1.");
             if (string.IsNullOrWhiteSpace(title)) throw new McpException("title må ikke være tom.");
@@ -52,8 +53,11 @@ namespace DS.Backend.Mcp
             var columns = Unwrap(await boards.GetColumns(actor, boardId));
             var columnIdValue = BoardInputs.ResolveColumn(columns, columnId, column);
 
+            var selectedTagIds = tagIds == null ? [] : BoardInputs.ResolveTagIds(Unwrap(await boards.GetBoard(actor, boardId)).Tags, tagIds);
+
             var data = new WorkItemCreateDto
             {
+                TagIds = selectedTagIds,
                 ColumnId = columnIdValue,
                 Title = title.Trim(),
                 Description = BoardInputs.ToHtml(description),
@@ -69,7 +73,7 @@ namespace DS.Backend.Mcp
         }
 
         [McpServerTool(Name = "update_card")]
-        [Description("Update an existing DS28 card. Fields that are omitted keep their current value. Empty values clear description, due date, colour or assignees.")]
+        [Description("Update an existing DS28 card. Fields that are omitted keep their current value. Empty values clear description, due date, colour or assignees. Omitted/null tagIds preserve tags; [] clears tags on this board.")]
         public async Task<string> UpdateCard(
             [Description("Board id from list_boards.")] int boardId,
             [Description("Card number from DS-<id>, for example 42 for DS-42.")] int cardId,
@@ -78,7 +82,8 @@ namespace DS.Backend.Mcp
             [Description("-1 low, 0 normal, 1 high.")] int? priority = null,
             [Description("Due date as YYYY-MM-DD. Empty string clears it.")] string dueDate = null,
             [Description("Hex colour from the board palette, for example \"#3366ff\". Empty string clears it.")] string color = null,
-            [Description("Full names or emails of the responsible users. Replaces the current assignees; an empty list clears them.")] string[] assignees = null)
+            [Description("Full names or emails of the responsible users. Replaces the current assignees; an empty list clears them.")] string[] assignees = null,
+            [Description("Tag ids from this board in get_board. Omitted or null preserves the selection; [] removes all tags on this board only.")] int[] tagIds = null)
         {
             if (priority.HasValue && !new[] { -1, 0, 1 }.Contains(priority.Value)) throw new McpException("priority skal være -1, 0 eller 1.");
 
@@ -119,10 +124,14 @@ namespace DS.Backend.Mcp
                 if (!assigneeIds.Order().SequenceEqual(card.Assignees.Select(user => user.Id).Order())) changes.Add("ansvarlige");
             }
 
+            var selectedTagIds = tagIds == null ? null : BoardInputs.ResolveTagIds(board.Tags, tagIds);
+            if (selectedTagIds != null && !selectedTagIds.Order().SequenceEqual(card.Tags.Select(tag => tag.Id).Order())) changes.Add("tags");
+
             if (changes.Count == 0) return $"DS-{cardId} er uændret på tavle {boardId}.";
 
             var data = new WorkItemUpdateDto
             {
+                TagIds = selectedTagIds,
                 Title = newTitle,
                 Description = newDescription,
                 Color = newColor,
@@ -136,6 +145,50 @@ namespace DS.Backend.Mcp
             if (updated.Outcome != ServiceOutcome.Success) throw new McpException(Describe(updated.Outcome, updated.Error));
 
             return $"Opdaterede DS-{cardId} på tavle {boardId}: {string.Join(", ", changes)}.";
+        }
+
+        [McpServerTool(Name = "create_tag")]
+        [Description("Create a tag on one DS28 board with a unique name and optional hex colour. Returns its tag id. Does not assign it to cards.")]
+        public async Task<string> CreateTag(
+            [Description("Board id from list_boards.")] int boardId,
+            [Description("Tag name, up to 64 characters; unique on this board ignoring case.")] string name,
+            [Description("Optional hex colour, for example #dbeafe. Omitted, null or empty means no colour.")] string color = null)
+        {
+            var created = await boards.CreateTag(await ActorAsync(), new BoardTagUpdateDto { Name = name, Color = color }, boardId);
+            var tagId = Unwrap(created);
+
+            return $"Oprettet tag {tagId} \"{name.Trim()}\" på tavle {boardId}.";
+        }
+
+        [McpServerTool(Name = "update_tag")]
+        [Description("Rename or recolour a tag on a DS28 board. Changes apply to every card using this tag on this board. Omitted/null fields are preserved; empty color removes the colour.")]
+        public async Task<string> UpdateTag(
+            [Description("Board id from list_boards.")] int boardId,
+            [Description("Tag id from this board in get_board.")] int tagId,
+            [Description("New unique name, up to 64 characters. Omitted or null preserves the name.")] string name = null,
+            [Description("New hex colour. Omitted or null preserves it; empty string removes it.")] string color = null)
+        {
+            var actor = await ActorAsync();
+            var board = Unwrap(await boards.GetBoard(actor, boardId));
+            var tag = board.Tags.FirstOrDefault(tag => tag.Id == tagId);
+            if (tag == null) throw new McpException("Tagget findes ikke på tavlen.");
+
+            var updated = await boards.UpdateTag(actor, new BoardTagUpdateDto { Name = name ?? tag.Name, Color = color ?? tag.Color }, boardId, tagId);
+            if (updated.Outcome != ServiceOutcome.Success) throw new McpException(Describe(updated.Outcome, updated.Error));
+
+            return $"Opdaterede tag {tagId} på tavle {boardId}.";
+        }
+
+        [McpServerTool(Name = "delete_tag")]
+        [Description("Delete a tag from a DS28 board and remove it from all cards on that board. Cards and tags on other boards are preserved.")]
+        public async Task<string> DeleteTag(
+            [Description("Board id from list_boards.")] int boardId,
+            [Description("Tag id from this board in get_board.")] int tagId)
+        {
+            var removed = await boards.DeleteTag(await ActorAsync(), boardId, tagId);
+            if (removed.Outcome != ServiceOutcome.Success) throw new McpException(Describe(removed.Outcome, removed.Error));
+
+            return $"Slettede tag {tagId} fra tavle {boardId} og fjernede det fra tavlens kort.";
         }
 
         [McpServerTool(Name = "move_card")]
@@ -247,6 +300,13 @@ namespace DS.Backend.Mcp
                 }
             }
 
+            text.AppendLine().AppendLine("Tags:");
+            if (board.Tags.Count == 0) text.AppendLine("- (ingen)");
+            foreach (var tag in board.Tags)
+            {
+                text.AppendLine($"- id {tag.Id}: {tag.Name} | farve {tag.Color ?? "ingen"}");
+            }
+
             text.AppendLine().AppendLine("Kort:");
             if (board.Cards.Count == 0) text.AppendLine("- (ingen)");
 
@@ -259,6 +319,7 @@ namespace DS.Backend.Mcp
                 if (card.Priority < 0) meta.Add("lav prioritet");
                 if (card.DueDate.HasValue) meta.Add($"frist {card.DueDate.Value.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)}");
                 if (!string.IsNullOrEmpty(card.Color)) meta.Add($"farve {card.Color}");
+                if (card.Tags.Count > 0) meta.Add($"tags: {string.Join(", ", card.Tags.Select(tag => $"{tag.Name} (id {tag.Id})"))}");
                 if (card.Assignees.Count > 0) meta.Add($"ansvarlige: {string.Join(", ", card.Assignees.Select(user => $"{user.FirstName} {user.LastName}"))}");
 
                 text.Append($"- DS-{card.Id} {card.Title} | {string.Join(" | ", meta)}");
@@ -273,6 +334,15 @@ namespace DS.Backend.Mcp
 
     public static class BoardInputs
     {
+        public static List<int> ResolveTagIds(IEnumerable<BoardTagDto> tags, IEnumerable<int> tagIds)
+        {
+            var result = tagIds.Distinct().ToList();
+            var knownIds = tags.Select(tag => tag.Id).ToHashSet();
+            if (result.Any(id => id <= 0 || !knownIds.Contains(id))) throw new McpException("Et eller flere tags findes ikke på tavlen. Brug tag-id'er fra get_board.");
+
+            return result;
+        }
+
         public static string ToHtml(string text)
         {
             if (string.IsNullOrWhiteSpace(text)) return null;

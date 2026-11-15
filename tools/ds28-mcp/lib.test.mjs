@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { formatBoard, formatBoards, matchUser, parseEnvFile, resolveColumn, toHtml } from "./lib.mjs";
+import { formatBoard, formatBoards, matchUser, parseEnvFile, resolveColumn, resolveTagIds, toHtml } from "./lib.mjs";
 
 test("parseEnvFile læser nøgler, ignorerer kommentarer og fjerner citationstegn", () => {
     const values = parseEnvFile(`
@@ -68,4 +68,20 @@ test("formatBoard viser farvepalette og kortets farve", () => {
 
     assert.match(text, /Farver:\n- Blå: #3366ff/);
     assert.match(text, /DS-42 Fejl \| kolonne Backlog \(id 10\) \| farve #3366ff/);
+});
+
+
+test("tags valideres mod tavlen, dubletter fjernes og tom liste bevares", () => {
+    const tags = [{ id: "1", name: "v0.2.13" }, { id: 2, name: "Fix" }];
+    assert.deepEqual(resolveTagIds(tags, [2, 1, 2]), [2, 1]);
+    assert.deepEqual(resolveTagIds(tags, []), []);
+    for (const value of [null, "1", ["1"], [0], [-1], [1.5]]) assert.throws(() => resolveTagIds(tags, value), /positive heltal/);
+    assert.throws(() => resolveTagIds(tags, [3]), /findes ikke på tavlen/);
+});
+
+test("formatBoard viser tagdefinitioner, valgfri farve og kortets tag-id'er", () => {
+    const tags = [{ id: 1, name: "v0.2.13", color: "#dbeafe" }, { id: 2, name: "Fix", color: null }];
+    const text = formatBoard({ id: 1, title: "IT", columns: [], tags, cards: [{ id: 42, title: "Fejl", tags }] });
+    assert.match(text, /Tags:\n- id 1: v0.2.13 \| farve #dbeafe\n- id 2: Fix \| farve ingen/);
+    assert.match(text, /tags: v0.2.13 \(id 1\), Fix \(id 2\)/);
 });
