@@ -2,7 +2,6 @@ namespace DS.Domain.DTOs
 {
     public class GroupRegistrationHistoryDto
     {
-        public UpdateGroupPreSignupDto CurrentPresignup { get; set; }
         public List<HistoricPresignupDto> Presignups { get; set; } = [];
         public List<HistoricSignupDto> Signups { get; set; } = [];
     }

@@ -2188,9 +2188,16 @@ Lejrår, gren, kilde-id, udtrækskontrolsum og importtidspunkt bevares.
   viser historiske forhåndstal (deltagere og venskabsgruppe) og endelige tal fra
   2024 pr. gren, med dag 0 adskilt fra dag 1–8. Manglende dagsrækker vises som
   ukendt, ikke nul, og der summeres ikke på tværs af dage. Eksisterende
-  gruppeoplysninger vises fortsat ved siden af historikken. Nuværende
-  forhåndstilmelding vises i samme panel; manglende tilmelding vises særskilt,
-  uden at oprette en tom tilmelding.
+  gruppeoplysninger vises fortsat ved siden af historikken.
+- **Ændret beslutning og implementeret (DS-32, 2026-11-15):** Historikken
+  vises i én kompakt tabel med forhåndstal, endelige patruljesummer (dag 0),
+  ændring og totaler. Venskabsgruppetal kan tilvælges; dagsfremmøde for dag 1–8
+  er foldet sammen fra start. Nuværende forhåndstilmelding er fjernet fra både
+  panelet og historik-endpointets DTO/forespørgsel; det erstatter DS-22's visning
+  af nuværende tal. Gruppens egen forhåndstilmelding er uændret.
+  Manglende tal og ændringer vises som ukendt, og en total vises kun, når alle
+  viste grene har tal for den pågældende kolonne. Der summeres aldrig på tværs
+  af fremmødedage.
 - Historikken hentes særskilt via `GET /api/v1/groups/{id}/registration-history`,
   som kræver både `GroupsView` og `AdminAccess`. Kun antal, gren, lejrår og
   dagsindeks returneres; kildeoplysninger udleveres ikke. Delte gruppe-DTO'er og
