@@ -9,7 +9,7 @@ using System.Text.RegularExpressions;
 
 namespace DS.Application.Services.Boards
 {
-    public class BoardService(IDataDbContext dataDb, UserManager<User> userManager)
+    public class BoardService(IDataDbContext dataDb, UserManager<User> userManager, IBoardEventPublisher boardEvents)
     {
         public async Task<ServiceResult<List<BoardSummaryDto>>> GetBoards(BoardActor actor)
         {
@@ -114,6 +114,7 @@ namespace DS.Application.Services.Boards
             if (user == null) return new ServiceResult(ServiceOutcome.NotFound);
 
             await dataDb.Database.ExecuteSqlInterpolatedAsync($"INSERT INTO ds28.board_member (board_id, user_id) VALUES ({id}, {user.Id}) ON CONFLICT DO NOTHING");
+            await boardEvents.BoardChanged(id);
 
             return new ServiceResult(ServiceOutcome.Success);
         }
@@ -166,6 +167,7 @@ namespace DS.Application.Services.Boards
             var boardColor = new BoardColor { BoardId = id, Name = name, Color = color };
             dataDb.BoardColors.Add(boardColor);
             await dataDb.SaveChangesAsync();
+            await boardEvents.BoardChanged(id);
 
             return new ServiceResult<int>(ServiceOutcome.Success, boardColor.Id);
         }
@@ -183,6 +185,7 @@ namespace DS.Application.Services.Boards
             boardColor.Name = name;
             boardColor.Color = color;
             await dataDb.SaveChangesAsync();
+            await boardEvents.BoardChanged(id);
 
             return new ServiceResult(ServiceOutcome.Success);
         }
@@ -196,6 +199,7 @@ namespace DS.Application.Services.Boards
 
             dataDb.BoardColors.Remove(boardColor);
             await dataDb.SaveChangesAsync();
+            await boardEvents.BoardChanged(id);
 
             return new ServiceResult(ServiceOutcome.Success);
         }
@@ -219,6 +223,7 @@ namespace DS.Application.Services.Boards
             board.UpdatedAt = DateTime.UtcNow;
 
             await dataDb.SaveChangesAsync();
+            await boardEvents.BoardChanged(id);
 
             return new ServiceResult(ServiceOutcome.Success);
         }
@@ -232,6 +237,7 @@ namespace DS.Application.Services.Boards
             board.DeletedAt = DateTime.UtcNow;
             board.UpdatedAt = DateTime.UtcNow;
             await dataDb.SaveChangesAsync();
+            await boardEvents.BoardChanged(id);
 
             return new ServiceResult(ServiceOutcome.Success);
         }
@@ -261,6 +267,7 @@ namespace DS.Application.Services.Boards
 
             dataDb.BoardColumns.Add(column);
             await dataDb.SaveChangesAsync();
+            await boardEvents.BoardChanged(id);
 
             return new ServiceResult<int>(ServiceOutcome.Success, column.Id);
         }
@@ -283,6 +290,7 @@ namespace DS.Application.Services.Boards
             column.UpdatedAt = DateTime.UtcNow;
 
             await dataDb.SaveChangesAsync();
+            await boardEvents.BoardChanged(id);
 
             return new ServiceResult(ServiceOutcome.Success);
         }
@@ -304,6 +312,7 @@ namespace DS.Application.Services.Boards
 
             dataDb.BoardColumns.Remove(column);
             await dataDb.SaveChangesAsync();
+            await boardEvents.BoardChanged(id);
 
             return new ServiceResult(ServiceOutcome.Success);
         }
@@ -345,6 +354,7 @@ namespace DS.Application.Services.Boards
             await dataDb.SaveChangesAsync();
 
             await transaction.CommitAsync();
+            await boardEvents.BoardChanged(id);
 
             return new ServiceResult(ServiceOutcome.Success);
         }
@@ -394,6 +404,7 @@ namespace DS.Application.Services.Boards
             });
 
             await dataDb.SaveChangesAsync();
+            await boardEvents.BoardChanged(id);
 
             return new ServiceResult<int>(ServiceOutcome.Success, item.Id);
         }
@@ -430,6 +441,7 @@ namespace DS.Application.Services.Boards
             item.UpdatedAt = DateTime.UtcNow;
 
             await dataDb.SaveChangesAsync();
+            await NotifyBoardsWithCardAsync(workItemId);
 
             return new ServiceResult(ServiceOutcome.Success);
         }
@@ -481,6 +493,7 @@ namespace DS.Application.Services.Boards
             }
 
             await dataDb.SaveChangesAsync();
+            await boardEvents.BoardChanged(id);
 
             return new ServiceResult(ServiceOutcome.Success);
         }
@@ -509,6 +522,9 @@ namespace DS.Application.Services.Boards
                     await dataDb.SaveChangesAsync();
                 }
             }
+
+            await boardEvents.BoardChanged(id);
+            await NotifyBoardsWithCardAsync(workItemId);
 
             return new ServiceResult(ServiceOutcome.Success);
         }
@@ -549,8 +565,21 @@ namespace DS.Application.Services.Boards
             });
 
             await dataDb.SaveChangesAsync();
+            await NotifyBoardsWithCardAsync(workItemId);
 
             return new ServiceResult(ServiceOutcome.Success);
+        }
+
+        private async Task NotifyBoardsWithCardAsync(int workItemId)
+        {
+            var boardIds = await dataDb.BoardCards
+                .AsNoTracking()
+                .Where(card => card.WorkItemId == workItemId)
+                .Select(card => card.BoardId)
+                .Distinct()
+                .ToListAsync();
+
+            foreach (var boardId in boardIds) await boardEvents.BoardChanged(boardId);
         }
 
         private async Task<List<BoardCard>> LoadCardsAsync(int boardId)

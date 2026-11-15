@@ -51,6 +51,8 @@ app.MapControllerRoute(
     pattern: "{controller=Home}/{action=Index}/{id?}")
     .WithStaticAssets();
 
+app.MapHub<BoardHub>("/api/v1/boards/hub");
+
 var env = app.Services.GetRequiredService<IWebHostEnvironment>();
 
 app.MapFallback(async context =>

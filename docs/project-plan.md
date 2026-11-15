@@ -999,6 +999,44 @@ implementeret eller synlig i adminområdet.
 
 ### Projektstyring og Kanban-board
 
+**Beslutning 2026-11-15 (implementeret, live opdatering):** En åben tavle
+opdaterer sig selv, når nogen opretter, flytter, redigerer eller sletter kort,
+kolonner, farver eller tavleindstillinger — også når ændringen kommer fra MCP
+eller en anden bruger. Kun tavler er omfattet; tavleoversigten og resten af HQ
+opfriskes fortsat ved sideindlæsning.
+
+- Live opdatering bruger SignalR på `/api/v1/boards/hub` i stedet for polling,
+  så ændringer vises med det samme uden fast baggrundstrafik. Klienten bruger
+  den eksisterende cookie-session; hubben kræver login.
+- Hændelsen udsendes fra `BoardService` gennem `IBoardEventPublisher`, ikke fra
+  controlleren. Både cookie-kald fra browseren og Bearer-kald fra MCP går gennem
+  servicelaget og udløser derfor samme hændelse. Website implementerer
+  publiceringen med SignalR; Application kender ikke SignalR.
+- Hver tavle er sin egen gruppe. Klienten melder sig ind med `JoinBoard`, og
+  hubben bruger samme synlighedsregel som API'et (`VisibleBoards`), så en
+  bruger kun får ændringer for tavler, den må se. Skjulte tavlers id spredes
+  ikke.
+- Frontend abonnerer kun på den tavle, der er åben, og genindlæser tavlen
+  (samlet med kort forsinkelse) i stedet for at flette ændringerne ind. Egne
+  handlinger genindlæser fortsat straks efter eget kald. Genindlæsning springes
+  over, mens et træk og slip er i gang, så trækket ikke afbrydes.
+- Kortets fælles felter — titel, beskrivelse, farve og ansvarlige — er delt på
+  tværs af tavleplaceringer, så en kortændring sendes til alle tavler, der viser
+  kortet. Tilføjelse eller fjernelse af en placering opdaterer også de øvrige
+  tavler, der viser kortets placeringer.
+- **Samtidig redigering:** kortdialogen beholder sine egne felter, så en
+  indkommende ændring ikke overskriver det, brugeren er ved at skrive.
+  Sidste gemning vinder, fordi API'et ikke har versionskontrol; der vises
+  ingen konfliktadvarsel i denne version. Slettes kortet under redigering,
+  fejler gemningen med den eksisterende fejlmeddelelse.
+- Falder forbindelsen, genoprettes den automatisk, og klienten melder sig ind i
+  gruppen igen. Kan den ikke oprettes, virker tavlen som før uden live
+  opdatering.
+- Der tilføjes ingen backplane, fordi der kun kører én Website-instans. Ved
+  flere instanser kræver SignalR en backplane. Rettigheder og databaseskema er
+  uændrede; live opdatering kræver, at den eksisterende reverse proxy videresender
+  WebSocket-opgraderinger.
+
 **Beslutning 2026-10-21 (implementeret):** Et arbejdskort kan have nul eller
 flere ansvarlige brugere. Dette erstatter den tidligere enkelte ansvarlige
 bruger; den valgfrie ansvarlige stilling er uændret. Ansvarlige tilhører kortet

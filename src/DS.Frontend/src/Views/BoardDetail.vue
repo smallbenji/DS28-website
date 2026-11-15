@@ -83,6 +83,7 @@
 import { computed, onBeforeUnmount, onMounted, provide, ref } from 'vue';
 import { useRoute } from 'vue-router';
 import { BButton, BCheckbox, BField, BInput, BModal, useDialog, useToast } from 'buefy';
+import type { HubConnection } from '@microsoft/signalr';
 import type { BoardColumnDto, WorkItemDto } from '@/types';
 import { useBoardStore } from '@/Stores/BoardStore';
 import BoardMembersModal from '@/Components/Board/BoardMembersModal.vue';
@@ -249,6 +250,48 @@ async function moveCard(cardId: number, columnId: number, position: number) {
     }
 }
 
+let liveConnection: HubConnection | null = null;
+let liveReloadTimer: ReturnType<typeof setTimeout> | null = null;
+
+function scheduleLiveReload() {
+    if (liveReloadTimer) clearTimeout(liveReloadTimer);
+
+    liveReloadTimer = setTimeout(() => {
+        liveReloadTimer = null;
+        if (drag.value) {
+            scheduleLiveReload();
+            return;
+        }
+
+        void store.GET_BOARD(boardId);
+    }, 250);
+}
+
+async function connectLiveUpdates() {
+    const { HubConnectionBuilder } = await import('@microsoft/signalr');
+
+    const connection = new HubConnectionBuilder()
+        .withUrl('/api/v1/boards/hub')
+        .withAutomaticReconnect()
+        .build();
+
+    connection.on('boardChanged', (changedBoardId: number) => {
+        if (Number(changedBoardId) === boardId) scheduleLiveReload();
+    });
+    connection.onreconnected(() => {
+        void connection.invoke('JoinBoard', boardId);
+    });
+
+    liveConnection = connection;
+
+    try {
+        await connection.start();
+        await connection.invoke('JoinBoard', boardId);
+    } catch {
+        liveConnection = null;
+    }
+}
+
 onMounted(async () => {
     window.addEventListener('dragend', clearDrag);
     window.addEventListener('drop', clearDrag);
@@ -259,12 +302,15 @@ onMounted(async () => {
     } finally {
         loading.value = false;
     }
+    void connectLiveUpdates();
 });
 
 onBeforeUnmount(() => {
     window.removeEventListener('dragend', clearDrag);
     window.removeEventListener('drop', clearDrag);
     window.removeEventListener('blur', clearDrag);
+    if (liveReloadTimer) clearTimeout(liveReloadTimer);
+    void liveConnection?.stop();
 });
 </script>
 

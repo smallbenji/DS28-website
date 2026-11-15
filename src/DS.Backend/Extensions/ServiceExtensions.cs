@@ -44,6 +44,7 @@ public static class ServiceExtensions
 
         builder.Services.AddMemoryCache();
         builder.Services.AddHttpContextAccessor();
+        builder.Services.AddSignalR();
 
         builder.Services.AddRateLimiter(options =>
         {
@@ -72,6 +73,7 @@ public static class ServiceExtensions
         services.AddTransient<CampSettings>();
 
         services.AddScoped<DS.Application.Services.Organization.IUserAccessCache, UserAccessCache>();
+        services.AddScoped<DS.Application.Services.Boards.IBoardEventPublisher, BoardEventPublisher>();
 
         services.AddScoped<GoogleAuthService>();
         services.AddScoped<IGoogleAuthService>(provider => provider.GetRequiredService<GoogleAuthService>());

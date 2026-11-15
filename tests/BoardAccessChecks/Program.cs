@@ -86,7 +86,8 @@ foreach (var id in new[] { "member", "friend", "outsider", "admin" })
     Check((await manager.CreateAsync(new User { Id = id, UserName = id, FirstName = id, LastName = "Test", Email = $"{id}@example.test" })).Succeeded, $"create {id}");
 }
 
-var controller = new BoardApiController(new BoardService(db, manager), manager)
+var boardEvents = new RecordingBoardEvents();
+var controller = new BoardApiController(new BoardService(db, manager, boardEvents), manager)
 {
     ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() }
 };
@@ -132,6 +133,7 @@ var otherPaletteId = await db.BoardColors.Where(color => color.BoardId == 1).Sel
 Check(await controller.UpdateColor(new BoardColorUpdateDto { Name = "Denied", Color = "#123456" }, boardId, otherPaletteId) is NotFoundResult, "cannot update color belonging to another board");
 Check(await controller.DeleteColor(boardId, otherPaletteId) is NotFoundResult, "cannot delete color belonging to another board");
 var cardId = (int)((OkObjectResult)await controller.CreateCard(new WorkItemCreateDto { Title = "Shared", ColumnId = columnId, Color = " #DBEAFE " }, boardId)).Value;
+Check(boardEvents.Changes.Contains(boardId), "card creation notifies the board");
 Check((await Board(boardId)).Cards.Single().Color == "#dbeafe", "new card color is normalized and returned");
 Check(await controller.CreateCard(new WorkItemCreateDto { Title = "Invalid", ColumnId = columnId, Color = "red" }, boardId) is BadRequestObjectResult, "invalid create color rejected");
 Check(await controller.UpdateCard(new WorkItemUpdateDto { Title = "Shared", Color = "#gg0000" }, boardId, cardId) is BadRequestObjectResult, "invalid update color rejected");
@@ -182,6 +184,7 @@ foreach (var role in new[] { nameof(AppGroups.SysAdmin), nameof(AppGroups.CampAd
     Check(await controller.UpdateBoard(new BoardUpdateDto { Title = role }, boardId) is OkResult, $"{role} can edit without membership");
 }
 Check(await controller.AddCardPlacement(new WorkItemPlacementCreateDto { ColumnId = hiddenColumn }, hiddenId, cardId) is OkResult, "administrator can share card across boards");
+Check(boardEvents.Changes.Contains(boardId) && boardEvents.Changes.Contains(hiddenId), "shared card placement notifies both boards");
 Check((await Board(boardId)).Cards.Single().Placements.Count == 2, "administrator sees both shared placements");
 Check((await Board(hiddenId)).Cards.Single().Assignees.Single().Id == "friend", "assignees follow shared card across boards");
 foreach (var color in new[] { "#dbeafe", "#dcfce7", "#fef3c7", "#fee2e2", "#ede9fe", "#ccfbf1", "#ab1234", "#000000", "#ffffff" })
@@ -226,3 +229,14 @@ Check(await controller.CreateColor(new BoardColorUpdateDto { Name = "Denied", Co
 ActAs("admin", nameof(AppGroups.SysAdmin));
 Check(!(await Boards()).Any(board => board.Id == boardId), "deleted board is hidden even from administrators");
 Console.WriteLine("ALL BOARD ACCESS CHECKS PASSED");
+
+sealed class RecordingBoardEvents : IBoardEventPublisher
+{
+    public List<int> Changes { get; } = [];
+
+    public Task BoardChanged(int boardId)
+    {
+        Changes.Add(boardId);
+        return Task.CompletedTask;
+    }
+}

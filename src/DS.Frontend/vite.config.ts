@@ -32,7 +32,8 @@ export default defineConfig(({ command }) => {
         '/api': {
           target: "https://localhost:44310",
           changeOrigin: true,
-          secure: false
+          secure: false,
+          ws: true
         },
         '/hangfire': {
           target: "https://localhost:44310",
