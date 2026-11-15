@@ -153,8 +153,8 @@ project patterns for forms, buttons, tables, notifications, and step flows.
   several pull requests rather than growing one.
 - Describe what changed, why, how it was tested, and what was not tested.
 - Merge with a merge commit, not a squash, and delete the branch afterwards.
-- Until a pull request build workflow exists, build and test locally according
-  to the verification section below before merging.
+- Pull requests are not built in CI; only CodeQL runs. Build and test locally
+  according to the verification section below before merging.
 
 ## Deployment
 

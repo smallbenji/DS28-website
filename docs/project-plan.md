@@ -1918,8 +1918,9 @@ indføres ikke en produktion- eller release-branch.
   det forrige tag kan deployes igen, og der tages en database-dump før et
   deploy med migration. Dette er nødvendigt, fordi DbUp kører fremad og ikke
   kan rulle en migration tilbage.
-- Pull requests skal bygges og testes i CI, før de merges. Workflowet findes
-  ikke endnu; indtil da bygges og testes der lokalt.
+- Pull requests bygges og testes ikke i CI; kun CodeQL kører. Der bygges og
+  testes lokalt efter verifikationsafsnittet, før der merges. Dette er et
+  bevidst valg for at holde PR-flowet let, ikke en midlertidig mangel.
 
 ## Frontend og formularvisning
 
