@@ -13,6 +13,7 @@
 
   <ItemGroup>
     <ProjectReference Include="../DS.Application/DS.Application.csproj" />
+    <ProjectReference Include="../DS.RegistrationImporter/DS.RegistrationImporter.csproj" />
     <ProjectReference Include="../DS.Domain/DS.Domain.csproj" />
   </ItemGroup>
 

@@ -1,6 +1,7 @@
 using DS.Application.Data;
 using DS.Application.Services.Email;
 using DS.Application.Services.Files;
+using DS.Application.Services.HistoricRegistration;
 using DS.Application.Services.OpenIddict;
 using DS.Domain.Models;
 using DS.Infrastructure.Data;
@@ -28,9 +29,11 @@ public static class ConfigureInfrastructure {
     {
         services.AddTransient<IMailQueue, HangfireMailQueue>();
         services.AddTransient<IFileProcessingQueue, HangfireFileProcessingQueue>();
+        services.AddTransient<IHistoricRegistrationSyncQueue, HangfireHistoricRegistrationSyncQueue>();
         services.AddTransient<MailJobs>();
         services.AddTransient<OpenIddictJobs>();
         services.AddTransient<FileProcessingJobs>();
+        services.AddTransient<HistoricRegistrationSyncJob>();
 
         return services;
     }

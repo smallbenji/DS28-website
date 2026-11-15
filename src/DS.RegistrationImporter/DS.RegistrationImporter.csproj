@@ -9,5 +9,6 @@
     <ProjectReference Include="../DS.Domain/DS.Domain.csproj" />
     <PackageReference Include="Google.Apis.Auth" Version="1.77.0" />
     <InternalsVisibleTo Include="HistoricRegistrationChecks" />
+    <InternalsVisibleTo Include="DS.Infrastructure" />
   </ItemGroup>
 </Project>

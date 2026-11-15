@@ -15,9 +15,9 @@ namespace DS.RegistrationImporter
 
     internal sealed record FirebaseCredentials(string ProjectId, string? ApiKey, Func<Task<string>>? GetAccessToken)
     {
-        internal static async Task<FirebaseCredentials> LoadAsync(string path)
+        internal static async Task<FirebaseCredentials> LoadAsync(string source)
         {
-            var json = await File.ReadAllTextAsync(path);
+            var json = source.TrimStart().StartsWith('{') ? source : await File.ReadAllTextAsync(source);
             var value = JsonNode.Parse(json)?.AsObject() ?? throw new ImportValidationException("Tom credentials-fil.");
             if (value["type"]?.GetValue<string>() == "service_account")
             {

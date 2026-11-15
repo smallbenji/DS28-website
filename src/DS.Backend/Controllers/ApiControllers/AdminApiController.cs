@@ -3,12 +3,13 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using DS.Domain;
 using DS.Application.Services.Groups;
+using DS.Application.Services.HistoricRegistration;
 
 namespace DS.Backend.Controllers.ApiControllers
 {
     [Authorize(Roles = nameof(AppRoles.AdminAccess))]
     [Route("api/v1/admin")]
-    public class AdminApiController(GroupInfoService groupInfoService) : Controller
+    public class AdminApiController(GroupInfoService groupInfoService, IHistoricRegistrationSyncQueue historicRegistrationSyncQueue) : Controller
     {
         private static List<AdminSectionDto> GetSections()
         {
@@ -142,6 +143,19 @@ namespace DS.Backend.Controllers.ApiControllers
                     Status = StatusFor(finalSignup, target)
                 }
             });
+        }
+
+        [HttpPost("historic-registration/sync")]
+        public IActionResult SyncHistoricRegistration()
+        {
+            if (!historicRegistrationSyncQueue.IsConfigured)
+            {
+                return BadRequest("Historisk synkronisering er ikke konfigureret. Sæt DS__HistoricRegistration__FirebaseCredentials og DS__HistoricRegistration__Year.");
+            }
+
+            historicRegistrationSyncQueue.Enqueue();
+
+            return Accepted();
         }
 
         private static string StatusFor(int current, int target)

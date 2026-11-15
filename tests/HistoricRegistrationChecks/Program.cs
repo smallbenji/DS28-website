@@ -107,6 +107,8 @@ try
 
     var credentials = await FirebaseCredentials.LoadAsync(credentialsPath);
     Check(credentials.ProjectId == "demo-project" && credentials.ApiKey == "test-key", "Firebase client configuration accepted");
+    var inlineCredentials = await FirebaseCredentials.LoadAsync("""{"projectId":"demo-project","apiKey":"test-key"}""");
+    Check(inlineCredentials.ProjectId == "demo-project" && inlineCredentials.ApiKey == "test-key", "Inline Firebase client configuration accepted");
     var servicePath = Path.Combine(temporaryDirectory, "service-account.json");
     using (var key = RSA.Create(2048))
     {

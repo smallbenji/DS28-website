@@ -28,6 +28,27 @@
                 </div>
             </section>
 
+            <section class="admin-section">
+                <h2 class="title is-5 admin-heading mb-4">
+                    <font-awesome-icon icon="rotate" />
+                    Historisk tilmelding
+                </h2>
+                <div class="box">
+                    <p class="historic-sync-description">
+                        Synkroniserer historiske tilmeldinger fra Firebase som et baggrundsjob i workeren
+                        for det lejrår, der er valgt i opsætningen.
+                    </p>
+                    <BButton
+                        type="is-primary"
+                        icon-left="rotate"
+                        :loading="syncing"
+                        @click="confirmSync"
+                    >
+                        Start synkronisering
+                    </BButton>
+                </div>
+            </section>
+
             <BButton v-if="!loading && !error && sections.length === 0" @click="load">Prøv igen</BButton>
         </div>
 
@@ -65,15 +86,18 @@
 
 <script lang="ts" setup>
 import { onMounted, ref } from 'vue';
-import { BButton, BNotification } from 'buefy';
+import { BButton, BNotification, useDialog, useToast } from 'buefy';
 import AdminService from '@/Services/AdminService';
 import { getErrorMessage } from '@/lib/api';
 import type { AdminSectionDto, HQPanelEntryDto, SignupProgressDto } from '@/types';
 
 const service = new AdminService();
+const Dialog = useDialog();
+const Toast = useToast();
 const sections = ref<AdminSectionDto[]>([]);
 const signupProgress = ref<SignupProgressDto[]>([]);
 const loading = ref(true);
+const syncing = ref(false);
 const error = ref('');
 
 const isExternal = (link: HQPanelEntryDto) => {
@@ -97,6 +121,35 @@ function statusText(item: SignupProgressDto) {
     if (item.status === 'reached') return 'Målet er nået';
     if (item.status === 'halfway') return `Halvejs – ${percent(item)} %`;
     return `Under halvejs – ${percent(item)} %`;
+}
+
+function confirmSync() {
+    Dialog.confirm({
+        title: 'Historisk tilmelding',
+        message: 'Erstat årets historiske tilmeldinger med data fra Firebase?',
+        confirmText: 'Start',
+        cancelText: 'Annuller',
+        onConfirm: () => {
+            void syncHistoricRegistration();
+        }
+    });
+}
+
+async function syncHistoricRegistration() {
+    if (syncing.value) return;
+
+    syncing.value = true;
+    try {
+        await service.syncHistoricRegistration();
+        Toast.open({ message: 'Synkroniseringen er sat i gang.', type: 'is-success' });
+    } catch (e) {
+        Toast.open({
+            message: getErrorMessage(e, 'Synkroniseringen kunne ikke startes.'),
+            type: 'is-danger'
+        });
+    } finally {
+        syncing.value = false;
+    }
 }
 
 async function load() {
@@ -162,6 +215,10 @@ onMounted(load);
 
 .admin-heading svg {
     color: #595959;
+}
+
+.historic-sync-description {
+    margin-bottom: 0.75rem;
 }
 
 .progress-card {
