@@ -15,6 +15,8 @@ namespace DS.Application.Data
         DbSet<Patrol> Patrols { get; }
         DbSet<PatrolMembership> PatrolMemberships { get; }
         DbSet<GroupPreSignup> GroupPreSignups { get; }
+        DbSet<HistoricPresignup> HistoricPresignups { get; }
+        DbSet<HistoricSignup> HistoricSignups { get; }
         DbSet<RegistrationSettings> RegistrationSettings { get; }
         DbSet<Activity> Activities { get; }
         DbSet<ActivityTeam> ActivityTeams { get; }

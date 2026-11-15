@@ -215,6 +215,42 @@ erDiagram
     activity ||--o| activity_drive_folder : "har Google-mappe"
 ```
 
+## Historiske tilmeldinger
+
+Historikken ligger separat fra aktive tilmeldinger og bruger eksisterende
+`scout_group.id`. Begge tabeller har en påkrævet `group_id INTEGER` med
+fremmednøgle og `ON DELETE RESTRICT`; grupper med historik kan ikke hard-slettes.
+Ingen historiske personer eller brugere oprettes.
+
+| Kolonne | Type og krav | Betydning |
+| --- | --- | --- |
+| `group_id` | `INTEGER NOT NULL`, FK | Eksisterende spejdergruppe |
+| `camp_year` | `INTEGER NOT NULL`, 1900–9999 | Historisk lejrår |
+| `category` | `VARCHAR(16) NOT NULL`, CHECK | `family`, `beaver`, `wolf`, `junior`, `trop`, `senior`, `rover`, `leader` |
+| `participant_count` | `INTEGER NOT NULL`, >= 0 | Antal for gruppen og grenen |
+| `source_document_id` | `TEXT NOT NULL` | Firestore-dokument-id i den tilhørende samling |
+| `source_sha256` | `VARCHAR(64) NOT NULL`, 64 små hextegn | Kontrolsum af normaliserede Firebase-data, kildeprojekt og lejrår |
+| `imported_at` | `TIMESTAMPTZ NOT NULL` | Seneste importtidspunkt |
+
+`historic_presignup` har desuden `guest_count INTEGER NOT NULL CHECK >= 0`
+med venskabsgruppens antal for grenen, særskilt fra værtsgruppens antal.
+Primærnøglen er `(group_id, camp_year, category)`. Et unikt indeks på
+`(camp_year, source_document_id, category)` sikrer, at samme kildegren ikke
+kobles til flere grupper. Der er én række pr. gruppe, lejrår og gren.
+
+`historic_signup` har desuden `day_index INTEGER NOT NULL CHECK BETWEEN 0 AND 8`.
+Primærnøglen er `(group_id, camp_year, category, day_index)`. Et unikt indeks på
+`(camp_year, source_document_id, category, day_index)` sikrer unik kilde pr. dag.
+Dag 0 indeholder patruljesummer for grenen, ikke summen af dag 1–8. Dag 1–8
+svarer for 2024 til lørdag start til lørdag slut. Særskilte ledertal uden
+fremmødedage har kun dag 0. En manglende dagsrække betyder ukendt fremmøde;
+en eksisterende række med nul betyder registreret nul. Deltagerantal er
+aggregerede tilmeldinger, ikke et verificeret antal unikke personer.
+
+Ingen kolonner er nullable. Begge tabeller bruger sammensatte primærnøgler,
+ikke identity-id'er, og har hverken soft delete eller persondatafelter.
+Importeren erstatter kun det angivne lejrårs historik i én transaktion.
+
 ## Brugere og roller
 
 ```mermaid
