@@ -143,6 +143,8 @@ project patterns for forms, buttons, tables, notifications, and step flows.
 - Do not add `Co-Authored-By` trailers or other AI attribution, such as
   "Generated with Claude Code", to commit messages or pull request
   descriptions.
+- Do development work on a branch, not directly on `master`. When the work is
+  ready, push the branch and open a pull request against `master`.
 
 ## Deployment
 
