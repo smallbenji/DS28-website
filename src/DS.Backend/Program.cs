@@ -7,12 +7,17 @@ using Microsoft.AspNetCore.HttpOverrides;
 using DbUp;
 using Hangfire;
 using DS.Backend.Extensions;
+using DS.Backend.Mcp;
 using DS.Domain;
 using DS.Application.Seeders;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.ConfigureDS();
+
+builder.Services.AddMcpServer()
+    .WithHttpTransport()
+    .WithTools<BoardTools>();
 
 var app = builder.Build();
 
@@ -52,6 +57,8 @@ app.MapControllerRoute(
     .WithStaticAssets();
 
 app.MapHub<BoardHub>("/api/v1/boards/hub");
+
+app.MapMcp("/mcp").RequireAuthorization();
 
 var env = app.Services.GetRequiredService<IWebHostEnvironment>();
 

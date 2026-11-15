@@ -16,15 +16,52 @@ using Npgsql;
 using System.Security.Claims;
 
 var connectionString = Environment.GetEnvironmentVariable("BOARD_ACCESS_TEST_CONNECTION");
-if (string.IsNullOrWhiteSpace(connectionString) || new NpgsqlConnectionStringBuilder(connectionString).Database != "ds28_board_access_tests")
-{
-    throw new InvalidOperationException("Use run.sh to start a disposable ds28_board_access_tests database.");
-}
 
 void Check(bool condition, string message)
 {
     if (!condition) throw new Exception(message);
     Console.WriteLine($"PASS {message}");
+}
+
+var boardColumns = new List<BoardColumnDto> { new() { Id = 4, Title = "I gang" }, new() { Id = 7, Title = "Færdig" } };
+Check(DS.Backend.Mcp.BoardInputs.ResolveColumn(boardColumns, 7, null) == 7, "MCP finder kolonne på id");
+Check(DS.Backend.Mcp.BoardInputs.ResolveColumn(boardColumns, null, " i GANG ") == 4, "MCP finder kolonne på titel uden hensyn til store bogstaver");
+Check(DS.Backend.Mcp.BoardInputs.ToHtml("Hej\n\nVerden") == "<p>Hej</p><p>Verden</p>", "MCP laver afsnit af ren tekst");
+Check(DS.Backend.Mcp.BoardInputs.ToHtml("<p>findes</p>") == "<p>findes</p>", "MCP lader HTML være");
+
+var boardUsers = new List<BoardMemberDto>
+{
+    new() { Id = "u-1", FirstName = "Ada", LastName = "Lovelace", Email = "ada@example.com" },
+    new() { Id = "u-2", FirstName = "Ada", LastName = "Lovelace Jr", Email = "ada.jr@example.com" },
+};
+Check(DS.Backend.Mcp.BoardInputs.MatchUser(boardUsers, " ada lovelace ").Id == "u-1", "MCP matcher ansvarlig på fuldt navn");
+Check(DS.Backend.Mcp.BoardInputs.MatchUser(boardUsers, "ADA@EXAMPLE.COM").Id == "u-1", "MCP matcher ansvarlig på email");
+
+var boardText = DS.Backend.Mcp.BoardText.Board(new BoardDetailDto
+{
+    Id = 1,
+    Title = "Vejfest",
+    Columns = boardColumns,
+    Colors = [new BoardColorDto { Id = 3, Name = "Blå", Color = "#3366ff" }],
+    Cards =
+    [
+        new WorkItemDto
+        {
+            Id = 42,
+            Title = "Fejl",
+            ColumnId = 4,
+            Color = "#3366ff",
+            DueDate = new DateOnly(2026, 11, 20),
+            Assignees = [new UserSummaryDto { FirstName = "Ada", LastName = "Lovelace" }],
+        },
+    ],
+});
+Check(boardText.Contains("Blå: #3366ff"), "MCP-tekst viser tavlens farvepalette");
+Check(boardText.Contains("DS-42 Fejl | kolonne I gang (id 4) | frist 2026-11-20 | farve #3366ff | ansvarlige: Ada Lovelace"), "MCP-tekst viser kortets felter");
+
+if (string.IsNullOrWhiteSpace(connectionString) || new NpgsqlConnectionStringBuilder(connectionString).Database != "ds28_board_access_tests")
+{
+    throw new InvalidOperationException("Use run.sh to start a disposable ds28_board_access_tests database.");
 }
 
 var assembly = typeof(Group).Assembly;

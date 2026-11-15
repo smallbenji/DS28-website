@@ -1350,6 +1350,38 @@ nedenfor.
 - Tests: `node --test tools/ds28-mcp/*.test.mjs` dækker hjælpefunktionerne og
   hele forløbet mod en stub-server.
 
+**Beslutning 2026-11-16 (implementeret):** Website udstiller et remote
+MCP-endpoint på `/mcp`, så cloud-agenter kan bruge tavlerne. Codex Cloud og
+ChatGPT web kan ikke nå en MCP-server, der kører lokalt på udviklerens maskine,
+og den eksisterende stdio-server i `tools/ds28-mcp` kan derfor kun bruges
+lokalt.
+
+- Endpointet ligger i Website med `ModelContextProtocol.AspNetCore` og kortes
+  seks værktøjer (`list_boards`, `get_board`, `create_card`, `update_card`,
+  `move_card`, `delete_card`) i `src/DS.Backend/Mcp/BoardTools.cs`. Der
+  indføres ingen ekstra tjeneste eller container.
+- Værktøjerne kalder `BoardService` direkte med samme `BoardActor` som
+  controllerne, så medlemskab, SysAdmin/CampAdmin, validering og
+  tavlesynlighed er uændret. `MapMcp("/mcp").RequireAuthorization()` kræver
+  login med cookie eller personligt adgangstoken, ligesom API'et.
+- Værktøjsnavne, parametre og den danske tekst svarer til stdio-serveren, så en
+  agent kan skifte mellem de to uden at lære nye værktøjer.
+- `update_card` ændrer kun de angivne felter og læser kortet først, fordi
+  `WorkItemUpdateDto` kræver hele kortet; en tom værdi rydder feltet. Ansvarige
+  matches på fuldt navn eller email og skal ramme præcis én bruger.
+- Endpointet bruger MCP'ens standard-sessioner. Website kører som én instans,
+  så der er ikke behov for et delt session-lager, men en genstart afbryder
+  igangværende MCP-sessioner.
+- Brug i Codex er `[mcp_servers.ds28-boards]` med `url` og
+  `bearer_token_env_var`. ChatGPT web kræver desuden en offentlig URL og
+  sandsynligvis OAuth frem for et personligt token; det er ikke afklaret.
+- Den lokale stdio-server består til OpenCode og lokal udvikling og går fortsat
+  over HTTP-API'et. Den er ikke nødvendig for cloud-agenter.
+- Verifikation: `dotnet build` og de rene hjælpefunktioner i
+  `tests/BoardAccessChecks` dækker kolonneopslag, navnematch og korttekst.
+  Selve HTTP-forløbet er ikke kørt mod en kørende instans i denne ændring, så
+  første kald efter deploy skal bekræftes med `initialize` og `tools/list`.
+
 **Beslutning 2026-11-15 (implementeret):** Personlige adgangstokens afløser
 email og adgangskode i MCP-værktøjet. En bruger kan oprette, se én gang og
 tilbagekalde tokens under profilen; `DS28_MCP_EMAIL`/`DS28_MCP_PASSWORD` er
