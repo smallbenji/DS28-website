@@ -28,15 +28,14 @@ export function toHtml(text) {
         .join("");
 }
 
+const entities = { amp: "&", nbsp: " ", quot: "\"", apos: "'" };
+
 export function stripHtml(html) {
     return String(html)
         .replace(/<br\s*\/?>/gi, "\n")
         .replace(/<\/(p|div|li|h[1-6]|blockquote)>/gi, "\n")
         .replace(/<[^>]+>/g, "")
-        .replace(/&nbsp;/g, " ")
-        .replace(/&amp;/g, "&")
-        .replace(/&lt;/g, "<")
-        .replace(/&gt;/g, ">")
+        .replace(/&([a-z]+);/gi, (match, name) => entities[name.toLowerCase()] ?? match)
         .replace(/\n{3,}/g, "\n\n")
         .trim();
 }
