@@ -9,6 +9,7 @@ import http from "node:http";
 const here = dirname(fileURLToPath(import.meta.url));
 const bearerToken = "ds28_test-token";
 const created = [];
+const moved = [];
 
 function startStubServer() {
     const server = http.createServer((request, response) => {
@@ -64,6 +65,15 @@ function startStubServer() {
             });
             return;
         }
+        if (request.method === "PUT" && request.url === "/api/v1/boards/1/cards/42/move") {
+            let body = "";
+            request.on("data", chunk => { body += chunk; });
+            request.on("end", () => {
+                moved.push(JSON.parse(body));
+                send(204, undefined);
+            });
+            return;
+        }
 
         send(404, {});
     });
@@ -113,7 +123,7 @@ test("MCP-serveren læser tavler og opretter kort gennem DS28-API'et", async () 
         assert.equal(init.result.protocolVersion, "2025-06-18");
 
         const tools = await client.call("tools/list", {});
-        assert.deepEqual(tools.result.tools.map(tool => tool.name), ["list_boards", "get_board", "create_card"]);
+        assert.deepEqual(tools.result.tools.map(tool => tool.name), ["list_boards", "get_board", "create_card", "move_card"]);
 
         const boards = await client.call("tools/call", { name: "list_boards", arguments: {} });
         assert.match(boards.result.content[0].text, /id 1: Vejfest/);
@@ -148,6 +158,20 @@ test("MCP-serveren læser tavler og opretter kort gennem DS28-API'et", async () 
 
         const unknown = await client.call("tools/call", { name: "nope", arguments: {} });
         assert.equal(unknown.result.isError, true);
+
+        const movedCard = await client.call("tools/call", {
+            name: "move_card",
+            arguments: { boardId: 1, cardId: 42, column: "færdig" },
+        });
+        assert.match(movedCard.result.content[0].text, /Flyttede DS-42 til kolonnen "Færdig" på tavle 1 som nr. 1/);
+        assert.deepEqual(moved[0], { columnId: 11, position: 0 });
+
+        const missingCard = await client.call("tools/call", {
+            name: "move_card",
+            arguments: { boardId: 1, cardId: 999, column: "Færdig" },
+        });
+        assert.equal(missingCard.result.isError, true);
+        assert.match(missingCard.result.content[0].text, /findes ikke/);
     } finally {
         client.child.kill();
         server.close();

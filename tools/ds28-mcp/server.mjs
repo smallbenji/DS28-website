@@ -147,6 +147,44 @@ const tools = [
             return `Oprettet DS-${id} "${args.title}" i kolonnen "${columnTitle}" på tavle ${boardId}.`;
         },
     },
+    {
+        name: "move_card",
+        description: "Move a DS28 card to another column or position on the same board. Uses the card number from DS-<id>.",
+        inputSchema: {
+            type: "object",
+            properties: {
+                boardId: { type: "integer", description: "Board id from list_boards." },
+                cardId: { type: "integer", description: "Card number from DS-<id>, for example 42 for DS-42." },
+                columnId: { type: "integer", description: "Target column id from get_board. Use either columnId or column." },
+                column: { type: "string", description: "Target column title from get_board. Use either columnId or column." },
+                position: { type: "integer", minimum: 0, description: "Zero-based position in the target column. Defaults to the end." },
+            },
+            required: ["boardId", "cardId"],
+            additionalProperties: false,
+        },
+        handler: async args => {
+            const boardId = Number(args.boardId);
+            if (!Number.isInteger(boardId)) throw new Error("boardId skal være et helt tal.");
+
+            const cardId = Number(args.cardId);
+            if (!Number.isInteger(cardId)) throw new Error("cardId skal være et helt tal, fx 42 for DS-42.");
+
+            const board = await api("GET", `/api/v1/boards/${boardId}`);
+            if (!board.cards.some(card => Number(card.id) === cardId)) {
+                throw new Error(`Kortet DS-${cardId} findes ikke på tavle ${boardId}.`);
+            }
+
+            const columnId = resolveColumn(board.columns, args.columnId, args.column);
+            const columnTitle = board.columns.find(column => Number(column.id) === columnId).title;
+            const cardsInColumn = board.cards.filter(card => Number(card.columnId) === columnId && Number(card.id) !== cardId).length;
+            const position = args.position === undefined ? cardsInColumn : Math.min(Number(args.position), cardsInColumn);
+            if (!Number.isInteger(position)) throw new Error("position skal være et helt tal fra 0.");
+
+            await api("PUT", `/api/v1/boards/${boardId}/cards/${cardId}/move`, { columnId, position });
+
+            return `Flyttede DS-${cardId} til kolonnen "${columnTitle}" på tavle ${boardId} som nr. ${position + 1}.`;
+        },
+    },
 ];
 
 async function callTool(params) {
@@ -178,7 +216,7 @@ async function handleLine(line) {
                 protocolVersion: message.params?.protocolVersion ?? "2025-06-18",
                 capabilities: { tools: {} },
                 serverInfo: { name: "ds28-boards", version: "1.0.0" },
-                instructions: "Værktøjer til at læse og oprette kort på DS28 Kanban-tavler. Brug list_boards, derefter get_board for kolonne-id'er, og create_card.",
+                instructions: "Værktøjer til at læse, oprette og flytte kort på DS28 Kanban-tavler. Brug list_boards, derefter get_board for kolonne-id'er, og create_card eller move_card.",
             });
         case "ping":
             return respond(message.id, {});

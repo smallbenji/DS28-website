@@ -1287,9 +1287,9 @@ produktets adgangsregler; det bruger det personlige adgangstoken beskrevet
 nedenfor.
 
 - MCP-serveren kører lokalt over stdio og er registreret i `opencode.json` med
-  værktøjerne `list_boards`, `get_board` og `create_card`. Alle kald går til
-  `/api/v1/boards` med samme adgangskontrol som brugerens egen konto, så
-  medlemskab, SysAdmin/CampAdmin og API-validering gælder uændret.
+  værktøjerne `list_boards`, `get_board`, `create_card` og `move_card`. Alle
+  kald går til `/api/v1/boards` med samme adgangskontrol som brugerens egen
+  konto, så medlemskab, SysAdmin/CampAdmin og API-validering gælder uændret.
 - MCP-serveren sender et personligt adgangstoken som `Authorization: Bearer`
   (`DS28_MCP_TOKEN`) i stedet for at logge ind med email og adgangskode.
   Tokenet oprettes og tilbagekaldes under profilen og arver brugerens
@@ -1297,8 +1297,9 @@ nedenfor.
   `tools/ds28-mcp/.env.example` som skabelon.
 - Kort oprettes med titel, kolonne (id eller titel), valgfri beskrivelse,
   prioritet og deadline. Ren tekst laves om til HTML-afsnit, fordi
-  `work_item.description` gemmer HTML. Flytning, redigering, sletning,
-  ansvarlige og farver er ikke med i første version.
+  `work_item.description` gemmer HTML. `move_card` flytter et kort til en
+  anden kolonne på samme tavle og kan angive placering; uden placering havner
+  kortet bagerst. Redigering, sletning, ansvarlige og farver er ikke med.
 - Tests: `node --test tools/ds28-mcp/*.test.mjs` dækker hjælpefunktionerne og
   hele forløbet mod en stub-server.
 
