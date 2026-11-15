@@ -311,3 +311,6 @@ node_modules
 
 docker-compose.test.yaml
 .DS_Store
+
+# Graphify code graph
+graphify-out/

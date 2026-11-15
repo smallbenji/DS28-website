@@ -33,6 +33,25 @@ GHCR workflow publishes both `ghcr.io/smallbenji/ds28-website` and
 `ghcr.io/smallbenji/ds28-website-worker` with the same version tags. Compose
 builds Worker using `Containerfile.Worker`.
 
+## Code graph for agents
+
+[Graphify](https://graphify.com) builds a local knowledge graph of the code so an
+agent can query structure instead of reading files. The output in
+`graphify-out/` is generated and ignored by git.
+
+```sh
+uv tool install graphifyy     # or: pipx install graphifyy
+graphify install --platform opencode
+graphify extract . --code-only
+graphify cluster-only .
+```
+
+`--code-only` skips the semantic pass over documents and therefore needs no LLM
+API key. Rebuild after code changes with `graphify update .`; run
+`graphify extract . --code-only --force` when files have been deleted. Ask the
+graph with `graphify query "<question>"` using English symbol names, or open
+`graphify-out/graph.html`.
+
 ## Services
 
 - Wordpress (The main site)
