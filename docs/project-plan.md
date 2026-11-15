@@ -1262,6 +1262,28 @@ Implementeringsnoter (2026-10-16, modal og rig tekst):
 - Tiptap monteres, når modalen åbnes, og afmonteres igen ved lukning, så
   editoren aldrig sidder skjult i et skjult element.
 
+**Beslutning og implementering (DS-35, 2026-11-15):** Kortpanelet bruger
+Buefys `BTaginput` til søgning, valg af flere tags og oprettelse direkte i
+feltet. Valgte tags vises med `BoardTagBadge`; de kan fjernes med mus og
+Backspace. Nye tags er lokale kladder indtil kortet gemmes, starter uden
+farve og kan efterfølgende farves i Tags-dialogen. Annullering opretter intet.
+
+- Brugeren godkendte en udvidelse af frontend-only-scope: kortets eksisterende
+  oprettelses-/opdateringskald accepterer nu valgfri `newTagNames`. Tags og
+  kort gemmes i ét `SaveChangesAsync`, hvis databaseændringer udføres atomisk
+  af EF Core. Det erstatter forslaget om separate `create_tag`-kald og
+  efterfølgende oprydning; der slettes aldrig tags som kompensation.
+- Navne trimmes og valideres til 1–64 tegn; dubletter samles uden hensyn til
+  store/små bogstaver. Eksisterende navne genbruges kun på den aktuelle tavle.
+  En samtidig oprettelse med samme navn giver konflikt og kan genforsøges
+  uden delvist gemte tags eller kortændringer.
+- Udeladt/null `newTagNames` er uændret adfærd. Ved opdatering bevarer udeladt/null
+  `tagIds` eksisterende tags og tilføjer eventuelle nye navne; `[]` erstatter
+  valget med de nye navne alene (eller rydder det, hvis ingen navne er angivet).
+  Andre tavleplaceringers tags bevares. MCP-værktøjernes parametre ændres ikke.
+- Ingen databaseændring eller migration. Den eksisterende Tags-dialog og
+  tagfiltrering bevares.
+
 **Implementeret (DS-27, 2026-11-15):** Tavler har egne tags med entydigt navn
 (op til 64 tegn, uden forskel på store/små bogstaver) og valgfri hex-farve.
 Medlemmer samt SysAdmin/CampAdmin kan oprette, redigere og slette tags via

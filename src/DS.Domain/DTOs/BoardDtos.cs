@@ -143,6 +143,7 @@ namespace DS.Domain.DTOs
 
     public class WorkItemCreateDto
     {
+        public List<string> NewTagNames { get; set; } = [];
         public List<int> TagIds { get; set; } = [];
         public int ColumnId { get; set; }
         public string Title { get; set; }
@@ -157,6 +158,7 @@ namespace DS.Domain.DTOs
 
     public class WorkItemUpdateDto
     {
+        public List<string> NewTagNames { get; set; } = [];
         public List<int> TagIds { get; set; }
         public string Title { get; set; }
         public string Description { get; set; }

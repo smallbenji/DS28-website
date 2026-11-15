@@ -115,6 +115,7 @@ export interface BoardColumnUpdateDto {
 }
 
 export interface WorkItemCreateDto {
+    newTagNames?: string[];
     tagIds?: number[];
     columnId: number;
     title: string;
@@ -128,6 +129,7 @@ export interface WorkItemCreateDto {
 }
 
 export interface WorkItemUpdateDto {
+    newTagNames?: string[];
     tagIds?: number[];
     title: string;
     description: string | null;

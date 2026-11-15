@@ -236,6 +236,51 @@ namespace DS.Application.Services.Boards
             return await dataDb.BoardTags.AnyAsync(tag => tag.BoardId == boardId && tag.Id != exceptId && tag.Name.ToLower() == name.ToLower());
         }
 
+        private static bool TryNormalizeTagNames(List<string> values, out List<string> names)
+        {
+            names = [];
+            foreach (var value in values ?? [])
+            {
+                if (!TryNormalizeShortText(value, 64, out var name) || name == null) return false;
+                if (!names.Contains(name, StringComparer.OrdinalIgnoreCase)) names.Add(name);
+            }
+            return true;
+        }
+
+        private async Task<List<BoardCardTag>> NewTagLinks(int boardId, List<int> selectedIds, List<string> names)
+        {
+            if (names.Count == 0) return [];
+
+            var normalizedNames = names.Select(name => name.ToLowerInvariant()).ToList();
+            var existing = await dataDb.BoardTags
+                .Where(tag => tag.BoardId == boardId && normalizedNames.Contains(tag.Name.ToLower()))
+                .ToListAsync();
+            var links = new List<BoardCardTag>();
+            foreach (var name in names)
+            {
+                var tag = existing.FirstOrDefault(tag => string.Equals(tag.Name, name, StringComparison.OrdinalIgnoreCase));
+                if (tag != null && selectedIds.Contains(tag.Id)) continue;
+
+                tag ??= new BoardTag { BoardId = boardId, Name = name };
+                links.Add(new BoardCardTag { BoardId = boardId, BoardTag = tag });
+            }
+            return links;
+        }
+
+        private async Task<bool> SaveCardTags(bool hasNewNames)
+        {
+            try
+            {
+                await dataDb.SaveChangesAsync();
+                return true;
+            }
+            catch (DbUpdateException exception) when (hasNewNames && exception.InnerException is DbException { SqlState: "23505" })
+            {
+                dataDb.ChangeTracker.Clear();
+                return false;
+            }
+        }
+
         private async Task<bool> AreValidTagsAsync(int boardId, List<int> tagIds)
         {
             return tagIds.Count == 0 || await dataDb.BoardTags.CountAsync(tag => tag.BoardId == boardId && tagIds.Contains(tag.Id)) == tagIds.Count;
@@ -459,8 +504,12 @@ namespace DS.Application.Services.Boards
             if (!await AreValidAssigneesAsync(assigneeUserIds)) return new ServiceResult(ServiceOutcome.Invalid, "En eller flere ansvarlige brugere findes ikke.");
             if (!await IsValidOwnerPositionAsync(data.OwnerPositionId)) return new ServiceResult(ServiceOutcome.Invalid, "Stillingen findes ikke.");
 
+            if (!TryNormalizeTagNames(data.NewTagNames, out var newTagNames)) return new ServiceResult(ServiceOutcome.Invalid, "Tagget skal have et navn på højst 64 tegn.");
+
             var tagIds = (data.TagIds ?? []).Distinct().ToList();
             if (!await AreValidTagsAsync(id, tagIds)) return new ServiceResult(ServiceOutcome.Invalid, "Et eller flere tags findes ikke på tavlen.");
+
+            var tagLinks = await NewTagLinks(id, tagIds, newTagNames);
 
             var item = new WorkItem
             {
@@ -487,11 +536,11 @@ namespace DS.Application.Services.Boards
                 BoardId = id,
                 ColumnId = data.ColumnId,
                 WorkItem = item,
-                Tags = tagIds.Select(tagId => new BoardCardTag { BoardId = id, BoardTagId = tagId }).ToList(),
+                Tags = tagIds.Select(tagId => new BoardCardTag { BoardId = id, BoardTagId = tagId }).Concat(tagLinks).ToList(),
                 Position = lastPosition + 1,
             });
 
-            await dataDb.SaveChangesAsync();
+            if (!await SaveCardTags(newTagNames.Count > 0)) return new ServiceResult(ServiceOutcome.Conflict, "Tavlens tags er ændret. Prøv at gemme kortet igen.");
             await boardEvents.BoardChanged(id);
 
             return new ServiceResult<int>(ServiceOutcome.Success, item.Id);
@@ -516,11 +565,15 @@ namespace DS.Application.Services.Boards
             if (!await AreValidAssigneesAsync(assigneeUserIds)) return new ServiceResult(ServiceOutcome.Invalid, "En eller flere ansvarlige brugere findes ikke.");
             if (!await IsValidOwnerPositionAsync(data.OwnerPositionId)) return new ServiceResult(ServiceOutcome.Invalid, "Stillingen findes ikke.");
 
+            if (!TryNormalizeTagNames(data.NewTagNames, out var newTagNames)) return new ServiceResult(ServiceOutcome.Invalid, "Tagget skal have et navn på højst 64 tegn.");
+
             var tagIds = data.TagIds?.Distinct().ToList();
             if (tagIds != null && !await AreValidTagsAsync(id, tagIds))
             {
                 return new ServiceResult(ServiceOutcome.Invalid, "Et eller flere tags findes ikke på tavlen.");
             }
+
+            var tagLinks = await NewTagLinks(id, tagIds ?? card.Tags.Select(link => link.BoardTagId).ToList(), newTagNames);
 
             if (tagIds != null)
             {
@@ -529,6 +582,8 @@ namespace DS.Application.Services.Boards
                 card.Tags.AddRange(tagIds.Where(tagId => !existingTagIds.Contains(tagId))
                     .Select(tagId => new BoardCardTag { BoardId = id, BoardTagId = tagId }));
             }
+
+            card.Tags.AddRange(tagLinks);
 
             var item = card.WorkItem;
             item.Title = data.Title.Trim();
@@ -543,7 +598,7 @@ namespace DS.Application.Services.Boards
             item.Priority = data.Priority;
             item.UpdatedAt = DateTime.UtcNow;
 
-            await dataDb.SaveChangesAsync();
+            if (!await SaveCardTags(newTagNames.Count > 0)) return new ServiceResult(ServiceOutcome.Conflict, "Tavlens tags er ændret. Prøv at gemme kortet igen.");
             await NotifyBoardsWithCardAsync(workItemId);
 
             return new ServiceResult(ServiceOutcome.Success);

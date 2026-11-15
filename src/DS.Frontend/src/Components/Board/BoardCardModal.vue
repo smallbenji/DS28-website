@@ -1,5 +1,5 @@
 <template>
-    <BModal v-model="open" has-modal-card :width="1024" custom-content-class="board-card-modal-container" :can-cancel="['escape', 'outside']">
+    <BModal v-model="open" has-modal-card :width="1024" custom-content-class="board-card-modal-container" :can-cancel="saving ? false : ['escape', 'outside']">
         <div v-if="open" class="modal-card board-card-modal">
             <header class="modal-card-head">
                 <div class="board-card-context">{{ store.SelectedBoard?.title ?? 'Tavle' }} / {{ isNew ? 'Nyt kort' : `DS-${card?.id}` }}</div>
@@ -10,7 +10,7 @@
                         </template>
                         <BDropdownItem aria-role="listitem" class="has-text-danger" @click="remove">Slet kort</BDropdownItem>
                     </BDropdown>
-                    <button type="button" class="delete" aria-label="Luk" @click="open = false" />
+                    <button type="button" class="delete" aria-label="Luk" :disabled="saving" @click="open = false" />
                 </div>
             </header>
 
@@ -46,12 +46,7 @@
                             </BField>
 
                             <BField label="Tags på denne tavle">
-                                <div class="board-card-tags">
-                                    <p v-if="!availableTags.length" class="help">Ingen tags. Opret dem via Tags på tavlen.</p>
-                                    <BCheckbox v-for="tag in availableTags" :key="tag.id" v-model="form.tagIds" :native-value="Number(tag.id)" :disabled="saving">
-                                        <BoardTagBadge :tag="tag" />
-                                    </BCheckbox>
-                                </div>
+                                <BoardTagInput ref="tagInput" v-model="selectedTags" :tags="availableTags" :disabled="saving" />
                             </BField>
 
                             <BField label="Deadline">
@@ -262,12 +257,13 @@
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue';
-import { BButton, BCheckbox, BDropdown, BDropdownItem, BField, BInput, BModal, BSelect, useDialog, useToast } from 'buefy';
+import { BButton, BDropdown, BDropdownItem, BField, BInput, BModal, BSelect, useDialog, useToast } from 'buefy';
 import BoardService from '@/Services/BoardService';
 import OrgService from '@/Services/OrgService';
 import { boardPriorityLabel, boardPriorityOptions, type BoardColumnDto, type OrgPositionDto, type BoardMemberDto, type WorkItemDto, type WorkItemPlacementDto } from '@/types';
 import { useBoardStore } from '@/Stores/BoardStore';
-import BoardTagBadge from './BoardTagBadge.vue';
+import BoardTagInput from './BoardTagInput.vue';
+import type { BoardTagDto } from '@/types';
 import RichTextEditor from '@/Components/RichText/RichTextEditor.vue';
 import RichTextViewer from '@/Components/RichText/RichTextViewer.vue';
 import { htmlToPlainText } from '@/lib/util';
@@ -293,6 +289,8 @@ const Toast = useToast();
 const Dialog = useDialog();
 
 const saving = ref(false);
+const selectedTags = ref<BoardTagDto[]>([]);
+const tagInput = ref<InstanceType<typeof BoardTagInput>>();
 const assigneeSearch = ref('');
 const assigneePickerOpen = ref(false);
 const assigneeSearching = ref(false);
@@ -306,7 +304,6 @@ const statusLoading = ref<Record<number, boolean>>({});
 let searchTimeout: ReturnType<typeof setTimeout> | null = null;
 
 const form = reactive({
-    tagIds: [] as number[],
     title: '',
     description: '',
     color: null as string | null,
@@ -321,7 +318,7 @@ const open = computed({
     set: (value: boolean) => emit('update:modelValue', value)
 });
 
-const availableTags = computed(() => store.SelectedBoard?.tags ?? []);
+const availableTags = computed(() => String(store.SelectedBoard?.id) === String(props.boardId) ? store.SelectedBoard?.tags ?? [] : []);
 
 const isNew = computed(() => props.card === null);
 
@@ -350,11 +347,11 @@ const availableBoards = computed(() =>
 );
 
 watch(
-    () => [props.modelValue, props.card] as const,
+    () => [props.modelValue, props.card, props.boardId] as const,
     () => {
         if (!props.modelValue) return;
 
-        form.tagIds = (props.card?.tags ?? []).map(tag => Number(tag.id));
+        selectedTags.value = (props.card?.tags ?? []).filter(tag => availableTags.value.some(option => Number(option.id) === Number(tag.id)));
         form.title = props.card?.title ?? '';
         form.description = props.card?.description ?? '';
         form.color = props.card?.color ?? null;
@@ -543,6 +540,7 @@ function removeAssignee(userId: string) {
 
 async function save() {
     if (saving.value) return;
+    if (tagInput.value && !tagInput.value.commitPending()) return;
 
     if (!form.title.trim()) {
         Toast.open({ message: 'Titlen må ikke være tom.', type: 'is-danger' });
@@ -552,7 +550,8 @@ async function save() {
     saving.value = true;
     try {
         const base = {
-            tagIds: form.tagIds,
+            tagIds: selectedTags.value.filter(tag => tag.id > 0).map(tag => Number(tag.id)),
+            newTagNames: selectedTags.value.filter(tag => tag.id < 0).map(tag => tag.name),
             title: form.title.trim(),
             description: htmlToPlainText(form.description) ? form.description : null,
             color: form.color,
@@ -617,13 +616,6 @@ async function doRemove() {
 </script>
 
 <style scoped>
-.board-card-tags {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.5rem;
-}
-
 .board-card-color-options {
     display: flex;
     flex-wrap: wrap;

@@ -378,6 +378,68 @@ await using (var connection = new NpgsqlConnection(connectionString))
         Console.WriteLine("PASS database rejects unsupported colors");
     }
 }
+var inlineCardId = (int)((OkObjectResult)await controller.CreateCard(new WorkItemCreateDto
+{
+    Title = "Inline tags",
+    ColumnId = columnId,
+    TagIds = [releaseTag],
+    NewTagNames = [" Draft release ", "DRAFT RELEASE", "V0.2.14"],
+}, boardId)).Value;
+var inlineBoard = await Board(boardId);
+var inlineTag = inlineBoard.Tags.Single(tag => tag.Name == "Draft release");
+Check(inlineTag.Color == null, "inline tags start without color");
+Check(inlineBoard.Cards.Single(card => card.Id == inlineCardId).Tags.Count == 2, "inline creation trims names, deduplicates and reuses selected tags");
+Check(await controller.UpdateCard(new WorkItemUpdateDto { Title = "Inline updated", NewTagNames = ["Extra", "Private"] }, boardId, inlineCardId) is OkResult, "inline update appends names with omitted tagIds");
+inlineBoard = await Board(boardId);
+Check(inlineBoard.Cards.Single(card => card.Id == inlineCardId).Tags.Count == 4, "omitted tagIds preserves selection when adding names");
+Check(inlineBoard.Tags.Single(tag => tag.Name == "Private").Id != privateTag, "inline creation never reuses another board's private tag");
+Check(await controller.UpdateCard(new WorkItemUpdateDto { Title = "Replace", TagIds = [], NewTagNames = ["DRAFT RELEASE"] }, boardId, inlineCardId) is OkResult, "inline names reuse existing tag case-insensitively");
+Check((await Board(boardId)).Cards.Single(card => card.Id == inlineCardId).Tags.Single().Id == inlineTag.Id, "empty tagIds replaces selection with supplied names");
+foreach (var invalidName in new[] { " ", new string('x', 65), null })
+{
+    Check(await controller.UpdateCard(new WorkItemUpdateDto { Title = "Must not save", NewTagNames = ["Must not exist", invalidName] }, boardId, inlineCardId) is BadRequestObjectResult, "invalid inline name rejects entire update");
+}
+Check(!(await Board(boardId)).Tags.Any(tag => tag.Name == "Must not exist"), "validation failure leaves no unused tags");
+Check((await Board(boardId)).Cards.Single(card => card.Id == inlineCardId).Title == "Replace", "validation failure preserves card title");
+Check(await controller.CreateCard(new WorkItemCreateDto { Title = "Invalid inline", ColumnId = columnId, TagIds = [privateTag], NewTagNames = ["Must not exist"] }, boardId) is BadRequestObjectResult, "cross-board selection rejects inline creation before mutation");
+Check(await controller.UpdateCard(new WorkItemUpdateDto { Title = "Shared inline", TagIds = [], NewTagNames = ["Shared release"] }, boardId, cardId) is OkResult, "shared card accepts inline tags on current placement");
+ActAs("admin", nameof(AppGroups.SysAdmin));
+Check((await Board(hiddenId)).Cards.Single().Tags.Single().Id == privateTag, "inline update preserves other board placement tags");
+ActAs("outsider");
+Check(await controller.CreateCard(new WorkItemCreateDto { Title = "Denied", ColumnId = columnId, NewTagNames = ["Denied tag"] }, boardId) is ForbidResult, "outsider cannot create inline tags with card");
+Check(await controller.UpdateCard(new WorkItemUpdateDto { Title = "Denied", NewTagNames = ["Denied tag"] }, boardId, inlineCardId) is ForbidResult, "outsider cannot append inline tags");
+ActAs("friend");
+var changesBeforeFailure = boardEvents.Changes.Count;
+await using (var connection = new NpgsqlConnection(connectionString))
+{
+    await connection.OpenAsync();
+    await new NpgsqlCommand("""
+        CREATE FUNCTION ds28.reject_inline_test() RETURNS trigger LANGUAGE plpgsql AS $$
+        BEGIN
+            IF NEW.title = 'Force inline failure' THEN
+                RAISE EXCEPTION 'forced card write failure' USING ERRCODE = '23505';
+            END IF;
+            RETURN NEW;
+        END $$;
+        CREATE TRIGGER reject_inline_test BEFORE INSERT OR UPDATE ON ds28.work_item
+        FOR EACH ROW EXECUTE FUNCTION ds28.reject_inline_test();
+        """, connection).ExecuteNonQueryAsync();
+}
+Check(await controller.UpdateCard(new WorkItemUpdateDto { Title = "Force inline failure", TagIds = [], NewTagNames = ["Rollback update"] }, boardId, inlineCardId) is ConflictObjectResult, "database write failure returns conflict for inline update");
+Check(await controller.CreateCard(new WorkItemCreateDto { Title = "Force inline failure", ColumnId = columnId, NewTagNames = ["Rollback create"] }, boardId) is ConflictObjectResult, "database write failure returns conflict for inline creation");
+inlineBoard = await Board(boardId);
+Check(!inlineBoard.Tags.Any(tag => tag.Name.StartsWith("Rollback")), "failed database writes roll back all newly inserted tags");
+Check(inlineBoard.Cards.Single(card => card.Id == inlineCardId).Title == "Replace" && inlineBoard.Cards.Single(card => card.Id == inlineCardId).Tags.Single().Id == inlineTag.Id, "failed write rolls back title and tag replacement");
+Check(!inlineBoard.Cards.Any(card => card.Title == "Force inline failure"), "failed create leaves no card");
+Check(boardEvents.Changes.Count == changesBeforeFailure, "failed transactions publish no live update");
+await using (var connection = new NpgsqlConnection(connectionString))
+{
+    await connection.OpenAsync();
+    await new NpgsqlCommand("DROP TRIGGER reject_inline_test ON ds28.work_item; DROP FUNCTION ds28.reject_inline_test()", connection).ExecuteNonQueryAsync();
+}
+Check(await controller.UpdateCard(new WorkItemUpdateDto { Title = "Retry succeeded", NewTagNames = ["Rollback update"] }, boardId, inlineCardId) is OkResult, "retry after rollback succeeds");
+Check((await Board(boardId)).Tags.Count(tag => tag.Name == "Rollback update") == 1, "retry creates exactly one tag");
+
 Check(await controller.DeleteBoard(boardId) is OkResult, "member can delete board");
 Check(await controller.AddMember(new BoardMemberCreateDto { UserId = "outsider" }, boardId) is ForbidResult, "deleted board rejects invitations");
 Check(await controller.CreateColor(new BoardColorUpdateDto { Name = "Denied", Color = "#123456" }, boardId) is ForbidResult, "deleted board rejects palette changes");

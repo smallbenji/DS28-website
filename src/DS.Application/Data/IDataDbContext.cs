@@ -9,6 +9,7 @@ namespace DS.Application.Data
     public interface IDataDbContext
     {
         DatabaseFacade Database { get; }
+        ChangeTracker ChangeTracker { get; }
         EntityEntry<TEntity> Entry<TEntity>(TEntity entity) where TEntity : class;
         DbSet<Group> Groups { get; }
         DbSet<Scout> Scouts { get; }
