@@ -36,6 +36,50 @@ namespace DS.Application.Services.Groups
             return new ServiceResult<GroupsDto>(ServiceOutcome.Success, result);
         }
 
+        public async Task<ServiceResult<GroupRegistrationHistoryDto>> GetRegistrationHistory(int groupId)
+        {
+            if (!await dataDb.Groups.AnyAsync(group => group.Id == groupId))
+            {
+                return new ServiceResult<GroupRegistrationHistoryDto>(ServiceOutcome.NotFound, Error: "Group not found.");
+            }
+
+            var currentPresignup = await dataDb.GroupPreSignups.AsNoTracking()
+                .Where(row => row.GroupId == groupId)
+                .Select(row => new UpdateGroupPreSignupDto(row))
+                .SingleOrDefaultAsync();
+
+            var presignups = await dataDb.HistoricPresignups.AsNoTracking()
+                .Where(row => row.GroupId == groupId && row.CampYear == 2024)
+                .OrderBy(row => row.Category)
+                .Select(row => new HistoricPresignupDto
+                {
+                    CampYear = row.CampYear,
+                    Category = row.Category,
+                    ParticipantCount = row.ParticipantCount,
+                    GuestCount = row.GuestCount
+                })
+                .ToListAsync();
+
+            var signups = await dataDb.HistoricSignups.AsNoTracking()
+                .Where(row => row.GroupId == groupId && row.CampYear == 2024)
+                .OrderBy(row => row.Category).ThenBy(row => row.DayIndex)
+                .Select(row => new HistoricSignupDto
+                {
+                    CampYear = row.CampYear,
+                    Category = row.Category,
+                    DayIndex = row.DayIndex,
+                    ParticipantCount = row.ParticipantCount
+                })
+                .ToListAsync();
+
+            return new ServiceResult<GroupRegistrationHistoryDto>(ServiceOutcome.Success, new GroupRegistrationHistoryDto
+            {
+                CurrentPresignup = currentPresignup,
+                Presignups = presignups,
+                Signups = signups
+            });
+        }
+
         public async Task<ServiceResult> CreateGroup(GroupDto data)
         {
             dataDb.Groups.Add(new Group(data));

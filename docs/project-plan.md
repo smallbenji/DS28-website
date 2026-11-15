@@ -2184,9 +2184,20 @@ Lejrår, gren, kilde-id, udtrækskontrolsum og importtidspunkt bevares.
 - `TestGruppe` (123456) har 43 forhåndstilmeldte og 1 endeligt tilmeldt i
   rådata. Eksplicit udeladelse af et gruppenummer understøttes for begge tabeller;
   testgrupper frasorteres ikke automatisk.
-- Produktionsimport er ikke udført. Visning og sammenligning i dashboardet er
-  ikke implementeret; eksisterende `ParticipantData` er uændret. Øvrige gamle
-  datatyper er uden for denne første import.
+- **Implementeret (DS-22, 2026-11-15):** Gruppevisningen under `/admin/groups`
+  viser historiske forhåndstal (deltagere og venskabsgruppe) og endelige tal fra
+  2024 pr. gren, med dag 0 adskilt fra dag 1–8. Manglende dagsrækker vises som
+  ukendt, ikke nul, og der summeres ikke på tværs af dage. Eksisterende
+  gruppeoplysninger vises fortsat ved siden af historikken. Nuværende
+  forhåndstilmelding vises i samme panel; manglende tilmelding vises særskilt,
+  uden at oprette en tom tilmelding.
+- Historikken hentes særskilt via `GET /api/v1/groups/{id}/registration-history`,
+  som kræver både `GroupsView` og `AdminAccess`. Kun antal, gren, lejrår og
+  dagsindeks returneres; kildeoplysninger udleveres ikke. Delte gruppe-DTO'er og
+  gruppens egne `/api/v1/group`-endpoints indeholder hverken historik,
+  historikflag eller tællere. UI'et henter kun historik med `AdminAccess`.
+- Produktionsimport er ikke udført. Eksisterende `ParticipantData` er uændret.
+  Øvrige gamle datatyper er uden for denne første import.
 
 Kørsel, databetydning og dubletoplysninger er beskrevet i
 [importvejledningen](../tools/historic_registration/README.md).

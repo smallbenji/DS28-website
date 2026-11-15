@@ -19,6 +19,15 @@ namespace DS.Backend.Controllers.ApiControllers
             return this.ToActionResult(result);
         }
 
+        [HttpGet("{id:int}/registration-history")]
+        [Authorize(Roles = nameof(AppRoles.AdminAccess))]
+        public async Task<IActionResult> RegistrationHistory(int id)
+        {
+            var result = await service.GetRegistrationHistory(id);
+
+            return this.ToActionResult(result);
+        }
+
         [HttpPost]
         public async Task<IActionResult> CreateGroup([FromBody] GroupDto data)
         {
