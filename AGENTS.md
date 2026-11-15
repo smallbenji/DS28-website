@@ -145,6 +145,16 @@ project patterns for forms, buttons, tables, notifications, and step flows.
   descriptions.
 - Do development work on a branch, not directly on `master`. When the work is
   ready, push the branch and open a pull request against `master`.
+- Name branches `feature/<short-name>`, `fix/<short-name>` or
+  `chore/<short-name>`. Do not use tool-specific prefixes such as `codex/` or
+  `copilot/`.
+- One card equals one pull request equals one bounded change. Title the pull
+  request `[DS-<number>]: <short description>` and split the work into several
+  pull requests rather than growing one.
+- Describe what changed, why, how it was tested, and what was not tested.
+- Merge with a merge commit, not a squash, and delete the branch afterwards.
+- Pull requests are not built in CI; only CodeQL runs. Build and test locally
+  according to the verification section below before merging.
 
 ## Deployment
 
@@ -164,7 +174,18 @@ The project uses GitHub Actions for CI/CD (see `.github/workflows/deploy.yml`).
 - **Tags**: Automatically generated from the SemVer tag - exact (`{{version}}`), minor (`{{major}}.{{minor}}`), major (`{{major}}`), and `latest` (for all semver tag pushes).
 - **Push**: Images are pushed on tag triggers (manual runs still build but the workflow pushes as configured; see workflow for details).
 
-To deploy a new version: bump the version in `DS/DSVersion.cs`, create a commit with message "Bump version", tag that commit with `vX.Y.Z`, and push the commit and the tag. The workflow triggers on tag pushes; pushes to master are allowed but the deploy only runs for semver tags. The current version is exposed via the API (`/api/version`) from `DSVersion`.
+To deploy a new version: bump the version in `src/DS.Domain/DSVersion.cs`, create a commit with message "Bump version", tag that commit with `vX.Y.Z`, and push the commit and the tag. The workflow triggers on tag pushes; pushes to master are allowed but the deploy only runs for semver tags. The current version is exposed via the API (`/api/version`) from `DSVersion`.
+
+- Production at `hq.distriktssommerlejr.dk` is the only environment. There is no
+  staging host. Keep `master` as the only long-lived branch; a tag is the
+  release, and there is no separate production or release branch.
+- Deploy the exact image built for a tag. Do not rebuild for production.
+- Deploying to production is a deliberate step, not a side effect of pushing a
+  tag, and is gated on approval of the `production` GitHub Environment.
+- Database migrations must stay backwards compatible for one release
+  (expand/contract: add, use, then remove), so the previous tag can be
+  redeployed if a release has to be rolled back.
+- Take a database dump before deploying a tag that contains a migration.
 
 ## Verification
 
