@@ -1319,15 +1319,16 @@ Implementeringsnote (2026-10-16, statusvælger):
   har fortsat ingen redigeringshandlinger. Der er ingen skemaændring.
 
 **Beslutning 2026-11-15 (implementeret):** Et lokalt MCP-værktøj i
-`tools/ds28-mcp` giver en AI-agent læse- og opretteadgang til tavlerne gennem
+`tools/ds28-mcp` giver en AI-agent læse- og skriveadgang til tavlerne gennem
 det eksisterende HTTP-API. Værktøjet er udviklingssupport og ændrer ikke
 produktets adgangsregler; det bruger det personlige adgangstoken beskrevet
 nedenfor.
 
 - MCP-serveren kører lokalt over stdio og er registreret i `opencode.json` med
-  værktøjerne `list_boards`, `get_board`, `create_card` og `move_card`. Alle
-  kald går til `/api/v1/boards` med samme adgangskontrol som brugerens egen
-  konto, så medlemskab, SysAdmin/CampAdmin og API-validering gælder uændret.
+  værktøjerne `list_boards`, `get_board`, `create_card`, `update_card`,
+  `move_card` og `delete_card`. Alle kald går til `/api/v1/boards` med samme
+  adgangskontrol som brugerens egen konto, så medlemskab, SysAdmin/CampAdmin og
+  API-validering gælder uændret.
 - MCP-serveren sender et personligt adgangstoken som `Authorization: Bearer`
   (`DS28_MCP_TOKEN`) i stedet for at logge ind med email og adgangskode.
   Tokenet oprettes og tilbagekaldes under profilen og arver brugerens
@@ -1337,7 +1338,15 @@ nedenfor.
   prioritet og deadline. Ren tekst laves om til HTML-afsnit, fordi
   `work_item.description` gemmer HTML. `move_card` flytter et kort til en
   anden kolonne på samme tavle og kan angive placering; uden placering havner
-  kortet bagerst. Redigering, sletning, ansvarlige og farver er ikke med.
+  kortet bagerst.
+- `update_card` ændrer kun de felter, der angives, og beholder kortets øvrige
+  værdier, fordi API'ets opdatering kræver hele kortet. En tom værdi rydder
+  beskrivelse, frist, farve eller ansvarlige. Ansvarige angives ved fuldt navn
+  eller email og skal matche præcis én bruger, ellers afvises kaldet med
+  forslag til, hvem der menes. Farve angives som hex fra tavlens palette, som
+  `get_board` viser sammen med hvert korts farve.
+- `delete_card` fjerner kortet fra tavlen og sletter det blødt, hvis det var
+  kortets sidste tavle.
 - Tests: `node --test tools/ds28-mcp/*.test.mjs` dækker hjælpefunktionerne og
   hele forløbet mod en stub-server.
 

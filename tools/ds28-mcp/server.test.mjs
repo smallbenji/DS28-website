@@ -10,6 +10,8 @@ const here = dirname(fileURLToPath(import.meta.url));
 const bearerToken = "ds28_test-token";
 const created = [];
 const moved = [];
+const updated = [];
+const deleted = [];
 
 function startStubServer() {
     const server = http.createServer((request, response) => {
@@ -21,6 +23,12 @@ function startStubServer() {
         if (request.headers.authorization !== `Bearer ${bearerToken}`) {
             return send(401, undefined);
         }
+
+        const readBody = callback => {
+            let body = "";
+            request.on("data", chunk => { body += chunk; });
+            request.on("end", () => callback(body ? JSON.parse(body) : undefined));
+        };
 
         if (request.method === "GET" && request.url === "/api/v1/boards") {
             return send(200, [
@@ -48,31 +56,46 @@ function startStubServer() {
                         id: "42",
                         title: "Fejl i tilmelding",
                         description: "<p>Ret <strong>fejlen</strong></p>",
+                        color: "#3366ff",
                         columnId: "10",
                         priority: "1",
                         dueDate: "2026-11-20",
-                        assignees: [{ firstName: "Ada", lastName: "Lovelace" }],
+                        assignees: [{ id: "u-1", firstName: "Ada", lastName: "Lovelace" }],
+                        placements: [{ boardId: "1", columnId: "10" }],
                     },
                 ],
+                colors: [{ id: "3", name: "Blå", color: "#3366ff" }],
             });
+        }
+        if (request.method === "GET" && request.url.startsWith("/api/v1/boards/assignees")) {
+            return send(200, [
+                { id: "u-1", firstName: "Ada", lastName: "Lovelace", email: "ada@example.com" },
+                { id: "u-2", firstName: "Ada", lastName: "Lovelace Jr", email: "ada.jr@example.com" },
+            ]);
         }
         if (request.method === "POST" && request.url === "/api/v1/boards/1/cards") {
-            let body = "";
-            request.on("data", chunk => { body += chunk; });
-            request.on("end", () => {
-                created.push(JSON.parse(body));
+            return readBody(body => {
+                created.push(body);
                 send(200, "42");
             });
-            return;
         }
-        if (request.method === "PUT" && request.url === "/api/v1/boards/1/cards/42/move") {
-            let body = "";
-            request.on("data", chunk => { body += chunk; });
-            request.on("end", () => {
-                moved.push(JSON.parse(body));
+        if (request.method === "PUT" && request.url === "/api/v1/boards/1/cards/42") {
+            return readBody(body => {
+                updated.push(body);
                 send(204, undefined);
             });
-            return;
+        }
+        if (request.method === "DELETE" && request.url === "/api/v1/boards/1/cards/42") {
+            return readBody(body => {
+                deleted.push(body);
+                send(204, undefined);
+            });
+        }
+        if (request.method === "PUT" && request.url === "/api/v1/boards/1/cards/42/move") {
+            return readBody(body => {
+                moved.push(body);
+                send(204, undefined);
+            });
         }
 
         send(404, {});
@@ -123,7 +146,7 @@ test("MCP-serveren læser tavler og opretter kort gennem DS28-API'et", async () 
         assert.equal(init.result.protocolVersion, "2025-06-18");
 
         const tools = await client.call("tools/list", {});
-        assert.deepEqual(tools.result.tools.map(tool => tool.name), ["list_boards", "get_board", "create_card", "move_card"]);
+        assert.deepEqual(tools.result.tools.map(tool => tool.name), ["list_boards", "get_board", "create_card", "move_card", "update_card", "delete_card"]);
 
         const boards = await client.call("tools/call", { name: "list_boards", arguments: {} });
         assert.match(boards.result.content[0].text, /id 1: Vejfest/);
@@ -134,6 +157,8 @@ test("MCP-serveren læser tavler og opretter kort gennem DS28-API'et", async () 
         assert.match(boardText, /DS-42 Fejl i tilmelding/);
         assert.match(boardText, /høj prioritet/);
         assert.match(boardText, /Ada Lovelace/);
+        assert.match(boardText, /farve #3366ff/);
+        assert.match(boardText, /Blå: #3366ff/);
         assert.match(boardText, /Ret <strong>fejlen<\/strong>/);
 
         const createdCard = await client.call("tools/call", {
@@ -165,6 +190,41 @@ test("MCP-serveren læser tavler og opretter kort gennem DS28-API'et", async () 
         });
         assert.match(movedCard.result.content[0].text, /Flyttede DS-42 til kolonnen "Færdig" på tavle 1 som nr. 1/);
         assert.deepEqual(moved[0], { columnId: 11, position: 0 });
+
+        const updatedCard = await client.call("tools/call", {
+            name: "update_card",
+            arguments: { boardId: 1, cardId: 42, title: "Fejl i tilmeldingen", color: "#ffcc00", assignees: ["ada@example.com"] },
+        });
+        assert.match(updatedCard.result.content[0].text, /Opdaterede DS-42 på tavle 1: titel, farve\./);
+        assert.deepEqual(updated[0], {
+            title: "Fejl i tilmeldingen",
+            description: "<p>Ret <strong>fejlen</strong></p>",
+            color: "#ffcc00",
+            assigneeUserIds: ["u-1"],
+            ownerPositionId: null,
+            dueDate: "2026-11-20",
+            priority: 1,
+        });
+
+        const ambiguous = await client.call("tools/call", {
+            name: "update_card",
+            arguments: { boardId: 1, cardId: 42, assignees: ["Ada"] },
+        });
+        assert.equal(ambiguous.result.isError, true);
+        assert.match(ambiguous.result.content[0].text, /forslag: Ada Lovelace <ada@example.com>/);
+
+        const cleared = await client.call("tools/call", {
+            name: "update_card",
+            arguments: { boardId: 1, cardId: 42, dueDate: "", description: "" },
+        });
+        assert.match(cleared.result.content[0].text, /beskrivelse, frist/);
+        assert.equal(updated[1].dueDate, null);
+        assert.equal(updated[1].description, null);
+        assert.equal(updated[1].assigneeUserIds.length, 1);
+
+        const removedCard = await client.call("tools/call", { name: "delete_card", arguments: { boardId: 1, cardId: 42 } });
+        assert.match(removedCard.result.content[0].text, /Slettede DS-42 fra tavle 1\./);
+        assert.equal(deleted.length, 1);
 
         const missingCard = await client.call("tools/call", {
             name: "move_card",
