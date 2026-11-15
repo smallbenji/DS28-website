@@ -2227,10 +2227,11 @@ Lejrår, gren, kilde-id, udtrækskontrolsum og importtidspunkt bevares.
   dokumenter uden gruppekobling udelades med registreret begrundelse. De øvrige
   39 vedrører 38 grupper og indeholder råt 285 deltagere uden ledere plus 111
   ledere. Disse summer er ikke et verificeret antal unikke personer.
-- **Uafklaret:** Svendborg har to endelige dokumenter med henholdsvis 10 og 12
-  deltagere inklusive ledere. Ingen af dem er automatisk valgt eller summeret
-  til en godkendt gruppetotal. Importen blokerer, indtil dubletten afklares;
-  eksplicit udeladelse understøttes via dokument-id.
+- **Afklaret (2026-11-15):** Svendborg har to endelige dokumenter med
+  henholdsvis 10 og 12 deltagere inklusive ledere. Den opdaterede tilmelding fra
+  10. juli 2024 med 12 deltagere importeres; den oprindelige fra 26. maj med 10
+  udelades via sit dokument-id. Importen summerer eller vælger ikke automatisk
+  mellem dubletter.
 - `TestGruppe` (123456) har 43 forhåndstilmeldte og 1 endeligt tilmeldt i
   rådata. Eksplicit udeladelse af et gruppenummer understøttes for begge tabeller;
   testgrupper frasorteres ikke automatisk.
@@ -2253,6 +2254,17 @@ Lejrår, gren, kilde-id, udtrækskontrolsum og importtidspunkt bevares.
   dagsindeks returneres; kildeoplysninger udleveres ikke. Delte gruppe-DTO'er og
   gruppens egne `/api/v1/group`-endpoints indeholder hverken historik,
   historikflag eller tællere. UI'et henter kun historik med `AdminAccess`.
+- **Produktionskonfiguration (2026-11-15):** `FirebaseCredentials` og
+  `Year=2024` er sat i produktion, så jobbet kan startes fra Admin-siden.
+  Kildens gruppenavne mangler endelsen ` Gruppe`, som DS28 bruger, og dens
+  gruppenumre er identiske med DS28's gruppe-id'er. `GroupMap` kobler derfor de
+  19 grupper, der har data, direkte på nummer. De 18 landenavne (1001–1017 og
+  1111) og `TestGruppe` (123456) udelades via `ExcludeGroupNumbers`; landetallene
+  er tomme i kilden, og testgruppen er testdata. Gruppe 3607 (Sct. Knuds) er
+  oprettet i DS28 med distriktet FIONIA, fordi kilden har 13 endelige deltagere
+  til gruppen, og historiktabellerne kræver en eksisterende gruppe. Den fremgår
+  derfor af gruppelisten, indtil den eventuelt slettes igen; en ny import kræver,
+  at gruppen stadig findes.
 - Produktionsimport er ikke udført. Eksisterende `ParticipantData` er uændret.
   Øvrige gamle datatyper er uden for denne første import.
 
