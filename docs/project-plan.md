@@ -1435,6 +1435,16 @@ Ubesluttede punkter:
 Dette afsnit dokumenterer planen og bekræfter ikke den aktuelle hosting eller
 driftsopsætning.
 
+**Beslutning 2026-11-15 (implementeret):** Udviklingen bruger Graphify som
+lokalt kodegraf-værktøj. Grafen bygges med `graphify extract . --code-only`, som
+kun parser kode lokalt med tree-sitter og derfor hverken kræver API-nøgle eller
+sender kode væk fra maskinen. Dokumenter, PDF'er og billeder holdes uden for,
+indtil der er taget stilling til en modelbackend. `graphify-out/` er genereret
+output og ignoreres af git; grafen skal derfor bygges lokalt og opdateres med
+`graphify update .` efter kodeændringer. Agenter får adgang gennem den
+installerede OpenCode-skill og den globale plugin-hook. Opsætningen er
+beskrevet i `README.md`.
+
 ### Delt resultattype fra services til controllers
 
 **Beslutning 2026-10-20:** Services returnerer én fælles resultattype i
