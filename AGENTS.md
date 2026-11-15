@@ -148,9 +148,9 @@ project patterns for forms, buttons, tables, notifications, and step flows.
 - Name branches `feature/<short-name>`, `fix/<short-name>` or
   `chore/<short-name>`. Do not use tool-specific prefixes such as `codex/` or
   `copilot/`.
-- One card equals one pull request equals one bounded change. Link the card
-  number (for example `DS-19`) in the title or description. Split the work into
-  several pull requests rather than growing one.
+- One card equals one pull request equals one bounded change. Title the pull
+  request `[DS-<number>]: <short description>` and split the work into several
+  pull requests rather than growing one.
 - Describe what changed, why, how it was tested, and what was not tested.
 - Merge with a merge commit, not a squash, and delete the branch afterwards.
 - Pull requests are not built in CI; only CodeQL runs. Build and test locally

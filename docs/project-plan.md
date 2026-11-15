@@ -1908,7 +1908,8 @@ indføres ikke en produktion- eller release-branch.
 - `master` er den eneste lange branch, og et SemVer-tag er udgivelsen.
   Produktionsbranche, release-branch og squash-merge bruges ikke.
 - Branches hedder `feature/`, `fix/` eller `chore/` efterfulgt af et kort navn.
-  Ét kort på DS28 IT svarer til én pull request og én afgrænset ændring.
+  Ét kort på DS28 IT svarer til én pull request og én afgrænset ændring, og
+  pull requestens titel er `[DS-<nummer>]: <kort beskrivelse>`.
 - Produktion på `hq.distriktssommerlejr.dk` er det eneste miljø. Lokal kørsel
   er det eneste testmiljø, indtil der eventuelt oprettes et rigtigt et.
 - Det præcise image, der blev bygget til et tag, deployes. Der genbygges ikke
