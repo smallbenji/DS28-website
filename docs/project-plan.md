@@ -1280,6 +1280,27 @@ Implementeringsnote (2026-10-16, statusvælger):
   fortryder kun ikke-gemte ændringer i kortets øvrige felter. Læsetilstand
   har fortsat ingen redigeringshandlinger. Der er ingen skemaændring.
 
+**Beslutning 2026-11-15 (implementeret):** Et lokalt MCP-værktøj i
+`tools/ds28-mcp` giver en AI-agent læse- og opretteadgang til tavlerne gennem
+det eksisterende HTTP-API. Værktøjet er udviklingssupport og ændrer ikke
+produktets adgangsregler, backend eller databaseskema.
+
+- MCP-serveren kører lokalt over stdio og er registreret i `opencode.json` med
+  værktøjerne `list_boards`, `get_board` og `create_card`. Alle kald går til
+  `/api/v1/boards` med samme adgangskontrol som brugerens egen konto, så
+  medlemskab, SysAdmin/CampAdmin og API-validering gælder uændret.
+- Login sker med en almindelig DS28-konto via `POST /api/v1/auth/login` og
+  Identity-cookien; ændringskald sender antiforgery-token fra
+  `GET /api/v1/antiforgery`. Kontoen må ikke kræve 2FA.
+  Legitimationsoplysningerne ligger i `tools/ds28-mcp/.env`, som er ignoreret
+  af git, med `tools/ds28-mcp/.env.example` som skabelon.
+- Kort oprettes med titel, kolonne (id eller titel), valgfri beskrivelse,
+  prioritet og deadline. Ren tekst laves om til HTML-afsnit, fordi
+  `work_item.description` gemmer HTML. Flytning, redigering, sletning,
+  ansvarlige og farver er ikke med i første version.
+- Tests: `node --test tools/ds28-mcp/*.test.mjs` dækker hjælpefunktionerne og
+  hele forløbet mod en stub-server.
+
 Ubesluttede punkter:
 - Hvem må rydde døde links, og skal et kort blokere sletning af et
   domæneobjekt eller blot miste linket?
