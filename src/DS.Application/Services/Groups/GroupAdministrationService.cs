@@ -43,11 +43,6 @@ namespace DS.Application.Services.Groups
                 return new ServiceResult<GroupRegistrationHistoryDto>(ServiceOutcome.NotFound, Error: "Group not found.");
             }
 
-            var currentPresignup = await dataDb.GroupPreSignups.AsNoTracking()
-                .Where(row => row.GroupId == groupId)
-                .Select(row => new UpdateGroupPreSignupDto(row))
-                .SingleOrDefaultAsync();
-
             var presignups = await dataDb.HistoricPresignups.AsNoTracking()
                 .Where(row => row.GroupId == groupId && row.CampYear == 2024)
                 .OrderBy(row => row.Category)
@@ -74,7 +69,6 @@ namespace DS.Application.Services.Groups
 
             return new ServiceResult<GroupRegistrationHistoryDto>(ServiceOutcome.Success, new GroupRegistrationHistoryDto
             {
-                CurrentPresignup = currentPresignup,
                 Presignups = presignups,
                 Signups = signups
             });

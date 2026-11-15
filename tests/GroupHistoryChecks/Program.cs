@@ -60,7 +60,7 @@ await db.SaveChangesAsync();
 var service = new GroupAdministrationService(db, null);
 var result = await service.GetRegistrationHistory(1);
 Check(result.Outcome == ServiceOutcome.Success && result.Value.Presignups.Count == 1, "Presignups scoped to selected group and 2024");
-Check(result.Value.CurrentPresignup?.Junior == 12, "Current counts returned separately from history");
+Check(!JsonSerializer.Serialize(result.Value).Contains("CurrentPresignup"), "Current presignup is not returned in historical endpoint");
 Check(result.Value.Presignups[0].GuestCount == 2, "Guest counts stay separate");
 Check(result.Value.Signups.Count == 3 && result.Value.Signups.All(row => row.CampYear == 2024 && row.ParticipantCount != 99 && row.ParticipantCount != 88), "Signups scoped to selected group and 2024");
 Check(result.Value.Signups.Single(row => row.Category == "junior" && row.DayIndex == 1).ParticipantCount == 0, "Recorded zero stays zero");
@@ -70,7 +70,7 @@ Check((await service.GetRegistrationHistory(999)).Outcome == ServiceOutcome.NotF
 db.Groups.Add(new Group { Id = 3, Name = "Empty" });
 await db.SaveChangesAsync();
 var empty = await service.GetRegistrationHistory(3);
-Check(empty.Outcome == ServiceOutcome.Success && empty.Value.Signups.Count == 0 && empty.Value.Presignups.Count == 0 && empty.Value.CurrentPresignup == null, "Group without history returns empty lists");
+Check(empty.Outcome == ServiceOutcome.Success && empty.Value.Signups.Count == 0 && empty.Value.Presignups.Count == 0, "Group without history returns empty lists");
 var publicGroup = JsonSerializer.Serialize(new GroupDto(await db.Groups.FindAsync(1)));
 Check(!publicGroup.Contains("Historic", StringComparison.OrdinalIgnoreCase) && !publicGroup.Contains("2024"), "Shared group response contains no history or history flags");
 Console.WriteLine("All group history checks passed.");
