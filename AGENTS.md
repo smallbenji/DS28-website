@@ -153,6 +153,9 @@ project patterns for forms, buttons, tables, notifications, and step flows.
   pull requests rather than growing one.
 - Describe what changed, why, how it was tested, and what was not tested.
 - Merge with a merge commit, not a squash, and delete the branch afterwards.
+- Move the card to `I gang` when work starts, to `Ikke udgivet` when the pull
+  request is merged, and to `Færdig` once the change is part of a deployed tag.
+  `Færdig` means released, not merely merged.
 - Pull requests are not built in CI; only CodeQL runs. Build and test locally
   according to the verification section below before merging.
 

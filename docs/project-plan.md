@@ -1970,6 +1970,12 @@ indføres ikke en produktion- eller release-branch.
 - Pull requests bygges og testes ikke i CI; kun CodeQL kører. Der bygges og
   testes lokalt efter verifikationsafsnittet, før der merges. Dette er et
   bevidst valg for at holde PR-flowet let, ikke en midlertidig mangel.
+- Når arbejdet på et kort starter, flyttes kortet til `I gang` på DS28 IT,
+  uanset om kortet kommer fra HQ eller oprettes i forbindelse med arbejdet.
+- Tavlen får kolonnen `Ikke udgivet` mellem `I gang` og `Færdig`. Et kort
+  flyttes dertil, når ændringen er merget til `master`, og videre til `Færdig`,
+  når den er med i et tag, der er deployet til produktion. `Færdig` betyder
+  dermed udgivet, ikke kun merget.
 
 ## Frontend og formularvisning
 
