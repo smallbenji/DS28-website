@@ -1902,6 +1902,25 @@ releaseimages publiceres fortsat i GitHub Container Registry via
 versionstags. Et eksisterende versionstag flyttes ikke ved buildrettelser;
 rettelsen udgives som en ny patch-version.
 
+**Beslutning 2026-11-15:** Git-arbejdsgangen og udgivelsen er fastlagt. Der
+indføres ikke en produktion- eller release-branch.
+
+- `master` er den eneste lange branch, og et SemVer-tag er udgivelsen.
+  Produktionsbranche, release-branch og squash-merge bruges ikke.
+- Branches hedder `feature/`, `fix/` eller `chore/` efterfulgt af et kort navn.
+  Ét kort på DS28 IT svarer til én pull request og én afgrænset ændring.
+- Produktion på `hq.distriktssommerlejr.dk` er det eneste miljø. Lokal kørsel
+  er det eneste testmiljø, indtil der eventuelt oprettes et rigtigt et.
+- Det præcise image, der blev bygget til et tag, deployes. Der genbygges ikke
+  til produktion, og deploy er et selvstændigt, godkendt trin via GitHub
+  Environment `production` frem for en automatisk følge af et tag.
+- Migrations skal være bagudkompatible i én udgivelse (expand/contract), så
+  det forrige tag kan deployes igen, og der tages en database-dump før et
+  deploy med migration. Dette er nødvendigt, fordi DbUp kører fremad og ikke
+  kan rulle en migration tilbage.
+- Pull requests skal bygges og testes i CI, før de merges. Workflowet findes
+  ikke endnu; indtil da bygges og testes der lokalt.
+
 ## Frontend og formularvisning
 
 ### Navigation og tilgængelighed
