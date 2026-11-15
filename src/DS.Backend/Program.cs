@@ -58,7 +58,20 @@ app.MapControllerRoute(
 
 app.MapHub<BoardHub>("/api/v1/boards/hub");
 
-app.MapMcp("/mcp").RequireAuthorization();
+app.MapMcp("/mcp").RequireAuthorization(McpAuthenticationHandler.PolicyName);
+
+app.MapGet(McpAuthenticationHandler.MetadataPath, (HttpRequest request) =>
+{
+    var origin = $"{request.Scheme}://{request.Host}";
+
+    return Results.Json(new
+    {
+        resource = $"{origin}/mcp",
+        authorization_servers = new[] { $"{origin}/" },
+        scopes_supported = new[] { "openid", "profile", "email", "roles" },
+        bearer_methods_supported = new[] { "header" },
+    });
+});
 
 var env = app.Services.GetRequiredService<IWebHostEnvironment>();
 

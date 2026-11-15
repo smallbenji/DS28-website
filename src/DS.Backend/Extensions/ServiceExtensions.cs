@@ -14,6 +14,7 @@ using DS.Infrastructure.Exports;
 using DS.Application.Services.Exports;
 using DS.Backend.Services;
 using DS.Backend.Authentication;
+using DS.Backend.Mcp;
 using Hangfire;
 using Hangfire.PostgreSql;
 using Microsoft.AspNetCore.Authentication;
@@ -116,6 +117,9 @@ public static class ServiceExtensions
 
                 options.AllowAuthorizationCodeFlow();
 
+                // Eneste API er denne instans; MCP-klienter sender resource=<origin>/mcp, som ellers skal registreres pr. klient.
+                options.DisableResourceValidation();
+
                 options.RemoveEventHandler(OpenIddictServerHandlers.Exchange.ValidateScopeParameter.Descriptor);
 
                 options.RegisterScopes(
@@ -171,7 +175,15 @@ public static class ServiceExtensions
                     context.Request.Headers.Authorization.ToString().StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase)
                         ? AccessTokenAuthenticationHandler.SchemeName
                         : IdentityConstants.ApplicationScheme;
-            });
+            })
+            .AddScheme<AuthenticationSchemeOptions, McpAuthenticationHandler>(McpAuthenticationHandler.SchemeName, null);
+
+        services.AddAuthorization(options =>
+        {
+            options.AddPolicy(McpAuthenticationHandler.PolicyName, policy => policy
+                .AddAuthenticationSchemes(McpAuthenticationHandler.SchemeName)
+                .RequireAuthenticatedUser());
+        });
 
         services.ConfigureApplicationCookie(options =>
         {
