@@ -43,6 +43,14 @@ apiClient.interceptors.request.use(async config => {
     return config;
 });
 
+async function showAccessDenied(): Promise<void> {
+    const { default: router } = await import("@/router");
+    const current = router.currentRoute.value;
+    if (current.path === "/access-denied") return;
+
+    await router.push({ path: "/access-denied", query: { from: current.fullPath } }).catch(() => undefined);
+}
+
 apiClient.interceptors.response.use(response => {
     if (!safeMethods.includes(response.config.method?.toLowerCase() ?? "get")) {
         clearAntiforgeryToken();
@@ -50,8 +58,14 @@ apiClient.interceptors.response.use(response => {
 
     return response;
 }, async error => {
-    if (axios.isAxiosError(error) && error.response?.status === 400) {
-        clearAntiforgeryToken();
+    if (axios.isAxiosError(error)) {
+        if (error.response?.status === 400) {
+            clearAntiforgeryToken();
+        }
+
+        if (error.response?.status === 403) {
+            await showAccessDenied();
+        }
     }
 
     return await Promise.reject(error);

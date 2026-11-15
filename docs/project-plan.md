@@ -2005,6 +2005,25 @@ og aktivitetstilmelding vises som »Ikke tilgængelig endnu«, fordi kortene end
 ikke har destinationer. De tidligere hardkodede novemberdatoer i 2026 er fjernet
 fra kortene; de var ikke vedtagne åbningstidspunkter.
 
+### Adgang nægtet
+
+**Besluttet og implementeret (2026-11-15):** Der er én fælles skærm på
+`/access-denied`, og det er den eneste sti til den. Cookie-auth'ens
+`AccessDeniedPath` peger samme sted, så dubletruten `/AccessDenied` er fjernet.
+
+- Routeren sender til skærmen, når `requiredRole` eller `requiresActivityAdmin`
+  ikke er opfyldt. `requiresAuth` tjekkes nu først, så en udlogget bruger mødes af
+  login med `returnUrl` i stedet for »Adgang nægtet«. `/activity/teams/:id?`
+  kræver derfor også login.
+- Svarer API'et 403, sendes brugeren til skærmen med den afviste side i `?from=`.
+  Det gælder alle kald gennem den fælles klient, også kald der ellers sluger fejl
+  via `safeApiCall`. Skærmen viser stien og tilbyder »Gå tilbage«.
+- **Kendt begrænsning:** ethvert 403 udløser skærmen, også baggrundskald. Hvis et
+  tilbagevendende kald begynder at give 403, uden at siden er utilgængelig, skal
+  det have et opt-out i klienten.
+- 401 og manglende login håndteres fortsat af routeren og loginflowet, ikke af
+  skærmen.
+
 ### Formularskabeloner
 
 **Implementeret (2026-10-22):** Kode-definerede formularskabeloner ligger i

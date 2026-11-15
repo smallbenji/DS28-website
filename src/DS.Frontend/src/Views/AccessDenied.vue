@@ -14,9 +14,17 @@
                         <p class="mb-4">
                             Kontakt en administrator, hvis du mener, du skulle have adgang.
                         </p>
-                        <BButton type="is-primary" @click="goHome">
-                            Gå til forsiden
-                        </BButton>
+                        <p v-if="from" class="is-size-7 has-text-grey mb-4">
+                            <code>{{ from }}</code>
+                        </p>
+                        <div class="buttons is-centered">
+                            <BButton type="is-primary" @click="goHome">
+                                Gå til forsiden
+                            </BButton>
+                            <BButton v-if="from" @click="goBack">
+                                Gå tilbage
+                            </BButton>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -26,12 +34,24 @@
 
 <script lang="ts" setup>
 import { BButton } from 'buefy';
-import { useRouter } from 'vue-router';
+import { computed } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 
+const route = useRoute();
 const router = useRouter();
+
+const from = computed(() => {
+    const value = route.query.from;
+
+    return typeof value === 'string' && value.startsWith('/') ? value : '';
+});
 
 const goHome = () => {
     router.push('/');
+};
+
+const goBack = () => {
+    router.back();
 };
 </script>
 

@@ -104,7 +104,7 @@ const routes: RouteRecordRaw[] = [
     {
         path: "/activity/teams/:id?",
         component: () => import("@/Views/TeamManagement.vue"),
-        meta: { requiresActivityTeamData: true, requiresActivityAdmin: true, pageTitle: "Teamstyring", pageIcon: "users-gear" }
+        meta: { requiresAuth: true, requiresActivityTeamData: true, requiresActivityAdmin: true, pageTitle: "Teamstyring", pageIcon: "users-gear" }
     },
     {
         path: "/activity/:id",
@@ -148,11 +148,6 @@ const routes: RouteRecordRaw[] = [
     },
     {
         path: "/access-denied",
-        component: () => import("@/Views/AccessDenied.vue"),
-        meta: { pageTitle: "Adgang nægtet", pageIcon: "ban" }
-    },
-    {
-        path: "/AccessDenied",
         component: () => import("@/Views/AccessDenied.vue"),
         meta: { pageTitle: "Adgang nægtet", pageIcon: "ban" }
     }
@@ -232,12 +227,12 @@ router.beforeEach(async (to) => {
             await Promise.all(promises);
         }
 
-        if (to.meta.requiresActivityAdmin && !meStore.Me?.appRoles.includes("ActivityAdmin")) {
-            return "/access-denied";
-        }
-
         if (to.meta.requiresAuth && !meStore.Me?.isAuthenticated) {
             return { path: "/login", query: { returnUrl: to.fullPath } };
+        }
+
+        if (to.meta.requiresActivityAdmin && !meStore.Me?.appRoles.includes("ActivityAdmin")) {
+            return "/access-denied";
         }
 
         if (typeof to.meta.requiredRole === "string" && !meStore.Me?.appRoles.includes(to.meta.requiredRole)) {
