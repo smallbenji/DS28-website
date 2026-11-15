@@ -119,6 +119,7 @@ public static class ServiceExtensions
 
                 // Eneste API er denne instans; MCP-klienter sender resource=<origin>/mcp, som ellers skal registreres pr. klient.
                 options.DisableResourceValidation();
+                options.IgnoreResourcePermissions();
 
                 options.RemoveEventHandler(OpenIddictServerHandlers.Exchange.ValidateScopeParameter.Descriptor);
 

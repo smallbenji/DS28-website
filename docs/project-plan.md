@@ -1401,6 +1401,12 @@ autorisationsserver genbruges; der indføres ingen ny identitetsudbyder.
   findes denne ene API og kun operatør-oprettede klienter; ved en anden
   ressource skal ressourcen registreres og `rsrc:`-rettigheden sættes pr.
   klient i stedet.
+- OpenIddict tjekker desuden en `rsrc:`-rettighed pr. klient, og den fejler med
+  `invalid_request` (`ID2192`), fordi klienterne oprettes i
+  OpenIddict-klienternes administration uden ressourcerettigheder.
+  `IgnoreResourcePermissions` slår derfor også det tjek fra, så en ny klient
+  virker uden manuelle rettigheder. Beslutningen er den samme afvejning som
+  ovenfor og skal ændres sammen med den, hvis der kommer flere ressourcer.
 - Access-tokens kan være krypterede (JWE), så schemet forsøger først
   OpenIddict-validering og falder derefter tilbage til opslag af et personligt
   adgangstoken. Det gør valget uafhængigt af tokenformatet.
