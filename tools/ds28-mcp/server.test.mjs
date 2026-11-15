@@ -134,7 +134,7 @@ test("MCP-serveren læser tavler og opretter kort gennem DS28-API'et", async () 
         assert.match(boardText, /DS-42 Fejl i tilmelding/);
         assert.match(boardText, /høj prioritet/);
         assert.match(boardText, /Ada Lovelace/);
-        assert.match(boardText, /Ret fejlen/);
+        assert.match(boardText, /Ret <strong>fejlen<\/strong>/);
 
         const createdCard = await client.call("tools/call", {
             name: "create_card",

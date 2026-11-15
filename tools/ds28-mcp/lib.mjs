@@ -28,18 +28,6 @@ export function toHtml(text) {
         .join("");
 }
 
-const entities = { amp: "&", nbsp: " ", quot: "\"", apos: "'" };
-
-export function stripHtml(html) {
-    return String(html)
-        .replace(/<br\s*\/?>/gi, "\n")
-        .replace(/<\/(p|div|li|h[1-6]|blockquote)>/gi, "\n")
-        .replace(/<[^>]+>/g, "")
-        .replace(/&([a-z]+);/gi, (match, name) => entities[name.toLowerCase()] ?? match)
-        .replace(/\n{3,}/g, "\n\n")
-        .trim();
-}
-
 export function formatBoards(boards) {
     if (!boards.length) return "Ingen tavler fundet.";
 
@@ -71,7 +59,7 @@ export function formatBoard(board) {
         `Tavle: ${board.title} (id ${board.id})${board.isArchived ? " [arkiveret]" : ""}`,
     ];
 
-    if (board.description) lines.push(stripHtml(board.description));
+    if (board.description) lines.push(board.description);
 
     lines.push("", "Kolonner:");
     for (const column of board.columns) {
@@ -94,7 +82,7 @@ export function formatBoard(board) {
 
         lines.push(`- DS-${card.id} ${card.title} | ${meta.join(" | ")}`);
 
-        if (card.description) lines.push(`  ${stripHtml(card.description).replace(/\n/g, "\n  ")}`);
+        if (card.description) lines.push(`  ${card.description.replace(/\n/g, "\n  ")}`);
     }
 
     return lines.join("\n");
