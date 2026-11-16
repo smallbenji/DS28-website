@@ -1,6 +1,6 @@
 export interface RegistrationHistory {
-    presignups: { campYear: number; category: string; participantCount: number; guestCount: number }[];
-    signups: { campYear: number; category: string; dayIndex: number; participantCount: number }[];
+    presignups: { campYear: number | string; category: string; participantCount: number | string; guestCount: number | string }[];
+    signups: { campYear: number | string; category: string; dayIndex: number | string; participantCount: number | string }[];
 }
 
 export interface RegistrationHistoryRow {
@@ -24,14 +24,18 @@ export function registrationHistoryRows(history: RegistrationHistory): Registrat
         return (aIndex < 0 ? order.length : aIndex) - (bIndex < 0 ? order.length : bIndex) || a.localeCompare(b);
     }).map(category => {
         const presignup = history.presignups.find(row => row.category === category);
-        const signups = history.signups.filter(row => row.category === category);
+        const signups = history.signups.filter(row => row.category === category).map(row => ({
+            dayIndex: Number(row.dayIndex),
+            participantCount: Number(row.participantCount)
+        }));
+        const presignupCount = presignup == null ? null : Number(presignup.participantCount);
         const signup = signups.find(row => row.dayIndex === 0)?.participantCount ?? null;
         return {
             category,
-            presignup: presignup?.participantCount ?? null,
-            guests: presignup?.guestCount ?? null,
+            presignup: presignupCount,
+            guests: presignup == null ? null : Number(presignup.guestCount),
             signup,
-            change: presignup != null && signup != null ? signup - presignup.participantCount : null,
+            change: presignupCount != null && signup != null ? signup - presignupCount : null,
             days: Object.fromEntries(signups.filter(row => row.dayIndex > 0).map(row => [row.dayIndex, row.participantCount]))
         };
     });
