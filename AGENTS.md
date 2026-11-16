@@ -157,6 +157,10 @@ project patterns for forms, buttons, tables, notifications, and step flows.
   Move it to `Ikke udgivet` when the pull request is merged, and to `Færdig`
   once the change is part of a deployed tag. `Færdig` means released, not merely
   merged.
+- Before finishing a task, verify that the person who performed the work is
+  assigned by name on its DS28 card, including cards created after the work.
+  Keep that assignment after completion, merge, and release; preserve any other
+  assignees when adding yourself.
 - Pull requests are not built in CI; only CodeQL runs. Build and test locally
   according to the verification section below before merging.
 
