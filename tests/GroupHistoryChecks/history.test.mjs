@@ -41,3 +41,26 @@ test('empty history has no rows or invented zero totals', () => {
     assert.deepEqual(registrationHistoryRows({ presignups: [], signups: [] }), []);
     assert.deepEqual(registrationHistoryTotals([]), { presignup: null, guests: null, signup: null, change: null });
 });
+
+test('API string counts sum to 49 for the reported group and preserve unknown final counts', () => {
+    const categories = ['family', 'beaver', 'wolf', 'junior', 'trop', 'senior', 'rover', 'leader'];
+    const counts = ['0', '10', '14', '6', '10', '1', '0', '8'];
+    const rows = registrationHistoryRows({
+        presignups: categories.map((category, index) => pre(category, counts[index], '0')),
+        signups: [signup('wolf', '1', '6'), signup('junior', '1', '4')]
+    });
+    assert.deepEqual(registrationHistoryTotals(rows), { presignup: 49, guests: 0, signup: null, change: null });
+    assert.equal(rows.find(row => row.category === 'wolf').days[1], 6);
+});
+
+test('API string day indices identify final counts and distinguish attendance from day zero', () => {
+    const rows = registrationHistoryRows({
+        presignups: [pre('junior', '6', '2'), pre('rover', '0', '0')],
+        signups: [signup('junior', '0', '4'), signup('junior', '1', '3'), signup('rover', '0', '0')]
+    });
+    assert.equal(rows[0].signup, 4);
+    assert.equal(rows[0].change, -2);
+    assert.deepEqual(rows[0].days, { 1: 3 });
+    assert.equal(rows[1].signup, 0);
+    assert.deepEqual(registrationHistoryTotals(rows), { presignup: 6, guests: 2, signup: 4, change: -2 });
+});
