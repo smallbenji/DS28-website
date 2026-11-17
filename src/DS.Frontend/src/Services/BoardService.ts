@@ -112,7 +112,7 @@ export default class BoardService {
         }, false);
     }
 
-    public async reorderColumns(boardId: number, columnOrder: string[]): Promise<boolean> {
+    public async reorderColumns(boardId: number, columnOrder: number[]): Promise<boolean> {
         return safeApiCall(async () => {
             await apiPut<void>(`/api/v1/boards/${boardId}/columns/reorder`, columnOrder.map((columnId) => Number(columnId)));
             return true;

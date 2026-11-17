@@ -78,14 +78,14 @@ export const useBoardStore = defineStore("board", () => {
         return success;
     }
 
-    async function REORDER_COLUMNS(boardId: number, columnOrder: string[]) {
+    async function REORDER_COLUMNS(boardId: number, columnOrder: number[]) {
         reorderColumnsLocally(columnOrder);
         const success = await boardService.reorderColumns(boardId, columnOrder);
         await GET_BOARD(boardId);
         return success;
     }
 
-    function reorderColumnsLocally(columnOrder: string[]) {
+    function reorderColumnsLocally(columnOrder: number[]) {
         const board = SelectedBoard.value;
         if (!board) return;
 
