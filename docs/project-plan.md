@@ -2133,6 +2133,13 @@ indføres ikke en produktion- eller release-branch.
 
 ## Frontend og formularvisning
 
+### HQ-favicon
+
+**Beslutning 2026-11-17 (implementeret):** HQ bruger den godkendte cowboyhat
+med lejrlogoets blå og brune farver som favicon. Ikonet leveres som ICO med
+16, 32 og 48 pixels til både Vue-appen og serverrenderede sider. Det erstatter
+Vue-appens reference til en manglende SVG-fil og backendens standardikon.
+
 ### Navigation og tilgængelighed
 
 **Implementeret:** Søgningen kan åbnes med en synlig »Søg«-knap samt
