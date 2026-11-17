@@ -95,7 +95,7 @@
                     <div class="card-content">
                         <p class="mb-3">Forbind din AI-assistent til DS28 via MCP. Assistenten får adgang til tavler på dine vegne med dine eksisterende rettigheder.</p>
                         <BField label="MCP-adresse">
-                            <BInput :model-value="mcpUrl" readonly @focus="selectToken" />
+                            <BInput :model-value="mcpUrl" readonly @focus="selectMcpUrl" />
                         </BField>
                         <div class="buttons">
                             <BButton type="is-primary" @click="mcpClient = 'Claude'">Tilføj til Claude</BButton>
@@ -313,7 +313,7 @@
                 <p class="mb-3" v-if="mcpClient === 'Claude'">Åbn Claude, gå til Connectors, og vælg Add custom connector. Angiv DS28 som navn og indsæt MCP-adressen nedenfor.</p>
                 <p class="mb-3" v-else>Åbn ChatGPTs indstillinger for apps, og opret en forbindelse til en egen MCP-server med navnet DS28 og adressen nedenfor. Opsætningen kan kræve udviklertilstand og tilladelse fra din workspace-administrator.</p>
                 <BField label="MCP-adresse">
-                    <BInput :model-value="mcpUrl" readonly @focus="selectToken" />
+                    <BInput :model-value="mcpUrl" readonly @focus="selectMcpUrl" />
                 </BField>
                 <p>Vælg OAuth, hvis du bliver spurgt om godkendelsesmetode, og log ind med din DS28-konto. Hvis klienten kræver et klient-id og en klienthemmelighed, skal en systemadministrator oprette en OAuth-klient til den pågældende assistent.</p>
             </section>
@@ -458,6 +458,10 @@ const mcpSetupOpen = computed({
         if (!open) mcpClient.value = null;
     }
 });
+
+const selectMcpUrl = (event?: Event) => {
+    if (event?.target instanceof HTMLInputElement) event.target.select();
+};
 
 const copyMcpUrl = async () => {
     try {
