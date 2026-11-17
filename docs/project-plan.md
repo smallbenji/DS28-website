@@ -2126,6 +2126,13 @@ indføres ikke en produktion- eller release-branch.
   ansvarlig og flytter kortet til `I gang` på DS28 IT, uanset om kortet kommer
   fra HQ eller oprettes i forbindelse med arbejdet. Det gør det synligt, hvem
   der arbejder på kortet.
+- **Præcisering 2026-11-16:** Ved afslutning af en opgave kontrolleres, at den,
+  der har udført arbejdet, står med navn som ansvarlig på kortet. Det gælder
+  også kort, der oprettes efter arbejdet. Tildelingen bevares efter afslutning,
+  merge og udgivelse; øvrige ansvarlige bevares, når en person tilføjes.
+  Flere samtidige ansvarlige med individuel klarmelding er bestilt i DS-40.
+  Individuel klarmelding og reglerne for fælles færdigmelding er endnu ikke
+  implementeret eller endeligt afklaret; udgivelsesstatus er fortsat separat.
 - Tavlen får kolonnen `Ikke udgivet` mellem `I gang` og `Færdig`. Et kort
   flyttes dertil, når ændringen er merget til `master`, og videre til `Færdig`,
   når den er med i et tag, der er deployet til produktion. `Færdig` betyder
