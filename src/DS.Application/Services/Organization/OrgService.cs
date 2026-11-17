@@ -36,7 +36,7 @@ namespace DS.Application.Services.Organization
                 ? Enum.GetNames<AppGroups>().ToList()
                 : await GetCurrentGroupsAsync(actor);
 
-            return new ServiceResult<List<string>>(ServiceOutcome.Success, groups);
+            return new ServiceResult<List<string>>(ServiceOutcome.Success, groups.Where(group => group != nameof(AppGroups.McpUser)).ToList());
         }
 
         public async Task<ServiceResult<int>> CreatePosition(OrgActor actor, OrgPositionCreateDto data)
@@ -50,6 +50,7 @@ namespace DS.Application.Services.Organization
             }
 
             var groups = NormalizeGroups(data.Groups);
+            if (groups.Contains(nameof(AppGroups.McpUser))) return new ServiceResult(ServiceOutcome.Invalid, "MCP-adgang tildeles direkte i brugeradministrationen.");
             if (groups.Contains(nameof(AppGroups.SysAdmin))) return new ServiceResult(ServiceOutcome.Invalid, "SysAdmin kan ikke tildeles en almindelig stilling.");
             if (!await CanAssignGroupsAsync(actor, groups)) return new ServiceResult(ServiceOutcome.Forbidden);
 
@@ -106,6 +107,7 @@ namespace DS.Application.Services.Organization
             if (!await CanManagePositionAsync(actor, position)) return new ServiceResult(ServiceOutcome.Forbidden);
 
             var groups = NormalizeGroups(data.Groups);
+            if (groups.Contains(nameof(AppGroups.McpUser))) return new ServiceResult(ServiceOutcome.Invalid, "MCP-adgang tildeles direkte i brugeradministrationen.");
             if (groups.Contains(nameof(AppGroups.SysAdmin))) return new ServiceResult(ServiceOutcome.Invalid, "SysAdmin kan ikke tildeles en almindelig stilling.");
             if (!await CanAssignGroupsAsync(actor, groups)) return new ServiceResult(ServiceOutcome.Forbidden);
 

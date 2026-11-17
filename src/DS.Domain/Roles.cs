@@ -12,6 +12,7 @@ namespace DS.Domain
         FoodAdmin,
         PersonalAssistant,
         User,
+        McpUser,
     }
 
     public enum AppRoles
@@ -206,6 +207,7 @@ namespace DS.Domain
                     AppGroups.FoodAdmin,
                     AppGroups.PersonalAssistant,
                     AppGroups.User,
+                    AppGroups.McpUser,
                 ]
             },
             {
@@ -219,6 +221,7 @@ namespace DS.Domain
                     AppGroups.FoodAdmin,
                     AppGroups.PersonalAssistant,
                     AppGroups.User,
+                    AppGroups.McpUser,
                 ]
             },
         };
@@ -257,6 +260,7 @@ namespace DS.Domain
                 AppGroups.FoodAdmin => "Madansvarlig",
                 AppGroups.PersonalAssistant => "Personlig assistent",
                 AppGroups.User => "Deltager",
+                AppGroups.McpUser => "MCP-adgang",
                 _ => string.Empty,
             };
         }

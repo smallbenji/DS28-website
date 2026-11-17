@@ -88,6 +88,24 @@
                     </div>
                 </div>
 
+                <div v-if="Me.roles.includes('McpUser')" class="card profile-grid-wide">
+                    <header class="card-header">
+                        <p class="card-header-title">Forbind en AI-assistent</p>
+                    </header>
+                    <div class="card-content">
+                        <p class="mb-3">Forbind din AI-assistent til DS28 via MCP. Assistenten får adgang til tavler på dine vegne med dine eksisterende rettigheder.</p>
+                        <BField label="MCP-adresse">
+                            <BInput :model-value="mcpUrl" readonly @focus="selectToken" />
+                        </BField>
+                        <div class="buttons">
+                            <BButton type="is-primary" @click="mcpClient = 'Claude'">Tilføj til Claude</BButton>
+                            <BButton type="is-primary" @click="mcpClient = 'ChatGPT'">Tilføj til ChatGPT</BButton>
+                            <BButton icon-left="copy" @click="copyMcpUrl">Kopiér MCP-adresse</BButton>
+                        </div>
+                        <p class="has-text-grey">Du skal godkende forbindelsen og logge ind med din DS28-konto. Din konto skal have rollen McpUser.</p>
+                    </div>
+                </div>
+
                 <div class="card profile-grid-wide">
                     <header class="card-header">
                         <p class="card-header-title">Tofaktorautentificering</p>
@@ -286,6 +304,29 @@
         </div>
     </BModal>
 
+    <BModal v-model="mcpSetupOpen" has-modal-card>
+        <div class="modal-card">
+            <header class="modal-card-head">
+                <p class="modal-card-title">Tilføj til {{ mcpClient }}</p>
+            </header>
+            <section class="modal-card-body">
+                <p class="mb-3" v-if="mcpClient === 'Claude'">Åbn Claude, gå til Connectors, og vælg Add custom connector. Angiv DS28 som navn og indsæt MCP-adressen nedenfor.</p>
+                <p class="mb-3" v-else>Åbn ChatGPTs indstillinger for apps, og opret en forbindelse til en egen MCP-server med navnet DS28 og adressen nedenfor. Opsætningen kan kræve udviklertilstand og tilladelse fra din workspace-administrator.</p>
+                <BField label="MCP-adresse">
+                    <BInput :model-value="mcpUrl" readonly @focus="selectToken" />
+                </BField>
+                <p>Vælg OAuth, hvis du bliver spurgt om godkendelsesmetode, og log ind med din DS28-konto. Hvis klienten kræver et klient-id og en klienthemmelighed, skal en systemadministrator oprette en OAuth-klient til den pågældende assistent.</p>
+            </section>
+            <footer class="modal-card-foot">
+                <div class="buttons">
+                    <BButton type="is-primary" tag="a" :href="mcpClient === 'Claude' ? 'https://claude.ai/settings/connectors' : 'https://chatgpt.com/#settings/Connectors'" target="_blank" rel="noopener noreferrer">Åbn {{ mcpClient }} (ny fane)</BButton>
+                    <BButton icon-left="copy" @click="copyMcpUrl">Kopiér MCP-adresse</BButton>
+                    <BButton @click="mcpClient = null">Luk</BButton>
+                </div>
+            </footer>
+        </div>
+    </BModal>
+
     <TwoFactorSetupModal v-model:active="showSetup" @enabled="onEnabled" />
     <RecoveryCodesModal v-model:active="showRecoveryCodes" :codes="recoveryCodes" />
 
@@ -409,6 +450,23 @@ const accessTokenService = new AccessTokenService();
 const fileService = new FileService();
 const { Status } = storeToRefs(accountStore);
 const { Me } = storeToRefs(meStore);
+const mcpUrl = new URL('/mcp', window.location.origin).href;
+const mcpClient = ref<'Claude' | 'ChatGPT' | null>(null);
+const mcpSetupOpen = computed({
+    get: () => mcpClient.value !== null,
+    set: (open: boolean) => {
+        if (!open) mcpClient.value = null;
+    }
+});
+
+const copyMcpUrl = async () => {
+    try {
+        await navigator.clipboard.writeText(mcpUrl);
+        Toast.open({ message: 'MCP-adressen er kopieret', type: 'is-success' });
+    } catch {
+        Toast.open({ message: 'Kunne ikke kopiere adressen. Markér og kopiér den fra feltet.', type: 'is-danger' });
+    }
+};
 
 const notificationLabels: Record<string, string> = {
     NewUser: 'Ny bruger oprettet'
@@ -891,7 +949,7 @@ const reset = async () => {
 .profile-grid {
     display: grid;
     gap: 1rem;
-    grid-template-columns: 2fr 1fr;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
 }
 
 .profile-grid-wide {
@@ -1007,7 +1065,7 @@ const reset = async () => {
 
 @media (max-width: 768px) {
     .profile-grid {
-        grid-template-columns: 1fr;
+        grid-template-columns: minmax(0, 1fr);
     }
 
     .profile-header {

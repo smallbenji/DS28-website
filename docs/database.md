@@ -253,6 +253,11 @@ Importeren erstatter kun det angivne lejrårs historik i én transaktion.
 
 ## Brugere og roller
 
+`McpUser` seedes som en Identity-rolle i `asp_net_roles`. Direkte tildeling via
+`asp_net_user_roles` kræves for remote MCP; administratorroller og
+organisationsstillinger giver ikke automatisk adgang. Ingen nye tabeller eller
+kolonner tilføjes.
+
 ```mermaid
 erDiagram
     asp_net_users {
