@@ -20,6 +20,7 @@ using DS.Infrastructure.Data;
 using DS.Infrastructure.Identity;
 using DS.Infrastructure.OpenIddict;
 using DS.Backend.Controllers;
+using DS.Backend.Controllers.ApiControllers;
 using DS.Backend.Extensions;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -190,14 +191,32 @@ Check(created.Outcome == ServiceOutcome.Success && !string.IsNullOrEmpty(saved.C
 Check((await clients.CreateClient(data, default)).Outcome == ServiceOutcome.Conflict, "duplicate client ID rejected");
 var descriptor = new OpenIddictApplicationDescriptor();
 await applications.PopulateAsync(descriptor, application);
+Check(descriptor.Permissions.Contains(OpenIddictConstants.Permissions.GrantTypes.RefreshToken), "new clients allow refresh tokens");
+descriptor.Permissions.Remove(OpenIddictConstants.Permissions.GrantTypes.RefreshToken);
 descriptor.Properties["custom"] = JsonSerializer.SerializeToElement("keep");
 descriptor.Permissions.Add("scp:custom");
 descriptor.PostLogoutRedirectUris.Add(new Uri("https://client.example.test/logout"));
+await applications.UpdateAsync(application, descriptor);
+using (var connection = new NpgsqlConnection(connectionString))
+{
+    await connection.OpenAsync();
+    var assembly = typeof(Group).Assembly;
+    using var stream = assembly.GetManifestResourceStream("DS.Migrations.030_oauth_refresh_tokens.sql");
+    using var reader = new StreamReader(stream);
+    var sql = await reader.ReadToEndAsync();
+    await using var migrationCommand = new NpgsqlCommand(sql, connection);
+    Check(await migrationCommand.ExecuteNonQueryAsync() == 1, "migration grants refresh to existing code client");
+    Check(await migrationCommand.ExecuteNonQueryAsync() == 0, "refresh permission migration is idempotent");
+}
+await db.Entry(application).ReloadAsync();
+await applications.PopulateAsync(descriptor, application);
+descriptor.Permissions.Remove(OpenIddictConstants.Permissions.GrantTypes.RefreshToken);
 await applications.UpdateAsync(application, descriptor);
 data.DisplayName = "Updated client";
 var updated = (await clients.UpdateClient(saved.Client.Id, data, default)).Value;
 var preserved = new OpenIddictApplicationDescriptor();
 await applications.PopulateAsync(preserved, application);
+Check(preserved.Permissions.Contains(OpenIddictConstants.Permissions.GrantTypes.RefreshToken), "editing upgrades existing clients to allow refresh tokens");
 Check(updated.ClientSecret == null && await applications.ValidateClientSecretAsync(application, saved.ClientSecret), "editing preserves secret without returning it");
 Check(preserved.Properties["custom"].GetString() == "keep" && preserved.Permissions.Contains("scp:custom") && preserved.PostLogoutRedirectUris.Count == 1, "editing preserves unrelated descriptor settings");
 var rotatedSecret = (await clients.RotateSecret(saved.Client.Id, default)).Value.ClientSecret;
@@ -208,6 +227,7 @@ data.RequirePkce = false;
 Check((await clients.UpdateClient(saved.Client.Id, data, default)).Outcome == ServiceOutcome.Invalid, "public clients still require PKCE");
 Check((await clients.DeleteClient(saved.Client.Id, default)).Outcome == ServiceOutcome.Success && await applications.FindByClientIdAsync(data.ClientId) == null, "delete removes client");
 Check((await clients.RotateSecret("missing", default)).Outcome == ServiceOutcome.NotFound, "missing client retains not-found result");
+await OAuthRefreshChecks.Run(connectionString, Check);
 Console.WriteLine("ALL ACCOUNT AND CLIENT CHECKS PASSED");
 
 class RecordingMailQueue : IMailQueue

@@ -49,12 +49,11 @@ namespace DS.Backend.Controllers
                 identity.AddClaim(new Claim(OpenIddictConstants.Claims.Subject, userId));
             }
 
+            principal.SetScopes(request.GetScopes());
             foreach (var claim in identity.Claims)
             {
-                claim.SetDestinations(GetDestinations(claim, request));
+                claim.SetDestinations(GetDestinations(claim, principal));
             }
-
-            principal.SetScopes(request.GetScopes());
 
             return SignIn(principal, OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
         }
@@ -65,7 +64,10 @@ namespace DS.Backend.Controllers
             var request = HttpContext.GetOpenIddictServerRequest() ??
                 throw new InvalidOperationException("OIDC anmodningen kunne ikke hentes.");
 
-            if (!request.IsAuthorizationCodeGrantType()) throw new InvalidOperationException("Grant-typen understøttes ikke.");
+            if (!request.IsAuthorizationCodeGrantType() && !request.IsRefreshTokenGrantType())
+            {
+                throw new InvalidOperationException("Grant-typen understøttes ikke.");
+            }
 
             var result = await HttpContext.AuthenticateAsync(OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
             var principal = result.Principal;
@@ -73,16 +75,39 @@ namespace DS.Backend.Controllers
 
             var subject = principal.GetClaim(OpenIddictConstants.Claims.Subject);
             var user = string.IsNullOrEmpty(subject) ? null : await userManager.FindByIdAsync(subject);
-            if (user == null) return Forbid(OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
+            if (user == null || !await signInManager.CanSignInAsync(user) || await userManager.IsLockedOutAsync(user))
+            {
+                return Forbid(OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
+            }
+
+            if (request.IsRefreshTokenGrantType() && await signInManager.ValidateSecurityStampAsync(principal) == null)
+            {
+                return Forbid(OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
+            }
 
             var currentPrincipal = await signInManager.CreateUserPrincipalAsync(user);
             if (!await HasClientAccessAsync(request.ClientId, currentPrincipal)) return Forbid(OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
 
-            principal.SetScopes(request.GetScopes());
+            var scopes = principal.GetScopes();
+            if (request.IsRefreshTokenGrantType() && !string.IsNullOrEmpty(request.Scope))
+            {
+                var requestedScopes = request.GetScopes();
+                if (requestedScopes.Except(scopes, StringComparer.Ordinal).Any()) return Forbid(OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
+
+                scopes = requestedScopes;
+            }
+
             var identity = (ClaimsIdentity)principal.Identity!;
+            foreach (var claim in identity.Claims.Where(claim => !claim.Type.StartsWith("oi_", StringComparison.Ordinal)).ToList())
+            {
+                identity.RemoveClaim(claim);
+            }
+            identity.AddClaims(currentPrincipal.Claims);
+            identity.SetClaim(OpenIddictConstants.Claims.Subject, subject);
+            principal.SetScopes(scopes);
             foreach (var claim in identity.Claims)
             {
-                claim.SetDestinations(GetDestinations(claim, request));
+                claim.SetDestinations(GetDestinations(claim, principal));
             }
 
             return SignIn(principal, OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
@@ -150,8 +175,11 @@ namespace DS.Backend.Controllers
             return requiredRoles.Any(principal.IsInRole);
         }
 
-        private static IEnumerable<string> GetDestinations(Claim claim, OpenIddictRequest request)
+        private static IEnumerable<string> GetDestinations(Claim claim, ClaimsPrincipal principal)
         {
+            if (claim.Type.StartsWith("oi_", StringComparison.Ordinal)
+                || claim.Type == "AspNet.Identity.SecurityStamp") yield break;
+
             yield return OpenIddictConstants.Destinations.AccessToken;
 
             switch (claim.Type)
@@ -159,7 +187,7 @@ namespace DS.Backend.Controllers
                 case OpenIddictConstants.Claims.Name:
                 case OpenIddictConstants.Claims.Email:
                 case OpenIddictConstants.Claims.Role:
-                    if (request.HasScope(OpenIddictConstants.Scopes.Profile) || request.HasScope(OpenIddictConstants.Scopes.Email))
+                    if (principal.HasScope(OpenIddictConstants.Scopes.Profile) || principal.HasScope(OpenIddictConstants.Scopes.Email))
                     {
                         yield return OpenIddictConstants.Destinations.IdentityToken;
                     }

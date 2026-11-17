@@ -116,6 +116,9 @@ public static class ServiceExtensions
                     .SetUserInfoEndpointUris("/connect/userinfo");
 
                 options.AllowAuthorizationCodeFlow();
+                options.AllowRefreshTokenFlow();
+                options.SetAccessTokenLifetime(TimeSpan.FromHours(1));
+                options.SetRefreshTokenLifetime(TimeSpan.FromDays(14));
 
                 // Eneste API er denne instans; MCP-klienter sender resource=<origin>/mcp, som ellers skal registreres pr. klient.
                 options.DisableResourceValidation();
@@ -127,7 +130,8 @@ public static class ServiceExtensions
                     OpenIddictConstants.Scopes.OpenId,
                     OpenIddictConstants.Scopes.Profile,
                     OpenIddictConstants.Scopes.Email,
-                    OpenIddictConstants.Scopes.Roles
+                    OpenIddictConstants.Scopes.Roles,
+                    OpenIddictConstants.Scopes.OfflineAccess
                 );
 
                 string certPath = builder.Configuration["OpenIddict:CertificatePath"];

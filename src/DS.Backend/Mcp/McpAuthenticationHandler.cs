@@ -52,7 +52,7 @@ namespace DS.Backend.Mcp
         {
             var origin = $"{Request.Scheme}://{Request.Host}";
             Response.StatusCode = StatusCodes.Status401Unauthorized;
-            Response.Headers.WWWAuthenticate = $"Bearer resource_metadata=\"{origin}{MetadataPath}\", scope=\"openid profile email roles\"";
+            Response.Headers.WWWAuthenticate = $"Bearer resource_metadata=\"{origin}{MetadataPath}\", scope=\"openid profile email roles offline_access\"";
 
             return Task.CompletedTask;
         }
