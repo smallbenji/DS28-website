@@ -245,6 +245,8 @@ namespace DS.Backend.Mcp
             var user = authentication.Principal;
             if (user == null) throw new McpException("Ingen bruger er logget ind.");
 
+            if (!await McpAccessHandler.HasAccess(userManager, user)) throw new McpException("MCP-adgang kræver rollen McpUser.");
+
             var canSeeAllBoards = user.IsInRole(nameof(AppGroups.SysAdmin)) || user.IsInRole(nameof(AppGroups.CampAdmin));
             return new BoardActor(userManager.GetUserId(user), canSeeAllBoards);
         }

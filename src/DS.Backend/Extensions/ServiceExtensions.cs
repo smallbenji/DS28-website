@@ -183,11 +183,14 @@ public static class ServiceExtensions
             })
             .AddScheme<AuthenticationSchemeOptions, McpAuthenticationHandler>(McpAuthenticationHandler.SchemeName, null);
 
+        services.AddScoped<Microsoft.AspNetCore.Authorization.IAuthorizationHandler, McpAccessHandler>();
+
         services.AddAuthorization(options =>
         {
             options.AddPolicy(McpAuthenticationHandler.PolicyName, policy => policy
                 .AddAuthenticationSchemes(McpAuthenticationHandler.SchemeName)
-                .RequireAuthenticatedUser());
+                .RequireAuthenticatedUser()
+                .AddRequirements(new McpAccessRequirement()));
         });
 
         services.ConfigureApplicationCookie(options =>

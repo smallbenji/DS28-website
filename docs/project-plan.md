@@ -1461,6 +1461,26 @@ lokalt.
   kørende instans i denne ændring, så første kald efter deploy skal bekræftes
   med `initialize` og `tools/list`.
 
+**Beslutning 2026-11-17 (DS-43, implementeret):** Remote MCP kræver den
+særskilte Identity-rolle `McpUser`, som systemadministrator og lejrchef kan
+tildele eksplicit i brugeradministrationen. Rollen seedes ved opstart, men
+ingen eksisterende brugere får den automatisk — heller ikke administratorer.
+Dette erstatter den tidligere adgang alene på grundlag af et gyldigt token.
+
+- Både OAuth og personlige tokens kontrolleres mod den aktuelle direkte
+  rolletildeling i databasen ved hver MCP-forespørgsel og hvert værktøjskald.
+  Fjernes rollen, afvises også eksisterende tokens og sessioners efterfølgende
+  værktøjskald. Låste og slettede brugere afvises.
+- Rollen giver ingen ekstra tavlerettigheder og kan ikke tildeles til stillinger
+  eller arves gennem organisationsdiagrammet. Den almindelige HTTP-API og den
+  lokale stdio-klient, som bruger API'et, er ikke omfattet af remote MCP-porten.
+- Profilen viser forbindelsesknapper til Claude og ChatGPT samt kopi af
+  MCP-adressen for brugere med rollen. Knapperne åbner en kort vejledning og
+  klientens opsætning; installation og login kræver brugerens godkendelse.
+  Der loves ikke automatisk installation gennem udokumenterede deep links.
+  Eksisterende OAuth-klientregistrering genbruges; DCR/CIMD tilføjes ikke.
+- Ingen skemaændring eller migration; rollen bruger eksisterende Identity-tabeller.
+
 **Beslutning 2026-11-16 (implementeret):** MCP-endpointet accepterer
 OpenIddict-access-tokens, så ChatGPT-connectoren og Codex kan logge ind i
 stedet for at dele et personligt adgangstoken. OpenIddicts eksisterende

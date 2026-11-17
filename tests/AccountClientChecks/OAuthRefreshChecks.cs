@@ -8,6 +8,7 @@ using DS.Application.Services.OpenIddict;
 using DS.Backend;
 using DS.Backend.Controllers;
 using DS.Backend.Extensions;
+using DS.Backend.Mcp;
 using DS.Domain;
 using DS.Domain.DTOs;
 using DS.Domain.Models;
@@ -92,6 +93,7 @@ static class OAuthRefreshChecks
         });
         app.UseAuthorization();
         app.MapControllers();
+        app.MapGet("/mcp", () => Results.Ok()).RequireAuthorization(McpAuthenticationHandler.PolicyName);
         await app.StartAsync();
         using var client = new HttpClient(new HttpClientHandler { AllowAutoRedirect = false }) { BaseAddress = new Uri(app.Urls.Single()), Timeout = TimeSpan.FromSeconds(15) };
         async Task<JsonObject> Exchange(params (string Key, string Value)[] parameters)
@@ -110,6 +112,51 @@ static class OAuthRefreshChecks
             var query = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(response.Headers.Location.Query);
             return await Exchange(("grant_type", "authorization_code"), ("code", query["code"].ToString()), ("redirect_uri", "https://client.example.test/callback"), ("code_verifier", verifier));
         }
+        async Task<HttpResponseMessage> McpRequest(string token = null)
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Get, "/mcp");
+            if (token != null) request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+            return await client.SendAsync(request);
+        }
+        async Task SetMcpRole(bool enabled)
+        {
+            using var scope = app.Services.CreateScope();
+            var users = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
+            var user = await users.FindByIdAsync(userId);
+            var result = enabled
+                ? await users.AddToRoleAsync(user, nameof(AppGroups.McpUser))
+                : await users.RemoveFromRoleAsync(user, nameof(AppGroups.McpUser));
+            check(result.Succeeded, enabled ? "grant explicit MCP role" : "remove explicit MCP role");
+        }
+        using (var scope = app.Services.CreateScope())
+        {
+            var roles = scope.ServiceProvider.GetRequiredService<RoleManager<Role>>();
+            await roles.CreateAsync(new Role { Name = nameof(AppGroups.McpUser) });
+        }
+        var anonymousMcp = await McpRequest();
+        check(anonymousMcp.StatusCode == HttpStatusCode.Unauthorized && anonymousMcp.Headers.WwwAuthenticate.ToString().Contains("resource_metadata"), "anonymous MCP request receives OAuth challenge");
+        string personalToken;
+        using (var scope = app.Services.CreateScope())
+        {
+            var tokens = scope.ServiceProvider.GetRequiredService<DS.Application.Services.AccessTokens.AccessTokenService>();
+            personalToken = (await tokens.CreateToken(userId, new AccessTokenCreateDto { Name = "MCP access check" })).Value.Token;
+        }
+        check((await McpRequest(personalToken)).StatusCode == HttpStatusCode.Forbidden, "SysAdmin personal token without explicit MCP role denied");
+        await SetMcpRole(true);
+        check((await McpRequest(personalToken)).StatusCode == HttpStatusCode.OK, "same personal token works after explicit role grant");
+        await SetMcpRole(false);
+        check((await McpRequest(personalToken)).StatusCode == HttpStatusCode.Forbidden, "existing personal token denied immediately after role removal despite cached roles");
+        var oauthMcp = await Login();
+        var oauthMcpToken = oauthMcp["access_token"].GetValue<string>();
+        check((await McpRequest(oauthMcpToken)).StatusCode == HttpStatusCode.Forbidden, "OAuth token without explicit MCP role denied");
+        await SetMcpRole(true);
+        check((await McpRequest(oauthMcpToken)).StatusCode == HttpStatusCode.OK, "same OAuth token works after explicit role grant");
+        await SetMcpRole(false);
+        check((await McpRequest(oauthMcpToken)).StatusCode == HttpStatusCode.Forbidden, "existing OAuth token denied immediately after role removal");
+        check(AppAccess.CanAssignRole([nameof(AppGroups.SysAdmin)], nameof(AppGroups.McpUser)), "SysAdmin can assign MCP role");
+        check(AppAccess.CanAssignRole([nameof(AppGroups.CampAdmin)], nameof(AppGroups.McpUser)), "CampAdmin can assign MCP role");
+        check(!AppAccess.CanAssignRole([nameof(AppGroups.User)], nameof(AppGroups.McpUser)), "participant cannot assign MCP role");
+        check(AppAccess.ResolveAppRoles([nameof(AppGroups.McpUser)]).Count == 0, "MCP role grants no extra application permissions");
         var metadata = JsonNode.Parse(await client.GetStringAsync("/.well-known/openid-configuration"));
         check(metadata["grant_types_supported"].AsArray().Any(v => v.GetValue<string>() == "refresh_token"), "discovery advertises refresh grant");
         check(metadata["scopes_supported"].AsArray().Any(v => v.GetValue<string>() == "offline_access"), "discovery advertises offline access");

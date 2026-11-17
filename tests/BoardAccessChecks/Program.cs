@@ -319,6 +319,12 @@ await using (var tagConnection = new NpgsqlConnection(connectionString))
 }
 
 ActAs("owner");
+await RejectMcp(() => mcp.ListBoards(), "MCP tool without direct role denied");
+var roles = scope.ServiceProvider.GetRequiredService<RoleManager<Role>>();
+var mcpRole = new Role { Name = nameof(AppGroups.McpUser) };
+Check((await roles.CreateAsync(mcpRole)).Succeeded, "create MCP role");
+db.UserRoles.Add(new IdentityUserRole<string> { UserId = "owner", RoleId = mcpRole.Id });
+await db.SaveChangesAsync();
 var remoteTagText = await mcp.CreateTag(boardId, " Remote release ", "#DBEAFE");
 var remoteTag = (await Board(boardId)).Tags.Single(tag => tag.Name == "Remote release");
 Check(remoteTagText.Contains($"tag {remoteTag.Id}") && remoteTag.Color == "#dbeafe", "remote MCP creates normalized tag and returns its id");
@@ -353,6 +359,9 @@ await mcp.UpdateCard(boardId, remoteCard.Id, tagIds: [remoteTag.Id]);
 await mcp.DeleteTag(boardId, remoteTag.Id);
 Check((await Board(boardId)).Cards.Single(card => card.Id == remoteCard.Id).Tags.Count == 0, "remote tag deletion clears its assignments");
 await mcp.DeleteCard(boardId, remoteCard.Id);
+await db.UserRoles.Where(role => role.UserId == "owner" && role.RoleId == mcpRole.Id).ExecuteDeleteAsync();
+await RejectMcp(() => mcp.ListBoards(), "existing MCP session cannot call tools after role removal");
+
 
 ActAs("friend");
 Check((await Board(boardId)).Cards.Single().Placements.Single().BoardId == boardId, "shared card hides inaccessible board metadata");
