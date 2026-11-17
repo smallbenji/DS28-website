@@ -534,6 +534,12 @@ eksisterende relation til aktiviteten og budgettabellen er uændrede.
 
 ## OpenIddict
 
+`open_iddict_applications.permissions` indeholder OpenIddicts JSON-array af
+klientrettigheder som tekst. De administrerede authorization-code-klienter har
+både `gt:authorization_code` og `gt:refresh_token`. Refresh-tokens og deres
+status/udløb gemmes i de eksisterende OpenIddict-token- og autorisationstabeller;
+der er ingen særskilt tabel til MCP-login.
+
 `open_iddict_applications.properties` er et nullable tekstfelt med OpenIddicts
 JSON-propertybag. Nøglen `ds28:required_app_roles` indeholder et JSON-array af
 `AppRoles`-navne. Mindst én af de valgte rettigheder kræves for klientens login.

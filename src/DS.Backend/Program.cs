@@ -68,7 +68,7 @@ app.MapGet(McpAuthenticationHandler.MetadataPath, (HttpRequest request) =>
     {
         resource = $"{origin}/mcp",
         authorization_servers = new[] { $"{origin}/" },
-        scopes_supported = new[] { "openid", "profile", "email", "roles" },
+        scopes_supported = new[] { "openid", "profile", "email", "roles", "offline_access" },
         bearer_methods_supported = new[] { "header" },
     });
 });

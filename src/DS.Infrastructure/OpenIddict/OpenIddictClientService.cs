@@ -118,12 +118,14 @@ namespace DS.Infrastructure.OpenIddict
             var application = await applications.FindByIdAsync(id, cancellationToken);
             if (application == null) return new ServiceResult(ServiceOutcome.NotFound);
 
-            return await ExecuteChangeAsync<object>(async () =>
+            var result = await ExecuteChangeAsync<object>(async () =>
             {
                 await applications.DeleteAsync(application, cancellationToken);
 
                 return new ServiceResult(ServiceOutcome.Success);
             });
+
+            return new ServiceResult(result.Outcome, result.Error);
         }
 
         private async Task<OpenIddictClientDto> GetClientAsync(object application, CancellationToken cancellationToken)
@@ -174,6 +176,7 @@ namespace DS.Infrastructure.OpenIddict
 
         private static void ApplyClient(OpenIddictApplicationDescriptor descriptor, OpenIddictClientUpdateDto data)
         {
+            descriptor.Permissions.Add(Permissions.GrantTypes.RefreshToken);
             descriptor.ClientId = data.ClientId.Trim();
             descriptor.DisplayName = data.DisplayName.Trim();
             descriptor.ClientType = data.ClientType;
@@ -196,12 +199,11 @@ namespace DS.Infrastructure.OpenIddict
             return Convert.ToHexStringLower(RandomNumberGenerator.GetBytes(32));
         }
 
-        private async Task<ServiceResult> ExecuteChangeAsync<T>(Func<Task<ServiceResult<T>>> change)
+        private async Task<ServiceResult<T>> ExecuteChangeAsync<T>(Func<Task<ServiceResult<T>>> change)
         {
             try
             {
-                var result = await change();
-                return new ServiceResult(result.Outcome, result.Error);
+                return await change();
             }
             catch (OpenIddictExceptions.ValidationException)
             {

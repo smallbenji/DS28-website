@@ -396,7 +396,8 @@ samme adgangskrav, også under "Vis som".
   Public-klienter kræver PKCE; nye confidential-klienter foreslår også PKCE.
 - Nye klienter bruger serverens eksisterende authorization-code-flow og implicit
   consent, da der ikke findes et samtykketrin. Andre grants og nye scopes
-  aktiveres ikke. Redirect-URL'er kræver HTTPS, undtagen HTTP på loopback, og
+  aktiveres ikke i denne første version; DS-36 nedenfor udvider senere med
+  refresh-grant og `offline_access`. Redirect-URL'er kræver HTTPS, undtagen HTTP på loopback, og
   tillader ikke wildcard, fragment eller brugernavn/adgangskode.
 - Secrets genereres kryptografisk på serveren, hashes af OpenIddict og vises
   kun i svaret ved oprettelse, rotation eller skift fra public til confidential.
@@ -1492,6 +1493,46 @@ autorisationsserver genbruges; der indføres ingen ny identitetsudbyder.
   et `initialize`/`tools/list`-kald mod produktion med personligt token.
   OAuth-forløbet er ikke kørt igennem lokalt, fordi der hverken er database
   eller Docker på udviklingsmaskinen.
+
+**Beslutning 2026-11-17 (DS-36, implementeret i denne ændring, ikke udgivet):**
+OAuth understøtter refresh tokens til de operatør-oprettede authorization-code-
+klienter. Dette udvider den tidligere code-only-afgrænsning; DCR/CIMD indføres
+fortsat ikke. Access-tokens lever én time; refresh-tokens lever 14 dage med
+OpenIddicts standardrotation og glidende udløb (14 dage fra seneste fornyelse).
+Standardvinduet på 30 sekunder til samtidige refresh-kald bevares. Udløbne,
+tilbagekaldte og genbrugte tokens uden for vinduet valideres af OpenIddict.
+
+- Serverens discovery og MCP-metadata annoncerer `offline_access`. Klienten
+  skal anmode om dette scope ved login for at modtage et refresh-token.
+- Nye og redigerede klienter får refresh-grant-rettigheden. Eksisterende
+  authorization-code-klienter opgraderes gennem en idempotent datamigration,
+  som bevarer øvrige rettigheder og konfiguration. Databaseskemaet er uændret.
+- Token-endpointet bevarer de godkendte scopes, også når tokenkaldet udelader
+  `scope`. Refresh kan indsnævre scopes, men aldrig udvide dem.
+- Hver udveksling genlæser brugeren og klientens adgangskrav, afviser slettede
+  eller låste brugere og genopbygger aktuelle brugerclaims. Refresh kontrollerer
+  også Identity security stamp, så eksempelvis en nulstilling af adgangskoden
+  afviser den gamle forbindelse. Private OpenIddict-claims bevares internt;
+  de og security stamp eksponeres ikke i access-/ID-tokens.
+- Eksisterende forbindelser skal autoriseres igen med `offline_access` efter
+  deploy. Der ændres ikke på allerede udstedte tokens eller personlige tokens.
+  ChatGPTs scope-konfiguration skal kontrolleres som del af produktionschecket.
+- MCP-sessioners levetid og genoprettelse efter Website-genstart er uændret.
+  Refresh løser tokenfornyelsen; det er ikke en løsning på mistet sessionstilstand.
+- Klientservicens fælles skrivehjælper bevarer nu det typede svar. Tidligere
+  tabte den succesdata, herunder det nye client secret, selv om klienten blev
+  gemt. Dette blev afdækket af klienttestene under DS-36.
+- Verifikation: `tests/AccountClientChecks/run.sh` tester klientadministration,
+  migration af eksisterende klienter og idempotens samt HTTP authorization-code-
+  flow med PKCE og gentagen refresh efter access-tokenets udløb. Desuden testes
+  scopes, rotation/genbrug, tilbagekaldelse, ændret security stamp, låsning og
+  mistet klientadgang. Testene bruger isoleret PostgreSQL og midlertidige
+  signerings-/krypteringsnøgler. Backend-build og `git diff --check` er kørt.
+  ChatGPT-integration, produktionsdeploy og reconnect efter Website-genstart
+  er ikke testet i denne ændring.
+- Datamigrationen kræver et databasedump før deploy efter den almindelige
+  releaseprocedure. Den er kompatibel med den foregående release, som blot
+  ignorerer den ekstra grant-rettighed.
 
 **Beslutning 2026-11-15 (implementeret):** Personlige adgangstokens afløser
 email og adgangskode i MCP-værktøjet. En bruger kan oprette, se én gang og
