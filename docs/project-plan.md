@@ -2201,6 +2201,15 @@ indføres ikke en produktion- eller release-branch.
 
 ## Frontend og formularvisning
 
+### Designguide
+
+**Beslutning 2026-11-18:** UI i HQ følger [designguiden](design-guide.md). Den
+fastlægger sidetyper, farver, knaptyper, modaler, bekræftelser, feedback,
+tekstregler og brudpunkter ud fra de mønstre, der var mest udbredt i koden.
+Eksisterende kode er ikke omskrevet; afvigelser er listet i guiden og rettes,
+når filerne alligevel ændres. En fælles SCSS-fil med farvevariabler er foreslået,
+men ikke besluttet.
+
 ### HQ-favicon
 
 **Beslutning 2026-11-17 (implementeret):** HQ bruger den godkendte cowboyhat
