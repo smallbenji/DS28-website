@@ -132,8 +132,15 @@ namespace DS.Backend.Controllers
 
 ## Frontend
 
-The frontend uses Vue and Buefy. Use existing Buefy components and surrounding
-project patterns for forms, buttons, tables, notifications, and step flows.
+The frontend lives in `src/DS.Frontend` and uses Vue and Buefy. Read
+[the design guide](docs/design-guide.md) before building or substantially
+changing UI. Use existing Buefy components and surrounding project patterns for
+forms, buttons, tables, notifications, and step flows.
+
+- Follow the guide's page types, colors, button types, wording, and
+  breakpoints. Fix listed deviations only in files you are already changing.
+- Update the design guide in the same task when you establish a new shared UI
+  pattern or change an existing one.
 
 ## Git commits and pull requests
 
@@ -204,7 +211,7 @@ To deploy a new version: bump the version in `src/DS.Domain/DSVersion.cs`, creat
 - Run `git diff --check` after edits.
 - For C# changes, build with
   `dotnet build DS.Backend/DS.Backend.csproj --no-restore --disable-build-servers -m:1`.
-- For frontend changes, run `npm run build` in `DS.Backend/js`. If both builds
+- For frontend changes, run `npm run build` in `src/DS.Frontend`. If both builds
   are needed, finish the frontend build first: it replaces assets consumed by
   the backend build.
 - Do not add tests solely for formatting changes.
