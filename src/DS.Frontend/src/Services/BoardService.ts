@@ -12,6 +12,7 @@ import type {
     WorkItemCreateDto,
     WorkItemMoveDto,
     WorkItemPlacementCreateDto,
+    WorkItemSearchResultDto,
     WorkItemUpdateDto
 } from "@/types";
 import { apiDelete, apiGet, apiPost, apiPut, safeApiCall } from "@/lib/api";
@@ -157,6 +158,24 @@ export default class BoardService {
     public async createPlacement(boardId: number, cardId: number, data: WorkItemPlacementCreateDto): Promise<boolean> {
         return safeApiCall(async () => {
             await apiPost<void>(`/api/v1/boards/${boardId}/cards/${cardId}/placements`, data);
+            return true;
+        }, false);
+    }
+
+    public async searchCards(search: string): Promise<WorkItemSearchResultDto[]> {
+        return safeApiCall(async () => {
+            const data = await apiGet<WorkItemSearchResultDto[]>("/api/v1/boards/cards/search", { params: { search } });
+            return Array.isArray(data) ? data : [];
+        }, []);
+    }
+
+    public async addDependency(boardId: number, cardId: number, dependsOnWorkItemId: number): Promise<void> {
+        await apiPost<void>(`/api/v1/boards/${boardId}/cards/${cardId}/dependencies`, { dependsOnWorkItemId });
+    }
+
+    public async removeDependency(boardId: number, cardId: number, otherCardId: number): Promise<boolean> {
+        return safeApiCall(async () => {
+            await apiDelete<void>(`/api/v1/boards/${boardId}/cards/${cardId}/dependencies/${otherCardId}`);
             return true;
         }, false);
     }

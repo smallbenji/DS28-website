@@ -25,6 +25,8 @@
                             <BField label="Beskrivelse" class="board-card-description-field">
                                 <RichTextEditor v-model="form.description" />
                             </BField>
+
+                            <BoardCardDependencies v-if="!isNew && card" :board-id="boardId" :card="card" can-manage />
                         </div>
 
                         <div class="board-card-side">
@@ -199,6 +201,8 @@
                             <h2 class="board-card-read-only-title">{{ card?.title }}</h2>
                             <h3 class="board-card-heading">Beskrivelse</h3>
                             <RichTextViewer v-if="card?.description" :html="card.description" />
+
+                            <BoardCardDependencies v-if="card" :board-id="boardId" :card="card" :can-manage="false" />
                         </div>
 
                         <div class="board-card-side">
@@ -263,6 +267,7 @@ import OrgService from '@/Services/OrgService';
 import { boardPriorityLabel, boardPriorityOptions, type BoardColumnDto, type OrgPositionDto, type BoardMemberDto, type WorkItemDto, type WorkItemPlacementDto } from '@/types';
 import { useBoardStore } from '@/Stores/BoardStore';
 import BoardTagInput from './BoardTagInput.vue';
+import BoardCardDependencies from './BoardCardDependencies.vue';
 import type { BoardTagDto } from '@/types';
 import RichTextEditor from '@/Components/RichText/RichTextEditor.vue';
 import RichTextViewer from '@/Components/RichText/RichTextViewer.vue';
