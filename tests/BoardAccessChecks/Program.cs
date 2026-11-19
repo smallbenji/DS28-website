@@ -449,6 +449,74 @@ await using (var connection = new NpgsqlConnection(connectionString))
 Check(await controller.UpdateCard(new WorkItemUpdateDto { Title = "Retry succeeded", NewTagNames = ["Rollback update"] }, boardId, inlineCardId) is OkResult, "retry after rollback succeeds");
 Check((await Board(boardId)).Tags.Count(tag => tag.Name == "Rollback update") == 1, "retry creates exactly one tag");
 
+ActAs("owner");
+var depsHiddenId = (int)((OkObjectResult)await controller.CreateBoard(new BoardCreateDto { Title = "Deps hidden" })).Value;
+var depsHiddenColumns = (await Board(depsHiddenId)).Columns;
+var hiddenCardId = (int)((OkObjectResult)await controller.CreateCard(new WorkItemCreateDto { Title = "Dep hidden", ColumnId = depsHiddenColumns.First().Id }, depsHiddenId)).Value;
+ActAs("friend");
+var depsId = (int)((OkObjectResult)await controller.CreateBoard(new BoardCreateDto { Title = "Deps" })).Value;
+var depsColumns = (await Board(depsId)).Columns;
+var depsBacklog = depsColumns.First().Id;
+var depsDone = depsColumns.Single(column => column.IsDoneColumn).Id;
+var depA = (int)((OkObjectResult)await controller.CreateCard(new WorkItemCreateDto { Title = "Dep A", ColumnId = depsBacklog }, depsId)).Value;
+var depB = (int)((OkObjectResult)await controller.CreateCard(new WorkItemCreateDto { Title = "Dep B", ColumnId = depsBacklog }, depsId)).Value;
+var depC = (int)((OkObjectResult)await controller.CreateCard(new WorkItemCreateDto { Title = "Dep C", ColumnId = depsBacklog }, depsId)).Value;
+WorkItemDto DepCard(BoardDetailDto board, int id)
+{
+    return board.Cards.Single(card => card.Id == id);
+}
+
+Check(await controller.AddDependency(new WorkItemDependencyCreateDto { DependsOnWorkItemId = depB }, depsId, depA) is OkResult, "member can make a card wait on another card");
+var depsBoard = await Board(depsId);
+var waitingOnB = DepCard(depsBoard, depA).WaitingOn.Single();
+Check(waitingOnB.Id == depB && waitingOnB.IsVisible && waitingOnB.Title == "Dep B" && !waitingOnB.IsDone, "waiting card lists visible unfinished dependency");
+Check(DepCard(depsBoard, depB).Blocking.Single().Id == depA, "dependency lists the card it blocks");
+Check(await controller.AddDependency(new WorkItemDependencyCreateDto { DependsOnWorkItemId = depB }, depsId, depA) is ConflictObjectResult, "duplicate dependency rejected");
+Check(await controller.AddDependency(new WorkItemDependencyCreateDto { DependsOnWorkItemId = depA }, depsId, depA) is BadRequestObjectResult, "card cannot wait on itself");
+Check(await controller.AddDependency(new WorkItemDependencyCreateDto { DependsOnWorkItemId = depA }, depsId, depB) is BadRequestObjectResult, "direct dependency cycle rejected");
+Check(await controller.AddDependency(new WorkItemDependencyCreateDto { DependsOnWorkItemId = depC }, depsId, depB) is OkResult, "dependency chain can be extended");
+Check(await controller.AddDependency(new WorkItemDependencyCreateDto { DependsOnWorkItemId = depA }, depsId, depC) is BadRequestObjectResult, "indirect dependency cycle rejected");
+Check(await controller.AddDependency(new WorkItemDependencyCreateDto { DependsOnWorkItemId = hiddenCardId }, depsId, depA) is BadRequestObjectResult, "cannot depend on a card the member cannot see");
+Check(await controller.AddDependency(new WorkItemDependencyCreateDto { DependsOnWorkItemId = 999999 }, depsId, depA) is BadRequestObjectResult, "unknown card is reported like a hidden card");
+
+var foundById = (List<WorkItemSearchResultDto>)((OkObjectResult)await controller.SearchCards($"ds-{depB}")).Value;
+Check(foundById.First().Id == depB, "card search finds DS number first");
+Check(((List<WorkItemSearchResultDto>)((OkObjectResult)await controller.SearchCards("Dep hidden")).Value).Count == 0, "card search excludes cards on boards the member cannot see");
+
+ActAs("admin", nameof(AppGroups.SysAdmin));
+Check(await controller.AddDependency(new WorkItemDependencyCreateDto { DependsOnWorkItemId = hiddenCardId }, depsId, depA) is OkResult, "administrator can depend on a card on another board");
+ActAs("friend");
+var hiddenDependency = DepCard(await Board(depsId), depA).WaitingOn.Single(dependency => dependency.Id == hiddenCardId);
+Check(!hiddenDependency.IsVisible && hiddenDependency.Title == null && hiddenDependency.Placements.Count == 0 && !hiddenDependency.IsDone, "hidden dependency exposes only its number and done state");
+
+Check(await controller.MoveCard(new WorkItemMoveDto { ColumnId = depsDone }, depsId, depB) is OkResult, "dependency can be moved to a done column");
+Check(DepCard(await Board(depsId), depA).WaitingOn.Single(dependency => dependency.Id == depB).IsDone, "dependency in done column counts as done");
+ActAs("admin", nameof(AppGroups.SysAdmin));
+Check(await controller.AddCardPlacement(new WorkItemPlacementCreateDto { ColumnId = depsHiddenColumns.First().Id }, depsHiddenId, depB) is OkResult, "dependency can be shared to another board");
+ActAs("friend");
+Check(!DepCard(await Board(depsId), depA).WaitingOn.Single(dependency => dependency.Id == depB).IsDone, "dependency is unfinished while any placement, even hidden, is unfinished");
+
+ActAs("admin", nameof(AppGroups.SysAdmin));
+boardEvents.Changes.Clear();
+Check(await controller.MoveCard(new WorkItemMoveDto { ColumnId = depsHiddenColumns.Single(column => column.IsDoneColumn).Id }, depsHiddenId, hiddenCardId) is OkResult, "hidden dependency can be completed");
+Check(boardEvents.Changes.Contains(depsId), "completing a dependency notifies boards with waiting cards");
+ActAs("friend");
+Check(DepCard(await Board(depsId), depA).WaitingOn.Single(dependency => dependency.Id == hiddenCardId).IsDone, "completed hidden dependency counts as done");
+
+ActAs("outsider");
+Check(await controller.AddDependency(new WorkItemDependencyCreateDto { DependsOnWorkItemId = depC }, depsId, depA) is ForbidResult, "outsider cannot add dependencies");
+Check(await controller.RemoveDependency(depsId, depA, depB) is ForbidResult, "outsider cannot remove dependencies");
+Check(((List<WorkItemSearchResultDto>)((OkObjectResult)await controller.SearchCards("Dep")).Value).Count == 0, "outsider search finds no cards");
+
+ActAs("friend");
+Check(await controller.RemoveDependency(depsId, depA, hiddenCardId) is OkResult, "member can remove a dependency on a hidden card");
+Check(await controller.RemoveDependency(depsId, depB, depA) is OkResult, "dependency can be removed from the blocking side");
+Check(DepCard(await Board(depsId), depA).WaitingOn.Count == 0, "removed dependencies disappear");
+Check(await controller.RemoveDependency(depsId, depA, depB) is NotFoundResult, "removing a missing dependency returns not found");
+Check(await controller.RemoveCard(depsId, depC) is OkResult, "dependency card can be deleted");
+Check(!await db.WorkItemDependencies.AnyAsync(dependency => dependency.WorkItemId == depC || dependency.DependsOnWorkItemId == depC), "deleting a card removes its dependencies");
+Check(DepCard(await Board(depsId), depB).WaitingOn.Count == 0, "deleted dependency no longer blocks");
+
 Check(await controller.DeleteBoard(boardId) is OkResult, "member can delete board");
 Check(await controller.AddMember(new BoardMemberCreateDto { UserId = "outsider" }, boardId) is ForbidResult, "deleted board rejects invitations");
 Check(await controller.CreateColor(new BoardColorUpdateDto { Name = "Denied", Color = "#123456" }, boardId) is ForbidResult, "deleted board rejects palette changes");

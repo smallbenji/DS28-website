@@ -46,9 +46,130 @@ namespace DS.Application.Services.Boards
             if (!await CanSeeBoardAsync(actor, board)) return new ServiceResult(ServiceOutcome.Forbidden);
 
             var cards = await LoadCardsAsync(id);
-            var placements = await LoadPlacementsAsync(actor, cards.Select(card => card.WorkItemId).Distinct().ToList());
+            var workItemIds = cards.Select(card => card.WorkItemId).Distinct().ToList();
+            var placements = await LoadPlacementsAsync(actor, workItemIds);
+            var dependencies = await LoadDependenciesAsync(actor, workItemIds);
 
-            return new ServiceResult<BoardDetailDto>(ServiceOutcome.Success, ToDetailDto(board, cards, placements));
+            return new ServiceResult<BoardDetailDto>(ServiceOutcome.Success, ToDetailDto(board, cards, placements, dependencies));
+        }
+
+        public async Task<ServiceResult<List<WorkItemSearchResultDto>>> SearchCards(BoardActor actor, string search)
+        {
+            if (string.IsNullOrWhiteSpace(search)) return new ServiceResult<List<WorkItemSearchResultDto>>(ServiceOutcome.Success, []);
+
+            var searchTerm = search.Trim();
+            var idMatch = Regex.Match(searchTerm, "^(?:ds-?)?(\\d{1,9})$", RegexOptions.IgnoreCase);
+            int? searchId = idMatch.Success ? int.Parse(idMatch.Groups[1].Value) : null;
+
+            var visibleBoardIds = VisibleBoards(actor).Select(board => board.Id);
+            var items = await dataDb.WorkItems
+                .AsNoTracking()
+                .Where(item => dataDb.BoardCards.Any(card => card.WorkItemId == item.Id && visibleBoardIds.Contains(card.BoardId)))
+                .Where(item => item.Id == searchId || EF.Functions.ILike(item.Title, $"%{searchTerm}%"))
+                .OrderBy(item => item.Id == searchId ? 0 : 1)
+                .ThenByDescending(item => item.UpdatedAt)
+                .Take(10)
+                .Select(item => new { item.Id, item.Title })
+                .ToListAsync();
+
+            var placements = await LoadPlacementsAsync(actor, items.Select(item => item.Id).ToList());
+            var results = items
+                .Select(item => new WorkItemSearchResultDto
+                {
+                    Id = item.Id,
+                    Title = item.Title,
+                    Placements = placements.TryGetValue(item.Id, out var itemPlacements) ? itemPlacements : [],
+                })
+                .ToList();
+
+            return new ServiceResult<List<WorkItemSearchResultDto>>(ServiceOutcome.Success, results);
+        }
+
+        public async Task<ServiceResult> AddDependency(BoardActor actor, WorkItemDependencyCreateDto data, int id, int workItemId)
+        {
+            if (data == null) return new ServiceResult(ServiceOutcome.Invalid);
+
+            var board = await GetBoardAsync(id);
+            if (board == null) return new ServiceResult(ServiceOutcome.NotFound);
+            if (!await CanSeeBoardAsync(actor, board)) return new ServiceResult(ServiceOutcome.Forbidden);
+
+            var isPlaced = await dataDb.BoardCards.AnyAsync(card => card.BoardId == id && card.WorkItemId == workItemId && card.WorkItem.DeletedAt == null);
+            if (!isPlaced) return new ServiceResult(ServiceOutcome.NotFound);
+
+            var dependsOnId = data.DependsOnWorkItemId;
+            if (dependsOnId == workItemId) return new ServiceResult(ServiceOutcome.Invalid, "Et kort kan ikke vente på sig selv.");
+
+            var visibleBoardIds = VisibleBoards(actor).Select(candidate => candidate.Id);
+            var canSeeDependency = await dataDb.BoardCards
+                .AnyAsync(card => card.WorkItemId == dependsOnId && card.WorkItem.DeletedAt == null && visibleBoardIds.Contains(card.BoardId));
+            if (!canSeeDependency) return new ServiceResult(ServiceOutcome.Invalid, "Kortet findes ikke, eller du har ikke adgang til det.");
+
+            var alreadyWaiting = await dataDb.WorkItemDependencies
+                .AnyAsync(dependency => dependency.WorkItemId == workItemId && dependency.DependsOnWorkItemId == dependsOnId);
+            if (alreadyWaiting) return new ServiceResult(ServiceOutcome.Conflict, $"Kortet venter allerede på DS-{dependsOnId}.");
+
+            if (await WaitsOnAsync(dependsOnId, workItemId))
+            {
+                return new ServiceResult(ServiceOutcome.Invalid, $"DS-{dependsOnId} venter allerede på dette kort, direkte eller gennem andre kort.");
+            }
+
+            var dependency = new WorkItemDependency { WorkItemId = workItemId, DependsOnWorkItemId = dependsOnId };
+            dataDb.WorkItemDependencies.Add(dependency);
+            try
+            {
+                await dataDb.SaveChangesAsync();
+            }
+            catch (DbUpdateException exception) when (exception.InnerException is DbException { SqlState: "23505" })
+            {
+                dataDb.Entry(dependency).State = EntityState.Detached;
+                return new ServiceResult(ServiceOutcome.Conflict, $"Kortet venter allerede på DS-{dependsOnId}.");
+            }
+            await NotifyBoardsWithCardsAsync([workItemId, dependsOnId]);
+
+            return new ServiceResult(ServiceOutcome.Success);
+        }
+
+        public async Task<ServiceResult> RemoveDependency(BoardActor actor, int id, int workItemId, int otherWorkItemId)
+        {
+            var board = await GetBoardAsync(id);
+            if (board == null) return new ServiceResult(ServiceOutcome.NotFound);
+            if (!await CanSeeBoardAsync(actor, board)) return new ServiceResult(ServiceOutcome.Forbidden);
+
+            var isPlaced = await dataDb.BoardCards.AnyAsync(card => card.BoardId == id && card.WorkItemId == workItemId && card.WorkItem.DeletedAt == null);
+            if (!isPlaced) return new ServiceResult(ServiceOutcome.NotFound);
+
+            var dependencies = await dataDb.WorkItemDependencies
+                .Where(dependency => (dependency.WorkItemId == workItemId && dependency.DependsOnWorkItemId == otherWorkItemId)
+                    || (dependency.WorkItemId == otherWorkItemId && dependency.DependsOnWorkItemId == workItemId))
+                .ToListAsync();
+            if (dependencies.Count == 0) return new ServiceResult(ServiceOutcome.NotFound);
+
+            dataDb.WorkItemDependencies.RemoveRange(dependencies);
+            await dataDb.SaveChangesAsync();
+            await NotifyBoardsWithCardsAsync([workItemId, otherWorkItemId]);
+
+            return new ServiceResult(ServiceOutcome.Success);
+        }
+
+        private async Task<bool> WaitsOnAsync(int workItemId, int targetWorkItemId)
+        {
+            var visited = new HashSet<int> { workItemId };
+            var frontier = new List<int> { workItemId };
+
+            while (frontier.Count > 0)
+            {
+                var next = await dataDb.WorkItemDependencies
+                    .AsNoTracking()
+                    .Where(dependency => frontier.Contains(dependency.WorkItemId))
+                    .Select(dependency => dependency.DependsOnWorkItemId)
+                    .Distinct()
+                    .ToListAsync();
+                if (next.Contains(targetWorkItemId)) return true;
+
+                frontier = next.Where(visited.Add).ToList();
+            }
+
+            return false;
         }
 
         public async Task<ServiceResult<List<BoardColumnDto>>> GetColumns(BoardActor actor, int id)
@@ -367,6 +488,7 @@ namespace DS.Application.Services.Boards
             board.UpdatedAt = DateTime.UtcNow;
             await dataDb.SaveChangesAsync();
             await boardEvents.BoardChanged(id);
+            await NotifyBoardsWithCardsAsync(await dataDb.BoardCards.Where(card => card.BoardId == id).Select(card => card.WorkItemId).ToListAsync());
 
             return new ServiceResult(ServiceOutcome.Success);
         }
@@ -413,6 +535,8 @@ namespace DS.Application.Services.Boards
             var column = await dataDb.BoardColumns.FirstOrDefaultAsync(column => column.Id == columnId && column.BoardId == id);
             if (column == null) return new ServiceResult(ServiceOutcome.NotFound);
 
+            var doneChanged = column.IsDoneColumn != data.IsDoneColumn;
+
             column.Title = data.Title.Trim();
             column.WipLimit = data.WipLimit;
             column.IsDoneColumn = data.IsDoneColumn;
@@ -420,6 +544,7 @@ namespace DS.Application.Services.Boards
 
             await dataDb.SaveChangesAsync();
             await boardEvents.BoardChanged(id);
+            if (doneChanged) await NotifyBoardsWithCardsAsync(await dataDb.BoardCards.Where(card => card.ColumnId == columnId).Select(card => card.WorkItemId).ToListAsync());
 
             return new ServiceResult(ServiceOutcome.Success);
         }
@@ -652,6 +777,7 @@ namespace DS.Application.Services.Boards
 
             await dataDb.SaveChangesAsync();
             await boardEvents.BoardChanged(id);
+            if (sourceColumnId != targetColumn.Id) await NotifyBoardsWithCardAsync(workItemId);
 
             return new ServiceResult(ServiceOutcome.Success);
         }
@@ -669,12 +795,21 @@ namespace DS.Application.Services.Boards
             dataDb.BoardCards.Remove(card);
             await dataDb.SaveChangesAsync();
 
+            var relatedWorkItemIds = new List<int>();
             var stillPlaced = await dataDb.BoardCards.AnyAsync(candidate => candidate.WorkItemId == workItemId);
             if (!stillPlaced)
             {
                 var item = await dataDb.WorkItems.FirstOrDefaultAsync(candidate => candidate.Id == workItemId && candidate.DeletedAt == null);
                 if (item != null)
                 {
+                    var dependencies = await dataDb.WorkItemDependencies
+                        .Where(dependency => dependency.WorkItemId == workItemId || dependency.DependsOnWorkItemId == workItemId)
+                        .ToListAsync();
+                    relatedWorkItemIds = dependencies
+                        .Select(dependency => dependency.WorkItemId == workItemId ? dependency.DependsOnWorkItemId : dependency.WorkItemId)
+                        .ToList();
+
+                    dataDb.WorkItemDependencies.RemoveRange(dependencies);
                     item.DeletedAt = DateTime.UtcNow;
                     item.UpdatedAt = DateTime.UtcNow;
                     await dataDb.SaveChangesAsync();
@@ -682,7 +817,7 @@ namespace DS.Application.Services.Boards
             }
 
             await boardEvents.BoardChanged(id);
-            await NotifyBoardsWithCardAsync(workItemId);
+            await NotifyBoardsWithCardsAsync([workItemId, .. relatedWorkItemIds]);
 
             return new ServiceResult(ServiceOutcome.Success);
         }
@@ -730,15 +865,95 @@ namespace DS.Application.Services.Boards
 
         private async Task NotifyBoardsWithCardAsync(int workItemId)
         {
+            await NotifyBoardsWithCardsAsync([workItemId]);
+        }
+
+        private async Task NotifyBoardsWithCardsAsync(List<int> workItemIds)
+        {
+            if (workItemIds.Count == 0) return;
+
+            var dependencies = await dataDb.WorkItemDependencies
+                .AsNoTracking()
+                .Where(dependency => workItemIds.Contains(dependency.WorkItemId) || workItemIds.Contains(dependency.DependsOnWorkItemId))
+                .Select(dependency => new { dependency.WorkItemId, dependency.DependsOnWorkItemId })
+                .ToListAsync();
+            var affectedIds = workItemIds
+                .Concat(dependencies.Select(dependency => dependency.WorkItemId))
+                .Concat(dependencies.Select(dependency => dependency.DependsOnWorkItemId))
+                .Distinct()
+                .ToList();
+
             var boardIds = await dataDb.BoardCards
                 .AsNoTracking()
-                .Where(card => card.WorkItemId == workItemId)
+                .Where(card => affectedIds.Contains(card.WorkItemId))
                 .Select(card => card.BoardId)
                 .Distinct()
                 .ToListAsync();
 
             foreach (var boardId in boardIds) await boardEvents.BoardChanged(boardId);
         }
+
+        private async Task<Dictionary<int, CardDependencies>> LoadDependenciesAsync(BoardActor actor, List<int> workItemIds)
+        {
+            if (workItemIds.Count == 0) return [];
+
+            var edges = await dataDb.WorkItemDependencies
+                .AsNoTracking()
+                .Where(dependency => workItemIds.Contains(dependency.WorkItemId) || workItemIds.Contains(dependency.DependsOnWorkItemId))
+                .Select(dependency => new { dependency.WorkItemId, dependency.DependsOnWorkItemId })
+                .ToListAsync();
+            if (edges.Count == 0) return [];
+
+            var relatedIds = edges.SelectMany(edge => new[] { edge.WorkItemId, edge.DependsOnWorkItemId }).Distinct().ToList();
+            var titles = await dataDb.WorkItems
+                .AsNoTracking()
+                .Where(item => relatedIds.Contains(item.Id))
+                .ToDictionaryAsync(item => item.Id, item => item.Title);
+            var unfinishedIds = (await dataDb.BoardCards
+                .AsNoTracking()
+                .Where(card => relatedIds.Contains(card.WorkItemId) && card.Board.DeletedAt == null && !card.Column.IsDoneColumn)
+                .Select(card => card.WorkItemId)
+                .Distinct()
+                .ToListAsync())
+                .ToHashSet();
+            var placements = await LoadPlacementsAsync(actor, relatedIds);
+
+            WorkItemDependencyDto ToDependencyDto(int relatedId)
+            {
+                var isVisible = placements.TryGetValue(relatedId, out var relatedPlacements);
+
+                return new WorkItemDependencyDto
+                {
+                    Id = relatedId,
+                    IsVisible = isVisible,
+                    Title = isVisible ? titles[relatedId] : null,
+                    IsDone = !unfinishedIds.Contains(relatedId),
+                    Placements = isVisible ? relatedPlacements : [],
+                };
+            }
+
+            var result = workItemIds.ToDictionary(workItemId => workItemId, _ => new CardDependencies([], []));
+            foreach (var edge in edges.Where(edge => titles.ContainsKey(edge.WorkItemId) && titles.ContainsKey(edge.DependsOnWorkItemId)))
+            {
+                if (result.TryGetValue(edge.WorkItemId, out var waiting)) waiting.WaitingOn.Add(ToDependencyDto(edge.DependsOnWorkItemId));
+                if (result.TryGetValue(edge.DependsOnWorkItemId, out var blocking)) blocking.Blocking.Add(ToDependencyDto(edge.WorkItemId));
+            }
+
+            foreach (var dependencies in result.Values)
+            {
+                dependencies.WaitingOn.Sort(CompareDependencies);
+                dependencies.Blocking.Sort(CompareDependencies);
+            }
+
+            return result;
+        }
+
+        private static int CompareDependencies(WorkItemDependencyDto first, WorkItemDependencyDto second)
+        {
+            return (first.IsDone, first.Id).CompareTo((second.IsDone, second.Id));
+        }
+
+        private sealed record CardDependencies(List<WorkItemDependencyDto> WaitingOn, List<WorkItemDependencyDto> Blocking);
 
         private async Task<List<BoardCard>> LoadCardsAsync(int boardId)
         {
@@ -947,7 +1162,7 @@ namespace DS.Application.Services.Boards
                 .ToList();
         }
 
-        private static BoardDetailDto ToDetailDto(Board board, List<BoardCard> cards, Dictionary<int, List<WorkItemPlacementDto>> placements)
+        private static BoardDetailDto ToDetailDto(Board board, List<BoardCard> cards, Dictionary<int, List<WorkItemPlacementDto>> placements, Dictionary<int, CardDependencies> dependencies)
         {
             return new BoardDetailDto
             {
@@ -969,7 +1184,7 @@ namespace DS.Application.Services.Boards
                         IsDoneColumn = column.IsDoneColumn,
                     })
                     .ToList(),
-                Cards = cards.Select(card => ToCardDto(card, placements)).ToList(),
+                Cards = cards.Select(card => ToCardDto(card, placements, dependencies)).ToList(),
                 Tags = board.Tags.OrderBy(tag => tag.Name).ThenBy(tag => tag.Id)
                     .Select(tag => new BoardTagDto { Id = tag.Id, Name = tag.Name, Color = tag.Color }).ToList(),
                 Colors = board.Colors.OrderBy(color => color.Id)
@@ -978,9 +1193,10 @@ namespace DS.Application.Services.Boards
             };
         }
 
-        private static WorkItemDto ToCardDto(BoardCard card, Dictionary<int, List<WorkItemPlacementDto>> placements)
+        private static WorkItemDto ToCardDto(BoardCard card, Dictionary<int, List<WorkItemPlacementDto>> placements, Dictionary<int, CardDependencies> dependencies)
         {
             var item = card.WorkItem;
+            dependencies.TryGetValue(item.Id, out var itemDependencies);
 
             return new WorkItemDto
             {
@@ -1003,6 +1219,8 @@ namespace DS.Application.Services.Boards
                     .Select(link => new WorkItemLinkDto { EntityType = link.EntityType, EntityId = link.EntityId })
                     .ToList(),
                 Placements = placements.TryGetValue(item.Id, out var itemPlacements) ? itemPlacements : [],
+                WaitingOn = itemDependencies?.WaitingOn ?? [],
+                Blocking = itemDependencies?.Blocking ?? [],
             };
         }
     }

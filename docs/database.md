@@ -505,6 +505,11 @@ erDiagram
         int entity_id
     }
 
+    work_item_dependency {
+        int work_item_id PK,FK "required, CASCADE"
+        int depends_on_work_item_id PK,FK "required, CASCADE"
+    }
+
     board ||--o{ board_column : "har kolonner"
     board ||--o{ board_member : "har medlemmer"
     board ||--o{ board_color : "har palettefarver"
@@ -515,6 +520,8 @@ erDiagram
     work_item ||--o{ work_item_assignee : "har ansvarlige"
     asp_net_users ||--o{ work_item_assignee : "er ansvarlig"
     work_item ||--o{ work_item_link : "linker til"
+    work_item ||--o{ work_item_dependency : "venter på"
+    work_item ||--o{ work_item_dependency : "blokerer"
 ```
 
 ## Aktivitetsgodkendelse
@@ -879,7 +886,18 @@ mindst syv dage gamle. Det er ren dataoprydning uden skemaændring.
   `entity_id`, da koblingen er polymorf; døde links ryddes i koden. Unikhed på
   `(work_item_id, entity_type, entity_id)` forhindrer dobbelte links, og
   indekset `(entity_type, entity_id)` gør opslag fra domænesiden billigt.
+- `work_item_dependency` gemmer, at kortet `work_item_id` venter på kortet
+  `depends_on_work_item_id`. Begge kolonner er påkrævede og refererer til
+  `work_item.id` med `ON DELETE CASCADE`. Den sammensatte primærnøgle
+  `(work_item_id, depends_on_work_item_id)` forhindrer dubletter, og
+  CHECK-constrainten `ck_work_item_dependency_not_self` forhindrer, at et kort
+  venter på sig selv. Et ikke-unikt indeks på `depends_on_work_item_id`
+  understøtter opslag af de kort, et kort blokerer. Ringe på tværs af flere
+  rækker afvises i koden, ikke i databasen. Relationen tilhører kortet, ikke en
+  tavleplacering.
 - `work_item` og `board` har soft delete via `deleted_at`. Sletning af et board
   sætter kun `deleted_at`; `board_color`, `board_member`, `board_column`,
   `board_card` og `work_item_link` bevares og slettes hårdt, når de fjernes
   enkeltvis eller via `ON DELETE CASCADE` fra et hårdt slettet board eller kort.
+  Når et kort soft-slettes, slettes dets rækker i `work_item_dependency` hårdt i
+  samme transaktion.
