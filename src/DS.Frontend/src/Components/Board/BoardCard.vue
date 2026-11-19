@@ -14,6 +14,12 @@
         <div v-if="card.tags?.length" class="tags mb-2"><BoardTagBadge v-for="tag in card.tags" :key="tag.id" :tag="tag" /></div>
         <p class="board-card-title">{{ card.title }}</p>
         <p v-if="descriptionPreview" class="board-card-description">{{ descriptionPreview }}</p>
+        <p v-if="waitingLabel" class="board-card-waiting">
+            <span class="tag is-warning is-light">
+                <i class="fas fa-clock mr-1" aria-hidden="true"></i>
+                {{ waitingLabel }}
+            </span>
+        </p>
 
         <div v-if="card.dueDate || Number(card.priority) !== 0 || card.assignees.length" class="board-card-meta">
             <span v-if="card.dueDate" class="board-card-due" :class="{ 'is-overdue': isOverdue }" :title="deadlineLabel">
@@ -56,6 +62,14 @@ const dragImageCaptured = ref(false);
 const isDragging = computed(() => dragImageCaptured.value && drag.value?.kind === 'card' && drag.value.id === Number(props.card.id));
 
 const descriptionPreview = computed(() => htmlToPlainText(props.card.description));
+
+const unfinishedDependencies = computed(() => (props.card.waitingOn ?? []).filter((dependency) => !dependency.isDone));
+const waitingLabel = computed(() => {
+    if (props.isDoneColumn || unfinishedDependencies.value.length === 0) return '';
+    if (unfinishedDependencies.value.length === 1) return `Venter på DS-${unfinishedDependencies.value[0]!.id}`;
+
+    return `Venter på ${unfinishedDependencies.value.length} kort`;
+});
 
 const today = ref(currentDate());
 let dateRefresh: ReturnType<typeof setInterval> | undefined;
@@ -173,6 +187,10 @@ function onDragStart(event: DragEvent) {
     -webkit-box-orient: vertical;
     overflow: hidden;
     overflow-wrap: anywhere;
+}
+
+.board-card-waiting {
+    margin-top: 0.5rem;
 }
 
 .board-card-meta {

@@ -78,6 +78,29 @@ namespace DS.Domain.DTOs
         public int Priority { get; set; }
         public List<WorkItemLinkDto> Links { get; set; } = [];
         public List<WorkItemPlacementDto> Placements { get; set; } = [];
+        public List<WorkItemDependencyDto> WaitingOn { get; set; } = [];
+        public List<WorkItemDependencyDto> Blocking { get; set; } = [];
+    }
+
+    public class WorkItemDependencyDto
+    {
+        public int Id { get; set; }
+        public bool IsVisible { get; set; }
+        public string Title { get; set; }
+        public bool IsDone { get; set; }
+        public List<WorkItemPlacementDto> Placements { get; set; } = [];
+    }
+
+    public class WorkItemDependencyCreateDto
+    {
+        public int DependsOnWorkItemId { get; set; }
+    }
+
+    public class WorkItemSearchResultDto
+    {
+        public int Id { get; set; }
+        public string Title { get; set; }
+        public List<WorkItemPlacementDto> Placements { get; set; } = [];
     }
 
     public class WorkItemLinkDto

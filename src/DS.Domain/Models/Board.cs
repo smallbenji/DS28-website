@@ -104,6 +104,14 @@ public class WorkItemAssignee
     public User User { get; set; }
 }
 
+public class WorkItemDependency
+{
+    public int WorkItemId { get; set; }
+    public WorkItem WorkItem { get; set; }
+    public int DependsOnWorkItemId { get; set; }
+    public WorkItem DependsOnWorkItem { get; set; }
+}
+
 public class BoardCard
 {
     public List<BoardCardTag> Tags { get; set; } = [];

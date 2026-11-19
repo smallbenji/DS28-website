@@ -45,6 +45,14 @@ namespace DS.Backend.Controllers.ApiControllers
             return this.ToActionResult(result);
         }
 
+        [HttpGet("cards/search")]
+        public async Task<IActionResult> SearchCards([FromQuery] string search)
+        {
+            var result = await service.SearchCards(GetActor(), search);
+
+            return this.ToActionResult(result);
+        }
+
         [HttpGet("{id:int}/members")]
         public async Task<IActionResult> GetMembers(int id)
         {
@@ -201,6 +209,22 @@ namespace DS.Backend.Controllers.ApiControllers
         public async Task<IActionResult> AddCardPlacement([FromBody] WorkItemPlacementCreateDto data, int id, int workItemId)
         {
             var result = await service.AddCardPlacement(GetActor(), data, id, workItemId);
+
+            return this.ToActionResult(result);
+        }
+
+        [HttpPost("{id:int}/cards/{workItemId:int}/dependencies")]
+        public async Task<IActionResult> AddDependency([FromBody] WorkItemDependencyCreateDto data, int id, int workItemId)
+        {
+            var result = await service.AddDependency(GetActor(), data, id, workItemId);
+
+            return this.ToActionResult(result);
+        }
+
+        [HttpDelete("{id:int}/cards/{workItemId:int}/dependencies/{otherWorkItemId:int}")]
+        public async Task<IActionResult> RemoveDependency(int id, int workItemId, int otherWorkItemId)
+        {
+            var result = await service.RemoveDependency(GetActor(), id, workItemId, otherWorkItemId);
 
             return this.ToActionResult(result);
         }

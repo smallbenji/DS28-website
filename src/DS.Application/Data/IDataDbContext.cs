@@ -40,6 +40,7 @@ namespace DS.Application.Data
         DbSet<BoardColumn> BoardColumns { get; }
         DbSet<BoardCard> BoardCards { get; }
         DbSet<WorkItem> WorkItems { get; }
+        DbSet<WorkItemDependency> WorkItemDependencies { get; }
         DbSet<Material> Materials { get; }
         DbSet<MaterialOrder> MaterialOrders { get; }
 

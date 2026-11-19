@@ -67,6 +67,7 @@ public class DataDbContext : IdentityDbContext<User, Role, string>, IDataDbConte
     public DbSet<WorkItem> WorkItems { get; set; }
     public DbSet<BoardCard> BoardCards { get; set; }
     public DbSet<WorkItemLink> WorkItemLinks { get; set; }
+    public DbSet<WorkItemDependency> WorkItemDependencies { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

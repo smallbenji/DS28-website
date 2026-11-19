@@ -1000,10 +1000,35 @@ implementeret eller synlig i adminområdet.
 
 ### Projektstyring og Kanban-board
 
-**Beslutning 2026-11-19 (besluttet, ikke implementeret, afhængigheder mellem
-kort):** Et kort kan vente på andre kort. Det er særligt tænkt til
-udviklingsarbejde, hvor fx et frontendkort venter på et backendkort. Intet af
-det nedenstående findes i koden endnu.
+**Beslutning 2026-11-19 (delvist implementeret, afhængigheder mellem kort):**
+Et kort kan vente på andre kort. Det er særligt tænkt til udviklingsarbejde,
+hvor fx et frontendkort venter på et backendkort. Del 1 (database, service, API
+og kortsøgning) og del 2 (frontend) er implementeret; MCP er ikke.
+
+*Implementeret i del 2:* Kortdialogen har sektionen "Afhængigheder"
+(`BoardCardDependencies.vue`) under beskrivelsen for eksisterende kort, også i
+skrivebeskyttet visning. Den viser grupperne "Venter på" med antal færdige og
+"Blokerer" med DS-nummer, titel og status pr. kort; skjulte kort vises som "Kort
+på en tavle, du ikke har adgang til". "Tilføj" åbner kortsøgningen, og fjernelse
+bekræftes. Tilføjelse og fjernelse gemmes med det samme, ligesom tavleplaceringer.
+Statusteksten for et kort, der ikke er færdigt, er kolonnen på dets første
+synlige placering, der ikke er færdig. Tavlekortet viser et gult mærke "Venter på
+DS-<id>" eller "Venter på N kort", undtagen i færdig-kolonner.
+
+*Implementeret i del 1:* Migration `031_work_item_dependencies.sql`. API'et
+har `POST /api/v1/boards/{id}/cards/{workItemId}/dependencies` med
+`dependsOnWorkItemId`, `DELETE
+/api/v1/boards/{id}/cards/{workItemId}/dependencies/{otherWorkItemId}`, som
+fjerner relationen mellem de to kort uanset retning, og `GET
+/api/v1/boards/cards/search?search=` (højst 10 resultater). Tavlens kort har
+`waitingOn` og `blocking` med `id`, `isVisible`, `title`, `isDone` og
+synlige `placements`. Et kort, man venter på, og som ikke findes eller er
+skjult, afvises med samme besked, så id'er ikke kan sonderes. Placeringer på
+slettede tavler tæller ikke med i færdig-reglen; et kort uden placeringer på
+ikke-slettede tavler tæller som færdigt. Tavler opdateres live, når et
+relateret kort ændres, flyttes til en anden kolonne, deles, fjernes eller
+slettes, når en kolonnes færdig-markering ændres, og når en tavle slettes.
+Ringkontrollen er ikke beskyttet mod to samtidige oprettelser.
 
 - **Model:** En ny tabel `work_item_dependency` gemmer "kort A venter på kort
   B" med fremmednøgler til begge `work_item` og et unikt par. Relationen hører

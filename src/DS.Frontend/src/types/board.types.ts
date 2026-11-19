@@ -70,6 +70,22 @@ export interface WorkItemDto {
     priority: number;
     links: WorkItemLinkDto[];
     placements: WorkItemPlacementDto[];
+    waitingOn: WorkItemDependencyDto[];
+    blocking: WorkItemDependencyDto[];
+}
+
+export interface WorkItemDependencyDto {
+    id: number;
+    isVisible: boolean;
+    title: string | null;
+    isDone: boolean;
+    placements: WorkItemPlacementDto[];
+}
+
+export interface WorkItemSearchResultDto {
+    id: number;
+    title: string;
+    placements: WorkItemPlacementDto[];
 }
 
 export interface WorkItemLinkDto {
