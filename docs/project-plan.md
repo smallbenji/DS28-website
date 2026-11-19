@@ -1000,6 +1000,52 @@ implementeret eller synlig i adminområdet.
 
 ### Projektstyring og Kanban-board
 
+**Beslutning 2026-11-19 (besluttet, ikke implementeret, afhængigheder mellem
+kort):** Et kort kan vente på andre kort. Det er særligt tænkt til
+udviklingsarbejde, hvor fx et frontendkort venter på et backendkort. Intet af
+det nedenstående findes i koden endnu.
+
+- **Model:** En ny tabel `work_item_dependency` gemmer "kort A venter på kort
+  B" med fremmednøgler til begge `work_item` og et unikt par. Relationen hører
+  til kortet, ikke til placeringen, og gælder derfor på tværs af tavler.
+  "Blokerer" er samme relation set fra det andet kort. Der er kun denne ene
+  relationstype. `work_item_link` (Koblinger) genbruges ikke, fordi den mangler
+  fremmednøgle, retning og synlighedskontrol og ikke kan ændres efter
+  oprettelse.
+- **Færdig:** Et kort, man venter på, er færdigt, når alle dets placeringer
+  står i en færdig-kolonne (`is_done_column`), også placeringer på tavler, som
+  brugeren ikke kan se. Serveren beregner det og sender kun ja/nej til
+  klienten.
+- **Håndhævelse:** Afhængigheder giver kun en markering. Træk og slip,
+  statusskift pr. tavle og MCP's `move_card` spærres ikke.
+- **Regler:** `BoardService` afviser afhængighed af kortet selv og ringe, både
+  direkte og indirekte, så reglen også gælder for MCP.
+- **Synlighed og adgang:** Et kort, man venter på, men ikke må se, vises kun
+  med nummer og færdig-status, uden titel, tavle eller kolonne, så skjulte
+  tavler fortsat ikke afsløres. For at oprette en afhængighed skal brugeren
+  kunne redigere det ventende kort og se det andet kort. For at fjerne en
+  afhængighed er det nok at kunne redigere en af de to sider.
+- **Sletning:** Når et kort soft-slettes, slettes dets afhængigheder i samme
+  transaktion.
+- **Tavlen:** Kortet viser "Venter på DS-<id>" eller "Venter på N kort", så
+  længe mindst ét ikke er færdigt. Markeringen skjules på placeringer, der selv
+  står i en færdig-kolonne, ligesom overskreden deadline. "Blokerer" vises kun
+  i kortdialogen. Ændringer i et kort, man venter på, sendes gennem
+  `IBoardEventPublisher` til de tavler, der viser ventende kort, så de
+  opdateres live.
+- **Kortdialogen:** En sektion med "Venter på" og "Blokerer" for eksisterende
+  kort, ikke under oprettelse. Man tilføjer via ét søgefelt, der forstår
+  "DS-138", "138" og titel. Det kræver et nyt søge-endpoint for kort, som kun
+  finder ikke-slettede kort på tavler, brugeren kan se.
+- **Ikke med i første version:** notifikationer, når et kort ikke længere
+  venter, kort i den fælles søgning (`SearchMenu`), andre relationstyper og
+  gendannelse af slettede kort.
+- **Opdeling:** 1) database, service, API og kortsøgning (opdaterer også
+  `docs/database.md`), 2) frontend i kortdialog og på tavlen, 3) MCP-værktøjer
+  (`add_dependency`, `remove_dependency`, `search_cards` og "venter på" i
+  `get_board`, i både `BoardTools.cs` og `tools/ds28-mcp/server.mjs`). 1 merges
+  før 2 og 3. Et nyt layout af kortdialogen er et separat, uafhængigt kort.
+
 **Beslutning 2026-11-15 (implementeret, live opdatering):** En åben tavle
 opdaterer sig selv, når nogen opretter, flytter, redigerer eller sletter kort,
 kolonner, farver eller tavleindstillinger — også når ændringen kommer fra MCP
