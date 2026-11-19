@@ -15,6 +15,8 @@ const deleted = [];
 const tagsCreated = [];
 const tagsUpdated = [];
 const tagsDeleted = [];
+const dependenciesAdded = [];
+const dependenciesRemoved = [];
 
 function startStubServer() {
     const server = http.createServer((request, response) => {
@@ -66,6 +68,11 @@ function startStubServer() {
                         assignees: [{ id: "u-1", firstName: "Ada", lastName: "Lovelace" }],
                         tags: [{ id: "1", name: "v0.2.13", color: "#dbeafe" }],
                         placements: [{ boardId: "1", columnId: "10" }],
+                        waitingOn: [
+                            { id: "7", isVisible: true, title: "Backend", isDone: false, placements: [] },
+                            { id: "8", isVisible: false, title: null, isDone: true, placements: [] },
+                        ],
+                        blocking: [],
                     },
                 ],
                 colors: [{ id: "3", name: "Blå", color: "#3366ff" }],
@@ -92,6 +99,22 @@ function startStubServer() {
                 { id: "u-1", firstName: "Ada", lastName: "Lovelace", email: "ada@example.com" },
                 { id: "u-2", firstName: "Ada", lastName: "Lovelace Jr", email: "ada.jr@example.com" },
             ]);
+        }
+        if (request.method === "GET" && request.url.startsWith("/api/v1/boards/cards/search")) {
+            const search = new URL(request.url, "http://localhost").searchParams.get("search");
+            if (search === "ingen") return send(200, []);
+            return send(200, [{ id: "7", title: "Backend", placements: [{ boardId: "3", boardTitle: "Udvikling", columnTitle: "I gang", isDoneColumn: false }] }]);
+        }
+        if (request.method === "POST" && request.url === "/api/v1/boards/1/cards/42/dependencies") {
+            return readBody(body => {
+                if (body.dependsOnWorkItemId === 42) return send(400, "Et kort kan ikke vente på sig selv.");
+                dependenciesAdded.push(body);
+                send(200, undefined);
+            });
+        }
+        if (request.method === "DELETE" && request.url === "/api/v1/boards/1/cards/42/dependencies/7") {
+            dependenciesRemoved.push(7);
+            return send(200, undefined);
         }
         if (request.method === "POST" && request.url === "/api/v1/boards/1/cards") {
             return readBody(body => {
@@ -166,7 +189,7 @@ test("MCP-serveren læser tavler og opretter kort gennem DS28-API'et", async () 
         assert.equal(init.result.protocolVersion, "2025-06-18");
 
         const tools = await client.call("tools/list", {});
-        assert.deepEqual(tools.result.tools.map(tool => tool.name), ["list_boards", "get_board", "create_card", "move_card", "update_card", "delete_card", "create_tag", "update_tag", "delete_tag"]);
+        assert.deepEqual(tools.result.tools.map(tool => tool.name), ["list_boards", "get_board", "create_card", "move_card", "update_card", "delete_card", "create_tag", "update_tag", "delete_tag", "search_cards", "add_dependency", "remove_dependency"]);
 
         const boards = await client.call("tools/call", { name: "list_boards", arguments: {} });
         assert.match(boards.result.content[0].text, /id 1: Vejfest/);
@@ -180,6 +203,23 @@ test("MCP-serveren læser tavler og opretter kort gennem DS28-API'et", async () 
         assert.match(boardText, /farve #3366ff/);
         assert.match(boardText, /Blå: #3366ff/);
         assert.match(boardText, /Ret <strong>fejlen<\/strong>/);
+        assert.match(boardText, /venter på: DS-7 Backend \(ikke færdig\), DS-8 \(skjult kort\) \(færdig\)/);
+
+        const found = await client.call("tools/call", { name: "search_cards", arguments: { search: "DS-7" } });
+        assert.match(found.result.content[0].text, /DS-7 Backend \| Udvikling \(id 3\), kolonne I gang/);
+        const none = await client.call("tools/call", { name: "search_cards", arguments: { search: "ingen" } });
+        assert.equal(none.result.content[0].text, "Ingen kort fundet.");
+
+        const added = await client.call("tools/call", { name: "add_dependency", arguments: { boardId: 1, cardId: 42, dependsOnCardId: 7 } });
+        assert.equal(added.result.content[0].text, "DS-42 venter nu på DS-7.");
+        assert.deepEqual(dependenciesAdded[0], { dependsOnWorkItemId: 7 });
+        const self = await client.call("tools/call", { name: "add_dependency", arguments: { boardId: 1, cardId: 42, dependsOnCardId: 42 } });
+        assert.equal(self.result.isError, true);
+        assert.match(self.result.content[0].text, /sig selv/);
+
+        const removedDependency = await client.call("tools/call", { name: "remove_dependency", arguments: { boardId: 1, cardId: 42, otherCardId: 7 } });
+        assert.equal(removedDependency.result.content[0].text, "Fjernede afhængigheden mellem DS-42 og DS-7.");
+        assert.deepEqual(dependenciesRemoved, [7]);
 
         const createdCard = await client.call("tools/call", {
             name: "create_card",

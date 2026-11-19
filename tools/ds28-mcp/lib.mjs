@@ -123,6 +123,8 @@ export function formatBoard(board) {
         if (card.color) meta.push(`farve ${card.color}`);
         if (card.tags?.length) meta.push(`tags: ${card.tags.map(tag => `${tag.name} (id ${tag.id})`).join(", ")}`);
         if (assignees.length) meta.push(`ansvarlige: ${assignees.join(", ")}`);
+        if (card.waitingOn?.length) meta.push(`venter på: ${card.waitingOn.map(formatDependency).join(", ")}`);
+        if (card.blocking?.length) meta.push(`blokerer: ${card.blocking.map(formatDependency).join(", ")}`);
 
         lines.push(`- DS-${card.id} ${card.title} | ${meta.join(" | ")}`);
 
@@ -130,4 +132,22 @@ export function formatBoard(board) {
     }
 
     return lines.join("\n");
+}
+
+export function formatDependency(dependency) {
+    const name = dependency.isVisible ? `DS-${dependency.id} ${dependency.title}` : `DS-${dependency.id} (skjult kort)`;
+    return `${name} (${dependency.isDone ? "færdig" : "ikke færdig"})`;
+}
+
+export function formatCardSearch(cards) {
+    if (!cards?.length) return "Ingen kort fundet.";
+
+    return cards
+        .map(card => {
+            const placements = (card.placements ?? [])
+                .map(placement => `${placement.boardTitle} (id ${placement.boardId}), kolonne ${placement.columnTitle}${placement.isDoneColumn ? " (færdig)" : ""}`)
+                .join("; ");
+            return `- DS-${card.id} ${card.title} | ${placements}`;
+        })
+        .join("\n");
 }

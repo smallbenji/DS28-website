@@ -26,7 +26,7 @@ namespace DS.Backend.Mcp
         }
 
         [McpServerTool(Name = "get_board", ReadOnly = true)]
-        [Description("Read one DS28 Kanban board: columns with ids, colour palette, board tags with ids/names/colours, and all cards with DS-number, column, priority, due date, colour, assignees, assigned tags and description.")]
+        [Description("Read one DS28 Kanban board: columns with ids, colour palette, board tags with ids/names/colours, and all cards with DS-number, column, priority, due date, colour, assignees, assigned tags, the cards each card waits on or blocks, and description.")]
         public async Task<string> GetBoard([Description("Board id from list_boards.")] int boardId)
         {
             var result = await boards.GetBoard(await ActorAsync(), boardId);
@@ -236,6 +236,44 @@ namespace DS.Backend.Mcp
                 : $"Slettede DS-{cardId} fra tavle {boardId}.";
         }
 
+        [McpServerTool(Name = "search_cards", ReadOnly = true)]
+        [Description("Search DS28 cards on boards the logged-in user can see, by card number (\"DS-42\" or \"42\") or part of the title. Returns up to 10 cards with their boards and columns.")]
+        public async Task<string> SearchCards([Description("Card number such as DS-42 or 42, or part of the title.")] string search)
+        {
+            if (string.IsNullOrWhiteSpace(search)) throw new McpException("search må ikke være tom.");
+
+            var result = await boards.SearchCards(await ActorAsync(), search);
+
+            return BoardText.SearchResults(Unwrap(result));
+        }
+
+        [McpServerTool(Name = "add_dependency")]
+        [Description("Make a DS28 card wait on another card, for example a frontend card waiting on a backend card. The other card may be on another board the user can see. Rejects self-dependencies, duplicates and cycles.")]
+        public async Task<string> AddDependency(
+            [Description("Board id from list_boards where the waiting card is placed.")] int boardId,
+            [Description("Number of the waiting card from DS-<id>, for example 42 for DS-42.")] int cardId,
+            [Description("Number of the card it waits on, from get_board or search_cards.")] int dependsOnCardId)
+        {
+            var added = await boards.AddDependency(await ActorAsync(), new WorkItemDependencyCreateDto { DependsOnWorkItemId = dependsOnCardId }, boardId, cardId);
+            if (added.Outcome != ServiceOutcome.Success) throw new McpException(Describe(added.Outcome, added.Error));
+
+            return $"DS-{cardId} venter nu på DS-{dependsOnCardId}.";
+        }
+
+        [McpServerTool(Name = "remove_dependency")]
+        [Description("Remove the dependency between two DS28 cards, whichever card waits on the other. Works even when the other card is on a board the user cannot see.")]
+        public async Task<string> RemoveDependency(
+            [Description("Board id from list_boards where cardId is placed.")] int boardId,
+            [Description("Card number from DS-<id> on this board.")] int cardId,
+            [Description("Number of the other card in the dependency.")] int otherCardId)
+        {
+            var removed = await boards.RemoveDependency(await ActorAsync(), boardId, cardId, otherCardId);
+            if (removed.Outcome == ServiceOutcome.NotFound) throw new McpException($"Der er ingen afhængighed mellem DS-{cardId} og DS-{otherCardId} på tavle {boardId}.");
+            if (removed.Outcome != ServiceOutcome.Success) throw new McpException(Describe(removed.Outcome, removed.Error));
+
+            return $"Fjernede afhængigheden mellem DS-{cardId} og DS-{otherCardId}.";
+        }
+
         private async Task<BoardActor> ActorAsync()
         {
             var context = httpContextAccessor.HttpContext;
@@ -323,6 +361,8 @@ namespace DS.Backend.Mcp
                 if (!string.IsNullOrEmpty(card.Color)) meta.Add($"farve {card.Color}");
                 if (card.Tags.Count > 0) meta.Add($"tags: {string.Join(", ", card.Tags.Select(tag => $"{tag.Name} (id {tag.Id})"))}");
                 if (card.Assignees.Count > 0) meta.Add($"ansvarlige: {string.Join(", ", card.Assignees.Select(user => $"{user.FirstName} {user.LastName}"))}");
+                if (card.WaitingOn.Count > 0) meta.Add($"venter på: {string.Join(", ", card.WaitingOn.Select(Dependency))}");
+                if (card.Blocking.Count > 0) meta.Add($"blokerer: {string.Join(", ", card.Blocking.Select(Dependency))}");
 
                 text.Append($"- DS-{card.Id} {card.Title} | {string.Join(" | ", meta)}");
                 text.AppendLine();
@@ -331,6 +371,23 @@ namespace DS.Backend.Mcp
             }
 
             return text.ToString().TrimEnd();
+        }
+
+        public static string SearchResults(IEnumerable<WorkItemSearchResultDto> cards)
+        {
+            var lines = cards.Select(card =>
+            {
+                var placements = card.Placements.Select(placement => $"{placement.BoardTitle} (id {placement.BoardId}), kolonne {placement.ColumnTitle}{(placement.IsDoneColumn ? " (færdig)" : "")}");
+                return $"- DS-{card.Id} {card.Title} | {string.Join("; ", placements)}";
+            }).ToList();
+
+            return lines.Count == 0 ? "Ingen kort fundet." : string.Join("\n", lines);
+        }
+
+        private static string Dependency(WorkItemDependencyDto dependency)
+        {
+            var name = dependency.IsVisible ? $"DS-{dependency.Id} {dependency.Title}" : $"DS-{dependency.Id} (skjult kort)";
+            return $"{name} ({(dependency.IsDone ? "færdig" : "ikke færdig")})";
         }
     }
 

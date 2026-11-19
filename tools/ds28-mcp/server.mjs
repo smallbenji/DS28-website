@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 import { createInterface } from "node:readline";
 import http from "node:http";
 import https from "node:https";
-import { formatBoard, formatBoards, matchUser, parseEnvFile, resolveColumn, resolveTagIds, toHtml } from "./lib.mjs";
+import { formatBoard, formatBoards, formatCardSearch, matchUser, parseEnvFile, resolveColumn, resolveTagIds, toHtml } from "./lib.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const envPath = join(here, ".env");
@@ -90,7 +90,7 @@ const tools = [
     },
     {
         name: "get_board",
-        description: "Read one DS28 Kanban board: columns with ids, colour palette, board tags with ids/names/colours and all cards with DS-number, column, priority, due date, colour, assignees, assigned tags and description.",
+        description: "Read one DS28 Kanban board: columns with ids, colour palette, board tags with ids/names/colours and all cards with DS-number, column, priority, due date, colour, assignees, assigned tags, the cards each card waits on or blocks, and description.",
         inputSchema: {
             type: "object",
             properties: { boardId: { type: "integer", description: "Board id from list_boards." } },
@@ -378,6 +378,64 @@ const tools = [
             return `Slettede tag ${tagId} fra tavle ${boardId} og fjernede det fra tavlens kort.`;
         },
     },
+    {
+        name: "search_cards",
+        description: "Search DS28 cards on boards the logged-in user can see, by card number (\"DS-42\" or \"42\") or part of the title. Returns up to 10 cards with their boards and columns.",
+        inputSchema: {
+            type: "object",
+            properties: { search: { type: "string", description: "Card number such as DS-42 or 42, or part of the title." } },
+            required: ["search"],
+            additionalProperties: false,
+        },
+        handler: async args => {
+            const search = String(args.search ?? "").trim();
+            if (!search) throw new Error("search må ikke være tom.");
+
+            return formatCardSearch(await api("GET", `/api/v1/boards/cards/search?search=${encodeURIComponent(search)}`));
+        },
+    },
+    {
+        name: "add_dependency",
+        description: "Make a DS28 card wait on another card, for example a frontend card waiting on a backend card. The other card may be on another board the user can see. Rejects self-dependencies, duplicates and cycles.",
+        inputSchema: {
+            type: "object",
+            properties: {
+                boardId: { type: "integer", description: "Board id from list_boards where the waiting card is placed." },
+                cardId: { type: "integer", description: "Number of the waiting card from DS-<id>, for example 42 for DS-42." },
+                dependsOnCardId: { type: "integer", description: "Number of the card it waits on, from get_board or search_cards." },
+            },
+            required: ["boardId", "cardId", "dependsOnCardId"],
+            additionalProperties: false,
+        },
+        handler: async args => {
+            const boardId = Number(args.boardId), cardId = Number(args.cardId), dependsOnCardId = Number(args.dependsOnCardId);
+            if (![boardId, cardId, dependsOnCardId].every(Number.isInteger)) throw new Error("boardId, cardId og dependsOnCardId skal være heltal.");
+
+            await api("POST", `/api/v1/boards/${boardId}/cards/${cardId}/dependencies`, { dependsOnWorkItemId: dependsOnCardId });
+            return `DS-${cardId} venter nu på DS-${dependsOnCardId}.`;
+        },
+    },
+    {
+        name: "remove_dependency",
+        description: "Remove the dependency between two DS28 cards, whichever card waits on the other. Works even when the other card is on a board the user cannot see.",
+        inputSchema: {
+            type: "object",
+            properties: {
+                boardId: { type: "integer", description: "Board id from list_boards where cardId is placed." },
+                cardId: { type: "integer", description: "Card number from DS-<id> on this board." },
+                otherCardId: { type: "integer", description: "Number of the other card in the dependency." },
+            },
+            required: ["boardId", "cardId", "otherCardId"],
+            additionalProperties: false,
+        },
+        handler: async args => {
+            const boardId = Number(args.boardId), cardId = Number(args.cardId), otherCardId = Number(args.otherCardId);
+            if (![boardId, cardId, otherCardId].every(Number.isInteger)) throw new Error("boardId, cardId og otherCardId skal være heltal.");
+
+            await api("DELETE", `/api/v1/boards/${boardId}/cards/${cardId}/dependencies/${otherCardId}`);
+            return `Fjernede afhængigheden mellem DS-${cardId} og DS-${otherCardId}.`;
+        },
+    },
 ];
 
 async function callTool(params) {
@@ -409,7 +467,7 @@ async function handleLine(line) {
                 protocolVersion: message.params?.protocolVersion ?? "2025-06-18",
                 capabilities: { tools: {} },
                 serverInfo: { name: "ds28-boards", version: "1.0.0" },
-                instructions: "Værktøjer til at læse og ændre kort på DS28 Kanban-tavler. Brug list_boards, derefter get_board for kolonne-id'er, kortnumre, farver og tag-id'er. Brug create_card, update_card, move_card eller delete_card til kort og create_tag, update_tag eller delete_tag til tavlens tags. Udeladte/null tagIds bevares ved opdatering; [] fjerner tags på denne tavle.",
+                instructions: "Værktøjer til at læse og ændre kort på DS28 Kanban-tavler. Brug list_boards, derefter get_board for kolonne-id'er, kortnumre, farver og tag-id'er. Brug create_card, update_card, move_card eller delete_card til kort og create_tag, update_tag eller delete_tag til tavlens tags. Udeladte/null tagIds bevares ved opdatering; [] fjerner tags på denne tavle. Brug search_cards til at finde kort på tværs af tavler og add_dependency eller remove_dependency til at styre, hvilke kort et kort venter på.",
             });
         case "ping":
             return respond(message.id, {});
