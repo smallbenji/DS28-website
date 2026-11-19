@@ -1000,10 +1000,17 @@ implementeret eller synlig i adminområdet.
 
 ### Projektstyring og Kanban-board
 
-**Beslutning 2026-11-19 (delvist implementeret, afhængigheder mellem kort):**
+**Beslutning 2026-11-19 (implementeret, afhængigheder mellem kort):**
 Et kort kan vente på andre kort. Det er særligt tænkt til udviklingsarbejde,
-hvor fx et frontendkort venter på et backendkort. Del 1 (database, service, API
-og kortsøgning) og del 2 (frontend) er implementeret; MCP er ikke.
+hvor fx et frontendkort venter på et backendkort. Alle tre dele er
+implementeret: database, service, API og kortsøgning (del 1), frontend (del 2)
+og MCP (del 3).
+
+*Implementeret i del 3:* Både remote-MCP (`BoardTools.cs`) og stdio-MCP
+(`tools/ds28-mcp`) har `search_cards`, `add_dependency` og
+`remove_dependency`. `get_board` viser "venter på" og "blokerer" pr. kort med
+DS-nummer, titel og færdig-status; skjulte kort vises som "(skjult kort)".
+`remove_dependency` fjerner relationen mellem to kort uanset retning.
 
 **Beslutning 2026-11-19 (implementeret, nyt layout af kortdialogen):** Kortdialogen
 har fået et roligere layout ud fra et godkendt mockup. Status på den åbne tavle
@@ -1459,7 +1466,8 @@ nedenfor.
 
 - MCP-serveren kører lokalt over stdio og er registreret i `opencode.json` med
   værktøjerne `list_boards`, `get_board`, `create_card`, `update_card`,
-  `move_card`, `delete_card`, `create_tag`, `update_tag` og `delete_tag`.
+  `move_card`, `delete_card`, `create_tag`, `update_tag`, `delete_tag`,
+  `search_cards`, `add_dependency` og `remove_dependency`.
   Alle kald går til `/api/v1/boards` med samme
   adgangskontrol som brugerens egen konto, så medlemskab, SysAdmin/CampAdmin og
   API-validering gælder uændret.
@@ -1515,8 +1523,10 @@ og den eksisterende stdio-server i `tools/ds28-mcp` kan derfor kun bruges
 lokalt.
 
 - Endpointet ligger i Website med `ModelContextProtocol.AspNetCore` og kortes
-  ni værktøjer (`list_boards`, `get_board`, `create_card`, `update_card`,
-  `move_card`, `delete_card`, `create_tag`, `update_tag`, `delete_tag`) i `src/DS.Backend/Mcp/BoardTools.cs`. Der
+  tolv værktøjer (`list_boards`, `get_board`, `create_card`, `update_card`,
+  `move_card`, `delete_card`, `create_tag`, `update_tag`, `delete_tag`,
+  `search_cards`, `add_dependency`, `remove_dependency`) i
+  `src/DS.Backend/Mcp/BoardTools.cs`. Der
   indføres ingen ekstra tjeneste eller container.
 - Værktøjerne kalder `BoardService` direkte med samme `BoardActor` som
   controllerne, så medlemskab, SysAdmin/CampAdmin, validering og
