@@ -368,7 +368,7 @@
                     Kopiér token nu. Du kan ikke se det igen. Brug det i stedet for din adgangskode i værktøjet.
                 </p>
                 <BField label="Token">
-                    <BInput :model-value="createdToken" readonly @focus="$event.target.select()" />
+                    <BInput :model-value="createdToken" readonly @focus="selectToken" />
                 </BField>
             </section>
             <footer class="modal-card-foot">
@@ -441,6 +441,10 @@ import AccessTokenService from '@/Services/AccessTokenService';
 import FileService from '@/Services/FileService';
 import type { AccessTokenDto, NotificationPreferenceDto, PasskeyDto } from '@/types';
 import { formatDate } from '@/lib/util';
+
+function selectToken(event?: Event) {
+    if (event?.target instanceof HTMLInputElement) event.target.select();
+}
 
 const Toast = useToast();
 const accountStore = useAccountStore();

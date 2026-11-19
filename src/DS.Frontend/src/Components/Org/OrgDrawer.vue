@@ -46,14 +46,14 @@
             <section class="org-drawer-section">
                 <h3 class="org-drawer-heading">Indehavere</h3>
                 <ul v-if="position.holders.length" class="org-drawer-holders">
-                    <li v-for="holder in position.holders" :key="holder.userId">
-                        <span class="org-holder-name">{{ holder.name }}</span>
+                    <li v-for="holder in position.holders" :key="holder.id">
+                        <span class="org-holder-name">{{ holder.firstName }} {{ holder.lastName }}</span>
                         <button
                             v-if="canManage && canRemoveHolder"
                             type="button"
                             class="delete is-small"
-                            :aria-label="`Fjern ${holder.name}`"
-                            @click="removeHolder(holder.userId)"
+                            :aria-label="`Fjern ${holder.firstName} ${holder.lastName}`"
+                            @click="removeHolder(holder.id)"
                         />
                     </li>
                 </ul>
@@ -192,7 +192,7 @@ const canCreateChild = computed(
 const canRemoveHolder = computed(() => !position.value?.isSystem || (position.value?.holders.length ?? 0) > 1);
 
 const availableUsers = computed(() => {
-    const held = new Set(position.value?.holders.map((holder) => holder.userId) ?? []);
+    const held = new Set(position.value?.holders.map((holder) => holder.id) ?? []);
     return props.users.filter((user) => !held.has(user.id));
 });
 

@@ -8,7 +8,6 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "erasableSyntaxOnly": false,
-    "ignoreDeprecations": "6.0",
     "baseUrl": ".",
     "noFallthroughCasesInSwitch": true,
     "paths": {

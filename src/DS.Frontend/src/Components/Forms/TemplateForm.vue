@@ -20,7 +20,7 @@
                         :type="field.type === FormFieldType.Date ? 'date' : 'text'"
                         :placeholder="field.placeholder ?? undefined"
                         :model-value="values[field.key] ?? ''"
-                        @update:model-value="setValue(field.key, $event === '' ? null : $event)"
+                        @update:model-value="setValue(field.key, $event === '' ? null : $event ?? null)"
                     />
                     <BInput
                         v-else-if="field.type === FormFieldType.Number"

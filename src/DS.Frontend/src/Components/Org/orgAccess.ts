@@ -22,7 +22,7 @@ function collectPositionWithAncestors(positionId: number, positions: OrgPosition
 function isManagedBy(positionIds: number[], positions: OrgPositionDto[], currentUserId: string): boolean {
     return positionIds.some((id) => {
         const position = positions.find((candidate) => candidate.id === id);
-        return position?.holders.some((holder) => holder.userId === currentUserId) ?? false;
+        return position?.holders.some((holder) => holder.id === currentUserId) ?? false;
     });
 }
 

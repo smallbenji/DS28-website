@@ -1806,20 +1806,31 @@ aftale.
 
 ### Frontend-build og typekontrol
 
-**Midlertidig beslutning 2026-10-02:** `npm run build` i `DS.Backend/js`
-kører kun `vite build` og udelader `vue-tsc -b`. Årsagen er en
-afhængighedskonflikt: `vue-tsc` 3.x løser `typescript/lib/tsc`, og
-TypeScript 7 eksporterer ikke længere det subpath, så buildet fejlede med
-`ERR_PACKAGE_PATH_NOT_EXPORTED`, før Vite overhovedet kørte.
+**Beslutning 2026-11-17 (DS-19, implementeret):** `npm run build` i
+`src/DS.Frontend` kører `npm run typecheck && vite build`. Typekontrollen
+(`vue-tsc -b`) omfatter både Vue/TypeScript-koden og Vite-konfigurationen og
+stopper buildet ved fejl. Det gælder også containerbygget, der bruger samme
+npm-script. Dette erstatter den midlertidige beslutning fra 2026-10-02 om at
+udelade typekontrol på grund af `ERR_PACKAGE_PATH_NOT_EXPORTED`.
 
-Det er en midlertidig løsning, ikke en permanent afvejning af typekontrol.
-Frontendens typer kontrolleres derfor ikke længere som del af buildet.
-`vue-tsc` er fortsat en devDependency, og scriptet `npm run typecheck`
-(`vue-tsc -b`) er tilføjet som en manuel kontrol – men det fejler stadig med
-samme `ERR_PACKAGE_PATH_NOT_EXPORTED`, ind afhængighedskonflikten er løst.
-Beslutningen skal genovervejes, når `vue-tsc` understøtter TypeScript 7;
-alternativt kan TypeScript nedgraderes til 5.x og typekontrollen føjes tilbage
-i buildet.
+TypeScript er fastholdt på 5.9-patchserien (`~5.9.3`), som virker med den
+nuværende `vue-tsc` 3.3.14 og `@vue/tsconfig`. TypeScript 7.0.2 understøttes
+ikke af denne checker. TypeScript 7.1 beta og `@vue/content-mapper`
+4.0.0-alpha.0 blev afprøvet efter
+[artiklen om content mappers](https://alexop.dev/posts/goodbye-vue-tsc-typescript-7-content-mappers/),
+men indføres ikke: almindelig npm-installation gav peer-konflikter, og
+checkeren gav 603 fejl i den eksisterende frontend, herunder Buefy-attributter
+og manglende globale komponenttyper. En senere migration skal vurderes
+selvstændigt, når værktøjerne er mere modne; typekontrollen må ikke fjernes
+fra buildet som genvej.
+
+De 12 fejl, som den kompatible checker fandt, er rettet uden at svække
+kontrollen: organisationsindehavere bruger DTO'ens `id`, `firstName` og
+`lastName`, kolonneombytning bruger numeriske id'er, tomme formularværdier
+normaliseres til `null`, og tokenfeltets fokus håndteres med et kontrolleret
+HTML-input. En ubrugt Vite-import og TypeScript 6-specifikke
+`ignoreDeprecations`-indstillinger er fjernet. Serverens adgangsregler og
+databaseskema er uændrede.
 
 ### Flytning af modelkonfiguration og udfasning af C#-migrations
 

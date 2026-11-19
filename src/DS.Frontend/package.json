@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "npm run typecheck && vite build",
     "typecheck": "vue-tsc -b",
     "watch": "vite build --watch",
     "preview": "vite preview"
@@ -37,7 +37,7 @@
     "@vitejs/plugin-basic-ssl": "^2.3.0",
     "@vitejs/plugin-vue": "^6.0.10",
     "@vue/tsconfig": "^0.9.1",
-    "typescript": "^7.0.2",
+    "typescript": "~5.9.3",
     "vite": "^8.3.7",
     "vue-tsc": "^3.3.14"
   },
