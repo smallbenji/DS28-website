@@ -1005,6 +1005,20 @@ Et kort kan vente på andre kort. Det er særligt tænkt til udviklingsarbejde,
 hvor fx et frontendkort venter på et backendkort. Del 1 (database, service, API
 og kortsøgning) og del 2 (frontend) er implementeret; MCP er ikke.
 
+**Beslutning 2026-11-19 (implementeret, nyt layout af kortdialogen):** Kortdialogen
+har fået et roligere layout ud fra et godkendt mockup. Status på den åbne tavle
+står som en pille i headeren og skiftes derfra. Tags står over titlen, og
+beskrivelsen har en ramme og en "Rediger"-knap. Sidepanelet er en liste over
+egenskaber (Ansvarlige, Stilling, Deadline, Prioritet og Farve) med én række
+pr. felt, og klik på en række åbner redigeringen i en dropdown
+(`BoardCardProperty.vue`). Ændringer gemmes stadig først med "Gem ændringer",
+og footeren viser "Ugemte ændringer", når formularen afviger fra det gemte kort.
+"Også på andre tavler" viser kun de øvrige placeringer; at fjerne kortet fra
+den åbne tavle ligger i •••-menuen. Koblinger vises som små kort. Den
+skrivebeskyttede visning bruger samme layout uden redigering. Felter, API,
+rettigheder og gemmelogik er uændrede. På mobil står sidepanelet efter
+indholdet, og statuspillen bliver i headeren.
+
 *Implementeret i del 2:* Kortdialogen har sektionen "Afhængigheder"
 (`BoardCardDependencies.vue`) under beskrivelsen for eksisterende kort, også i
 skrivebeskyttet visning. Den viser grupperne "Venter på" med antal færdige og
