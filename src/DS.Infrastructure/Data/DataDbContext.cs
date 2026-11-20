@@ -60,6 +60,7 @@ public class DataDbContext : IdentityDbContext<User, Role, string>, IDataDbConte
 
     public DbSet<BoardTag> BoardTags { get; set; }
     public DbSet<BoardCardTag> BoardCardTags { get; set; }
+    public DbSet<BoardCardPullRequest> BoardCardPullRequests { get; set; }
     public DbSet<Board> Boards { get; set; }
     public DbSet<BoardMember> BoardMembers { get; set; }
     public DbSet<BoardColor> BoardColors { get; set; }

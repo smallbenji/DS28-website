@@ -36,6 +36,8 @@ public class BoardConfiguration : IEntityTypeConfiguration<Board>
             .HasDefaultValueSql("FALSE")
             .HasSentinel(false);
 
+        builder.Property(x => x.IsDeveloperBoard).HasDefaultValue(false);
+
         builder.HasOne(x => x.CreatedBy)
             .WithMany()
             .HasForeignKey(x => x.CreatedByUserId)

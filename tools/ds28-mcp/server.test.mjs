@@ -19,6 +19,7 @@ const dependenciesAdded = [];
 const dependenciesRemoved = [];
 
 function startStubServer() {
+    const pullRequests = new Set();
     const server = http.createServer((request, response) => {
         const send = (status, body) => {
             response.writeHead(status, { "Content-Type": "application/json" });
@@ -52,6 +53,7 @@ function startStubServer() {
                 id: "1",
                 title: "Vejfest",
                 isArchived: false,
+                isDeveloperBoard: true,
                 columns: [
                     { id: "10", title: "Backlog", isDoneColumn: false },
                     { id: "11", title: "Færdig", isDoneColumn: true },
@@ -73,6 +75,7 @@ function startStubServer() {
                             { id: "8", isVisible: false, title: null, isDone: true, placements: [] },
                         ],
                         blocking: [],
+                        pullRequests: [...pullRequests],
                     },
                 ],
                 colors: [{ id: "3", name: "Blå", color: "#3366ff" }],
@@ -115,6 +118,18 @@ function startStubServer() {
         if (request.method === "DELETE" && request.url === "/api/v1/boards/1/cards/42/dependencies/7") {
             dependenciesRemoved.push(7);
             return send(200, undefined);
+        }
+        const url = new URL(request.url, "http://localhost");
+        if (url.pathname === "/api/v1/boards/1/cards/42/pull-requests") {
+            if (request.method === "POST") {
+                return readBody(body => {
+                    pullRequests.add(body.url);
+                    send(200);
+                });
+            }
+            if (request.method === "DELETE") {
+                return send(pullRequests.delete(url.searchParams.get("url")) ? 200 : 404);
+            }
         }
         if (request.method === "POST" && request.url === "/api/v1/boards/1/cards") {
             return readBody(body => {
@@ -189,7 +204,7 @@ test("MCP-serveren læser tavler og opretter kort gennem DS28-API'et", async () 
         assert.equal(init.result.protocolVersion, "2025-06-18");
 
         const tools = await client.call("tools/list", {});
-        assert.deepEqual(tools.result.tools.map(tool => tool.name), ["list_boards", "get_board", "create_card", "move_card", "update_card", "delete_card", "create_tag", "update_tag", "delete_tag", "search_cards", "add_dependency", "remove_dependency"]);
+        assert.deepEqual(tools.result.tools.map(tool => tool.name), ["list_boards", "get_board", "create_card", "move_card", "update_card", "delete_card", "create_tag", "update_tag", "delete_tag", "search_cards", "add_dependency", "remove_dependency", "add_pull_request", "remove_pull_request"]);
 
         const boards = await client.call("tools/call", { name: "list_boards", arguments: {} });
         assert.match(boards.result.content[0].text, /id 1: Vejfest/);
@@ -375,6 +390,33 @@ test("MCP understøtter tags med bevaret valg, rydning, validering og tagadminis
         for (const name of ["create_tag", "update_tag", "delete_tag"]) {
             assert.equal((await call(name, { boardId: 2, tagId: 1, name: "Denied" })).isError, true);
         }
+    } finally {
+        client.child.kill();
+        server.close();
+    }
+});
+
+test("MCP viser flere PR-links og fjerner dem enkeltvis", async () => {
+    const server = await startStubServer();
+    const client = startClient(`http://127.0.0.1:${server.address().port}`);
+    const call = async (name, args = {}) => (await client.call("tools/call", {
+        name,
+        arguments: { boardId: 1, ...args },
+    })).result;
+
+    try {
+        const firstUrl = "https://github.com/example/project/pull/10";
+        const secondUrl = "https://github.com/example/project/pull/11";
+        for (const url of [firstUrl, secondUrl]) {
+            assert.equal((await call("add_pull_request", { cardId: 42, url })).isError, undefined);
+        }
+
+        let boardText = (await call("get_board")).content[0].text;
+        assert.ok(boardText.includes(`PR-links: ${firstUrl}, ${secondUrl}`));
+        assert.equal((await call("remove_pull_request", { cardId: 42, url: firstUrl })).isError, undefined);
+        boardText = (await call("get_board")).content[0].text;
+        assert.ok(!boardText.includes(firstUrl));
+        assert.ok(boardText.includes(secondUrl));
     } finally {
         client.child.kill();
         server.close();

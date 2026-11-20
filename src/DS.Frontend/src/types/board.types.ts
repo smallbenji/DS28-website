@@ -12,6 +12,7 @@ export interface BoardSummaryDto {
 }
 
 export interface BoardDetailDto {
+    isDeveloperBoard: boolean;
     id: number;
     key: string;
     title: string;
@@ -56,6 +57,7 @@ export interface BoardColumnDto {
 }
 
 export interface WorkItemDto {
+    pullRequests: string[];
     tags: BoardTagDto[];
     id: number;
     title: string;
@@ -111,6 +113,7 @@ export interface BoardCreateDto {
 }
 
 export interface BoardUpdateDto {
+    isDeveloperBoard?: boolean;
     title: string;
     description: string | null;
     icon: string | null;

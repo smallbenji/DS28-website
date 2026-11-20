@@ -9,6 +9,7 @@ public class Board : IAuditableEntity, ISoftDeleteable
     public string Icon { get; set; }
     public string Color { get; set; }
     public bool IsArchived { get; set; }
+    public bool IsDeveloperBoard { get; set; }
 
     public string CreatedByUserId { get; set; }
     public User CreatedBy { get; set; }
@@ -114,6 +115,7 @@ public class WorkItemDependency
 
 public class BoardCard
 {
+    public List<BoardCardPullRequest> PullRequests { get; set; } = [];
     public List<BoardCardTag> Tags { get; set; } = [];
     public int Id { get; set; }
     public int BoardId { get; set; }
@@ -123,6 +125,12 @@ public class BoardCard
     public int WorkItemId { get; set; }
     public WorkItem WorkItem { get; set; }
     public int Position { get; set; }
+}
+
+public class BoardCardPullRequest
+{
+    public int BoardCardId { get; set; }
+    public string Url { get; set; }
 }
 
 public class WorkItemLink

@@ -90,7 +90,7 @@ const tools = [
     },
     {
         name: "get_board",
-        description: "Read one DS28 Kanban board: columns with ids, colour palette, board tags with ids/names/colours and all cards with DS-number, column, priority, due date, colour, assignees, assigned tags, the cards each card waits on or blocks, and description.",
+        description: "Read one DS28 Kanban board: columns with ids, colour palette, board tags with ids/names/colours and all cards with DS-number, column, priority, due date, colour, assignees, assigned tags, the cards each card waits on or blocks, PR links on developer boards, and description.",
         inputSchema: {
             type: "object",
             properties: { boardId: { type: "integer", description: "Board id from list_boards." } },
@@ -436,6 +436,35 @@ const tools = [
             return `Fjernede afhængigheden mellem DS-${cardId} og DS-${otherCardId}.`;
         },
     },
+    ...["add", "remove"].map(action => ({
+        name: `${action}_pull_request`,
+        description: action === "add"
+            ? "Add a GitHub pull request to a card on a developer board. Existing links are preserved."
+            : "Remove one GitHub pull request link from a card on a developer board.",
+        inputSchema: {
+            type: "object",
+            properties: {
+                boardId: { type: "integer", description: "Board id of the developer board." },
+                cardId: { type: "integer", description: "Card number from DS-<id> on this board." },
+                url: { type: "string", description: "HTTPS URL of the GitHub pull request." },
+            },
+            required: ["boardId", "cardId", "url"],
+            additionalProperties: false,
+        },
+        handler: async ({ boardId, cardId, url }) => {
+            if (![boardId, cardId].every(Number.isInteger)) throw new Error("boardId og cardId skal være heltal.");
+            if (typeof url !== "string") throw new Error("url skal være en tekst.");
+
+            const path = `/api/v1/boards/${boardId}/cards/${cardId}/pull-requests`;
+            if (action === "add") {
+                await api("POST", path, { url });
+                return `Tilknyttede PR-link til DS-${cardId}.`;
+            }
+
+            await api("DELETE", `${path}?${new URLSearchParams({ url })}`);
+            return `Fjernede PR-link fra DS-${cardId}.`;
+        },
+    })),
 ];
 
 async function callTool(params) {

@@ -1000,6 +1000,19 @@ implementeret eller synlig i adminområdet.
 
 ### Projektstyring og Kanban-board
 
+**Beslutning (DS-50, godkendt og implementeret):** Kun den effektive
+SysAdmin-rolle kan slå udviklerfunktionen til eller fra i tavleindstillingerne.
+Nye og eksisterende tavler har funktionen slået fra som standard.
+
+- Brugere med redigeringsadgang til en udviklertavle kan tilføje og fjerne
+  flere GitHub-PR-links enkeltvis i kortdialogen eller via `add_pull_request`
+  og `remove_pull_request` i både remote- og stdio-MCP. `get_board` viser links.
+- Links er afgrænset til tavleplaceringen. De skjules ved deaktivering og
+  kommer tilbage ved genaktivering. Under deaktivering afvises ændringer.
+- Serveren accepterer eksplicitte HTTPS-links til konkrete PR'er på
+  `github.com`, normaliserer dem og afviser dubletter. Ændringer opdaterer
+  den berørte tavle via SignalR.
+
 **Beslutning 2026-11-19 (implementeret, afhængigheder mellem kort):**
 Et kort kan vente på andre kort. Det er særligt tænkt til udviklingsarbejde,
 hvor fx et frontendkort venter på et backendkort. Alle tre dele er

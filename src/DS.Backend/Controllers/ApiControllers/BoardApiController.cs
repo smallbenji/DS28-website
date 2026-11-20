@@ -229,9 +229,26 @@ namespace DS.Backend.Controllers.ApiControllers
             return this.ToActionResult(result);
         }
 
+        [HttpPost("{id:int}/cards/{workItemId:int}/pull-requests")]
+        public async Task<IActionResult> AddPullRequest([FromBody] PullRequestLinkDto data, int id, int workItemId)
+        {
+            var result = await service.UpdatePullRequestLink(GetActor(), id, workItemId, data?.Url, remove: false);
+
+            return this.ToActionResult(result);
+        }
+
+        [HttpDelete("{id:int}/cards/{workItemId:int}/pull-requests")]
+        public async Task<IActionResult> RemovePullRequest([FromQuery] string url, int id, int workItemId)
+        {
+            var result = await service.UpdatePullRequestLink(GetActor(), id, workItemId, url, remove: true);
+
+            return this.ToActionResult(result);
+        }
+
         private BoardActor GetActor()
         {
-            return new BoardActor(userManager.GetUserId(User), User.IsInRole(nameof(AppGroups.SysAdmin)) || User.IsInRole(nameof(AppGroups.CampAdmin)));
+            var isSysAdmin = User.IsInRole(nameof(AppGroups.SysAdmin));
+            return new BoardActor(userManager.GetUserId(User), isSysAdmin || User.IsInRole(nameof(AppGroups.CampAdmin)), isSysAdmin);
         }
     }
 }

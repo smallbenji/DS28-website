@@ -442,6 +442,7 @@ erDiagram
         varchar icon
         varchar color "nullable"
         bool is_archived
+        bool is_developer_board
         text created_by_user_id FK "SET NULL"
         timestamptz created_at
         timestamptz updated_at
@@ -498,6 +499,11 @@ erDiagram
         int position
     }
 
+    board_card_pull_request {
+        int board_card_id PK,FK "required, CASCADE"
+        varchar url PK "required, max 512"
+    }
+
     work_item_link {
         int id PK
         int work_item_id FK "CASCADE"
@@ -517,6 +523,7 @@ erDiagram
     board ||--o{ board_card : "placerer"
     board_column ||--o{ board_card : "indeholder"
     work_item ||--o{ board_card : "placeres på"
+    board_card ||--o{ board_card_pull_request : "har PR-links"
     work_item ||--o{ work_item_assignee : "har ansvarlige"
     asp_net_users ||--o{ work_item_assignee : "er ansvarlig"
     work_item ||--o{ work_item_link : "linker til"
@@ -864,6 +871,12 @@ mindst syv dage gamle. Det er ren dataoprydning uden skemaændring.
   ikke-unikt indeks. `board_card` har desuden en alternativ unik nøgle på
   `(board_id, id)` til denne relation. Sletning af en tagdefinition eller en
   placering fjerner dens tildelinger; et delt `work_item` bevares.
+- `board.is_developer_board` er en påkrævet boolean med standard `false`.
+- `board_card_pull_request` gemmer nul eller flere GitHub-PR-links pr.
+  tavleplacering. `board_card_id` er et påkrævet heltal med fremmednøgle til
+  `board_card.id` og `ON DELETE CASCADE`. `url` er påkrævet `varchar(512)`.
+  Primærnøglen `(board_card_id, url)` gør linket entydigt inden for
+  placeringen. Deaktivering af udviklerfunktionen bevarer rækkerne.
 - `board_member` giver medlemsadgang til en tavle. Begge kolonner er påkrævede;
   den sammensatte primærnøgle `(board_id, user_id)` forhindrer dobbelt medlemskab.
   `board_id` refererer til `board.id`, og `user_id` refererer til

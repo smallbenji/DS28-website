@@ -14,6 +14,7 @@ namespace DS.Domain.DTOs
 
     public class BoardDetailDto
     {
+        public bool IsDeveloperBoard { get; set; }
         public int Id { get; set; }
         public string Key { get; set; }
         public string Title { get; set; }
@@ -64,6 +65,7 @@ namespace DS.Domain.DTOs
 
     public class WorkItemDto
     {
+        public List<string> PullRequests { get; set; } = [];
         public List<BoardTagDto> Tags { get; set; } = [];
         public int Id { get; set; }
         public string Title { get; set; }
@@ -80,6 +82,11 @@ namespace DS.Domain.DTOs
         public List<WorkItemPlacementDto> Placements { get; set; } = [];
         public List<WorkItemDependencyDto> WaitingOn { get; set; } = [];
         public List<WorkItemDependencyDto> Blocking { get; set; } = [];
+    }
+
+    public class PullRequestLinkDto
+    {
+        public string Url { get; set; }
     }
 
     public class WorkItemDependencyDto
@@ -130,6 +137,7 @@ namespace DS.Domain.DTOs
 
     public class BoardUpdateDto
     {
+        public bool? IsDeveloperBoard { get; set; }
         public string Title { get; set; }
         public string Description { get; set; }
         public string Icon { get; set; }

@@ -26,7 +26,7 @@ namespace DS.Backend.Mcp
         }
 
         [McpServerTool(Name = "get_board", ReadOnly = true)]
-        [Description("Read one DS28 Kanban board: columns with ids, colour palette, board tags with ids/names/colours, and all cards with DS-number, column, priority, due date, colour, assignees, assigned tags, the cards each card waits on or blocks, and description.")]
+        [Description("Read one DS28 Kanban board: columns with ids, colour palette, board tags with ids/names/colours, and all cards with DS-number, column, priority, due date, colour, assignees, assigned tags, the cards each card waits on or blocks, PR links on developer boards, and description.")]
         public async Task<string> GetBoard([Description("Board id from list_boards.")] int boardId)
         {
             var result = await boards.GetBoard(await ActorAsync(), boardId);
@@ -274,6 +274,32 @@ namespace DS.Backend.Mcp
             return $"Fjernede afhængigheden mellem DS-{cardId} og DS-{otherCardId}.";
         }
 
+        [McpServerTool(Name = "add_pull_request")]
+        [Description("Add a GitHub pull request to a card on a developer board. Existing links are preserved.")]
+        public async Task<string> AddPullRequest(
+            [Description("Board id of the developer board.")] int boardId,
+            [Description("Card number from DS-<id> on this board.")] int cardId,
+            [Description("HTTPS URL of the GitHub pull request.")] string url)
+        {
+            var result = await boards.UpdatePullRequestLink(await ActorAsync(), boardId, cardId, url, remove: false);
+            if (result.Outcome != ServiceOutcome.Success) throw new McpException(Describe(result.Outcome, result.Error));
+
+            return $"Tilknyttede PR-link til DS-{cardId}.";
+        }
+
+        [McpServerTool(Name = "remove_pull_request")]
+        [Description("Remove one GitHub pull request link from a card on a developer board.")]
+        public async Task<string> RemovePullRequest(
+            [Description("Board id of the developer board.")] int boardId,
+            [Description("Card number from DS-<id> on this board.")] int cardId,
+            [Description("HTTPS URL of the GitHub pull request.")] string url)
+        {
+            var result = await boards.UpdatePullRequestLink(await ActorAsync(), boardId, cardId, url, remove: true);
+            if (result.Outcome != ServiceOutcome.Success) throw new McpException(Describe(result.Outcome, result.Error));
+
+            return $"Fjernede PR-link fra DS-{cardId}.";
+        }
+
         private async Task<BoardActor> ActorAsync()
         {
             var context = httpContextAccessor.HttpContext;
@@ -323,6 +349,7 @@ namespace DS.Backend.Mcp
             var text = new StringBuilder();
             text.AppendLine($"Tavle: {board.Title} (id {board.Id}){(board.IsArchived ? " [arkiveret]" : "")}");
 
+            if (board.IsDeveloperBoard) text.AppendLine("Udviklertavle");
             if (!string.IsNullOrWhiteSpace(board.Description)) text.AppendLine(board.Description);
 
             text.AppendLine().AppendLine("Kolonner:");
@@ -361,6 +388,7 @@ namespace DS.Backend.Mcp
                 if (!string.IsNullOrEmpty(card.Color)) meta.Add($"farve {card.Color}");
                 if (card.Tags.Count > 0) meta.Add($"tags: {string.Join(", ", card.Tags.Select(tag => $"{tag.Name} (id {tag.Id})"))}");
                 if (card.Assignees.Count > 0) meta.Add($"ansvarlige: {string.Join(", ", card.Assignees.Select(user => $"{user.FirstName} {user.LastName}"))}");
+                if (card.PullRequests.Count > 0) meta.Add($"PR-links: {string.Join(", ", card.PullRequests)}");
                 if (card.WaitingOn.Count > 0) meta.Add($"venter på: {string.Join(", ", card.WaitingOn.Select(Dependency))}");
                 if (card.Blocking.Count > 0) meta.Add($"blokerer: {string.Join(", ", card.Blocking.Select(Dependency))}");
 

@@ -76,6 +76,9 @@
                         <BInput v-model="settings.description" type="textarea" :rows="3" />
                     </BField>
                     <BCheckbox v-model="settings.isArchived">Arkiveret</BCheckbox>
+                    <BField v-if="isSysAdmin">
+                        <BCheckbox v-model="settings.isDeveloperBoard">Udviklertavle</BCheckbox>
+                    </BField>
                 </section>
                 <footer class="modal-card-foot">
                     <div class="buttons">
@@ -97,6 +100,7 @@ import { useRoute } from 'vue-router';
 import { BButton, BCheckbox, BField, BInput, BModal, BSelect, useDialog, useToast } from 'buefy';
 import type { HubConnection } from '@microsoft/signalr';
 import type { BoardColumnDto, WorkItemDto } from '@/types';
+import { useMeStore } from '@/Stores/MeStore';
 import { useBoardStore } from '@/Stores/BoardStore';
 import BoardMembersModal from '@/Components/Board/BoardMembersModal.vue';
 import BoardTagsModal from '@/Components/Board/BoardTagsModal.vue';
@@ -108,6 +112,8 @@ import { boardDragKey, type BoardDragState } from '@/Components/Board/boardDrag'
 
 const route = useRoute();
 const store = useBoardStore();
+const meStore = useMeStore();
+const isSysAdmin = computed(() => meStore.Me?.roles.includes('SysAdmin') ?? false);
 const Toast = useToast();
 const Dialog = useDialog();
 
@@ -137,7 +143,7 @@ const colorsOpen = ref(false);
 const tagsOpen = ref(false);
 const selectedTagId = ref<number | null>(null);
 const savingSettings = ref(false);
-const settings = ref({ title: '', description: '', isArchived: false });
+const settings = ref({ title: '', description: '', isArchived: false, isDeveloperBoard: false });
 
 const board = computed(() => store.SelectedBoard);
 const canManage = computed(() => board.value !== null);
@@ -200,7 +206,8 @@ function openSettings() {
     settings.value = {
         title: board.value?.title ?? '',
         description: board.value?.description ?? '',
-        isArchived: board.value?.isArchived ?? false
+        isArchived: board.value?.isArchived ?? false,
+        isDeveloperBoard: board.value?.isDeveloperBoard ?? false
     };
     settingsOpen.value = true;
 }
@@ -220,7 +227,8 @@ async function saveSettings() {
             description: settings.value.description.trim() ? settings.value.description.trim() : null,
             icon: board.value?.icon ?? null,
             color: board.value?.color ?? null,
-            isArchived: settings.value.isArchived
+            isArchived: settings.value.isArchived,
+            isDeveloperBoard: isSysAdmin.value ? settings.value.isDeveloperBoard : undefined
         });
 
         if (success) {

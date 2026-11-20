@@ -34,6 +34,7 @@ namespace DS.Application.Data
         DbSet<OrgPositionGroup> OrgPositionGroups { get; }
         DbSet<BoardTag> BoardTags { get; }
         DbSet<BoardCardTag> BoardCardTags { get; }
+        DbSet<BoardCardPullRequest> BoardCardPullRequests { get; }
         DbSet<Board> Boards { get; }
         DbSet<BoardMember> BoardMembers { get; }
         DbSet<BoardColor> BoardColors { get; }
