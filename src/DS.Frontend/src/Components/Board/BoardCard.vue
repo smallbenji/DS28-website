@@ -10,8 +10,12 @@
         @keydown.enter="emit('open', card)"
         @dragstart="onDragStart"
     >
-        <p class="board-card-number">DS-{{ card.id }}</p>
-        <div v-if="card.tags?.length" class="tags mb-2"><BoardTagBadge v-for="tag in card.tags" :key="tag.id" :tag="tag" /></div>
+        <div class="board-card-heading">
+            <p class="board-card-number">DS-{{ card.id }}</p>
+            <div v-if="card.tags?.length" class="board-card-tags">
+                <BoardTagBadge v-for="tag in card.tags" :key="tag.id" :tag="tag" />
+            </div>
+        </div>
         <p class="board-card-title">{{ card.title }}</p>
         <p v-if="descriptionPreview" class="board-card-description">{{ descriptionPreview }}</p>
         <p v-if="waitingLabel" class="board-card-waiting">
@@ -116,6 +120,7 @@ function onDragStart(event: DragEvent) {
 <style scoped>
 .board-card {
     position: relative;
+    flex-shrink: 0;
     background: #fff;
     border: 1px solid #e8ebef;
     border-radius: 6px;
@@ -165,8 +170,22 @@ function onDragStart(event: DragEvent) {
     color: rgba(0, 0, 0, 0.45);
 }
 
-.board-card-number {
+.board-card-heading {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
     margin-bottom: 0.25rem;
+}
+
+.board-card-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    min-width: 0;
+}
+
+.board-card-number {
+    flex-shrink: 0;
     color: #68717d;
     font-size: 0.75rem;
 }

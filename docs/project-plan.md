@@ -1294,7 +1294,8 @@ Implementeringsnoter (2026-10-15, frontend):
 - Træk og slip er implementeret med native HTML5-drag (ingen ekstra
   afhængighed).
 - Visuelt justeret 2026-10-16: tavlen har en lys baggrund, og kolonnerne
-  følger indholdets højde med "Tilføj kort" direkte under kortene.
+  følger indholdets højde op til tavlens synlige højde. Derefter scroller
+  kortlisten i hver kolonne, mens overskriften og "Tilføj kort" er synlige.
   Kolonnehandlinger er dæmpede og fremhæves ved hover eller tastaturfokus;
   på touchskærme er de fuldt synlige. Færdig-kolonner markeres med en grøn
   prik i overskriften frem for en hel grøn flade.
@@ -1383,7 +1384,8 @@ Medlemmer samt SysAdmin/CampAdmin kan oprette, redigere og slette tags via
 Tags på tavlen. En sletning fjerner tagget fra tavlens kort.
 
 - Et kort kan have flere tags pr. tavleplacering. Tags vælges i kortpanelet og
-  vises på kortet. Tags følger ikke med til andre tavler, når et kort deles;
+  vises ved siden af DS-nummeret øverst på tavlekortet. Tags følger ikke med
+  til andre tavler, når et kort deles;
   hver tavle har sin egen markering og afslører ingen tags fra skjulte tavler.
 - Tagfilteret viser kort med det valgte tag. Flytning af kort og kolonner er
   slået fra under filtrering, så skjulte kort ikke giver en forkert rækkefølge.

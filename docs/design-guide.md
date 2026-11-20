@@ -204,6 +204,12 @@ registreres i `library.add(...)` i `main.ts`.
 - Brug `card` med `card-header-title` til selvstændige blokke, f.eks. på
   gruppesiden.
 
+### Tavler
+
+Tavlen scroller vandret. En lang kortliste scroller lodret i sin egen kolonne
+med kolonneoverskriften og »Tilføj kort« synlige. Vis kortets tags ved siden af
+DS-nummeret øverst på kortet, og lad tags ombryde, når der mangler plads.
+
 ### Lister i sidebaren
 
 Hvert element er en `*SidebarBox`-komponent med:
