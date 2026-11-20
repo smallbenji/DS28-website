@@ -112,7 +112,9 @@ const isMobile = useIsMobile();
 const search = ref("");
 const createOpen = ref(false);
 
-const selectedTeam = computed(() => props.teams.find((team) => team.id === props.selectedId) ?? null);
+const selectedTeam = computed(() => props.selectedId == null
+    ? null
+    : props.teams.find((team) => String(team.id) === String(props.selectedId)) ?? null);
 
 const detailOpen = computed({
     get: () => selectedTeam.value != null,

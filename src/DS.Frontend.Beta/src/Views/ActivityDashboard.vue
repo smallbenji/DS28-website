@@ -207,10 +207,11 @@ const columns: TableColumn<ActivityWithTeamDto>[] = [
         })
     },
     {
-        accessorKey: "budget",
+        id: "budget",
+        accessorFn: (activity) => Number(activity.budget),
         header: sortableHeader("Budget"),
         meta: { class: { th: "text-right", td: "text-right tabular-nums" } },
-        cell: ({ row }) => currency.format(row.original.budget)
+        cell: ({ row }) => currency.format(Number(row.original.budget))
     },
     {
         accessorKey: "submittedAt",

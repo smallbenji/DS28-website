@@ -353,7 +353,7 @@ async function loadActivity() {
 
     loading.value = true;
     try {
-        if (SelectedActivity.value?.id !== activityId.value) SelectedActivity.value = null;
+        if (Number(SelectedActivity.value?.id) !== activityId.value) SelectedActivity.value = null;
         await activityStore.GET_ACTIVITY(activityId.value);
     } finally {
         loading.value = false;
