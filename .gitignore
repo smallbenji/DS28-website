@@ -306,6 +306,7 @@ DS.Backend/files
 ds28-hq-*.json
 
 dist
+dist-beta
 node_modules
 *.lscache
 
