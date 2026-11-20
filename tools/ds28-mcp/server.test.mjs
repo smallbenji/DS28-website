@@ -411,12 +411,16 @@ test("MCP viser flere PR-links og fjerner dem enkeltvis", async () => {
             assert.equal((await call("add_pull_request", { cardId: 42, url })).isError, undefined);
         }
 
-        let boardText = (await call("get_board")).content[0].text;
-        assert.ok(boardText.includes(`PR-links: ${firstUrl}, ${secondUrl}`));
+        const listedPullRequests = async () => {
+            const boardText = (await call("get_board")).content[0].text;
+            const cardLine = boardText.split("\n").find(line => line.startsWith("- DS-42 "));
+            const links = cardLine?.split(" | ").find(field => field.startsWith("PR-links: "));
+            return links?.slice("PR-links: ".length).split(", ");
+        };
+
+        assert.deepEqual(await listedPullRequests(), [firstUrl, secondUrl]);
         assert.equal((await call("remove_pull_request", { cardId: 42, url: firstUrl })).isError, undefined);
-        boardText = (await call("get_board")).content[0].text;
-        assert.ok(!boardText.includes(firstUrl));
-        assert.ok(boardText.includes(secondUrl));
+        assert.deepEqual(await listedPullRequests(), [secondUrl]);
     } finally {
         client.child.kill();
         server.close();
