@@ -142,6 +142,13 @@ forms, buttons, tables, notifications, and step flows.
 - Update the design guide in the same task when you establish a new shared UI
   pattern or change an existing one.
 
+`src/DS.Frontend.Beta` is a separate beta frontend with Vue, Nuxt UI, and
+Tailwind, served at `/beta`. Its services, stores, `lib`, and `types` are
+copies of the ones in `src/DS.Frontend`; when you change one, change the copy
+too. The design guide does not apply to it. Use Nuxt UI components and Lucide
+icons (`i-lucide-*`) there, and never Buefy or Bulma. Build it with
+`npm run build` in `src/DS.Frontend.Beta`.
+
 ## Git commits and pull requests
 
 - Commit with the user's own git identity as configured in the repository

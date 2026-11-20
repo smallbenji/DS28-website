@@ -27,6 +27,9 @@ Kort sagt:
 Tilføj ikke et nyt UI-bibliotek eller CSS-framework uden en beslutning i
 [projektplanen](project-plan.md).
 
+Guiden gælder ikke `src/DS.Frontend.Beta`, som bruger Nuxt UI og Tailwind. Se
+[Beta-frontend med Nuxt UI](project-plan.md#beta-frontend-med-nuxt-ui).
+
 ## Farver
 
 Brug Bulmas semantiske farver via `type="is-…"` frem for egne hex-koder.

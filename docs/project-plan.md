@@ -1790,7 +1790,8 @@ Ubesluttede punkter:
 
 - ASP.NET Core og Vue/Vite.
 - ASP.NET Core Identity og OpenIddict til identitet og login.
-- Buefy til frontend-komponenter.
+- Buefy til frontend-komponenter. En beta-frontend med Nuxt UI afprøves, se
+  [Beta-frontend med Nuxt UI](#beta-frontend-med-nuxt-ui).
 - Hosting: Smallhosting.
 - Services: Grafana og Prometheus.
 - CMS-valget var eksempelvis WordPress.
@@ -2185,7 +2186,8 @@ til projektet. Kontrollér altid koden igen ved fremtidige ændringer.
 - Keycloak er fjernet fra planen efter Benjamins beslutning. Det er ikke en
   kommende integration eller en åben arkitekturbeslutning. Backend bruger
   ASP.NET Core Identity og OpenIddict.
-- Frontend bruger Vue/Vite og Buefy.
+- Frontend bruger Vue/Vite og Buefy. `src/DS.Frontend.Beta` er en separat
+  beta-frontend med Nuxt UI, serveret på `/beta`.
 - Globale roller og rettigheder ligger i `DS.Backend/Roles.cs`. Planens roller
   er ikke nødvendigvis implementeret med de beskrevne rettigheder.
 - Spejdergrupper er adskilt fra globale roller. `User.Group` knytter en bruger
@@ -2332,6 +2334,34 @@ tekstregler og brudpunkter ud fra de mønstre, der var mest udbredt i koden.
 Eksisterende kode er ikke omskrevet; afvigelser er listet i guiden og rettes,
 når filerne alligevel ændres. En fælles SCSS-fil med farvevariabler er foreslået,
 men ikke besluttet.
+
+### Beta-frontend med Nuxt UI
+
+**Beslutning 2026-11-20 (implementeret som første skridt):** En ny frontend,
+`src/DS.Frontend.Beta`, bygges med Vue, Nuxt UI 4 og Tailwind CSS 4 ved siden
+af den nuværende Buefy-frontend. Begrundelsen er, at Nuxt UI ser bedre ud og
+har færdige dashboard-komponenter, som gør det nemmere at give hvert modul sit
+eget dashboard. Beta er et separat projekt, så Bulma og Tailwind aldrig
+indlæses på samme side.
+
+- Services, stores, `lib` og `types` er kopieret fra `DS.Frontend`, ikke delt.
+  Ændringer i de kopierede filer skal derfor laves begge steder, så længe
+  begge frontends findes.
+- Beta bygges til `DS.Backend/wwwroot/dist-beta/` og serveres på `/beta/*`
+  (`Program.cs`), kun for indloggede brugere. Login, totrinsopsætning og ikke
+  flyttede sider ligger stadig i den nuværende frontend, og beta sender
+  brugeren dertil.
+- Ikoner er Lucide via `@iconify-json/lucide` og bundtes ved build, så
+  browseren ikke henter ikoner fra Iconifys API.
+- Første modul er aktiviteter: `/beta/activity` viser for
+  aktivitetsadministratorer nøgletal, filtre og en sorterbar tabel og for
+  andre deres teams. Aktivitetsdetaljer og teamstyring linker til den
+  nuværende frontend.
+
+Ikke besluttet: om hele frontenden skal flyttes til Nuxt UI, i hvilken
+rækkefølge og hvornår, hvordan brugerne finder beta, og om nye funktioner kun
+skal bygges i beta under overgangen. Designguiden gælder fortsat kun
+`DS.Frontend`.
 
 ### HQ-favicon
 
