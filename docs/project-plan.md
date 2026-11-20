@@ -2380,6 +2380,11 @@ indlæses på samme side.
   »Gem«. Spejdere, patruljer og medlemskaber gemmes med det samme som i dag, og
   siden læser gruppen fra store efter hver handling i stedet for at rette en
   lokal kopi. Gruppens brugere linker til brugerstyringen i beta.
+- `/beta/admin/camp-settings` (kræver `PreSignupManage`) har de samme to
+  kontakter som `CampSettings.vue` til forhåndstilmelding og endelig
+  tilmelding. Beta viser desuden status som tekst, en toast ved ændring og en
+  fejlbesked, hvis ændringen ikke kan bekræftes. Den nuværende side gemmer
+  fejlen uden at vise den.
 
 Ikke besluttet: om hele frontenden skal flyttes til Nuxt UI, i hvilken
 rækkefølge og hvornår, hvordan brugerne finder beta, og om nye funktioner kun
