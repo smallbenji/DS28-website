@@ -2423,6 +2423,12 @@ indlæses på samme side.
   Nuxt UI's `UEditor` (TipTap) med samme formateringsmuligheder som før.
   Kortenes egenskaber er almindelige formularfelter i sidepanelet i stedet for
   dropdowns.
+- `/beta/group` viser gruppesiden fra `Group.vue`: gruppens navn, ID og
+  distrikt, gruppens brugere og links til forhåndstilmelding, endelig
+  tilmelding og administration af brugere, som åbner i den nuværende frontend.
+  Aktivitetsønskerunde og aktivitetstilmelding står som ikke tilgængelige, som i
+  dag. Beta viser desuden antal spejdere, patruljer og brugere ud fra de data,
+  siden allerede henter, og en tom tilstand for brugere uden gruppe.
 - **Sikkerhed (fundet 2026-11-20, rettet i beta, ikke i den nuværende
   frontend):** `htmlToPlainText` i `lib/util.ts` laver kortenes
   forhåndsvisning ved at sætte beskrivelsen som `innerHTML` på et element.
