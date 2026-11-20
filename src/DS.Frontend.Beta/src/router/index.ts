@@ -31,6 +31,11 @@ const routes: RouteRecordRaw[] = [
                 path: "admin/camp-settings",
                 component: () => import("@/Views/CampSettings.vue"),
                 meta: { requiredRole: "PreSignupManage" }
+            },
+            {
+                path: "admin/exports",
+                component: () => import("@/Views/Exports.vue"),
+                meta: { requiredRole: "ExportsView" }
             }
         ]
     },

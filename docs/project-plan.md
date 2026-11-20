@@ -2385,6 +2385,9 @@ indlæses på samme side.
   tilmelding. Beta viser desuden status som tekst, en toast ved ændring og en
   fejlbesked, hvis ændringen ikke kan bekræftes. Den nuværende side gemmer
   fejlen uden at vise den.
+- `/beta/admin/exports` (kræver `ExportsView`) viser de samme udtræk som
+  `Exports.vue` og henter dem som .xlsx via det samme API. Mens et udtræk
+  hentes, er de andre knapper låst.
 
 Ikke besluttet: om hele frontenden skal flyttes til Nuxt UI, i hvilken
 rækkefølge og hvornår, hvordan brugerne finder beta, og om nye funktioner kun
