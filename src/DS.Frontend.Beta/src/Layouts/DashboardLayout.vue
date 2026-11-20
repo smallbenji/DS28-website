@@ -38,6 +38,8 @@ import type { NavigationMenuItem } from "@nuxt/ui";
 import { storeToRefs } from "pinia";
 import { useMeStore } from "@/Stores/MeStore";
 import ColorModeMenu from "@/Components/ColorModeMenu.vue";
+import AuthService from "@/Services/AuthService";
+import { useNotify } from "@/lib/notify";
 
 const { Me } = storeToRefs(useMeStore());
 
@@ -83,12 +85,29 @@ const moduleItems = computed<NavigationMenuItem[]>(() => {
     return items;
 });
 
+const authService = new AuthService();
+const notify = useNotify();
+
+async function logout() {
+    try {
+        await authService.logout();
+        window.location.assign("/beta/login");
+    } catch {
+        notify.error("Du kunne ikke logges ud. Prøv igen.");
+    }
+}
+
 const footerItems: NavigationMenuItem[] = [
     {
         label: "Til nuværende HQ",
         icon: "i-lucide-arrow-left-right",
         to: "/",
         external: true
+    },
+    {
+        label: "Log ud",
+        icon: "i-lucide-log-out",
+        onSelect: () => { void logout(); }
     }
 ];
 </script>
