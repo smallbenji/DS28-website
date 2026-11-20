@@ -2434,6 +2434,13 @@ indlæses på samme side.
   og låste felter, når forhåndstilmeldingen er lukket. Den offentlige
   `/group-pre-signup` for grupper, der ikke er logget ind, bliver i den
   nuværende frontend, fordi `/beta` kræver login.
+- `/beta/group/final-signup` er gruppens endelige tilmelding fra
+  `GroupFinalSignup.vue`: oprettelse og sletning af spejdere og patruljer og
+  tildeling af spejdere til patruljer via gruppens eget API. Gruppen hentes
+  igen efter hver handling i stedet for at blive rettet lokalt. Fejl fra
+  serveren vises både på siden og som toast, så de også ses, mens en dialog er
+  åben. Ligesom i dag tjekker siden ikke, om den endelige tilmelding er åben;
+  det afgør backenden.
 - **Sikkerhed (fundet 2026-11-20, rettet i beta, ikke i den nuværende
   frontend):** `htmlToPlainText` i `lib/util.ts` laver kortenes
   forhåndsvisning ved at sætte beskrivelsen som `innerHTML` på et element.
