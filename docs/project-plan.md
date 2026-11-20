@@ -2365,6 +2365,14 @@ indlæses på samme side.
   tilmeldingsstatistik som `Admin.vue` og kan starte den historiske
   synkronisering. Undersiderne og Hangfire åbner i den nuværende frontend, og
   Hangfire åbner i et nyt vindue som i dag.
+- `/beta/admin/user/:id?` er brugerstyringen fra `User.vue`: liste med søgning,
+  detaljer, oprettelse, invitation, roller, stillinger, lås, nulstillingslink og
+  sletning med samme rolletjek som i dag. Forskelle fra den nuværende side:
+  stamdata redigeres i en kladde og gemmes først med »Gem«, så ugemte ændringer
+  ikke vises i listen, og fjernelse af roller, låsning og sletning bekræftes i
+  en dialog. På mobil åbner brugeren i en skuffe. Upload af profilbillede er
+  ikke flyttet; knappen linker til brugeren i den nuværende frontend, mens
+  »Fjern billede« virker i beta.
 
 Ikke besluttet: om hele frontenden skal flyttes til Nuxt UI, i hvilken
 rækkefølge og hvornår, hvordan brugerne finder beta, og om nye funktioner kun

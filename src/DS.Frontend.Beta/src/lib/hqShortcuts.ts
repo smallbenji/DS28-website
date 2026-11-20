@@ -16,7 +16,7 @@ const lucideIcons: Record<string, string> = {
     h: "i-lucide-list-checks"
 };
 
-const betaPaths = ["/activity", "/admin"];
+const betaPaths = ["/activity", "/admin", "/admin/user"];
 
 export interface HqShortcut {
     title: string;

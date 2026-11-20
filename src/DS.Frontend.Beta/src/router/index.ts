@@ -18,6 +18,10 @@ const routes: RouteRecordRaw[] = [
                 path: "admin",
                 component: () => import("@/Views/Admin.vue"),
                 meta: { requiredRole: "AdminAccess" }
+            },
+            {
+                path: "admin/user/:id?",
+                component: () => import("@/Views/UserManagement.vue")
             }
         ]
     },
