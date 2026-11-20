@@ -22,6 +22,10 @@ const routes: RouteRecordRaw[] = [
             {
                 path: "admin/user/:id?",
                 component: () => import("@/Views/UserManagement.vue")
+            },
+            {
+                path: "admin/groups/:id?",
+                component: () => import("@/Views/GroupManagement.vue")
             }
         ]
     },

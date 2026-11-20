@@ -2373,6 +2373,13 @@ indlæses på samme side.
   en dialog. På mobil åbner brugeren i en skuffe. Upload af profilbillede er
   ikke flyttet; knappen linker til brugeren i den nuværende frontend, mens
   »Fjern billede« virker i beta.
+- `/beta/admin/groups/:id?` er gruppestyringen fra `Groups.vue`: liste med
+  søgning, oprettelse, stamdata, spejdere med patruljemedlemskaber og
+  patruljeledere, patruljer, gruppens brugere og tilmeldingstal fra 2024 (kun
+  for `AdminAccess`). Navn og distrikt redigeres i en kladde og gemmes med
+  »Gem«. Spejdere, patruljer og medlemskaber gemmes med det samme som i dag, og
+  siden læser gruppen fra store efter hver handling i stedet for at rette en
+  lokal kopi. Gruppens brugere linker til brugerstyringen i beta.
 
 Ikke besluttet: om hele frontenden skal flyttes til Nuxt UI, i hvilken
 rækkefølge og hvornår, hvordan brugerne finder beta, og om nye funktioner kun
