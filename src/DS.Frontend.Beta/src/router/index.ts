@@ -68,6 +68,10 @@ const routes: RouteRecordRaw[] = [
                 component: () => import("@/Views/GroupMembers.vue")
             },
             {
+                path: "profile",
+                component: () => import("@/Views/Profile.vue")
+            },
+            {
                 path: "board",
                 component: () => import("@/Views/Boards.vue"),
                 meta: { requiredRole: "BoardView" }
@@ -92,6 +96,10 @@ const routes: RouteRecordRaw[] = [
             { path: "group-pre-signup", component: () => import("@/Views/GroupPreSignup.vue"), meta: { guestOnly: true } },
             { path: "forms/:id?", component: () => import("@/Views/FormPreview.vue"), meta: { wide: true } }
         ]
+    },
+    {
+        path: "/twofactor-setup",
+        component: () => import("@/Views/TwoFactorSetup.vue")
     },
     {
         path: "/access-denied",
@@ -126,10 +134,9 @@ router.beforeEach(async (to) => {
         return { path: "/login", query: { returnUrl: `/beta${to.fullPath}` } };
     }
 
-    if (meStore.Me.mustEnableTwoFactor) {
-        window.location.assign("/twofactor-setup");
-        return false;
-    }
+    const mustSetupTwoFactor = meStore.Me.mustEnableTwoFactor;
+    if (mustSetupTwoFactor && to.path !== "/twofactor-setup") return "/twofactor-setup";
+    if (!mustSetupTwoFactor && to.path === "/twofactor-setup") return "/";
 
     if (typeof to.meta.requiredRole === "string" && !meStore.Me.appRoles.includes(to.meta.requiredRole)) {
         return "/access-denied";

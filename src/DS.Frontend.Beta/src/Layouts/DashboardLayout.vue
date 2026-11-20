@@ -15,13 +15,13 @@
             </template>
 
             <template #footer="{ collapsed }">
-                <div class="flex min-w-0 items-center gap-2">
-                    <UAvatar :alt="Me?.name" size="sm" />
+                <RouterLink to="/profile" class="-m-1 flex min-w-0 flex-1 items-center gap-2 rounded-md p-1 hover:bg-elevated focus-visible:outline-2 focus-visible:outline-primary" aria-label="Min profil">
+                    <UAvatar :src="Me?.profilePicture?.url" :alt="Me?.name" size="sm" />
                     <div v-if="!collapsed" class="min-w-0">
                         <p class="truncate text-sm font-medium text-highlighted">{{ Me?.name }}</p>
                         <p class="truncate text-xs text-muted">{{ Me?.email }}</p>
                     </div>
-                </div>
+                </RouterLink>
             </template>
         </UDashboardSidebar>
 

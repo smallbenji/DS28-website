@@ -25,8 +25,8 @@
                 </template>
                 <form id="user-form" class="flex flex-col gap-4" @submit.prevent="save">
                     <div v-if="hasRole('UsersEditProfilePicture')" class="flex flex-wrap items-center gap-2">
-                        <UButton :to="legacyUrl" color="neutral" variant="outline" size="sm" icon="i-lucide-image" label="Skift billede i nuværende HQ" />
-                        <UButton v-if="user.profilePicture" color="error" variant="ghost" size="sm" label="Fjern billede" :loading="removingPicture" @click="removePicture" />
+                        <ProfilePictureUpload :has-picture="!!user.profilePicture" :disabled="updatingPicture" size="sm" @confirm="updatePicture" />
+                        <UButton v-if="user.profilePicture" color="error" variant="ghost" size="sm" label="Fjern billede" :disabled="updatingPicture" @click="removePicture" />
                     </div>
                     <div class="grid gap-4 sm:grid-cols-2">
                         <UFormField label="Fornavn">
@@ -165,6 +165,8 @@ import { useHasRole } from "@/lib/permissions";
 import { useGroupOptions } from "@/lib/groupOptions";
 import ConfirmModal from "@/Components/ConfirmModal.vue";
 import UserAvatar from "@/Components/User/UserAvatar.vue";
+import ProfilePictureUpload from "@/Components/User/ProfilePictureUpload.vue";
+import FileService from "@/Services/FileService";
 import type { ResetPasswordLinkDto, UserDto } from "@/types";
 
 const props = defineProps<{ user: UserDto }>();
@@ -175,8 +177,6 @@ const { Groups, AssignableGroups } = storeToRefs(userStore);
 const toast = useToast();
 const hasRole = useHasRole();
 const { groupItems, findGroup, groupValue } = useGroupOptions();
-
-const legacyUrl = computed(() => new URL(`/admin/user/${props.user.id}`, window.location.origin).href);
 
 const isLocked = computed(() => !!props.user.lockoutEnd && new Date(props.user.lockoutEnd).getTime() > Date.now());
 
@@ -229,15 +229,35 @@ watch(() => props.user, (user) => {
     }
 });
 
-const removingPicture = ref(false);
+const fileService = new FileService();
+const updatingPicture = ref(false);
+
+async function updatePicture(file: File) {
+    updatingPicture.value = true;
+    try {
+        const uploaded = await fileService.uploadProfilePicture(file);
+        const ready = await fileService.waitUntilReady(uploaded.publicId);
+        if (!ready) {
+            notify(false, "", "Billedet kunne ikke behandles. Prøv igen.");
+            return;
+        }
+
+        const ok = await userStore.UPDATE_USER_PROFILE_PICTURE(props.user.id, uploaded.publicId);
+        notify(ok, "Profilbilledet er opdateret.", "Der skete en fejl under opdatering af profilbilledet.");
+    } catch {
+        notify(false, "", "Der skete en fejl under upload af billedet.");
+    } finally {
+        updatingPicture.value = false;
+    }
+}
 
 async function removePicture() {
-    removingPicture.value = true;
+    updatingPicture.value = true;
     try {
         const ok = await userStore.UPDATE_USER_PROFILE_PICTURE(props.user.id, null);
         notify(ok, "Profilbilledet er fjernet.", "Profilbilledet kunne ikke fjernes.");
     } finally {
-        removingPicture.value = false;
+        updatingPicture.value = false;
     }
 }
 
