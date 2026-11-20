@@ -1007,6 +1007,8 @@ Nye og eksisterende tavler har funktionen slået fra som standard.
 - Brugere med redigeringsadgang til en udviklertavle kan tilføje og fjerne
   flere GitHub-PR-links enkeltvis i kortdialogen eller via `add_pull_request`
   og `remove_pull_request` i både remote- og stdio-MCP. `get_board` viser links.
+- Kortdialogens PR-sektion åbner linkfeltet med »Tilføj« og lukker det efter
+  tilføjelse (DS-51).
 - Links er afgrænset til tavleplaceringen. De skjules ved deaktivering og
   kommer tilbage ved genaktivering. Under deaktivering afvises ændringer.
 - Serveren accepterer eksplicitte HTTPS-links til konkrete PR'er på
