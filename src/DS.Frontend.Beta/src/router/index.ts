@@ -80,6 +80,20 @@ const routes: RouteRecordRaw[] = [
         ]
     },
     {
+        path: "/",
+        component: () => import("@/Layouts/GuestLayout.vue"),
+        children: [
+            { path: "login", component: () => import("@/Views/Login.vue"), meta: { guestOnly: true } },
+            { path: "register", component: () => import("@/Views/Register.vue"), meta: { guestOnly: true } },
+            { path: "forgot-password", component: () => import("@/Views/ForgotPassword.vue"), meta: { guestOnly: true } },
+            { path: "reset-password/:id", component: () => import("@/Views/ResetPassword.vue"), meta: { public: true } },
+            { path: "invitation/:id", component: () => import("@/Views/Invitation.vue"), meta: { public: true } },
+            { path: "group-invitation/:id", component: () => import("@/Views/GroupInvitation.vue"), meta: { public: true } },
+            { path: "group-pre-signup", component: () => import("@/Views/GroupPreSignup.vue"), meta: { guestOnly: true } },
+            { path: "forms/:id?", component: () => import("@/Views/FormPreview.vue"), meta: { wide: true } }
+        ]
+    },
+    {
         path: "/access-denied",
         component: () => import("@/Views/AccessDenied.vue")
     },
@@ -104,9 +118,12 @@ router.beforeEach(async (to) => {
         return false;
     }
 
+    if (to.meta.public) return true;
+
+    if (to.meta.guestOnly) return meStore.Me?.isAuthenticated ? "/" : true;
+
     if (!meStore.Me?.isAuthenticated) {
-        window.location.assign(`/login?returnUrl=${encodeURIComponent(`/beta${to.fullPath}`)}`);
-        return false;
+        return { path: "/login", query: { returnUrl: `/beta${to.fullPath}` } };
     }
 
     if (meStore.Me.mustEnableTwoFactor) {
