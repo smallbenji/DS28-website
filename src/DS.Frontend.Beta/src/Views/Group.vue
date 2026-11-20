@@ -113,11 +113,7 @@ const stats = computed(() => [
     { label: "Brugere", value: Group.value.users.length }
 ]);
 
-function legacyUrl(path: string) {
-    return new URL(path, window.location.origin).href;
-}
-
-const membersUrl = legacyUrl("/group/members");
+const membersUrl = "/group/members";
 
 const links = [
     { title: "Forhåndstilmelding", icon: "i-lucide-clipboard-list", to: "/group/pre-signup" },

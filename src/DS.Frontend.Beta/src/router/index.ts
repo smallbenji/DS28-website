@@ -64,6 +64,10 @@ const routes: RouteRecordRaw[] = [
                 component: () => import("@/Views/GroupFinalSignup.vue")
             },
             {
+                path: "group/members",
+                component: () => import("@/Views/GroupMembers.vue")
+            },
+            {
                 path: "board",
                 component: () => import("@/Views/Boards.vue"),
                 meta: { requiredRole: "BoardView" }

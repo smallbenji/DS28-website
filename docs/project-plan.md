@@ -2441,6 +2441,12 @@ indlæses på samme side.
   serveren vises både på siden og som toast, så de også ses, mens en dialog er
   åben. Ligesom i dag tjekker siden ikke, om den endelige tilmelding er åben;
   det afgør backenden.
+- `/beta/group/members` er gruppens brugere fra `GroupMembers.vue`: medlemmer,
+  invitation med email og link, afventende invitationer med link og
+  annullering, og fjernelse af medlemmer med bekræftelse. Invitationslinket kan
+  kopieres med en knap. Linket peger fortsat på `/group-invitation/:id` i den
+  nuværende frontend, fordi den inviterede ikke er logget ind. Gruppesiden og
+  dens undersider ligger dermed alle i beta.
 - **Sikkerhed (fundet 2026-11-20, rettet i beta, ikke i den nuværende
   frontend):** `htmlToPlainText` i `lib/util.ts` laver kortenes
   forhåndsvisning ved at sætte beskrivelsen som `innerHTML` på et element.
