@@ -2359,6 +2359,8 @@ indlæses på samme side.
   side under `/beta` åbnes uden login.
 - Ikoner er Lucide via `@iconify-json/lucide` og bundtes ved build, så
   browseren ikke henter ikoner fra Iconifys API.
+- Beta følger som udgangspunkt systemets lyse eller mørke tema. En knap ved
+  brugeren nederst i sidebaren skifter tema, og valget gemmes i browseren.
 - Første modul er aktiviteter: `/beta/activity` viser for
   aktivitetsadministratorer nøgletal, filtre og en sorterbar tabel og for
   andre den fulde teamvisning med medlemmer, aktiviteter og oprettelse af

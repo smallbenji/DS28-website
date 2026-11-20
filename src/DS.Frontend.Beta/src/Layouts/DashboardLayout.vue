@@ -15,13 +15,18 @@
             </template>
 
             <template #footer="{ collapsed }">
-                <RouterLink to="/profile" class="-m-1 flex min-w-0 flex-1 items-center gap-2 rounded-md p-1 hover:bg-elevated focus-visible:outline-2 focus-visible:outline-primary" aria-label="Min profil">
-                    <UAvatar :src="Me?.profilePicture?.url" :alt="Me?.name" size="sm" />
-                    <div v-if="!collapsed" class="min-w-0">
-                        <p class="truncate text-sm font-medium text-highlighted">{{ Me?.name }}</p>
-                        <p class="truncate text-xs text-muted">{{ Me?.email }}</p>
-                    </div>
-                </RouterLink>
+                <div class="flex w-full min-w-0 items-center gap-1" :class="{ 'flex-col': collapsed }">
+                    <RouterLink to="/profile" class="-m-1 flex min-w-0 flex-1 items-center gap-2 rounded-md p-1 hover:bg-elevated focus-visible:outline-2 focus-visible:outline-primary" aria-label="Min profil">
+                        <UAvatar :src="Me?.profilePicture?.url" :alt="Me?.name" size="sm" />
+                        <div v-if="!collapsed" class="min-w-0">
+                            <p class="truncate text-sm font-medium text-highlighted">{{ Me?.name }}</p>
+                            <p class="truncate text-xs text-muted">{{ Me?.email }}</p>
+                        </div>
+                    </RouterLink>
+                    <UTooltip text="Skift mellem lyst og mørkt tema">
+                        <UColorModeButton color="neutral" variant="ghost" size="sm" aria-label="Skift mellem lyst og mørkt tema" />
+                    </UTooltip>
+                </div>
             </template>
         </UDashboardSidebar>
 
