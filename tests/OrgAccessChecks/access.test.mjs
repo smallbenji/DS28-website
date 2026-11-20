@@ -30,10 +30,12 @@ test('API user summaries grant management to parent and ancestor holders only', 
         assert.equal(canManagePosition(child, positions, userId, false), true);
         assert.equal(canCreateChild(child, positions, userId, false), true);
     }
-    for (const userId of ['child-holder', 'unrelated']) {
-        assert.equal(canManagePosition(child, positions, userId, false), false);
-        assert.equal(canCreateChild(child, positions, userId, false), false);
-    }
+    assert.equal(canManagePosition(child, positions, 'child-holder', false), false);
+    assert.equal(canCreateChild(child, positions, 'child-holder', false), true);
+    assert.equal(canManagePosition(child, positions, 'unrelated', false), false);
+    assert.equal(canCreateChild(child, positions, 'unrelated', false), false);
+    assert.equal(canCreateChild(root, positions, 'root-holder', false), true);
+    assert.equal(canCreateChild(root, positions, 'admin', true), true);
 });
 
 test('system positions remain restricted to system administrators', () => {
@@ -46,9 +48,15 @@ test('system positions remain restricted to system administrators', () => {
 test('assistant management follows the assisted position and its ancestors', () => {
     const root = position(1, null, ['root-holder']);
     const assisted = position(2, 1, ['assisted-holder']);
-    const assistant = position(3, null, [], { paForPositionId: 2 });
+    const assistant = position(3, null, ['assistant-holder'], { paForPositionId: 2 });
     for (const userId of ['root-holder', 'assisted-holder']) {
         assert.equal(canManagePosition(assistant, [root, assisted, assistant], userId, false), true);
     }
-    assert.equal(canManagePosition(assistant, [root, assisted, assistant], 'unrelated', false), false);
+    const positions = [root, assisted, assistant];
+    assert.equal(canManagePosition(assistant, positions, 'unrelated', false), false);
+    assert.equal(canCreateChild(assisted, positions, 'assistant-holder', false), false);
+    for (const userId of ['root-holder', 'assisted-holder', 'assistant-holder']) {
+        assert.equal(canCreateChild(assistant, positions, userId, false), false);
+    }
+    assert.equal(canCreateChild(assistant, positions, 'admin', true), false);
 });

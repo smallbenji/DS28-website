@@ -47,5 +47,8 @@ export function canCreateChild(
     currentUserId: string,
     isSysAdmin: boolean
 ): boolean {
-    return canManagePosition(position, positions, currentUserId, isSysAdmin);
+    if (position.paForPositionId !== null) return false;
+    if (isSysAdmin) return true;
+
+    return isManagedBy(collectPositionWithAncestors(position.id, positions), positions, currentUserId);
 }
