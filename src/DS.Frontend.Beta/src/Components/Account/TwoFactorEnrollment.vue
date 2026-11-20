@@ -14,14 +14,25 @@
         </div>
         <p class="text-center font-mono text-xs break-all text-muted">{{ setup.manualEntryKey }}</p>
         <UFormField label="Verificér kode" :error="invalid ? 'Den indtastede kode var ikke gyldig.' : undefined">
-            <UInput ref="codeInput" v-model="code" placeholder="123456" autocomplete="one-time-code" inputmode="numeric" class="w-full" />
+            <UPinInput
+                v-model="digits"
+                :length="6"
+                type="number"
+                otp
+                autofocus
+                size="xl"
+                :disabled="verifying"
+                aria-label="Verificér kode"
+                class="w-full justify-between"
+                @complete="verify"
+            />
         </UFormField>
-        <UButton type="submit" :label="submitLabel" :loading="verifying" :disabled="!code.trim()" block />
+        <UButton type="submit" :label="submitLabel" :loading="verifying" :disabled="!isComplete" block />
     </form>
 </template>
 
 <script setup lang="ts">
-import { nextTick, onMounted, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { useAccountStore } from "@/Stores/AccountStore";
 import type { TwoFactorSetupDto } from "@/types";
 
@@ -31,27 +42,30 @@ const emit = defineEmits<{ enabled: [recoveryCodes: string[]] }>();
 const accountStore = useAccountStore();
 
 const setup = ref<TwoFactorSetupDto | null>(null);
-const code = ref("");
+const digits = ref<number[]>([]);
+const code = computed(() => digits.value.join(""));
+const isComplete = computed(() => /^[0-9]{6}$/.test(code.value));
 const verifying = ref(false);
 const invalid = ref(false);
-const codeInput = ref<{ inputRef?: HTMLInputElement } | null>(null);
 const qrUrl = `/api/v1/account/2fa/qr?ts=${Date.now()}`;
 
 onMounted(async () => {
     setup.value = await accountStore.GET_SETUP();
-    await nextTick();
-    codeInput.value?.inputRef?.focus();
 });
 
 async function verify() {
-    if (!code.value.trim() || verifying.value) return;
+    if (!isComplete.value || verifying.value) return;
 
     verifying.value = true;
     invalid.value = false;
     try {
         const result = await accountStore.ENABLE_2FA(code.value);
-        if (result) emit("enabled", result.recoveryCodes);
-        else invalid.value = true;
+        if (result) {
+            emit("enabled", result.recoveryCodes);
+        } else {
+            invalid.value = true;
+            digits.value = [];
+        }
     } finally {
         verifying.value = false;
     }

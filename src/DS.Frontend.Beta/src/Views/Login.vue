@@ -61,7 +61,18 @@
 
             <form v-if="authenticatorAvailable" class="flex flex-col gap-4" @submit.prevent="verifyTwoFactor">
                 <UFormField label="Autentificeringskode" required>
-                    <UInput ref="twoFactorInput" v-model="twoFactorCode" icon="i-lucide-smartphone" inputmode="numeric" autocomplete="one-time-code" class="w-full" />
+                    <UPinInput
+                        v-model="twoFactorDigits"
+                        :length="6"
+                        type="number"
+                        otp
+                        autofocus
+                        size="xl"
+                        :disabled="isSubmitting"
+                        aria-label="Autentificeringskode"
+                        class="w-full justify-between"
+                        @complete="verifyTwoFactor"
+                    />
                 </UFormField>
 
                 <UCheckbox v-model="rememberMachine" label="Husk denne enhed" />
@@ -110,14 +121,14 @@ const authService = new AuthService();
 const step = ref<"login" | "twofactor" | "recovery">("login");
 
 const emailInput = ref<FocusableInput>(null);
-const twoFactorInput = ref<FocusableInput>(null);
 const recoveryInput = ref<FocusableInput>(null);
 
 const email = ref("");
 const userId = ref("");
 const password = ref("");
 const showPassword = ref(false);
-const twoFactorCode = ref("");
+const twoFactorDigits = ref<number[]>([]);
+const twoFactorCode = computed(() => twoFactorDigits.value.join(""));
 const recoveryCode = ref("");
 const rememberMachine = ref(false);
 
@@ -136,12 +147,12 @@ const returnUrl = computed(() => {
 });
 
 const canSubmitLogin = computed(() => email.value.trim() !== "" && password.value.length > 0);
-const canSubmitTwoFactor = computed(() => twoFactorCode.value.trim() !== "");
+const canSubmitTwoFactor = computed(() => /^[0-9]{6}$/.test(twoFactorCode.value));
 const canSubmitRecovery = computed(() => recoveryCode.value.trim() !== "");
 
 watch(step, () => {
     nextTick(() => {
-        const target = step.value === "login" ? emailInput.value : step.value === "twofactor" ? twoFactorInput.value : recoveryInput.value;
+        const target = step.value === "login" ? emailInput.value : step.value === "recovery" ? recoveryInput.value : null;
         target?.inputRef?.focus();
     });
 });
@@ -191,6 +202,7 @@ async function verifyTwoFactor() {
 
         if (result.error) {
             error.value = result.error;
+            twoFactorDigits.value = [];
             return;
         }
 
