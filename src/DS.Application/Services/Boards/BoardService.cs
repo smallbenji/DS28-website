@@ -45,7 +45,7 @@ namespace DS.Application.Services.Boards
             if (board == null) return new ServiceResult(ServiceOutcome.NotFound);
             if (!await CanSeeBoardAsync(actor, board)) return new ServiceResult(ServiceOutcome.Forbidden);
 
-            var cards = await LoadCardsAsync(id);
+            var cards = await LoadCardsAsync(id, board.IsDeveloperBoard);
             var workItemIds = cards.Select(card => card.WorkItemId).Distinct().ToList();
             var placements = await LoadPlacementsAsync(actor, workItemIds);
             var dependencies = await LoadDependenciesAsync(actor, workItemIds);
@@ -83,6 +83,58 @@ namespace DS.Application.Services.Boards
                 .ToList();
 
             return new ServiceResult<List<WorkItemSearchResultDto>>(ServiceOutcome.Success, results);
+        }
+
+        public async Task<ServiceResult> UpdatePullRequestLink(BoardActor actor, int id, int workItemId, string url, bool remove)
+        {
+            var board = await GetBoardAsync(id);
+            if (board == null) return new ServiceResult(ServiceOutcome.NotFound);
+            if (!await CanSeeBoardAsync(actor, board)) return new ServiceResult(ServiceOutcome.Forbidden);
+            if (!board.IsDeveloperBoard) return new ServiceResult(ServiceOutcome.Forbidden, "Tavlen har ikke udviklerfunktioner slået til.");
+
+            var cardId = await dataDb.BoardCards
+                .Where(card => card.BoardId == id && card.WorkItemId == workItemId && card.WorkItem.DeletedAt == null)
+                .Select(card => (int?)card.Id)
+                .SingleOrDefaultAsync();
+            if (cardId == null) return new ServiceResult(ServiceOutcome.NotFound);
+
+            const string invalidUrl = "Angiv en HTTPS-adresse til en GitHub-pull request.";
+            if (url == null || url.Length > 512) return new ServiceResult(ServiceOutcome.Invalid, invalidUrl);
+
+            var match = Regex.Match(url.Trim(), @"\A(?i:https://github\.com)/([a-zA-Z0-9-]+)/([a-zA-Z0-9_.-]+)/pull/([1-9][0-9]*)/?\z");
+            if (!match.Success || match.Groups[2].Value is "." or "..") return new ServiceResult(ServiceOutcome.Invalid, invalidUrl);
+
+            var canonicalUrl = $"https://github.com/{match.Groups[1].Value.ToLowerInvariant()}/{match.Groups[2].Value.ToLowerInvariant()}/pull/{match.Groups[3].Value}";
+            if (remove)
+            {
+                var deleted = await dataDb.BoardCardPullRequests
+                    .Where(link => link.BoardCardId == cardId.Value && link.Url == canonicalUrl)
+                    .ExecuteDeleteAsync();
+                if (deleted == 0) return new ServiceResult(ServiceOutcome.NotFound);
+            }
+            else
+            {
+                var link = new BoardCardPullRequest { BoardCardId = cardId.Value, Url = canonicalUrl };
+                dataDb.BoardCardPullRequests.Add(link);
+                try
+                {
+                    await dataDb.SaveChangesAsync();
+                }
+                catch (DbUpdateException exception) when (exception.InnerException is DbException { SqlState: "23505" or "23503" } databaseError)
+                {
+                    return databaseError.SqlState == "23505"
+                        ? new ServiceResult(ServiceOutcome.Conflict, "PR-linket er allerede tilknyttet.")
+                        : new ServiceResult(ServiceOutcome.NotFound);
+                }
+                finally
+                {
+                    dataDb.Entry(link).State = EntityState.Detached;
+                }
+            }
+
+            await boardEvents.BoardChanged(id);
+
+            return new ServiceResult(ServiceOutcome.Success);
         }
 
         public async Task<ServiceResult> AddDependency(BoardActor actor, WorkItemDependencyCreateDto data, int id, int workItemId)
@@ -465,11 +517,14 @@ namespace DS.Application.Services.Boards
             if (!TryNormalizeShortText(data.Icon, 64, out var icon)) return new ServiceResult(ServiceOutcome.Invalid, "Ikonet er for langt.");
             if (!TryNormalizeShortText(data.Color, 16, out var color)) return new ServiceResult(ServiceOutcome.Invalid, "Farven er for lang.");
 
+            if (data.IsDeveloperBoard.HasValue && !actor.IsSysAdmin) return new ServiceResult(ServiceOutcome.Forbidden);
+
             board.Title = data.Title.Trim();
             board.Description = data.Description;
             board.Icon = icon;
             board.Color = color;
             board.IsArchived = data.IsArchived;
+            if (data.IsDeveloperBoard.HasValue) board.IsDeveloperBoard = data.IsDeveloperBoard.Value;
             board.UpdatedAt = DateTime.UtcNow;
 
             await dataDb.SaveChangesAsync();
@@ -955,16 +1010,20 @@ namespace DS.Application.Services.Boards
 
         private sealed record CardDependencies(List<WorkItemDependencyDto> WaitingOn, List<WorkItemDependencyDto> Blocking);
 
-        private async Task<List<BoardCard>> LoadCardsAsync(int boardId)
+        private async Task<List<BoardCard>> LoadCardsAsync(int boardId, bool includePullRequests)
         {
-            return await dataDb.BoardCards
+            var cards = dataDb.BoardCards
                 .AsNoTracking()
                 .Where(card => card.BoardId == boardId && card.WorkItem.DeletedAt == null)
                 .Include(card => card.WorkItem).ThenInclude(item => item.Assignees).ThenInclude(assignee => assignee.User).ThenInclude(user => user.ProfilePicture)
                 .Include(card => card.WorkItem).ThenInclude(item => item.OwnerPosition)
                 .Include(card => card.WorkItem).ThenInclude(item => item.Links)
                 .Include(card => card.Tags).ThenInclude(link => link.BoardTag)
-                .AsSplitQuery()
+                .AsQueryable();
+
+            if (includePullRequests) cards = cards.Include(card => card.PullRequests);
+
+            return await cards.AsSplitQuery()
                 .OrderBy(card => card.ColumnId).ThenBy(card => card.Position).ThenBy(card => card.Id)
                 .ToListAsync();
         }
@@ -1173,6 +1232,7 @@ namespace DS.Application.Services.Boards
                 Icon = board.Icon,
                 Color = board.Color,
                 IsArchived = board.IsArchived,
+                IsDeveloperBoard = board.IsDeveloperBoard,
                 Columns = board.Columns
                     .OrderBy(column => column.Position).ThenBy(column => column.Id)
                     .Select(column => new BoardColumnDto
@@ -1200,6 +1260,7 @@ namespace DS.Application.Services.Boards
 
             return new WorkItemDto
             {
+                PullRequests = card.PullRequests.Select(link => link.Url).Order().ToList(),
                 Tags = card.Tags.OrderBy(link => link.BoardTag.Name).ThenBy(link => link.BoardTagId)
                     .Select(link => new BoardTagDto { Id = link.BoardTagId, Name = link.BoardTag.Name, Color = link.BoardTag.Color }).ToList(),
                 Id = item.Id,

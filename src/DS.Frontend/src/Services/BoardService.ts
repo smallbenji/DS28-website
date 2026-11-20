@@ -18,6 +18,14 @@ import type {
 import { apiDelete, apiGet, apiPost, apiPut, safeApiCall } from "@/lib/api";
 
 export default class BoardService {
+    public async addPullRequest(boardId: number, cardId: number, url: string): Promise<void> {
+        await apiPost(`/api/v1/boards/${boardId}/cards/${cardId}/pull-requests`, { url });
+    }
+
+    public async removePullRequest(boardId: number, cardId: number, url: string): Promise<void> {
+        await apiDelete(`/api/v1/boards/${boardId}/cards/${cardId}/pull-requests`, { params: { url } });
+    }
+
     public async getBoards(): Promise<BoardSummaryDto[]> {
         return safeApiCall(async () => {
             const data = await apiGet<BoardSummaryDto[]>("/api/v1/boards");

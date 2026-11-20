@@ -1,4 +1,4 @@
 namespace DS.Application.Services.Boards
 {
-    public record BoardActor(string UserId, bool CanSeeAllBoards);
+    public record BoardActor(string UserId, bool CanSeeAllBoards, bool IsSysAdmin = false);
 }

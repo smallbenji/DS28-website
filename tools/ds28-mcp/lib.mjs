@@ -88,6 +88,7 @@ export function formatBoard(board) {
         `Tavle: ${board.title} (id ${board.id})${board.isArchived ? " [arkiveret]" : ""}`,
     ];
 
+    if (board.isDeveloperBoard) lines.push("Udviklertavle");
     if (board.description) lines.push(board.description);
 
     lines.push("", "Kolonner:");
@@ -123,6 +124,7 @@ export function formatBoard(board) {
         if (card.color) meta.push(`farve ${card.color}`);
         if (card.tags?.length) meta.push(`tags: ${card.tags.map(tag => `${tag.name} (id ${tag.id})`).join(", ")}`);
         if (assignees.length) meta.push(`ansvarlige: ${assignees.join(", ")}`);
+        if (card.pullRequests?.length) meta.push(`PR-links: ${card.pullRequests.join(", ")}`);
         if (card.waitingOn?.length) meta.push(`venter på: ${card.waitingOn.map(formatDependency).join(", ")}`);
         if (card.blocking?.length) meta.push(`blokerer: ${card.blocking.map(formatDependency).join(", ")}`);
 

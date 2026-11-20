@@ -88,6 +88,14 @@
 
                         <BoardCardDependencies v-if="!isNew && card" :board-id="boardId" :card="card" :can-manage="canManage" />
 
+                        <BoardCardPullRequests
+                            v-if="pullRequestCard"
+                            :key="pullRequestCard.id"
+                            :board-id="boardId"
+                            :card="pullRequestCard"
+                            :can-manage="canManage"
+                        />
+
                         <section v-if="!isNew && card && card.links.length" class="board-card-links-section" aria-labelledby="board-card-links-heading">
                             <h3 id="board-card-links-heading" class="board-card-heading">Koblinger</h3>
                             <div class="board-card-links">
@@ -292,6 +300,7 @@ import { boardPriorityLabel, boardPriorityOptions, type BoardColumnDto, type Org
 import { useBoardStore } from '@/Stores/BoardStore';
 import BoardTagInput from './BoardTagInput.vue';
 import BoardTagBadge from './BoardTagBadge.vue';
+import BoardCardPullRequests from './BoardCardPullRequests.vue';
 import BoardCardDependencies from './BoardCardDependencies.vue';
 import BoardCardProperty from './BoardCardProperty.vue';
 import type { BoardTagDto } from '@/types';
@@ -314,6 +323,12 @@ const emit = defineEmits<{
 }>();
 
 const store = useBoardStore();
+const pullRequestCard = computed(() => {
+    const board = store.SelectedBoard;
+    if (!board?.isDeveloperBoard || Number(board.id) !== props.boardId) return undefined;
+
+    return board.cards.find(card => card.id === props.card?.id);
+});
 const boardService = new BoardService();
 const orgService = new OrgService();
 const Toast = useToast();
