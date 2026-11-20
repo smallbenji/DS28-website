@@ -120,7 +120,7 @@ function legacyUrl(path: string) {
 const membersUrl = legacyUrl("/group/members");
 
 const links = [
-    { title: "Forhåndstilmelding", icon: "i-lucide-clipboard-list", to: legacyUrl("/group/pre-signup") },
+    { title: "Forhåndstilmelding", icon: "i-lucide-clipboard-list", to: "/group/pre-signup" },
     { title: "Endelig tilmelding", icon: "i-lucide-clipboard-check", to: legacyUrl("/group/final-signup") }
 ];
 

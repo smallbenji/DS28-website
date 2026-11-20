@@ -2429,6 +2429,11 @@ indlæses på samme side.
   Aktivitetsønskerunde og aktivitetstilmelding står som ikke tilgængelige, som i
   dag. Beta viser desuden antal spejdere, patruljer og brugere ud fra de data,
   siden allerede henter, og en tom tilstand for brugere uden gruppe.
+- `/beta/group/pre-signup` er gruppens redigering af forhåndstilmeldingen fra
+  `GroupPreSignupEdit.vue`: de syv grene med tal-felter, total, fortryd og gem,
+  og låste felter, når forhåndstilmeldingen er lukket. Den offentlige
+  `/group-pre-signup` for grupper, der ikke er logget ind, bliver i den
+  nuværende frontend, fordi `/beta` kræver login.
 - **Sikkerhed (fundet 2026-11-20, rettet i beta, ikke i den nuværende
   frontend):** `htmlToPlainText` i `lib/util.ts` laver kortenes
   forhåndsvisning ved at sætte beskrivelsen som `innerHTML` på et element.
