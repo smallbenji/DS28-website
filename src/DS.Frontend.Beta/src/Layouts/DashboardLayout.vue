@@ -29,13 +29,20 @@
 
             <template #footer="{ collapsed }">
                 <div class="flex w-full min-w-0 items-center gap-1" :class="{ 'flex-col': collapsed }">
-                    <RouterLink to="/profile" class="-m-1 flex min-w-0 flex-1 items-center gap-2 rounded-md p-1 hover:bg-elevated focus-visible:outline-2 focus-visible:outline-primary" aria-label="Min profil">
-                        <UAvatar :src="Me?.profilePicture?.url" :alt="Me?.name" size="sm" />
-                        <div v-if="!collapsed" class="min-w-0">
-                            <p class="truncate text-sm font-medium text-highlighted">{{ Me?.name }}</p>
-                            <p class="truncate text-xs text-muted">{{ Me?.email }}</p>
-                        </div>
-                    </RouterLink>
+                    <UDropdownMenu :items="userMenu" :content="{ align: 'start', side: 'top', sideOffset: 8 }" :ui="{ content: 'w-(--reka-dropdown-menu-trigger-width) min-w-56' }" class="min-w-0 flex-1">
+                        <button
+                            type="button"
+                            class="-m-1 flex w-full min-w-0 items-center gap-2 rounded-md p-1 text-left hover:bg-elevated focus-visible:outline-2 focus-visible:outline-primary data-[state=open]:bg-elevated"
+                            :aria-label="`Brugermenu for ${Me?.name ?? ''}`"
+                        >
+                            <UAvatar :src="Me?.profilePicture?.url" :alt="Me?.name" size="sm" />
+                            <span v-if="!collapsed" class="min-w-0 flex-1">
+                                <span class="block truncate text-sm font-medium text-highlighted">{{ Me?.name }}</span>
+                                <span class="block truncate text-xs text-muted">{{ Me?.email }}</span>
+                            </span>
+                            <UIcon v-if="!collapsed" name="i-lucide-chevrons-up-down" class="size-4 shrink-0 text-muted" />
+                        </button>
+                    </UDropdownMenu>
                     <ColorModeMenu />
                 </div>
             </template>
@@ -51,7 +58,7 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 import { useRouter } from "vue-router";
-import type { NavigationMenuItem } from "@nuxt/ui";
+import type { DropdownMenuItem, NavigationMenuItem } from "@nuxt/ui";
 import { storeToRefs } from "pinia";
 import { useMeStore } from "@/Stores/MeStore";
 import ColorModeMenu from "@/Components/ColorModeMenu.vue";
@@ -139,31 +146,30 @@ async function logout() {
     }
 }
 
-const footerItems = computed<NavigationMenuItem[]>(() => {
-    const items: NavigationMenuItem[] = [];
+const footerItems: NavigationMenuItem[] = [
+    {
+        label: "Til nuværende HQ",
+        icon: "i-lucide-arrow-left-right",
+        to: "/",
+        external: true
+    }
+];
 
-    if (!Me.value?.isImpersonating && Me.value?.roles.includes("SysAdmin")) {
-        items.push({
-            label: "Vis som …",
-            icon: "i-lucide-user-cog",
-            onSelect: () => { impersonationOpen.value = true; }
-        });
+const userMenu = computed<DropdownMenuItem[][]>(() => {
+    const account: DropdownMenuItem[] = [
+        { label: "Min profil", icon: "i-lucide-user", to: "/profile" }
+    ];
+
+    if (Me.value?.isImpersonating) {
+        account.push({ label: `Stop visning som ${impersonationTitle.value}`, icon: "i-lucide-user-x", color: "warning", onSelect: () => { void stopImpersonation(); } });
+    } else if (Me.value?.roles.includes("SysAdmin")) {
+        account.push({ label: "Vis som …", icon: "i-lucide-user-cog", onSelect: () => { impersonationOpen.value = true; } });
     }
 
-    items.push(
-        {
-            label: "Til nuværende HQ",
-            icon: "i-lucide-arrow-left-right",
-            to: "/",
-            external: true
-        },
-        {
-            label: "Log ud",
-            icon: "i-lucide-log-out",
-            onSelect: () => { void logout(); }
-        }
-    );
-
-    return items;
+    return [
+        [{ type: "label", label: Me.value?.name ?? "", avatar: { src: Me.value?.profilePicture?.url, alt: Me.value?.name } }],
+        account,
+        [{ label: "Log ud", icon: "i-lucide-log-out", color: "error", onSelect: () => { void logout(); } }]
+    ];
 });
 </script>

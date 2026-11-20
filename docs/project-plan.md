@@ -2365,8 +2365,10 @@ indlæses på samme side.
   Den åbnes med ⌘/Ctrl+K i stedet for ⌘/Ctrl+Space, som Spotlight optager på
   Mac. Listerne i bruger-, gruppe- og teamstyringen har derfor ikke længere
   deres egen ⌘/Ctrl+K-genvej.
-- »Vis som …« for SysAdmin ligger nederst i sidebaren og åbner samme valg af
-  rolle som i dag. Under visning står et gult banner øverst i sidebaren med
+- Brugeren nederst i sidebaren åbner en brugermenu med »Min profil«, »Vis som
+  …« (kun SysAdmin, under visning »Stop visning«) og »Log ud«, som i den
+  nuværende frontends brugermenu. »Til nuværende HQ« ligger fortsat direkte i
+  sidebaren. »Vis som …« åbner samme valg af rolle som i dag. Under visning står et gult banner øverst i sidebaren med
   rollen og »Stop visning«. Efter start og stop sendes man til forsiden, så man
   ikke står på en side, rollen ikke har adgang til.
 - Beta følger som udgangspunkt systemets lyse eller mørke tema. En menu ved
