@@ -2408,6 +2408,29 @@ indlæses på samme side.
   Stillingens farve vises som en kant i toppen og en svag tone, så den virker i
   både lyst og mørkt tema, og sletning bekræftes i samme dialog som resten af
   beta. Organisation vises i sidebaren for brugere med `OrgView`.
+- `/beta/board` og `/beta/board/:id` (kræver `BoardView`) har hele tavlemodulet
+  fra `Board.vue` og `BoardDetail.vue`: oversigt, oprettelse, kolonner, kort,
+  træk-og-slip af kort og kolonner, tag-filter, live-opdatering via SignalR,
+  kortdialog med beskrivelse, tags, ansvarlige, stilling, deadline, prioritet,
+  farve, afhængigheder, pull requests og placeringer på andre tavler samt
+  dialoger til kolonner, medlemmer, farver, tags og tavleindstillinger.
+  Kolonnerne følger den besluttede del af kanban-redesignet (hvide flader med
+  skygge, fast grå eller grøn topkant og skillelinje under overskriften; kort
+  med let grå baggrund, der bliver lys ved hover). Redesignets uafklarede
+  forslag er ikke lavet, med én undtagelse: tavlens handlinger ligger i beta i
+  én »Tavle«-menu, fordi de fem knapper ikke er plads til i dashboard-headeren.
+  Det er ikke en beslutning om den nuværende frontend. Beskrivelseseditoren er
+  Nuxt UI's `UEditor` (TipTap) med samme formateringsmuligheder som før.
+  Kortenes egenskaber er almindelige formularfelter i sidepanelet i stedet for
+  dropdowns.
+- **Sikkerhed (fundet 2026-11-20, rettet i beta, ikke i den nuværende
+  frontend):** `htmlToPlainText` i `lib/util.ts` laver kortenes
+  forhåndsvisning ved at sætte beskrivelsen som `innerHTML` på et element.
+  Event-handlere som `onerror` på billeder kører da, og backenden renser ikke
+  beskrivelser. Et tavlemedlem kan derfor køre JavaScript hos alle, der åbner
+  tavlen, ved at gemme en beskrivelse direkte via API'et. Beta bruger
+  `DOMParser`, som ikke kører handlere. Den nuværende frontend bør rettes på
+  samme måde, og det bør overvejes at rense HTML i backenden.
 
 Ikke besluttet: om hele frontenden skal flyttes til Nuxt UI, i hvilken
 rækkefølge og hvornår, hvordan brugerne finder beta, og om nye funktioner kun

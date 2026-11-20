@@ -52,6 +52,14 @@ const moduleItems = computed<NavigationMenuItem[]>(() => {
         }
     ];
 
+    if (Me.value?.appRoles.includes("BoardView")) {
+        items.push({
+            label: "Tavler",
+            icon: "i-lucide-columns-3",
+            to: "/board"
+        });
+    }
+
     if (Me.value?.appRoles.includes("OrgView")) {
         items.push({
             label: "Organisation",

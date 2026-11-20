@@ -50,6 +50,16 @@ const routes: RouteRecordRaw[] = [
                 path: "org",
                 component: () => import("@/Views/OrgChart.vue"),
                 meta: { requiredRole: "OrgView" }
+            },
+            {
+                path: "board",
+                component: () => import("@/Views/Boards.vue"),
+                meta: { requiredRole: "BoardView" }
+            },
+            {
+                path: "board/:id",
+                component: () => import("@/Views/BoardDetail.vue"),
+                meta: { requiredRole: "BoardView" }
             }
         ]
     },
