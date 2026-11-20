@@ -4,7 +4,17 @@ import { useMeStore } from "@/Stores/MeStore";
 const routes: RouteRecordRaw[] = [
     {
         path: "/",
-        component: () => import("@/Views/BetaHome.vue")
+        component: () => import("@/Layouts/DashboardLayout.vue"),
+        children: [
+            {
+                path: "",
+                redirect: "/activity"
+            },
+            {
+                path: "activity",
+                component: () => import("@/Views/ActivityDashboard.vue")
+            }
+        ]
     },
     {
         path: "/access-denied",
