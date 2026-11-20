@@ -1,12 +1,23 @@
 <template>
-    <UDashboardPanel id="activity">
+    <TeamBrowser
+        v-if="!isActivityAdmin"
+        title="Mine teams"
+        :teams="Teams"
+        :selected-id="SelectedTeamId"
+        :loading="loading"
+        empty-title="Du har ingen teams endnu"
+        empty-description="Opret dit første team for at komme i gang med aktiviteter."
+        @select="(team) => { SelectedTeamId = team.id; }"
+        @clear="SelectedTeamId = null"
+    />
+    <UDashboardPanel v-else id="activity">
         <template #header>
-            <UDashboardNavbar :title="isActivityAdmin ? 'Aktivitetsoversigt' : 'Mine teams'">
+            <UDashboardNavbar title="Aktivitetsoversigt">
                 <template #leading>
                     <UDashboardSidebarCollapse />
                 </template>
                 <template #right>
-                    <UButton v-if="isActivityAdmin" to="/activity/teams" external icon="i-lucide-users" color="neutral" variant="outline" label="Teamstyring" />
+                    <UButton to="/activity/teams" icon="i-lucide-users" color="neutral" variant="outline" label="Teamstyring" />
                 </template>
             </UDashboardNavbar>
         </template>
@@ -18,7 +29,7 @@
 
             <UAlert v-else-if="loadFailed" color="error" variant="subtle" icon="i-lucide-circle-alert" title="Aktiviteterne kunne ikke hentes" description="Prøv at genindlæse siden." />
 
-            <template v-else-if="isActivityAdmin">
+            <template v-else>
                 <div class="grid grid-cols-2 gap-4 xl:grid-cols-4">
                     <button
                         v-for="option in countFilters"
@@ -68,38 +79,6 @@
                     </UTable>
                 </UCard>
             </template>
-
-            <template v-else>
-                <UEmpty
-                    v-if="Teams.length === 0"
-                    icon="i-lucide-users"
-                    title="Du har ingen teams endnu"
-                    description="Opret dit første team i det nuværende HQ for at komme i gang med aktiviteter."
-                    :actions="[{ label: 'Gå til aktiviteter', to: '/activity', external: true }]"
-                />
-
-                <div v-else class="grid gap-4 lg:grid-cols-2">
-                    <UCard v-for="team in Teams" :key="team.id">
-                        <template #header>
-                            <div class="flex items-center justify-between gap-2">
-                                <div>
-                                    <h2 class="font-semibold text-highlighted">{{ team.name }}</h2>
-                                    <p class="text-sm text-muted">{{ team.members.length }} medlemmer · {{ team.activities.length }} aktiviteter</p>
-                                </div>
-                                <UButton to="/activity" external color="neutral" variant="ghost" icon="i-lucide-external-link" label="Administrér" />
-                            </div>
-                        </template>
-
-                        <p v-if="team.activities.length === 0" class="text-sm text-muted">Teamet har ingen aktiviteter endnu.</p>
-                        <ul v-else class="divide-y divide-default">
-                            <li v-for="activity in team.activities" :key="activity.id" class="flex items-center justify-between gap-2 py-2">
-                                <ULink :to="`/activity/${activity.id}`" external class="font-medium">{{ activity.name }}</ULink>
-                                <UBadge :color="activityReviewBadgeColor(activity.reviewStatus)" variant="subtle" :label="activityReviewStatus(activity.reviewStatus).label" />
-                            </li>
-                        </ul>
-                    </UCard>
-                </div>
-            </template>
         </template>
     </UDashboardPanel>
 </template>
@@ -113,6 +92,7 @@ import { useActivityStore } from "@/Stores/ActivityStore";
 import { useMeStore } from "@/Stores/MeStore";
 import { activityReviewStatus, activityReviewStatuses } from "@/lib/activityReview";
 import { activityReviewBadgeColor } from "@/lib/activityReviewBadge";
+import TeamBrowser from "@/Components/Activity/TeamBrowser.vue";
 import type { ActivityReviewStatus, ActivityWithTeamDto } from "@/types";
 
 type StatusFilter = ActivityReviewStatus | "all";
@@ -123,7 +103,7 @@ const ULink = resolveComponent("ULink");
 
 const { Me } = storeToRefs(useMeStore());
 const activityStore = useActivityStore();
-const { ALL_ACTIVITIES, Teams } = storeToRefs(activityStore);
+const { ALL_ACTIVITIES, Teams, SelectedTeamId } = storeToRefs(activityStore);
 
 const isActivityAdmin = computed(() => Me.value?.appRoles.includes("ActivityAdmin") ?? false);
 
@@ -211,7 +191,7 @@ const columns: TableColumn<ActivityWithTeamDto>[] = [
     {
         accessorKey: "name",
         header: sortableHeader("Aktivitet"),
-        cell: ({ row }) => h(ULink, { to: `/activity/${row.original.id}`, external: true, class: "font-medium" }, () => row.original.name)
+        cell: ({ row }) => h(ULink, { to: `/activity/${row.original.id}`, class: "font-medium" }, () => row.original.name)
     },
     {
         accessorKey: "teamName",

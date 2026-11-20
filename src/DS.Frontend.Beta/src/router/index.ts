@@ -15,6 +15,15 @@ const routes: RouteRecordRaw[] = [
                 component: () => import("@/Views/ActivityDashboard.vue")
             },
             {
+                path: "activity/teams/:id?",
+                component: () => import("@/Views/TeamManagement.vue"),
+                meta: { requiredRole: "ActivityAdmin" }
+            },
+            {
+                path: "activity/:id",
+                component: () => import("@/Views/ActivityDetail.vue")
+            },
+            {
                 path: "admin",
                 component: () => import("@/Views/Admin.vue"),
                 meta: { requiredRole: "AdminAccess" }
