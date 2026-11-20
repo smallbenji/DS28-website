@@ -2357,6 +2357,10 @@ indlæses på samme side.
   aktivitetsadministratorer nøgletal, filtre og en sorterbar tabel og for
   andre deres teams. Aktivitetsdetaljer og teamstyring linker til den
   nuværende frontend.
+- Forsiden `/beta/` viser de samme HQ-genveje som `Home.vue` fra
+  `/api/v1/home` samt versionen. Backendens Font Awesome-navne oversættes til
+  Lucide-ikoner i `lib/hqShortcuts.ts`. Genveje til moduler, der findes i beta,
+  åbner i beta, og de øvrige åbner i den nuværende frontend.
 
 Ikke besluttet: om hele frontenden skal flyttes til Nuxt UI, i hvilken
 rækkefølge og hvornår, hvordan brugerne finder beta, og om nye funktioner kun

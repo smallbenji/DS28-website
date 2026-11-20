@@ -38,6 +38,12 @@ const { Me } = storeToRefs(useMeStore());
 
 const moduleItems: NavigationMenuItem[] = [
     {
+        label: "HQ",
+        icon: "i-lucide-house",
+        to: "/",
+        exact: true
+    },
+    {
         label: "Aktiviteter",
         icon: "i-lucide-calendar-days",
         to: "/activity"
