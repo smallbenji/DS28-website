@@ -1701,6 +1701,17 @@ Ubesluttede punkter:
 
 ## Sikkerhed og auth-hærdning
 
+**Rettet 2026-11-20 (XSS i kortforhåndsvisning):** `htmlToPlainText` i
+`src/DS.Frontend/src/lib/util.ts` lavede tavlekortenes forhåndsvisning ved at
+sætte beskrivelsen som `innerHTML` på et element i dokumentet. Event-handlere
+som `onerror` på billeder kørte derfor, og da backenden ikke renser
+beskrivelser, kunne et tavlemedlem køre JavaScript hos alle, der åbnede
+tavlen, ved at gemme en beskrivelse direkte via API'et. Funktionen bruger nu
+`DOMParser`, som ikke kører handlere og giver samme tekst. Den eneste anden
+indsættelse af HTML (`RichTextViewer`) renser allerede med DOMPurify.
+Ubesluttet: om beskrivelser også skal renses i backenden, så andre klienter end
+HQ ikke får rå HTML.
+
 **Beslutning 2026-10-20 (delvist erstattet 2026-11-15):** MVC brugte global
 `AutoValidateAntiforgeryTokenAttribute`, så POST, PUT, PATCH og DELETE som
 udgangspunkt krævede et gyldigt request-token sammen med antiforgery-cookien.

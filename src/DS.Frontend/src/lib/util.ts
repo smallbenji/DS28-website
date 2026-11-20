@@ -48,8 +48,8 @@ export function formatDate(dateString: string) {
 export function htmlToPlainText(html: string | null | undefined) {
   if (!html) return '';
 
-  const element = document.createElement('div');
-  element.innerHTML = html;
+  // DOMParser keeps untrusted HTML inert; innerHTML on a live-document element runs its event handlers.
+  const text = new DOMParser().parseFromString(html, 'text/html').body.textContent ?? '';
 
-  return (element.textContent ?? '').replace(/\s+/g, ' ').trim();
+  return text.replace(/\s+/g, ' ').trim();
 }
