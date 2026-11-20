@@ -2348,15 +2348,25 @@ indlæses på samme side.
   Ændringer i de kopierede filer skal derfor laves begge steder, så længe
   begge frontends findes.
 - Beta bygges til `DS.Backend/wwwroot/dist-beta/` og serveres på `/beta/*`
-  (`Program.cs`), kun for indloggede brugere. Login, totrinsopsætning og ikke
-  flyttede sider ligger stadig i den nuværende frontend, og beta sender
-  brugeren dertil.
+  (`Program.cs`), som udgangspunkt kun for indloggede brugere. Login,
+  registrering, glemt og nulstil adgangskode, invitationer og den offentlige
+  forhåndstilmelding serveres også uden login under `/beta`
+  (`AnonymousController`), ligesom de tilsvarende sider i den nuværende
+  frontend. Beta-routeren skelner mellem offentlige sider (`meta.public`),
+  sider kun for gæster (`meta.guestOnly`, indloggede sendes til forsiden) og
+  sider, der kræver login, og sender til `/beta/login` med `returnUrl`.
+  Backendens cookie-login sender stadig til den nuværende `/login`, når en
+  side under `/beta` åbnes uden login.
 - Ikoner er Lucide via `@iconify-json/lucide` og bundtes ved build, så
   browseren ikke henter ikoner fra Iconifys API.
 - Første modul er aktiviteter: `/beta/activity` viser for
   aktivitetsadministratorer nøgletal, filtre og en sorterbar tabel og for
-  andre deres teams. Aktivitetsdetaljer og teamstyring linker til den
-  nuværende frontend.
+  andre den fulde teamvisning med medlemmer, aktiviteter og oprettelse af
+  team. `/beta/activity/:id` er aktivitetsdetaljen med faner, filer i Google
+  Drev og godkendelse, og `/beta/activity/teams/:id?` (kræver `ActivityAdmin`)
+  er teamstyringen. Aktivitetsdetaljen henter selv aktiviteten, når siden
+  åbnes, og datoer på filer vises med `Intl`, fordi `formatDate` i
+  `lib/util.ts` viser måneden én for lavt.
 - Forsiden `/beta/` viser de samme HQ-genveje som `Home.vue` fra
   `/api/v1/home` samt versionen. Backendens Font Awesome-navne oversættes til
   Lucide-ikoner i `lib/hqShortcuts.ts`. Genveje til moduler, der findes i beta,
@@ -2444,17 +2454,40 @@ indlæses på samme side.
 - `/beta/group/members` er gruppens brugere fra `GroupMembers.vue`: medlemmer,
   invitation med email og link, afventende invitationer med link og
   annullering, og fjernelse af medlemmer med bekræftelse. Invitationslinket kan
-  kopieres med en knap. Linket peger fortsat på `/group-invitation/:id` i den
-  nuværende frontend, fordi den inviterede ikke er logget ind. Gruppesiden og
-  dens undersider ligger dermed alle i beta.
+  kopieres med en knap. Backenden laver invitationslinket til
+  `/group-invitation/:id` i den nuværende frontend; beta har sin egen version
+  på `/beta/group-invitation/:id`.
+- `/beta/profile` er profilen fra `Profile.vue` med profilbillede (samme
+  beskæring med `vue-advanced-cropper`), stamdata, adgangskode, notifikationer,
+  MCP, totrinsbekræftelse, recovery codes, passkeys og adgangstokens, og
+  `/beta/twofactor-setup` er den tvungne totrinsopsætning. Recovery codes og
+  nye adgangstokens vises i dialoger, der ikke kan lukkes ved et uheld. Beta
+  rettede to fejl fra den nuværende side: recovery codes ved tilføjelse af en
+  passkey blev aldrig vist, og passkey-listen opdaterede sig ikke. Fjernelse af
+  passkeys og tilbagekaldelse af tokens bekræftes nu. Brugeren nederst i
+  sidebaren linker til profilen, og brugerstyringen kan nu også uploade
+  profilbilleder.
+- Siderne uden login (`/beta/login`, `/beta/register`,
+  `/beta/forgot-password`, `/beta/reset-password/:id`, `/beta/invitation/:id`,
+  `/beta/group-invitation/:id`, `/beta/group-pre-signup`) og formularvisningen
+  `/beta/forms/:id?` bruger et gæstelayout uden sidebar. Validering af
+  `returnUrl` er uændret og sker i backenden. Invitationssiden viste i den
+  nuværende frontend formularen, selv når invitationen ikke fandtes, fordi
+  tjekket brugte ref-objektet i stedet for dets værdi; beta viser den kun for
+  gyldige invitationer.
+- **Status 2026-11-20:** Alle sider fra den nuværende frontend findes nu i
+  beta, bortset fra Hangfire, som er backendens egen side. Siderne er bygget og
+  typetjekket, men ikke testet mod den rigtige backend. Benjamin tester dem
+  samlet til sidst.
 - **Sikkerhed (fundet 2026-11-20, rettet i beta, ikke i den nuværende
   frontend):** `htmlToPlainText` i `lib/util.ts` laver kortenes
   forhåndsvisning ved at sætte beskrivelsen som `innerHTML` på et element.
   Event-handlere som `onerror` på billeder kører da, og backenden renser ikke
   beskrivelser. Et tavlemedlem kan derfor køre JavaScript hos alle, der åbner
   tavlen, ved at gemme en beskrivelse direkte via API'et. Beta bruger
-  `DOMParser`, som ikke kører handlere. Den nuværende frontend bør rettes på
-  samme måde, og det bør overvejes at rense HTML i backenden.
+  `DOMParser`, som ikke kører handlere. Rettelsen til den nuværende frontend
+  ligger på branchen `fix/board-card-preview-xss` og er ikke udgivet endnu.
+  Det bør overvejes at rense HTML i backenden.
 
 Ikke besluttet: om hele frontenden skal flyttes til Nuxt UI, i hvilken
 rækkefølge og hvornår, hvordan brugerne finder beta, og om nye funktioner kun
