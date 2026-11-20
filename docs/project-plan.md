@@ -2395,6 +2395,12 @@ indlæses på samme side.
 - `/beta/admin/exports` (kræver `ExportsView`) viser de samme udtræk som
   `Exports.vue` og henter dem som .xlsx via det samme API. Mens et udtræk
   hentes, er de andre knapper låst.
+- `/beta/admin/openiddict` (kræver `OpenIddictManage`) har samme funktioner
+  og regler som `OpenIddictClients.vue`: oprettelse, redigering, nyt secret og
+  sletning, mindst én loginrettighed, PKCE for public-klienter, bekræftelse ved
+  skift af klienttype og en secret-dialog, der ikke kan lukkes ved et uheld.
+  Klienterne vises som kort i stedet for en bred tabel, og scopes vises på
+  kortet.
 
 Ikke besluttet: om hele frontenden skal flyttes til Nuxt UI, i hvilken
 rækkefølge og hvornår, hvordan brugerne finder beta, og om nye funktioner kun

@@ -40,6 +40,11 @@ const routes: RouteRecordRaw[] = [
                 path: "admin/exports",
                 component: () => import("@/Views/Exports.vue"),
                 meta: { requiredRole: "ExportsView" }
+            },
+            {
+                path: "admin/openiddict",
+                component: () => import("@/Views/OpenIddictClients.vue"),
+                meta: { requiredRole: "OpenIddictManage" }
             }
         ]
     },
