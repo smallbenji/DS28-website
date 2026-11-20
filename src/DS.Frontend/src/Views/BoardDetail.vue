@@ -347,8 +347,7 @@ onBeforeUnmount(() => {
 .board-detail {
     display: flex;
     flex-direction: column;
-    flex: 1;
-    min-height: 0;
+    height: calc(100% - 0.5rem);
     min-width: 0;
     padding: 1rem;
     background: #fafbfc;
@@ -357,6 +356,7 @@ onBeforeUnmount(() => {
 }
 
 .board-detail-head {
+    flex-shrink: 0;
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
@@ -404,7 +404,7 @@ onBeforeUnmount(() => {
     overflow-x: auto;
     padding-bottom: 0.5rem;
     flex: 1;
-    min-height: 0;
+    min-height: 9rem;
 }
 
 .board-detail :deep(.b-sidebar) {

@@ -41,7 +41,7 @@
             </div>
         </header>
 
-        <div ref="cardsContainer" class="board-column-cards">
+        <div ref="cardsContainer" class="board-column-cards compact-scroll">
             <BoardCard
                 v-for="card in cards"
                 :key="card.id"
@@ -251,6 +251,7 @@ function onDrop(event: DragEvent) {
 }
 
 .board-column-head {
+    flex-shrink: 0;
     display: flex;
     align-items: center;
     gap: 0.5rem;
@@ -309,6 +310,7 @@ function onDrop(event: DragEvent) {
     gap: 0.5rem;
     padding: 0.5rem;
     overflow-y: auto;
+    overscroll-behavior-y: contain;
     min-height: 3rem;
     flex: 0 1 auto;
 }
