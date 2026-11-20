@@ -2361,6 +2361,10 @@ indlæses på samme side.
   `/api/v1/home` samt versionen. Backendens Font Awesome-navne oversættes til
   Lucide-ikoner i `lib/hqShortcuts.ts`. Genveje til moduler, der findes i beta,
   åbner i beta, og de øvrige åbner i den nuværende frontend.
+- `/beta/admin` (kræver `AdminAccess`) viser de samme sektioner og
+  tilmeldingsstatistik som `Admin.vue` og kan starte den historiske
+  synkronisering. Undersiderne og Hangfire åbner i den nuværende frontend, og
+  Hangfire åbner i et nyt vindue som i dag.
 
 Ikke besluttet: om hele frontenden skal flyttes til Nuxt UI, i hvilken
 rækkefølge og hvornår, hvordan brugerne finder beta, og om nye funktioner kun

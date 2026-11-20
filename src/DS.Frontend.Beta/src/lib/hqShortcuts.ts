@@ -12,10 +12,11 @@ const lucideIcons: Record<string, string> = {
     "user-pen": "i-lucide-user-pen",
     sliders: "i-lucide-sliders-horizontal",
     "file-arrow-down": "i-lucide-file-down",
-    "chart-simple": "i-lucide-chart-column"
+    "chart-simple": "i-lucide-chart-column",
+    h: "i-lucide-list-checks"
 };
 
-const betaPaths = ["/activity"];
+const betaPaths = ["/activity", "/admin"];
 
 export interface HqShortcut {
     title: string;
@@ -24,15 +25,18 @@ export interface HqShortcut {
     opensNewWindow: boolean;
 }
 
+export function lucideIcon(fontAwesomeName: string): string {
+    return lucideIcons[fontAwesomeName] ?? "i-lucide-link";
+}
+
 export function toHqShortcut(entry: HQPanelEntryDto): HqShortcut {
-    const iconName = entry.icon[entry.icon.length - 1] ?? "";
-    const opensNewWindow = /^https?:\/\//i.test(entry.url);
-    const inBeta = betaPaths.includes(entry.url);
+    const isAbsolute = /^https?:\/\//i.test(entry.url);
+    const inBeta = !entry.mvc && betaPaths.includes(entry.url);
 
     return {
         title: entry.title,
-        icon: lucideIcons[iconName] ?? "i-lucide-link",
-        to: inBeta || opensNewWindow ? entry.url : new URL(entry.url, window.location.origin).href,
-        opensNewWindow
+        icon: lucideIcon(entry.icon[entry.icon.length - 1] ?? ""),
+        to: inBeta || isAbsolute ? entry.url : new URL(entry.url, window.location.origin).href,
+        opensNewWindow: isAbsolute || entry.mvc
     };
 }

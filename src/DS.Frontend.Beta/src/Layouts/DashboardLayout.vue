@@ -30,25 +30,38 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from "vue";
 import type { NavigationMenuItem } from "@nuxt/ui";
 import { storeToRefs } from "pinia";
 import { useMeStore } from "@/Stores/MeStore";
 
 const { Me } = storeToRefs(useMeStore());
 
-const moduleItems: NavigationMenuItem[] = [
-    {
-        label: "HQ",
-        icon: "i-lucide-house",
-        to: "/",
-        exact: true
-    },
-    {
-        label: "Aktiviteter",
-        icon: "i-lucide-calendar-days",
-        to: "/activity"
+const moduleItems = computed<NavigationMenuItem[]>(() => {
+    const items: NavigationMenuItem[] = [
+        {
+            label: "HQ",
+            icon: "i-lucide-house",
+            to: "/",
+            exact: true
+        },
+        {
+            label: "Aktiviteter",
+            icon: "i-lucide-calendar-days",
+            to: "/activity"
+        }
+    ];
+
+    if (Me.value?.appRoles.includes("AdminAccess")) {
+        items.push({
+            label: "Admin",
+            icon: "i-lucide-settings",
+            to: "/admin"
+        });
     }
-];
+
+    return items;
+});
 
 const footerItems: NavigationMenuItem[] = [
     {

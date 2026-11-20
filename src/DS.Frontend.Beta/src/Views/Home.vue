@@ -22,24 +22,7 @@
                 <UEmpty v-else-if="shortcuts.length === 0" class="mt-6" icon="i-lucide-layout-grid" title="Du har ingen genveje endnu" />
 
                 <div v-else class="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                    <UPageCard
-                        v-for="shortcut in shortcuts"
-                        :key="shortcut.to"
-                        :title="shortcut.title"
-                        :icon="shortcut.icon"
-                        :to="shortcut.to"
-                        :target="shortcut.opensNewWindow ? '_blank' : undefined"
-                        :aria-label="shortcut.opensNewWindow ? `${shortcut.title} (åbner i nyt vindue)` : shortcut.title"
-                        orientation="horizontal"
-                        variant="outline"
-                        spotlight
-                        :ui="{ container: 'lg:items-center', leadingIcon: 'size-6', title: 'flex items-center gap-1.5' }"
-                    >
-                        <template #title>
-                            {{ shortcut.title }}
-                            <UIcon v-if="shortcut.opensNewWindow" name="i-lucide-external-link" class="size-3.5 text-muted" />
-                        </template>
-                    </UPageCard>
+                    <ShortcutCard v-for="shortcut in shortcuts" :key="shortcut.to" :shortcut="shortcut" />
                 </div>
 
                 <p v-if="Version.version" class="mt-8 text-center text-sm text-muted">{{ Version.version }}</p>
@@ -54,6 +37,7 @@ import { storeToRefs } from "pinia";
 import { useMeStore } from "@/Stores/MeStore";
 import { useVersionStore } from "@/Stores/VersionStore";
 import { toHqShortcut } from "@/lib/hqShortcuts";
+import ShortcutCard from "@/Components/ShortcutCard.vue";
 
 const meStore = useMeStore();
 const versionStore = useVersionStore();
