@@ -23,9 +23,7 @@
                             <p class="truncate text-xs text-muted">{{ Me?.email }}</p>
                         </div>
                     </RouterLink>
-                    <UTooltip text="Skift mellem lyst og mørkt tema">
-                        <UColorModeButton color="neutral" variant="ghost" size="sm" aria-label="Skift mellem lyst og mørkt tema" />
-                    </UTooltip>
+                    <ColorModeMenu />
                 </div>
             </template>
         </UDashboardSidebar>
@@ -39,6 +37,7 @@ import { computed } from "vue";
 import type { NavigationMenuItem } from "@nuxt/ui";
 import { storeToRefs } from "pinia";
 import { useMeStore } from "@/Stores/MeStore";
+import ColorModeMenu from "@/Components/ColorModeMenu.vue";
 
 const { Me } = storeToRefs(useMeStore());
 
