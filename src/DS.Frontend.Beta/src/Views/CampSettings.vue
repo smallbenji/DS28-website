@@ -13,7 +13,7 @@
             <div class="mx-auto flex w-full max-w-2xl flex-col gap-4">
                 <UAlert v-if="error" color="error" variant="subtle" icon="i-lucide-circle-alert" :title="error" :actions="[{ label: 'Prøv igen', color: 'error', variant: 'outline', onClick: load }]" />
 
-                <UCard :ui="{ body: 'p-0 sm:p-0' }">
+                <UCard v-if="canManageSignup" :ui="{ body: 'p-0 sm:p-0' }">
                     <template #header>
                         <h2 class="font-semibold text-highlighted">Tilmelding</h2>
                         <p class="text-sm text-muted">Ændringer træder i kraft med det samme.</p>
@@ -42,6 +42,8 @@
                         </li>
                     </ul>
                 </UCard>
+
+                <GoogleDriveConnection v-if="hasRole('AdminAccess')" />
             </div>
         </template>
     </UDashboardPanel>
@@ -51,11 +53,15 @@
 import { onMounted, ref } from "vue";
 import RegistrationSettingsService, { type RegistrationSettings } from "@/Services/RegistrationSettingsService";
 import { useNotify } from "@/lib/notify";
+import { useHasRole } from "@/lib/permissions";
+import GoogleDriveConnection from "@/Components/GoogleDriveConnection.vue";
 
 type SettingKey = keyof RegistrationSettings;
 
 const service = new RegistrationSettingsService();
 const notify = useNotify();
+const hasRole = useHasRole();
+const canManageSignup = hasRole("PreSignupManage");
 
 const options: { key: SettingKey; label: string; description: string }[] = [
     { key: "isPreSignupOpen", label: "Forhåndstilmelding", description: "Styrer, om grupperne kan forhåndstilmelde sig." },
@@ -101,5 +107,7 @@ async function update(key: SettingKey, value: boolean) {
     }
 }
 
-onMounted(load);
+onMounted(() => {
+    if (canManageSignup) load();
+});
 </script>

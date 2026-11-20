@@ -2380,11 +2380,18 @@ indlæses på samme side.
   »Gem«. Spejdere, patruljer og medlemskaber gemmes med det samme som i dag, og
   siden læser gruppen fra store efter hver handling i stedet for at rette en
   lokal kopi. Gruppens brugere linker til brugerstyringen i beta.
-- `/beta/admin/camp-settings` (kræver `PreSignupManage`) har de samme to
-  kontakter som `CampSettings.vue` til forhåndstilmelding og endelig
-  tilmelding. Beta viser desuden status som tekst, en toast ved ændring og en
-  fejlbesked, hvis ændringen ikke kan bekræftes. Den nuværende side gemmer
-  fejlen uden at vise den.
+- `/beta/admin/camp-settings` har de samme to kontakter som `CampSettings.vue`
+  til forhåndstilmelding og endelig tilmelding. Beta viser desuden status som
+  tekst, en toast ved ændring og en fejlbesked, hvis ændringen ikke kan
+  bekræftes. Den nuværende side gemmer fejlen uden at vise den.
+- **Beslutning 2026-11-20 (implementeret i beta):** Forbindelsen til Google Drev
+  fra `GoogleAdmin.vue` ligger i beta som en sektion i lejrindstillingerne i
+  stedet for på en egen side. Siden kræver `PreSignupManage` eller
+  `AdminAccess` og viser tilmeldingssektionen for `PreSignupManage` og Google
+  Drev for `AdminAccess`, så rollekravene er de samme som i dag.
+  `/beta/admin/google` sender videre til lejrindstillingerne. Backenden sender
+  stadig brugeren tilbage til `/admin/google` i den nuværende frontend efter
+  forbindelse til Google; det ændres først, når den nuværende side udfases.
 - `/beta/admin/exports` (kræver `ExportsView`) viser de samme udtræk som
   `Exports.vue` og henter dem som .xlsx via det samme API. Mens et udtræk
   hentes, er de andre knapper låst.

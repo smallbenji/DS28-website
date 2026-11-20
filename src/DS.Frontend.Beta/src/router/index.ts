@@ -30,7 +30,11 @@ const routes: RouteRecordRaw[] = [
             {
                 path: "admin/camp-settings",
                 component: () => import("@/Views/CampSettings.vue"),
-                meta: { requiredRole: "PreSignupManage" }
+                meta: { requiredAnyRole: ["PreSignupManage", "AdminAccess"] }
+            },
+            {
+                path: "admin/google",
+                redirect: (to) => ({ path: "/admin/camp-settings", query: to.query })
             },
             {
                 path: "admin/exports",
@@ -75,6 +79,11 @@ router.beforeEach(async (to) => {
     }
 
     if (typeof to.meta.requiredRole === "string" && !meStore.Me.appRoles.includes(to.meta.requiredRole)) {
+        return "/access-denied";
+    }
+
+    const requiredAnyRole = to.meta.requiredAnyRole;
+    if (Array.isArray(requiredAnyRole) && !requiredAnyRole.some((role) => meStore.Me!.appRoles.includes(role))) {
         return "/access-denied";
     }
 
