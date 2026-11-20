@@ -52,6 +52,14 @@ const moduleItems = computed<NavigationMenuItem[]>(() => {
         }
     ];
 
+    if (Me.value?.appRoles.includes("OrgView")) {
+        items.push({
+            label: "Organisation",
+            icon: "i-lucide-network",
+            to: "/org"
+        });
+    }
+
     if (Me.value?.appRoles.includes("AdminAccess")) {
         items.push({
             label: "Admin",

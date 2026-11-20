@@ -2401,6 +2401,13 @@ indlæses på samme side.
   skift af klienttype og en secret-dialog, der ikke kan lukkes ved et uheld.
   Klienterne vises som kort i stedet for en bred tabel, og scopes vises på
   kortet.
+- `/beta/org` (kræver `OrgView`) viser organisationsdiagrammet fra
+  `OrgChart.vue` med samme funktioner i en skuffe: redigering, indehavere,
+  invitation, personlig assistent, flytning, understillinger og sletning.
+  Rettighedsreglerne (`orgAccess.ts`) og farvepaletten er kopieret uændret.
+  Stillingens farve vises som en kant i toppen og en svag tone, så den virker i
+  både lyst og mørkt tema, og sletning bekræftes i samme dialog som resten af
+  beta. Organisation vises i sidebaren for brugere med `OrgView`.
 
 Ikke besluttet: om hele frontenden skal flyttes til Nuxt UI, i hvilken
 rækkefølge og hvornår, hvordan brugerne finder beta, og om nye funktioner kun
