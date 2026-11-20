@@ -96,7 +96,7 @@
                 </div>
             </section>
 
-            <section v-if="canCreateChild && !isPa" class="org-drawer-section">
+            <section v-if="canCreateChild" class="org-drawer-section">
                 <h3 class="org-drawer-heading">Ny understilling</h3>
                 <BField label="Titel">
                     <BInput v-model="createChildTitle" placeholder="Fx Økonomiansvarlig" />
