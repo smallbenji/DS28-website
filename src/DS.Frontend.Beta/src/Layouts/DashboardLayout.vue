@@ -10,6 +10,19 @@
             </template>
 
             <template #default="{ collapsed }">
+                <UDashboardSearchButton :collapsed="collapsed" label="Søg" class="bg-transparent ring-default" />
+                <UTooltip v-if="Me?.isImpersonating && collapsed" :text="`Viser som ${impersonationTitle}. Stop visning`">
+                    <UButton color="warning" variant="subtle" icon="i-lucide-user-x" :loading="stopping" :aria-label="`Viser som ${impersonationTitle}. Stop visning`" @click="stopImpersonation" />
+                </UTooltip>
+                <UAlert
+                    v-else-if="Me?.isImpersonating"
+                    color="warning"
+                    variant="subtle"
+                    icon="i-lucide-user-cog"
+                    :title="`Viser som ${impersonationTitle}`"
+                    :actions="[{ label: 'Stop visning', color: 'warning', variant: 'outline', size: 'xs', loading: stopping, onClick: stopImpersonation }]"
+                    :ui="{ root: 'p-2', title: 'text-xs' }"
+                />
                 <UNavigationMenu :collapsed="collapsed" :items="moduleItems" orientation="vertical" tooltip />
                 <UNavigationMenu :collapsed="collapsed" :items="footerItems" orientation="vertical" tooltip class="mt-auto" />
             </template>
@@ -29,19 +42,27 @@
         </UDashboardSidebar>
 
         <RouterView />
+
+        <GlobalSearch />
+        <ImpersonationModal v-model:open="impersonationOpen" />
     </UDashboardGroup>
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, ref } from "vue";
+import { useRouter } from "vue-router";
 import type { NavigationMenuItem } from "@nuxt/ui";
 import { storeToRefs } from "pinia";
 import { useMeStore } from "@/Stores/MeStore";
 import ColorModeMenu from "@/Components/ColorModeMenu.vue";
+import GlobalSearch from "@/Components/GlobalSearch.vue";
+import ImpersonationModal from "@/Components/ImpersonationModal.vue";
 import AuthService from "@/Services/AuthService";
 import { useNotify } from "@/lib/notify";
 
-const { Me } = storeToRefs(useMeStore());
+const router = useRouter();
+const meStore = useMeStore();
+const { Me } = storeToRefs(meStore);
 
 const moduleItems = computed<NavigationMenuItem[]>(() => {
     const items: NavigationMenuItem[] = [
@@ -88,6 +109,27 @@ const moduleItems = computed<NavigationMenuItem[]>(() => {
 const authService = new AuthService();
 const notify = useNotify();
 
+const impersonationOpen = ref(false);
+const stopping = ref(false);
+const impersonationTitle = computed(() => Me.value?.title || Me.value?.roles[0] || "");
+
+async function stopImpersonation() {
+    if (stopping.value) return;
+
+    stopping.value = true;
+    try {
+        const ok = await meStore.STOP_IMPERSONATION();
+        if (!ok) {
+            notify.error("Visningen kunne ikke stoppes.");
+            return;
+        }
+
+        await router.push("/");
+    } finally {
+        stopping.value = false;
+    }
+}
+
 async function logout() {
     try {
         await authService.logout();
@@ -97,17 +139,31 @@ async function logout() {
     }
 }
 
-const footerItems: NavigationMenuItem[] = [
-    {
-        label: "Til nuværende HQ",
-        icon: "i-lucide-arrow-left-right",
-        to: "/",
-        external: true
-    },
-    {
-        label: "Log ud",
-        icon: "i-lucide-log-out",
-        onSelect: () => { void logout(); }
+const footerItems = computed<NavigationMenuItem[]>(() => {
+    const items: NavigationMenuItem[] = [];
+
+    if (!Me.value?.isImpersonating && Me.value?.roles.includes("SysAdmin")) {
+        items.push({
+            label: "Vis som …",
+            icon: "i-lucide-user-cog",
+            onSelect: () => { impersonationOpen.value = true; }
+        });
     }
-];
+
+    items.push(
+        {
+            label: "Til nuværende HQ",
+            icon: "i-lucide-arrow-left-right",
+            to: "/",
+            external: true
+        },
+        {
+            label: "Log ud",
+            icon: "i-lucide-log-out",
+            onSelect: () => { void logout(); }
+        }
+    );
+
+    return items;
+});
 </script>

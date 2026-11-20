@@ -11,12 +11,7 @@
                 </template>
             </UDashboardNavbar>
             <UDashboardToolbar>
-                <UInput ref="searchInput" v-model="search" icon="i-lucide-search" placeholder="Søg på navn eller ID" class="w-full" variant="soft">
-                    <template #trailing>
-                        <UKbd value="meta" class="hidden sm:inline-flex" />
-                        <UKbd value="K" class="hidden sm:inline-flex" />
-                    </template>
-                </UInput>
+                <UInput v-model="search" icon="i-lucide-search" placeholder="Søg på navn eller ID" class="w-full" variant="soft" />
             </UDashboardToolbar>
         </template>
 
@@ -79,7 +74,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { storeToRefs } from "pinia";
 import { useGroupsStore } from "@/Stores/GroupsStore";
@@ -148,15 +143,4 @@ function clearSelection() {
     router.replace("/admin/groups");
 }
 
-const searchInput = ref<{ inputRef?: HTMLInputElement } | null>(null);
-
-function handleGlobalKeyDown(event: KeyboardEvent) {
-    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
-        event.preventDefault();
-        searchInput.value?.inputRef?.focus();
-    }
-}
-
-onMounted(() => window.addEventListener("keydown", handleGlobalKeyDown));
-onUnmounted(() => window.removeEventListener("keydown", handleGlobalKeyDown));
 </script>

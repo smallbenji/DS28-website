@@ -2359,6 +2359,16 @@ indlæses på samme side.
   side under `/beta` åbnes uden login.
 - Ikoner er Lucide via `@iconify-json/lucide` og bundtes ved build, så
   browseren ikke henter ikoner fra Iconifys API.
+- Den globale søgning fra `SearchMenu.vue` er i beta Nuxt UI's
+  `UDashboardSearch` med en søgeknap øverst i sidebaren. Den viser moduler fra
+  HQ-genvejene og søger i tavler, grupper og aktiviteter via `/api/v1/search`.
+  Den åbnes med ⌘/Ctrl+K i stedet for ⌘/Ctrl+Space, som Spotlight optager på
+  Mac. Listerne i bruger-, gruppe- og teamstyringen har derfor ikke længere
+  deres egen ⌘/Ctrl+K-genvej.
+- »Vis som …« for SysAdmin ligger nederst i sidebaren og åbner samme valg af
+  rolle som i dag. Under visning står et gult banner øverst i sidebaren med
+  rollen og »Stop visning«. Efter start og stop sendes man til forsiden, så man
+  ikke står på en side, rollen ikke har adgang til.
 - Beta følger som udgangspunkt systemets lyse eller mørke tema. En menu ved
   brugeren nederst i sidebaren vælger mellem Automatisk (følger systemet),
   Lys og Mørk, og valget gemmes i browseren. Den bruger `useColorMode` fra
