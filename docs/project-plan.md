@@ -1081,6 +1081,13 @@ oprettelse, DS-61 API til medlemmer og DS-62 medlemsdialog (venter på DS-61).
   færdig-kolonne altid som dato. Den fulde dato står i tooltip. Prioritet vises
   som »Høj« eller »Lav«, og antal PR-links vises med et PR-ikon.
 - **Hurtig oprettelse:** Et kort kan oprettes direkte i kolonnen med Enter.
+  **Beslutning 2026-11-21:** Et kort må oprettes med kun en titel.
+  *Implementeret i beta (DS-60, `BoardColumn.vue`):* »Tilføj kort« nederst i
+  kolonnen åbner et felt i stedet for kortdialogen. Enter eller »Opret kort«
+  opretter kortet med kun titel i den kolonne, og feltet bliver stående med
+  fokus, så flere kort kan oprettes i træk. Esc eller »Annuller« lukker feltet.
+  Fejler oprettelsen, beholdes titlen, og der vises en fejl. Kortdialogen bruges
+  stadig fra »Tilføj kort« i tavlehovedet og til at udfylde de øvrige felter.
 - **Mobil:** Topbaren viser kun titel, »Tavle«-menuen som ikon og »+«.
   Filtrene samles bag en »Filtre«-knap, der åbner en skuffe nedefra med
   hurtigfiltre, tags, visning, »Ryd filtre« og »Vis N kort«. Kolonnerne fylder
@@ -1099,7 +1106,6 @@ kræver nyt API.
 
 Åbne spørgsmål:
 
-- Må et kort oprettes med kun en titel via hurtig oprettelse?
 - Må det sidste medlem forlade tavlen, når kun SysAdmin og CampAdmin så har
   adgang?
 - Bevares ansvaret for kortene, når et medlem fjernes? Tildeling giver i dag
