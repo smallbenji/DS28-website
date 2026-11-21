@@ -54,7 +54,8 @@
                 <path fill="#D49A70" d="M1380,780 L1440,742 L1500,734 L1525,682 L1550,676 L1570,630 H1790 L1812,668 L1850,672 L1872,705 L1920,712 V780 Z" />
                 <path fill="#C2865C" d="M1790,630 L1812,668 L1850,672 L1872,705 L1920,712 V780 H1800 L1808,700 L1798,668 Z" />
 
-                <g class="prairie-cowboy" transform="translate(1585,630) scale(0.5)">
+                <g class="prairie-cowboy" transform="translate(1585,630) scale(0.5)" @click="sayCowboyLine">
+                    <rect class="prairie-cowboy-hitbox" x="-70" y="-75" width="110" height="110" fill="transparent" />
                     <path
                         fill="#5A3210"
                         d="M-28,-11 Q-36,-6 -30,0 L6,0 Q10,0 10,-5 L11,-12 L17,-2 Q20,1 23,-1 Q25,-3 23,-6 L10,-38 Q9,-42 5,-42 L4,-43 Q7,-45 7,-49 L7,-51 L13,-51 Q15,-52 13,-53 L8,-53 Q8,-61 5,-62 Q2,-63 1,-60 Q-1,-63 -4,-62 Q-7,-61 -6,-53 L-11,-53 Q-13,-52 -11,-51 L-5,-51 L-6,-47 Q-5,-43 -2,-43 L-3,-41 Q-5,-40 -6,-37 L-17,-17 Q-19,-13 -15,-12 L-11,-12 L-28,-11 Z"
@@ -220,10 +221,52 @@
                 </g>
             </g>
         </g>
+
+        <Transition name="prairie-bubble">
+            <foreignObject v-if="cowboyLine" :key="cowboyLine" x="1250" y="420" width="360" height="170">
+                <div class="prairie-bubble-anchor">
+                    <p class="prairie-bubble">{{ cowboyLine }}</p>
+                </div>
+            </foreignObject>
+        </Transition>
     </svg>
 </template>
 
 <script setup lang="ts">
+import { onBeforeUnmount, ref } from "vue";
+
+const cowboyLines = [
+    "Howdy, makker! Husker du din adgangskode?",
+    "Yeehaw! Endnu en spejder på prærien.",
+    "Hvem har taget mine støvler? De stod lige ved hegnet.",
+    "Der er kun plads til én sherif i DS28 HQ.",
+    "Pas på gribbene. De holder øje med svage adgangskoder.",
+    "Rolig nu, det er bare en tumbleweed.",
+    "Jeg trækker hurtigere end din totrinsbekræftelse.",
+    "Bålet er tændt. Har nogen husket snobrødsdejen?",
+    "Jeg har redet hele vejen fra Tydal for at se dig logge ind.",
+    "Hestene siger ikke så meget, men de har også glemt deres adgangskode.",
+    "Det er godt nok varmt i dag. Godt jeg har hatten. Nå nej, den hænger på hegnet."
+];
+
+const cowboyLineDuration = 4500;
+
+const cowboyLine = ref<string | null>(null);
+let hideCowboyLineTimer: ReturnType<typeof setTimeout> | undefined;
+
+function sayCowboyLine() {
+    const candidates = cowboyLines.filter(line => line !== cowboyLine.value);
+    cowboyLine.value = candidates[Math.floor(Math.random() * candidates.length)];
+
+    clearTimeout(hideCowboyLineTimer);
+    hideCowboyLineTimer = setTimeout(() => {
+        cowboyLine.value = null;
+    }, cowboyLineDuration);
+}
+
+onBeforeUnmount(() => {
+    clearTimeout(hideCowboyLineTimer);
+});
 const lassoOuter = "M459,866 C455,865 453,868 452,873 L448,886 C444,901 450,909 461,908 C472,907 477,899 475,888 L473,874 C472,868 469,865 466,866 M460,907 C459,912 461,916 466,916 C469,916 470,912 469,910";
 const lassoInner = "M462,866 C459,868 459,876 457,882 C454,891 454,900 460,902 C467,904 472,896 471,890 C470,884 468,878 468,872 Q467,867 465,866";
 </script>
@@ -319,6 +362,56 @@ const lassoInner = "M462,866 C459,868 459,876 457,882 C454,891 454,900 460,902 C
     100% {
         transform: scale(0.97, 1.06) skewX(-2deg);
     }
+}
+
+.prairie-cowboy {
+    cursor: pointer;
+}
+
+.prairie-bubble-anchor {
+    display: flex;
+    align-items: flex-end;
+    justify-content: flex-end;
+    width: 100%;
+    height: 100%;
+    padding: 0 0 14px;
+}
+
+.prairie-bubble {
+    position: relative;
+    max-width: 100%;
+    margin: 0;
+    padding: 12px 18px;
+    border: 3px solid #5a3210;
+    border-radius: 18px;
+    background: #fffaf0;
+    color: #5a3210;
+    font-size: 21px;
+    font-weight: 600;
+    line-height: 1.3;
+}
+
+.prairie-bubble::after {
+    content: "";
+    position: absolute;
+    right: 18px;
+    bottom: -14px;
+    width: 22px;
+    height: 22px;
+    border-right: 3px solid #5a3210;
+    border-bottom: 3px solid #5a3210;
+    background: #fffaf0;
+    transform: skewX(-30deg) rotate(45deg);
+}
+
+.prairie-bubble-enter-active,
+.prairie-bubble-leave-active {
+    transition: opacity 0.2s ease;
+}
+
+.prairie-bubble-enter-from,
+.prairie-bubble-leave-to {
+    opacity: 0;
 }
 
 @media (prefers-reduced-motion: reduce) {

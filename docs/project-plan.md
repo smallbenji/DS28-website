@@ -2625,7 +2625,13 @@ indlæses på samme side.
   afklaret med Benjamin 2026-11-21, så landskabet står stille. Busken ruller
   fra venstre mod højre med hop, cirka hvert 22. sekund, på alle
   gæstesider. Bålets tre flammelag blafrer hver i sit tempo. Med
-  `prefers-reduced-motion` vises busken ikke, og bålet står stille. Validering af
+  `prefers-reduced-motion` vises busken ikke, og bålet står stille.
+  *Implementeret i beta (DS-54):* Et klik på cowboyen på mesaen viser en
+  tilfældig western-replik i en taleboble i 4,5 sekunder, aldrig den samme
+  to gange i træk. Replikkerne ligger i komponenten. Cowboyen er kun synlig
+  på brede skærme, fordi baggrunden beskæres fra siderne på smalle skærme.
+  Han er et påskeæg og hverken fokuserbar eller læst op af skærmlæsere,
+  fordi hele baggrunden er dekorativ. Validering af
   `returnUrl` er uændret og sker i backenden. Invitationssiden viste i den
   nuværende frontend formularen, selv når invitationen ikke fandtes, fordi
   tjekket brugte ref-objektet i stedet for dets værdi; beta viser den kun for
