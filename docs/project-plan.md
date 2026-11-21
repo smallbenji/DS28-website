@@ -1015,6 +1015,72 @@ Nye og eksisterende tavler har funktionen slået fra som standard.
   `github.com`, normaliserer dem og afviser dubletter. Ændringer opdaterer
   den berørte tavle via SignalR.
 
+**Beslutning 2026-11-21 (godkendt, ikke implementeret, redesign af kanban-visningen):**
+Tavlevisningen skal redesignes ud fra et klikbart mockup, som brugeren har
+godkendt 2026-11-21, inklusive mobilvisningen. Mockuppet blev først lavet som en
+statisk HTML-side og derefter i beta-frontenden med Nuxt UI og testdata. Det er
+kun til lokal visning og skal ikke merges.
+
+**Beslutning 2026-11-21:** Redesignet bygges kun i beta-frontenden
+(`src/DS.Frontend.Beta`). Tavlevisningen i `src/DS.Frontend` ændres ikke, og
+kolonnedesignet fra 2026-11-20 indføres ikke dér.
+Arbejdet er delt i kort på DS28 IT-tavlen: DS-56 kort, DS-57 filterlinje,
+DS-58 tavlehoved, DS-59 kolonnemenu, WIP og sammenklapning, DS-60 hurtig
+oprettelse, DS-61 API til medlemmer og DS-62 medlemsdialog (venter på DS-61).
+
+- **Kolonner (besluttet 2026-11-20):** Kolonnerne er hvide flader med skygge
+  på en grå tavlebaggrund, med en 4 px farvet kant i toppen og en skillelinje
+  under kolonneoverskriften. Kantens farve er fast: grå for almindelige
+  kolonner og grøn for færdig-kolonnen. Den er ikke valgfri pr. kolonne, så
+  kolonner får ingen ny farve i databasen. Beta har allerede dette udseende.
+- **Kolonnemenu:** Én »…«-menu erstatter rediger- og sletknapperne: omdøb,
+  WIP-grænse, færdig-kolonne, klap sammen og slet. WIP-grænsen vises som en
+  bjælke og med tekst, når den overskrides. Kolonner kan klappes sammen til
+  en smal lodret strimmel.
+- **Tavlehoved:** Tavlens handlinger er samlet i én »Tavle«-menu med »Tilføj
+  kort« som eneste primære knap. Medlemsavatarerne åbner medlemmer og
+  invitation. Titel, filterlinje og handlinger står på én linje på brede
+  skærme.
+- **Filterlinje:** Søgning og hurtigfiltre (Mine kort, Overskredet, Venter).
+  Tags ligger i deres egen »Tags«-dropdown med afkrydsning og antal kort pr.
+  tag, og de valgte vises som mærker, der kan fjernes. Flere tags kan
+  kombineres. Det erstatter dagens filter, hvor man kun kan vælge ét tag.
+  Desuden kan man vælge mellem detaljeret og kompakt visning.
+- **Kort:** Kortets farve vises som en stribe i venstre side i stedet for at
+  tone hele kortet. Deadline vises relativt (»I dag«, »3 dage over«), og
+  prioritet får tekst. Antal PR-links vises som et tal.
+  *Implementeret i beta (DS-56, `BoardCard.vue`):* Farvestriben erstatter den tonede
+  baggrund, og tags står ved siden af DS-nummeret. Deadline vises som »N dage
+  over« (rød), »I dag« eller »I morgen« (gul) og ellers som kort dato; i en
+  færdig-kolonne altid som dato. Den fulde dato står i tooltip. Prioritet vises
+  som »Høj« eller »Lav«, og antal PR-links vises med et PR-ikon.
+- **Hurtig oprettelse:** Et kort kan oprettes direkte i kolonnen med Enter.
+- **Mobil:** Topbaren viser kun titel, »Tavle«-menuen som ikon og »+«.
+  Filtrene samles bag en »Filtre«-knap, der åbner en skuffe nedefra med
+  hurtigfiltre, tags, visning, »Ryd filtre« og »Vis N kort«. Kolonnerne fylder
+  næsten skærmbredden og snapper på plads.
+- **Medlemmer og invitation:** Søgningen viser resultater, mens man skriver,
+  uden »Søg«-knap, og en bruger tilføjes med pil op/ned og Enter.
+  Medlemslisten viser avatar, navn, mail og antal kort, personen er ansvarlig
+  for. Den aktuelle bruger står øverst som »Dig«, og listen kan filtreres. Et
+  medlem kan fjernes, og man kan selv forlade tavlen, begge med en bekræftelse
+  i rækken. Det følger beslutningen fra 2026-10-18 om, at alle medlemmer har
+  lige adgang, og indfører ingen roller.
+
+Kræver backend: »Mine kort« kan bygges med den aktuelle brugers id fra
+`MeStore`. Fjernelse af medlemmer, »Forlad tavle« og antal kort pr. medlem
+kræver nyt API.
+
+Åbne spørgsmål:
+
+- Skal en sammenklappet kolonne huskes pr. bruger på serveren eller kun i
+  browseren?
+- Må et kort oprettes med kun en titel via hurtig oprettelse?
+- Må det sidste medlem forlade tavlen, når kun SysAdmin og CampAdmin så har
+  adgang?
+- Bevares ansvaret for kortene, når et medlem fjernes? Tildeling giver i dag
+  ikke medlemskab.
+
 **Beslutning 2026-11-19 (implementeret, afhængigheder mellem kort):**
 Et kort kan vente på andre kort. Det er særligt tænkt til udviklingsarbejde,
 hvor fx et frontendkort venter på et backendkort. Alle tre dele er
