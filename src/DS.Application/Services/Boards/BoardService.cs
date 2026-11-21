@@ -262,21 +262,29 @@ namespace DS.Application.Services.Boards
                 .Take(10)
                 .ToListAsync();
 
-            return new ServiceResult<List<BoardMemberDto>>(ServiceOutcome.Success, users.Select(ToMemberDto).ToList());
+            return new ServiceResult<List<BoardMemberDto>>(ServiceOutcome.Success, users.Select(user => ToMemberDto(user)).ToList());
         }
 
         public async Task<ServiceResult<List<BoardMemberDto>>> GetMembers(BoardActor actor, int id)
         {
             if (!await VisibleBoards(actor).AnyAsync(board => board.Id == id)) return new ServiceResult(ServiceOutcome.Forbidden);
 
-            var users = await dataDb.BoardMembers
+            var members = await dataDb.BoardMembers
                 .AsNoTracking()
                 .Where(member => member.BoardId == id)
-                .Select(member => member.User)
-                .OrderBy(user => user.FirstName).ThenBy(user => user.LastName)
+                .Select(member => new
+                {
+                    member.User,
+                    AssignedCardCount = dataDb.BoardCards.Count(card => card.BoardId == id
+                        && card.WorkItem.DeletedAt == null
+                        && card.WorkItem.Assignees.Any(assignee => assignee.UserId == member.UserId)),
+                })
+                .OrderBy(member => member.User.FirstName).ThenBy(member => member.User.LastName)
                 .ToListAsync();
 
-            return new ServiceResult<List<BoardMemberDto>>(ServiceOutcome.Success, users.Select(ToMemberDto).ToList());
+            var result = members.Select(member => ToMemberDto(member.User, member.AssignedCardCount)).ToList();
+
+            return new ServiceResult<List<BoardMemberDto>>(ServiceOutcome.Success, result);
         }
 
         public async Task<ServiceResult> AddMember(BoardActor actor, BoardMemberCreateDto data, int id)
@@ -289,6 +297,23 @@ namespace DS.Application.Services.Boards
             if (user == null) return new ServiceResult(ServiceOutcome.NotFound);
 
             await dataDb.Database.ExecuteSqlInterpolatedAsync($"INSERT INTO ds28.board_member (board_id, user_id) VALUES ({id}, {user.Id}) ON CONFLICT DO NOTHING");
+            await boardEvents.BoardChanged(id);
+
+            return new ServiceResult(ServiceOutcome.Success);
+        }
+
+        public async Task<ServiceResult> RemoveMember(BoardActor actor, int id, string userId)
+        {
+            if (!await VisibleBoards(actor).AnyAsync(board => board.Id == id)) return new ServiceResult(ServiceOutcome.Forbidden);
+
+            var member = await dataDb.BoardMembers.SingleOrDefaultAsync(member => member.BoardId == id && member.UserId == userId);
+            if (member == null) return new ServiceResult(ServiceOutcome.NotFound);
+
+            var hasOtherMembers = await dataDb.BoardMembers.AnyAsync(other => other.BoardId == id && other.UserId != userId);
+            if (!hasOtherMembers) return new ServiceResult(ServiceOutcome.Conflict, "Tavlen skal have mindst ét medlem.");
+
+            dataDb.BoardMembers.Remove(member);
+            await dataDb.SaveChangesAsync();
             await boardEvents.BoardChanged(id);
 
             return new ServiceResult(ServiceOutcome.Success);
@@ -1140,7 +1165,7 @@ namespace DS.Application.Services.Boards
             return boards.Where(board => board.Members.Any(member => member.UserId == userId));
         }
 
-        private static BoardMemberDto ToMemberDto(User user)
+        private static BoardMemberDto ToMemberDto(User user, int? assignedCardCount = null)
         {
             return new BoardMemberDto
             {
@@ -1148,6 +1173,7 @@ namespace DS.Application.Services.Boards
                 FirstName = user.FirstName,
                 LastName = user.LastName,
                 Email = user.Email,
+                AssignedCardCount = assignedCardCount,
             };
         }
 
