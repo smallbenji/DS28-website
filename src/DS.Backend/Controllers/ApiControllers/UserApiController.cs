@@ -57,6 +57,24 @@ namespace DS.Backend.Controllers.ApiControllers
             return this.ToActionResult(result);
         }
 
+        [HttpGet("{id}/notifications")]
+        public async Task<IActionResult> GetNotifications(string id)
+        {
+            var result = await userService.GetNotifications(id);
+
+            return this.ToActionResult(result);
+        }
+
+        [HttpPut("{id}/notifications")]
+        public async Task<IActionResult> UpdateNotifications(string id, [FromBody] UpdateNotificationPreferencesDto data)
+        {
+            if (data == null) return BadRequest("Invalid request body.");
+
+            var result = await userService.UpdateNotifications(id, data);
+
+            return this.ToActionResult(result);
+        }
+
         [HttpPut("{id}/role/add")]
         public async Task<IActionResult> AddUserToRole([FromBody] string role, string id)
         {

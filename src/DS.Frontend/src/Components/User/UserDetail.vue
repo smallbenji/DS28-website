@@ -89,6 +89,23 @@
                         </li>
                     </ul>
                 </UCard>
+
+                <UCard>
+                    <template #header>
+                        <h3 class="font-semibold text-highlighted">Notifikationer</h3>
+                    </template>
+                    <p v-if="!hasNotificationOptions" class="text-sm text-muted">Brugerens roller giver ikke adgang til nogen notifikationer.</p>
+                    <div v-else class="flex flex-col gap-3">
+                        <USwitch
+                            v-for="notification in notifications"
+                            :key="notification.type"
+                            :model-value="notification.subscribed"
+                            :label="notificationLabels[notification.type] ?? notification.type"
+                            :disabled="!notification.canSubscribe || updatingNotifications"
+                            @update:model-value="toggleNotification(notification, $event)"
+                        />
+                    </div>
+                </UCard>
             </div>
         </div>
 
@@ -171,7 +188,9 @@ import CopyableValue from "@/Components/CopyableValue.vue";
 import UserAvatar from "@/Components/User/UserAvatar.vue";
 import ProfilePictureUpload from "@/Components/User/ProfilePictureUpload.vue";
 import FileService from "@/Services/FileService";
-import type { ResetPasswordLinkDto, UserDto } from "@/types";
+import UserService from "@/Services/UserService";
+import { notificationLabels } from "@/lib/notifications";
+import type { NotificationPreferenceDto, ResetPasswordLinkDto, UserDto } from "@/types";
 
 const props = defineProps<{ user: UserDto }>();
 const emit = defineEmits<{ (e: "deleted"): void }>();
@@ -262,6 +281,32 @@ async function removePicture() {
         notify(ok, "Profilbilledet er fjernet.", "Profilbilledet kunne ikke fjernes.");
     } finally {
         updatingPicture.value = false;
+    }
+}
+
+const userService = new UserService();
+const notifications = ref<NotificationPreferenceDto[]>([]);
+const updatingNotifications = ref(false);
+const hasNotificationOptions = computed(() => notifications.value.some((notification) => notification.canSubscribe));
+
+async function loadNotifications() {
+    notifications.value = await userService.getUserNotifications(props.user.id);
+}
+
+watch(() => [props.user.id, props.user.roles.join(",")], loadNotifications, { immediate: true });
+
+async function toggleNotification(notification: NotificationPreferenceDto, subscribed: boolean) {
+    notification.subscribed = subscribed;
+    updatingNotifications.value = true;
+    try {
+        const types = notifications.value
+            .filter((item) => item.subscribed && item.canSubscribe)
+            .map((item) => item.type);
+        const ok = await userService.updateUserNotifications(props.user.id, types);
+        if (!ok) notification.subscribed = !subscribed;
+        notify(ok, subscribed ? "Notifikationen er slået til." : "Notifikationen er slået fra.", "Notifikationen kunne ikke gemmes.");
+    } finally {
+        updatingNotifications.value = false;
     }
 }
 

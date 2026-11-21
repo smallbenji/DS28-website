@@ -66,19 +66,15 @@
                             <h2 class="font-semibold text-highlighted">Notifikationer</h2>
                         </template>
                         <div class="flex flex-col gap-3">
-                            <UCheckbox
+                            <USwitch
                                 v-for="notification in notifications"
                                 :key="notification.type"
-                                v-model="notification.subscribed"
+                                :model-value="notification.subscribed"
                                 :label="notificationLabels[notification.type] ?? notification.type"
-                                :disabled="!notification.canSubscribe"
+                                :disabled="!notification.canSubscribe || updatingNotifications"
+                                @update:model-value="toggleNotification(notification, $event)"
                             />
                         </div>
-                        <template #footer>
-                            <div class="flex justify-end">
-                                <UButton label="Gem notifikationer" :loading="updatingNotifications" @click="updateNotifications" />
-                            </div>
-                        </template>
                     </UCard>
                 </div>
 
@@ -346,6 +342,7 @@ import { storeToRefs } from "pinia";
 import { useAccountStore } from "@/Stores/AccountStore";
 import { useMeStore } from "@/Stores/MeStore";
 import NotificationService from "@/Services/NotificationService";
+import { notificationLabels } from "@/lib/notifications";
 import AccessTokenService from "@/Services/AccessTokenService";
 import FileService from "@/Services/FileService";
 import { formatDate } from "@/lib/util";
@@ -392,9 +389,6 @@ function copyMcpUrl() {
     void copyText(mcpUrl, "MCP-adressen er kopieret.", "Kunne ikke kopiere adressen. Markér og kopiér den fra feltet.");
 }
 
-const notificationLabels: Record<string, string> = {
-    NewUser: "Ny bruger oprettet"
-};
 const notifications = ref<NotificationPreferenceDto[]>([]);
 const updatingNotifications = ref(false);
 const hasNotificationOptions = computed(() => notifications.value.some((notification) => notification.canSubscribe));
@@ -445,16 +439,18 @@ async function loadNotifications() {
     }
 }
 
-async function updateNotifications() {
+async function toggleNotification(notification: NotificationPreferenceDto, subscribed: boolean) {
+    notification.subscribed = subscribed;
     updatingNotifications.value = true;
     try {
         const types = notifications.value
-            .filter((notification) => notification.subscribed && notification.canSubscribe)
-            .map((notification) => notification.type);
+            .filter((item) => item.subscribed && item.canSubscribe)
+            .map((item) => item.type);
         await notificationService.updatePreferences(types);
-        notify.success("Dine notifikationer er opdateret.");
+        notify.success(subscribed ? "Notifikationen er slået til." : "Notifikationen er slået fra.");
     } catch {
-        notify.error("Der skete en fejl under opdatering af dine notifikationer.");
+        notification.subscribed = !subscribed;
+        notify.error("Notifikationen kunne ikke gemmes.");
     } finally {
         updatingNotifications.value = false;
     }

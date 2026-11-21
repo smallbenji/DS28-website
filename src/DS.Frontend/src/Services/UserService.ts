@@ -1,4 +1,4 @@
-import type { RoleDto, UserDto } from "@/types";
+import type { NotificationPreferenceDto, RoleDto, UserDto } from "@/types";
 import { apiDelete, apiGet, apiPost, apiPut, safeApiCall, safeApiOk } from "@/lib/api";
 
 export default class UserService {
@@ -17,6 +17,14 @@ export default class UserService {
         return safeApiOk(() => apiPut(`/api/v1/user/${userId}/profile-picture`, {
             image: publicId ? { publicId } : null
         }));
+    }
+
+    public async getUserNotifications(userId: string): Promise<NotificationPreferenceDto[]> {
+        return safeApiCall(() => apiGet<NotificationPreferenceDto[]>(`/api/v1/user/${userId}/notifications`), []);
+    }
+
+    public async updateUserNotifications(userId: string, types: string[]) {
+        return safeApiOk(() => apiPut(`/api/v1/user/${userId}/notifications`, { types }));
     }
 
     public async createUser(user: UserDto) {

@@ -352,10 +352,19 @@ en mail til hver bruger med præferencen slået til. Den tidligere faste
 modtager `DS__NewUserNotificationEmail` er dermed fjernet. Som de øvrige mails
 gate'er `NotificationsEnabled` på enqueue-trinnet.
 
+**Beslutning 2026-11-21 (implementeret):** Brugerstyringen kan også se og
+ændre en anden brugers notifikationer, på samme måde som brugeren selv gør det
+på profilen. `GET`/`PUT` `/api/v1/user/{id}/notifications` ligger i
+`UserApiController` og kræver `UsersView` som de øvrige ændringer af stamdata.
+Hvilke typer der kan vælges, afgøres af målbrugerens egne roller, ikke af
+administratorens. Logikken deles med `/api/v1/me/notifications` gennem
+`NotificationPreferenceService`. Panelet ligger i `UserDetail.vue`.
+
 Ubesluttede punkter:
 - Præferencevalget er kun implementeret for `NewUser`. Flere hændelsestyper og
   tilhørende rollegating er ikke fastlagt. Afmelding sker ved at fjerne krydset
-  i profilen; der findes ingen separat afmeldingsmulighed.
+  i profilen eller i brugerstyringen; der findes ingen separat
+  afmeldingsmulighed.
 
 ### Min profil
 

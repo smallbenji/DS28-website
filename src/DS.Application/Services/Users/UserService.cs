@@ -1,5 +1,6 @@
 using DS.Application.Data;
 using DS.Application.Services.Email;
+using DS.Application.Services.Notifications;
 using DS.Application.Services.Organization;
 using DS.Domain;
 using DS.Domain.DTOs;
@@ -9,7 +10,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace DS.Application.Services.Users
 {
-    public class UserService(IDataDbContext dataDb, UserManager<User> userManager, RoleManager<Role> roleManager, IUserAccessCache accessCache, EmailService emailService)
+    public class UserService(IDataDbContext dataDb, UserManager<User> userManager, RoleManager<Role> roleManager, IUserAccessCache accessCache, EmailService emailService, NotificationPreferenceService notificationPreferences)
     {
         public async Task<ServiceResult<List<UserDto>>> GetUsers()
         {
@@ -139,6 +140,27 @@ namespace DS.Application.Services.Users
             if (!result.Succeeded) return new ServiceResult(ServiceOutcome.Invalid, result.Errors);
 
             return new ServiceResult<ImageReferenceDto>(ServiceOutcome.Success, new ImageReferenceDto(image));
+        }
+
+        public async Task<ServiceResult<List<NotificationPreferenceDto>>> GetNotifications(string id)
+        {
+            var user = await userManager.FindByIdAsync(id);
+            if (user == null) return new ServiceResult(ServiceOutcome.NotFound);
+
+            var appRoles = AppAccess.ResolveAppRoles(await userManager.GetRolesAsync(user));
+            var preferences = await notificationPreferences.GetPreferences(user.Id, appRoles);
+
+            return new ServiceResult<List<NotificationPreferenceDto>>(ServiceOutcome.Success, preferences);
+        }
+
+        public async Task<ServiceResult> UpdateNotifications(string id, UpdateNotificationPreferencesDto data)
+        {
+            var user = await userManager.FindByIdAsync(id);
+            if (user == null) return new ServiceResult(ServiceOutcome.NotFound);
+
+            var appRoles = AppAccess.ResolveAppRoles(await userManager.GetRolesAsync(user));
+
+            return await notificationPreferences.UpdatePreferences(user.Id, appRoles, data);
         }
 
         public async Task<ServiceResult> AddUserToRole(string currentUserId, string role, string id)
