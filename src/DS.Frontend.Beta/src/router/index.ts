@@ -148,12 +148,12 @@ router.beforeEach(async (to) => {
     if (!mustSetupTwoFactor && to.path === "/twofactor-setup") return "/";
 
     if (typeof to.meta.requiredRole === "string" && !meStore.Me.appRoles.includes(to.meta.requiredRole)) {
-        return "/access-denied";
+        return { path: "/access-denied", query: { from: to.fullPath } };
     }
 
     const requiredAnyRole = to.meta.requiredAnyRole;
     if (Array.isArray(requiredAnyRole) && !requiredAnyRole.some((role) => meStore.Me!.appRoles.includes(role))) {
-        return "/access-denied";
+        return { path: "/access-denied", query: { from: to.fullPath } };
     }
 
     return true;
