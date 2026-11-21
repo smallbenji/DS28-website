@@ -2615,9 +2615,17 @@ indlæses på samme side.
   `/beta/forgot-password`, `/beta/reset-password/:id`, `/beta/invitation/:id`,
   `/beta/group-invitation/:id`, `/beta/group-pre-signup`) og formularvisningen
   `/beta/forms/:id?` bruger et gæstelayout uden sidebar med en tegnet
-  lejrbaggrund (`src/assets/login-background.svg`, fra `ds-design/login`).
-  Baggrunden er lys i begge temaer, så DS28 HQ-teksten over kortet har fast
-  mørk farve. Validering af
+  lejrbaggrund (`components/Auth/PrairieBackground.vue`, oprindeligt fra
+  `ds-design/login`). Baggrunden er lys i begge temaer, så DS28 HQ-teksten
+  over kortet har fast mørk farve.
+  *Implementeret i beta (DS-53):* Baggrunden er inline SVG i en komponent i
+  stedet for et CSS-baggrundsbillede, så dele af den senere kan gøres
+  klikbare (DS-54). »Rullende prærie« betyder en vissen prærie-busk
+  (tumbleweed), der ruller hen over sletten som i westernfilm. Det er
+  afklaret med Benjamin 2026-11-21, så landskabet står stille. Busken ruller
+  fra venstre mod højre med hop, cirka hvert 22. sekund, på alle
+  gæstesider. Bålets tre flammelag blafrer hver i sit tempo. Med
+  `prefers-reduced-motion` vises busken ikke, og bålet står stille. Validering af
   `returnUrl` er uændret og sker i backenden. Invitationssiden viste i den
   nuværende frontend formularen, selv når invitationen ikke fandtes, fordi
   tjekket brugte ref-objektet i stedet for dets værdi; beta viser den kun for

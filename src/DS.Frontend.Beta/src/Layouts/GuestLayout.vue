@@ -1,5 +1,6 @@
 <template>
-    <div class="guest-background flex min-h-svh flex-col" :style="{ backgroundImage: `url(${background})` }">
+    <div class="guest-background relative isolate flex min-h-svh flex-col">
+        <PrairieBackground class="absolute inset-0 -z-10" />
         <header class="flex items-center justify-center gap-2 px-4 pt-10 pb-6">
             <UIcon name="i-lucide-tent-tree" class="size-6 text-blue-600" />
             <span class="text-lg font-semibold text-gray-800">DS28 HQ</span>
@@ -13,7 +14,7 @@
 
 <script setup lang="ts">
 import { useRoute } from "vue-router";
-import background from "@/assets/login-background.svg";
+import PrairieBackground from "@/Components/Auth/PrairieBackground.vue";
 
 const route = useRoute();
 </script>
@@ -21,8 +22,5 @@ const route = useRoute();
 <style scoped>
 .guest-background {
     background-color: #b5ddf6;
-    background-position: center bottom;
-    background-size: cover;
-    background-repeat: no-repeat;
 }
 </style>
