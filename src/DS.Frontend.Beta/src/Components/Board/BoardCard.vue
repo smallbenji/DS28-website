@@ -1,7 +1,7 @@
 <template>
     <article
-        class="board-card relative cursor-pointer rounded-md border border-default bg-elevated/60 py-3 pe-3 text-sm transition-colors hover:bg-default focus-visible:outline-2 focus-visible:outline-primary"
-        :class="[card.color ? 'ps-4' : 'ps-3', { 'opacity-45': isDragging, 'drop-before': dropIndicator === 'before', 'drop-after': dropIndicator === 'after' }]"
+        class="board-card relative cursor-pointer rounded-md border border-default bg-elevated/60 pe-3 text-sm transition-colors hover:bg-default focus-visible:outline-2 focus-visible:outline-primary"
+        :class="[card.color ? 'ps-4' : 'ps-3', compact ? 'py-2' : 'py-3', { 'opacity-45': isDragging, 'drop-before': dropIndicator === 'before', 'drop-after': dropIndicator === 'after' }]"
         :draggable="canManage"
         :data-card-id="card.id"
         tabindex="0"
@@ -17,11 +17,11 @@
         </div>
 
         <p class="mt-1 font-medium" :class="isDoneColumn ? 'text-muted line-through' : 'text-highlighted'">{{ card.title }}</p>
-        <p v-if="descriptionPreview" class="mt-1 line-clamp-2 text-xs text-muted">{{ descriptionPreview }}</p>
+        <p v-if="descriptionPreview && !compact" class="mt-1 line-clamp-2 text-xs text-muted">{{ descriptionPreview }}</p>
 
-        <UBadge v-if="waitingLabel" class="mt-2" :label="waitingLabel" icon="i-lucide-link" color="warning" variant="subtle" size="sm" />
+        <UBadge v-if="waitingLabel && !compact" class="mt-2" :label="waitingLabel" icon="i-lucide-link" color="warning" variant="subtle" size="sm" />
 
-        <div v-if="card.dueDate || Number(card.priority) !== 0 || pullRequestCount || card.assignees.length" class="mt-2.5 flex items-center gap-2.5 text-xs">
+        <div v-if="card.dueDate || Number(card.priority) !== 0 || pullRequestCount || card.assignees.length" class="flex items-center gap-2.5 text-xs" :class="compact ? 'mt-1.5' : 'mt-2.5'">
             <span v-if="card.dueDate" class="flex items-center gap-1" :class="dueClass" :title="deadlineLabel">
                 <UIcon name="i-lucide-calendar" class="size-3.5" />
                 <span class="sr-only">{{ isOverdue ? 'Overskredet deadline:' : 'Deadline:' }}</span>
@@ -59,6 +59,7 @@ import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import type { WorkItemDto } from "@/types";
 import { htmlToPlainText } from "@/lib/util";
 import { useBoardDrag } from "@/lib/board/boardDrag";
+import { useBoardCompact } from "@/lib/board/boardFilters";
 import BoardTagBadge from "@/Components/Board/BoardTagBadge.vue";
 
 const props = defineProps<{
@@ -71,6 +72,7 @@ const props = defineProps<{
 const emit = defineEmits<{ open: [card: WorkItemDto] }>();
 
 const drag = useBoardDrag();
+const compact = useBoardCompact();
 const dragImageCaptured = ref(false);
 const isDragging = computed(() => dragImageCaptured.value && drag.value?.kind === "card" && drag.value.id === Number(props.card.id));
 
