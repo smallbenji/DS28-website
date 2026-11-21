@@ -2499,15 +2499,12 @@ indlæses på samme side.
   beta, bortset fra Hangfire, som er backendens egen side. Siderne er bygget og
   typetjekket, men ikke testet mod den rigtige backend. Benjamin tester dem
   samlet til sidst.
-- **Sikkerhed (fundet 2026-11-20, rettet i beta, ikke i den nuværende
-  frontend):** `htmlToPlainText` i `lib/util.ts` laver kortenes
-  forhåndsvisning ved at sætte beskrivelsen som `innerHTML` på et element.
-  Event-handlere som `onerror` på billeder kører da, og backenden renser ikke
-  beskrivelser. Et tavlemedlem kan derfor køre JavaScript hos alle, der åbner
-  tavlen, ved at gemme en beskrivelse direkte via API'et. Beta bruger
-  `DOMParser`, som ikke kører handlere. Rettelsen til den nuværende frontend
-  ligger på branchen `fix/board-card-preview-xss` og er ikke udgivet endnu.
-  Det bør overvejes at rense HTML i backenden.
+- **Sikkerhed (fundet 2026-11-20, rettet i begge frontends):** `htmlToPlainText`
+  i `lib/util.ts` lavede kortenes forhåndsvisning ved at sætte beskrivelsen
+  som `innerHTML` på et element, så event-handlere kørte. Beta bruger
+  `DOMParser`, og den nuværende frontend er rettet på samme måde (PR #106);
+  se "Rettet 2026-11-20 (XSS i kortforhåndsvisning)" under Sikkerhed og
+  auth-hærdning.
 
 Ikke besluttet: om hele frontenden skal flyttes til Nuxt UI, i hvilken
 rækkefølge og hvornår, hvordan brugerne finder beta, og om nye funktioner kun
