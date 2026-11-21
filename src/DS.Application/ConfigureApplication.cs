@@ -11,6 +11,7 @@ using DS.Application.Services.Registration;
 using DS.Application.Services.Users;
 using DS.Application.Services.Boards;
 using DS.Application.Services.Search;
+using DS.Application.Services.Notifications;
 using DS.Application.Services.Profile;
 using DS.Application.Services.Exports;
 using DS.Application.Services.Accounts;
@@ -37,6 +38,7 @@ public static class ConfigureApplication
         services.AddScoped<BoardService>();
         services.AddScoped<SearchService>();
         services.AddScoped<MeService>();
+        services.AddScoped<NotificationPreferenceService>();
         services.AddScoped<ExportService>();
         services.AddScoped<AccountService>();
         services.AddScoped<AccessTokenService>();

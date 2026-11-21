@@ -8,7 +8,7 @@ using DS.Application.Services.Notifications;
 
 namespace DS.Application.Services.Profile
 {
-    public class MeService(IDataDbContext dataDb, UserManager<User> userManager)
+    public class MeService(IDataDbContext dataDb, UserManager<User> userManager, NotificationPreferenceService notificationPreferences)
     {
         public async Task<ServiceResult<MeDto>> Index(MeActor actor)
         {
@@ -114,22 +114,7 @@ namespace DS.Application.Services.Profile
             var user = await GetCurrentUserAsync(actor.UserId);
             if (user == null) return new ServiceResult(ServiceOutcome.NotFound);
 
-            var roles = actor.Groups;
-            var appRoles = AppAccess.ResolveAppRoles(roles);
-
-            var subscribed = await dataDb.NotificationPreferences
-                .Where(p => p.UserId == user.Id)
-                .Select(p => p.NotificationType)
-                .ToListAsync();
-
-            var preferences = Enum.GetValues<NotificationType>()
-                .Select(type => new NotificationPreferenceDto
-                {
-                    Type = type.ToString(),
-                    CanSubscribe = NotificationPermissions.CanSubscribe(appRoles, type),
-                    Subscribed = subscribed.Contains(type),
-                })
-                .ToList();
+            var preferences = await notificationPreferences.GetPreferences(user.Id, AppAccess.ResolveAppRoles(actor.Groups));
 
             return new ServiceResult<List<NotificationPreferenceDto>>(ServiceOutcome.Success, preferences);
         }
@@ -139,37 +124,7 @@ namespace DS.Application.Services.Profile
             var user = await GetCurrentUserAsync(actor.UserId);
             if (user == null) return new ServiceResult(ServiceOutcome.NotFound);
 
-            var roles = actor.Groups;
-            var appRoles = AppAccess.ResolveAppRoles(roles);
-
-            var requested = new List<NotificationType>();
-            foreach (var typeName in data.Types)
-            {
-                if (!Enum.TryParse<NotificationType>(typeName, out var type)) return new ServiceResult(ServiceOutcome.Invalid, $"Ukendt notifikationstype: {typeName}");
-                if (!NotificationPermissions.CanSubscribe(appRoles, type)) return new ServiceResult(ServiceOutcome.Forbidden);
-
-                requested.Add(type);
-            }
-
-            var existing = await dataDb.NotificationPreferences
-                .Where(p => p.UserId == user.Id)
-                .ToListAsync();
-
-            dataDb.NotificationPreferences.RemoveRange(
-                existing.Where(p => !requested.Contains(p.NotificationType)));
-
-            foreach (var type in requested.Where(t => existing.All(p => p.NotificationType != t)))
-            {
-                dataDb.NotificationPreferences.Add(new UserNotificationPreference
-                {
-                    UserId = user.Id,
-                    NotificationType = type,
-                });
-            }
-
-            await dataDb.SaveChangesAsync();
-
-            return new ServiceResult(ServiceOutcome.Success);
+            return await notificationPreferences.UpdatePreferences(user.Id, AppAccess.ResolveAppRoles(actor.Groups), data);
         }
 
         private async Task<User> GetCurrentUserAsync(string userId)
