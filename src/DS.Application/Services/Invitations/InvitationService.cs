@@ -41,7 +41,7 @@ namespace DS.Application.Services.Invitations
             {
                 FirstName = data.FirstName,
                 LastName = data.LastName,
-                UserName = (data.FirstName + data.LastName).Replace(" ", "").ToLower(),
+                UserName = invitation.Email,
                 Email = invitation.Email,
             };
 
