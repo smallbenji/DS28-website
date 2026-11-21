@@ -2631,7 +2631,11 @@ indlæses på samme side.
   to gange i træk. Replikkerne ligger i komponenten. Cowboyen er kun synlig
   på brede skærme, fordi baggrunden beskæres fra siderne på smalle skærme.
   Han er et påskeæg og hverken fokuserbar eller læst op af skærmlæsere,
-  fordi hele baggrunden er dekorativ. Validering af
+  fordi hele baggrunden er dekorativ.
+  *Implementeret i beta (DS-55):* »Større bjerge« gælder den nære mesa til
+  venstre. Ifølge Benjamin (2026-11-21) skulle den være en lille smule
+  større. Den er nu skaleret 25 % op fra sin fod i venstre side og har fået
+  en klippespids på plateauet, der hælder 7 grader mod højre. Validering af
   `returnUrl` er uændret og sker i backenden. Invitationssiden viste i den
   nuværende frontend formularen, selv når invitationen ikke fandtes, fordi
   tjekket brugte ref-objektet i stedet for dets værdi; beta viser den kun for
