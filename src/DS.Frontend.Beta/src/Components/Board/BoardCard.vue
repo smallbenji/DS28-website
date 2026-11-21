@@ -1,8 +1,7 @@
 <template>
     <article
-        class="board-card relative cursor-pointer rounded-md border border-default p-3 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-primary"
-        :class="[card.color ? '' : 'bg-elevated hover:bg-default', { 'opacity-45': isDragging, 'drop-before': dropIndicator === 'before', 'drop-after': dropIndicator === 'after' }]"
-        :style="card.color ? { backgroundColor: `color-mix(in oklab, ${card.color} 30%, var(--ui-bg))` } : undefined"
+        class="board-card relative cursor-pointer rounded-md border border-default bg-elevated/60 py-3 pe-3 text-sm transition-colors hover:bg-default focus-visible:outline-2 focus-visible:outline-primary"
+        :class="[card.color ? 'ps-4' : 'ps-3', { 'opacity-45': isDragging, 'drop-before': dropIndicator === 'before', 'drop-after': dropIndicator === 'after' }]"
         :draggable="canManage"
         :data-card-id="card.id"
         tabindex="0"
@@ -10,32 +9,37 @@
         @keydown.enter="emit('open', card)"
         @dragstart="onDragStart"
     >
-        <div class="flex items-start justify-between gap-2">
+        <span v-if="card.color" class="absolute inset-y-0 start-0 w-1 rounded-s-md" :style="{ backgroundColor: card.color }" aria-hidden="true" />
+
+        <div class="flex flex-wrap items-center gap-1.5">
             <span class="font-mono text-xs text-muted">DS-{{ card.id }}</span>
-            <span v-if="card.tags?.length" class="flex flex-wrap justify-end gap-1">
-                <BoardTagBadge v-for="tag in card.tags" :key="tag.id" :tag="tag" />
-            </span>
+            <BoardTagBadge v-for="tag in card.tags" :key="tag.id" :tag="tag" />
         </div>
 
         <p class="mt-1 font-medium" :class="isDoneColumn ? 'text-muted line-through' : 'text-highlighted'">{{ card.title }}</p>
         <p v-if="descriptionPreview" class="mt-1 line-clamp-2 text-xs text-muted">{{ descriptionPreview }}</p>
 
-        <UBadge v-if="waitingLabel" class="mt-2" :label="waitingLabel" icon="i-lucide-clock" color="warning" variant="subtle" size="sm" />
+        <UBadge v-if="waitingLabel" class="mt-2" :label="waitingLabel" icon="i-lucide-link" color="warning" variant="subtle" size="sm" />
 
-        <div v-if="card.dueDate || Number(card.priority) !== 0 || card.assignees.length" class="mt-2 flex items-center gap-2 text-xs">
-            <span v-if="card.dueDate" class="flex items-center gap-1" :class="isOverdue ? 'font-medium text-error' : 'text-muted'" :title="deadlineLabel">
+        <div v-if="card.dueDate || Number(card.priority) !== 0 || pullRequestCount || card.assignees.length" class="mt-2.5 flex items-center gap-2.5 text-xs">
+            <span v-if="card.dueDate" class="flex items-center gap-1" :class="dueClass" :title="deadlineLabel">
                 <UIcon name="i-lucide-calendar" class="size-3.5" />
                 <span class="sr-only">{{ isOverdue ? 'Overskredet deadline:' : 'Deadline:' }}</span>
-                {{ formattedDueDate }}
+                {{ dueText }}
             </span>
-            <UIcon
-                v-if="Number(card.priority) !== 0"
-                :name="Number(card.priority) > 0 ? 'i-lucide-arrow-up' : 'i-lucide-arrow-down'"
-                class="size-4"
-                :class="Number(card.priority) > 0 ? 'text-warning' : 'text-muted'"
-                role="img"
-                :aria-label="priorityLabel"
-            />
+            <span v-if="Number(card.priority) > 0" class="flex items-center gap-0.5 font-medium text-error" :title="priorityLabel">
+                <UIcon name="i-lucide-arrow-up" class="size-3.5" />
+                Høj
+            </span>
+            <span v-else-if="Number(card.priority) < 0" class="flex items-center gap-0.5 text-muted" :title="priorityLabel">
+                <UIcon name="i-lucide-arrow-down" class="size-3.5" />
+                Lav
+            </span>
+            <span v-if="pullRequestCount" class="flex items-center gap-1 text-muted" :title="pullRequestLabel">
+                <UIcon name="i-lucide-git-pull-request" class="size-3.5" />
+                <span class="sr-only">Pull requests:</span>
+                {{ pullRequestCount }}
+            </span>
             <UAvatarGroup v-if="card.assignees.length" size="2xs" :max="3" class="ms-auto">
                 <UTooltip v-for="user in card.assignees" :key="user.id" :text="`${user.firstName} ${user.lastName}`">
                     <UAvatar
@@ -89,6 +93,25 @@ const formattedDueDate = computed(() => dueDate.value ? shortDateFormat.format(d
 const isOverdue = computed(() => !props.isDoneColumn && !!props.card.dueDate && props.card.dueDate < today.value);
 const deadlineLabel = computed(() => dueDate.value ? `${isOverdue.value ? "Overskredet deadline" : "Deadline"}: ${fullDateFormat.format(dueDate.value)}` : "");
 const priorityLabel = computed(() => Number(props.card.priority) > 0 ? "Høj prioritet" : "Lav prioritet");
+const daysUntilDue = computed(() => props.card.dueDate ? Math.round((Date.parse(props.card.dueDate) - Date.parse(today.value)) / 86400000) : null);
+const isDueSoon = computed(() => !props.isDoneColumn && daysUntilDue.value !== null && daysUntilDue.value >= 0 && daysUntilDue.value <= 1);
+const dueText = computed(() => {
+    const days = daysUntilDue.value;
+    if (days === null || props.isDoneColumn) return formattedDueDate.value;
+    if (days < 0) return days === -1 ? "1 dag over" : `${-days} dage over`;
+    if (days === 0) return "I dag";
+    if (days === 1) return "I morgen";
+
+    return formattedDueDate.value;
+});
+const dueClass = computed(() => {
+    if (isOverdue.value) return "font-medium text-error";
+    if (isDueSoon.value) return "font-medium text-warning";
+
+    return "text-muted";
+});
+const pullRequestCount = computed(() => props.card.pullRequests?.length ?? 0);
+const pullRequestLabel = computed(() => pullRequestCount.value === 1 ? "1 pull request" : `${pullRequestCount.value} pull requests`);
 
 function currentDate() {
     return new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Copenhagen" }).format(new Date());
