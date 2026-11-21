@@ -1,110 +1,214 @@
 <template>
-    <section class="section">
-        <div class="container">
-            <BNotification v-if="error" type="is-danger" :closable="false" role="alert">{{ error }}</BNotification>
-            <p v-if="loading" role="status">Henter gruppens brugere…</p>
-            <template v-if="group">
-                <h2 class="title is-4">{{ group.name }}</h2>
-                <div class="box">
-                    <h3 class="title is-5">Inviter til gruppen</h3>
-                    <p class="mb-4">Alle medlemmer kan invitere og fjerne andre medlemmer. Den inviterede modtager automatisk en email med et personligt invitationslink.</p>
-                    <form @submit.prevent="invite">
-                        <BField label="Email"><BInput v-model="email" type="email" required :disabled="busy" /></BField>
-                        <BButton native-type="submit" type="is-primary" :loading="busy" :disabled="busy || !email.trim()">Send invitation</BButton>
-                    </form>
-                    <BNotification v-if="link" type="is-success" :closable="false" class="mt-4">
-                        <BField label="Invitationslink – kan også deles manuelt"><BInput :model-value="link" readonly /></BField>
-                    </BNotification>
+    <UDashboardPanel id="group-members">
+        <template #header>
+            <UDashboardNavbar title="Gruppens brugere">
+                <template #leading>
+                    <UDashboardSidebarCollapse />
+                    <UButton to="/group" color="neutral" variant="ghost" icon="i-lucide-arrow-left" aria-label="Tilbage til gruppen" />
+                </template>
+            </UDashboardNavbar>
+        </template>
+
+        <template #body>
+            <div class="mx-auto flex w-full max-w-5xl flex-col gap-4">
+                <UAlert v-if="error" color="error" variant="subtle" icon="i-lucide-circle-alert" :title="error" :actions="group ? undefined : [{ label: 'Prøv igen', color: 'error', variant: 'outline', onClick: load }]" />
+
+                <div v-if="loading" class="grid gap-6 lg:grid-cols-2">
+                    <USkeleton class="h-64" />
+                    <USkeleton class="h-64" />
                 </div>
-                <div class="box">
-                    <h3 class="title is-5">Medlemmer</h3>
-                    <BTable :data="group.users" :mobile-cards="true">
-                        <BTableColumn field="firstName" label="Navn" v-slot="props">{{ props.row.firstName }} {{ props.row.lastName }}</BTableColumn>
-                        <BTableColumn field="email" label="Email" v-slot="props">{{ props.row.email }}</BTableColumn>
-                        <BTableColumn label="Handling" v-slot="props">
-                            <span v-if="props.row.id === me.Me?.id">Dig</span>
-                            <BButton v-else type="is-danger is-light" size="is-small" :disabled="busy" @click="removing = props.row">Fjern fra gruppen</BButton>
-                        </BTableColumn>
-                    </BTable>
-                    <BNotification v-if="removing" :closable="false" class="mt-4">
-                        <p class="mb-3">Fjern {{ removing.firstName }} {{ removing.lastName }} fra gruppen? Brugerens konto bevares, men adgangen til gruppen ophører.</p>
-                        <div class="buttons">
-                            <BButton type="is-danger" :disabled="busy" :loading="busy" @click="remove">Fjern medlem</BButton>
-                            <BButton :disabled="busy" @click="removing = null">Annuller</BButton>
-                        </div>
-                    </BNotification>
-                </div>
-                <div class="box">
-                    <h3 class="title is-5">Afventende invitationer</h3>
-                    <p v-if="!invitations.length">Ingen afventende invitationer.</p>
-                    <div v-for="invitation in invitations" :key="invitation.invitationId" class="invitation-row">
-                        <span>{{ invitation.email }}</span>
-                        <div class="buttons">
-                            <BButton size="is-small" :disabled="busy" @click="showLink(invitation.invitationId)">Vis link</BButton>
-                            <BButton size="is-small" type="is-danger is-light" :disabled="busy" @click="revoke(invitation.invitationId)">Annuller invitation</BButton>
+
+                <template v-else-if="group">
+                    <h1 class="text-xl font-semibold text-highlighted">{{ group.name }}</h1>
+
+                    <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
+                        <UCard class="self-start" :ui="{ body: 'p-0 sm:p-0' }">
+                            <template #header>
+                                <h2 class="font-semibold text-highlighted">Medlemmer <span class="font-normal text-muted">({{ group.users.length }})</span></h2>
+                                <p class="text-sm text-muted">Alle medlemmer kan invitere og fjerne andre medlemmer.</p>
+                            </template>
+                            <ul class="divide-y divide-default">
+                                <li v-for="user in group.users" :key="user.id" class="flex items-center gap-3 px-4 py-3 sm:px-6">
+                                    <UserAvatar :user="user" />
+                                    <div class="min-w-0 flex-1">
+                                        <p class="truncate text-sm font-medium text-highlighted">{{ user.firstName }} {{ user.lastName }}</p>
+                                        <p class="truncate text-xs text-muted">{{ user.email }}</p>
+                                    </div>
+                                    <UBadge v-if="user.id === meStore.Me?.id" label="Dig" color="neutral" variant="subtle" />
+                                    <UButton v-else color="error" variant="ghost" size="sm" label="Fjern" :aria-label="`Fjern ${user.firstName} ${user.lastName} fra gruppen`" :disabled="busy" @click="confirmRemove(user)" />
+                                </li>
+                            </ul>
+                        </UCard>
+
+                        <div class="flex flex-col gap-6">
+                            <UCard>
+                                <template #header>
+                                    <h2 class="font-semibold text-highlighted">Inviter til gruppen</h2>
+                                    <p class="text-sm text-muted">Den inviterede får automatisk en email med et personligt invitationslink.</p>
+                                </template>
+                                <form class="flex flex-col gap-3" @submit.prevent="invite">
+                                    <UFormField label="Email" required>
+                                        <UInput v-model="email" type="email" placeholder="eksempel@mail.dk" :disabled="busy" class="w-full" />
+                                    </UFormField>
+                                    <UButton type="submit" icon="i-lucide-mail" label="Send invitation" :loading="busy" :disabled="busy || !email.trim()" class="self-start" />
+                                </form>
+                                <UFormField v-if="link" label="Invitationslink" help="Linket kan også deles manuelt." class="mt-4">
+                                    <UFieldGroup class="w-full">
+                                        <UInput :model-value="link" readonly class="w-full" aria-label="Invitationslink" />
+                                        <UButton icon="i-lucide-copy" aria-label="Kopiér link" @click="copyLink" />
+                                    </UFieldGroup>
+                                </UFormField>
+                            </UCard>
+
+                            <UCard :ui="{ body: 'p-0 sm:p-0' }">
+                                <template #header>
+                                    <h2 class="font-semibold text-highlighted">Afventende invitationer <span class="font-normal text-muted">({{ invitations.length }})</span></h2>
+                                </template>
+                                <p v-if="invitations.length === 0" class="px-4 py-3 text-sm text-muted sm:px-6">Ingen afventende invitationer.</p>
+                                <ul v-else class="divide-y divide-default">
+                                    <li v-for="invitation in invitations" :key="invitation.invitationId" class="flex items-center gap-2 px-4 py-2 sm:px-6">
+                                        <span class="min-w-0 flex-1 truncate text-sm">{{ invitation.email }}</span>
+                                        <UButton color="neutral" variant="ghost" size="xs" icon="i-lucide-link" :aria-label="`Vis link til ${invitation.email}`" :disabled="busy" @click="showLink(invitation.invitationId)" />
+                                        <UButton color="error" variant="ghost" size="xs" icon="i-lucide-x" :aria-label="`Annuller invitationen til ${invitation.email}`" :disabled="busy" @click="revoke(invitation.invitationId)" />
+                                    </li>
+                                </ul>
+                            </UCard>
                         </div>
                     </div>
-                </div>
-            </template>
-            <BButton v-if="!loading && !group" @click="load">Prøv igen</BButton>
-            <BButton :disabled="busy" @click="router.push('/group')">Tilbage til gruppen</BButton>
-        </div>
-    </section>
+                </template>
+            </div>
+
+            <ConfirmModal
+                v-model:open="removeOpen"
+                title="Fjern fra gruppen"
+                :description="`Fjern ${removing?.firstName} ${removing?.lastName} fra gruppen? Brugerens konto bevares, men adgangen til gruppen ophører.`"
+                confirm-label="Fjern medlem"
+                color="error"
+                :loading="busy"
+                @confirm="remove"
+            />
+        </template>
+    </UDashboardPanel>
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
-import { useRouter } from 'vue-router';
-import { BButton, BField, BInput, BNotification, BTable, BTableColumn } from 'buefy';
-import GroupMembersService, { type GroupMemberInvitationDto } from '@/Services/GroupMembersService';
-import { getErrorMessage } from '@/lib/api';
-import type { GroupDto } from '@/types';
-import { useMeStore } from '@/Stores/MeStore';
-const router = useRouter();
+import { onMounted, ref } from "vue";
+import GroupMembersService, { type GroupMemberInvitationDto } from "@/Services/GroupMembersService";
+import { useMeStore } from "@/Stores/MeStore";
+import { getErrorMessage } from "@/lib/api";
+import { useNotify } from "@/lib/notify";
+import ConfirmModal from "@/Components/ConfirmModal.vue";
+import UserAvatar from "@/Components/User/UserAvatar.vue";
+import type { GroupDto, UserDto } from "@/types";
+
 const service = new GroupMembersService();
-const me = useMeStore();
+const meStore = useMeStore();
+const notify = useNotify();
+
 const group = ref<GroupDto | null>(null);
 const invitations = ref<GroupMemberInvitationDto[]>([]);
-const removing = ref<GroupDto['users'][number] | null>(null);
-const email = ref('');
-const link = ref('');
-const error = ref('');
+const email = ref("");
+const link = ref("");
+const error = ref("");
 const busy = ref(false);
 const loading = ref(true);
-function fail(e: unknown) { error.value = getErrorMessage(e, 'Handlingen kunne ikke gennemføres. Kontrollér din adgang til gruppen, og prøv igen.'); }
-function showLink(id: string) { link.value = `${window.location.origin}/group-invitation/${id}`; }
+const removeOpen = ref(false);
+const removing = ref<UserDto | null>(null);
+
+function fail(cause: unknown) {
+    error.value = getErrorMessage(cause, "Handlingen kunne ikke gennemføres. Kontrollér din adgang til gruppen, og prøv igen.");
+}
+
 async function refresh() {
     const [members, pending] = await Promise.all([service.getGroup(), service.getInvitations()]);
-    group.value = members; invitations.value = pending;
+    group.value = members;
+    invitations.value = pending;
 }
+
 async function load() {
-    loading.value = true; error.value = '';
-    try { await refresh(); } catch (e) { fail(e); } finally { loading.value = false; }
-}
-async function invite() {
-    if (busy.value) return;
-    busy.value = true; error.value = ''; link.value = '';
+    loading.value = true;
+    error.value = "";
     try {
-        const data = await service.invite(email.value.trim());
-        link.value = new URL(data.path, window.location.origin).href;
-        email.value = ''; await refresh();
-    } catch (e) { fail(e); } finally { busy.value = false; }
+        await refresh();
+    } catch (cause) {
+        fail(cause);
+    } finally {
+        loading.value = false;
+    }
 }
+
+function showLink(invitationId: string) {
+    link.value = `${window.location.origin}/group-invitation/${invitationId}`;
+}
+
+async function copyLink() {
+    try {
+        await navigator.clipboard.writeText(link.value);
+        notify.success("Linket er kopieret.");
+    } catch {
+        notify.error("Linket kunne ikke kopieres.");
+    }
+}
+
+async function invite() {
+    if (busy.value || !email.value.trim()) return;
+
+    busy.value = true;
+    error.value = "";
+    link.value = "";
+    try {
+        const sentTo = email.value.trim();
+        const data = await service.invite(sentTo);
+        link.value = new URL(data.path, window.location.origin).href;
+        email.value = "";
+        await refresh();
+        notify.success(`Invitationen er sendt til ${sentTo}.`);
+    } catch (cause) {
+        fail(cause);
+    } finally {
+        busy.value = false;
+    }
+}
+
+function confirmRemove(user: UserDto) {
+    removing.value = user;
+    removeOpen.value = true;
+}
+
 async function remove() {
     if (!removing.value || busy.value) return;
-    busy.value = true; error.value = '';
-    try { await service.removeMember(removing.value.id); removing.value = null; await refresh(); }
-    catch (e) { fail(e); } finally { busy.value = false; }
+
+    busy.value = true;
+    error.value = "";
+    try {
+        await service.removeMember(removing.value.id);
+        removeOpen.value = false;
+        await refresh();
+        notify.success("Medlemmet er fjernet fra gruppen.");
+    } catch (cause) {
+        fail(cause);
+        notify.error(error.value);
+    } finally {
+        busy.value = false;
+    }
 }
-async function revoke(id: string) {
+
+async function revoke(invitationId: string) {
     if (busy.value) return;
-    busy.value = true; error.value = '';
-    try { await service.revokeInvitation(id); link.value = ''; await refresh(); }
-    catch (e) { fail(e); } finally { busy.value = false; }
+
+    busy.value = true;
+    error.value = "";
+    try {
+        await service.revokeInvitation(invitationId);
+        link.value = "";
+        await refresh();
+        notify.success("Invitationen er annulleret.");
+    } catch (cause) {
+        fail(cause);
+    } finally {
+        busy.value = false;
+    }
 }
+
 onMounted(load);
 </script>
-
-<style scoped>
-.invitation-row { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 1rem; margin-top: 1rem; }
-</style>

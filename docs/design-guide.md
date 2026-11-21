@@ -1,6 +1,11 @@
 # DS28 HQ – designguide
 
-Guiden beskriver, hvordan brugerfladen i `src/DS.Frontend` skal bygges, så nye
+**Arkiveret 2026-11-21:** Guiden beskriver den gamle Buefy-frontend, som nu
+ligger i `src/DS.Frontend.Archive` og ikke længere bygges eller serveres. Den
+gælder ikke den nuværende `src/DS.Frontend`, som bruger Nuxt UI og Tailwind. Se
+[Beta-frontend med Nuxt UI](project-plan.md#beta-frontend-med-nuxt-ui).
+
+Guiden beskriver, hvordan brugerfladen i `src/DS.Frontend.Archive` blev bygget, så nye
 skærme ligner de eksisterende. Den bygger på de mønstre, som allerede er mest
 udbredt i koden (november 2026). Hvor koden i dag er uensartet, står det under
 [Kendte afvigelser](#kendte-afvigelser): ny kode følger guiden, og gammel kode
@@ -26,9 +31,6 @@ Kort sagt:
 
 Tilføj ikke et nyt UI-bibliotek eller CSS-framework uden en beslutning i
 [projektplanen](project-plan.md).
-
-Guiden gælder ikke `src/DS.Frontend.Beta`, som bruger Nuxt UI og Tailwind. Se
-[Beta-frontend med Nuxt UI](project-plan.md#beta-frontend-med-nuxt-ui).
 
 ## Farver
 

@@ -6,17 +6,10 @@ RUN npm ci
 COPY src/DS.Frontend/. .
 RUN npm run build
 
-WORKDIR /src/DS.Frontend.Beta
-COPY src/DS.Frontend.Beta/package*.json ./
-RUN npm ci
-COPY src/DS.Frontend.Beta/. .
-RUN npm run build
-
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 COPY src/ .
 COPY --from=node-build /src/DS.Backend/wwwroot/dist /src/DS.Backend/wwwroot/dist
-COPY --from=node-build /src/DS.Backend/wwwroot/dist-beta /src/DS.Backend/wwwroot/dist-beta
 RUN dotnet restore DS.Backend/DS.Backend.csproj
 RUN dotnet publish DS.Backend/DS.Backend.csproj -c Release -o /app/publish
 RUN dotnet publish DS.RegistrationImporter/DS.RegistrationImporter.csproj -c Release -o /app/importer

@@ -10,7 +10,7 @@ const { createRenderer, nextTick } = require('vue');
 const filename = new URL('../../src/DS.Frontend/src/Components/User/ProfilePictureUpload.vue', import.meta.url);
 const { descriptor } = parse(await readFile(filename, 'utf8'));
 const compiled = compileScript(descriptor, { id: 'profile-crop-check' }).content
-    .replace("import 'vue-advanced-cropper/dist/style.css';", '')
+    .replace(/import (['"])vue-advanced-cropper\/dist\/style\.css\1;/, '')
     .replace(/from (['"])([^'"]+)\1/g, (_, quote, name) => `from '${pathToFileURL(require.resolve(name))}'`);
 const { default: component } = await import(`data:text/javascript;base64,${Buffer.from(stripTypeScriptTypes(compiled)).toString('base64')}`);
 component.render = () => null;
@@ -37,7 +37,7 @@ function mount() {
 test('only confirmation uploads the cropped PNG, not the original file', async () => {
     const { app, state, files } = mount();
     try {
-        state.selectedFile = new File(['original'], 'original.jpg', { type: 'image/jpeg' });
+        state.onFileSelected({ target: { files: [new File(['original'], 'original.jpg', { type: 'image/jpeg' })], value: '' } });
         await nextTick();
         assert.equal(state.active, true);
         assert.equal(files.length, 0);
@@ -76,7 +76,7 @@ test('conversion errors keep the editor open and do not upload', async () => {
 test('cancelling discards the local image without uploading', async () => {
     const { app, state, files } = mount();
     try {
-        state.selectedFile = new File(['original'], 'original.jpg', { type: 'image/jpeg' });
+        state.onFileSelected({ target: { files: [new File(['original'], 'original.jpg', { type: 'image/jpeg' })], value: '' } });
         await nextTick();
         const url = state.imageUrl;
         assert.ok(url.startsWith('blob:'));

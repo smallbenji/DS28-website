@@ -3,7 +3,7 @@ import { readFile } from 'node:fs/promises';
 import { stripTypeScriptTypes } from 'node:module';
 import { test } from 'node:test';
 
-const source = await readFile(new URL('../../src/DS.Frontend/src/Components/Org/orgAccess.ts', import.meta.url), 'utf8');
+const source = await readFile(new URL('../../src/DS.Frontend/src/lib/org/orgAccess.ts', import.meta.url), 'utf8');
 const { canManagePosition, canCreateChild } = await import(`data:text/javascript;base64,${Buffer.from(stripTypeScriptTypes(source)).toString('base64')}`);
 
 function position(id, parentPositionId, holders = [], extra = {}) {

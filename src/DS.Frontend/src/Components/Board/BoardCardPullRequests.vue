@@ -1,82 +1,50 @@
 <template>
-    <section aria-labelledby="board-card-pull-requests-heading">
-        <div class="is-flex is-align-items-center is-justify-content-space-between">
-            <h3 id="board-card-pull-requests-heading" class="board-card-heading">Pull requests</h3>
-            <BButton
-                v-if="canManage"
-                size="is-small"
-                class="is-ghost"
-                icon-left="plus"
-                :aria-expanded="formOpen"
-                :disabled="saving"
-                @click="toggleForm"
-            >
-                {{ formOpen ? 'Luk' : 'Tilføj' }}
-            </BButton>
+    <section aria-labelledby="card-pull-requests-heading">
+        <div class="mb-2 flex items-center justify-between gap-2">
+            <h3 id="card-pull-requests-heading" class="text-sm font-semibold text-highlighted">Pull requests</h3>
+            <UButton v-if="canManage" color="neutral" variant="ghost" size="xs" :icon="formOpen ? 'i-lucide-x' : 'i-lucide-plus'" :label="formOpen ? 'Luk' : 'Tilføj'" :aria-expanded="formOpen" :disabled="saving" @click="formOpen = !formOpen" />
         </div>
-        <ul v-if="card.pullRequests?.length" class="mb-3">
-            <li v-for="link in card.pullRequests" :key="link" class="is-flex is-align-items-center is-flex-wrap-wrap mb-2">
-                <a :href="link" target="_blank" rel="noopener noreferrer">{{ linkLabel(link) }}</a>
-                <BButton
-                    v-if="canManage"
-                    class="ml-2"
-                    size="is-small"
-                    type="is-danger is-light"
-                    :aria-label="`Fjern ${linkLabel(link)}`"
-                    :disabled="saving"
-                    @click="save(link, true)"
-                >
-                    Fjern
-                </BButton>
+
+        <ul v-if="card.pullRequests?.length" class="mb-3 flex flex-col gap-1">
+            <li v-for="link in card.pullRequests" :key="link" class="flex items-center gap-2 text-sm">
+                <UIcon name="i-lucide-git-pull-request" class="size-4 text-muted" />
+                <ULink :to="link" target="_blank" rel="noopener noreferrer" class="min-w-0 truncate">{{ linkLabel(link) }}</ULink>
+                <UButton v-if="canManage" color="error" variant="ghost" size="xs" icon="i-lucide-x" :aria-label="`Fjern ${linkLabel(link)}`" :disabled="saving" @click="save(link, true)" />
             </li>
         </ul>
-        <p v-else-if="!formOpen" class="has-text-grey is-size-7 mb-3">Ingen pull requests tilknyttet.</p>
-        <div v-if="canManage && formOpen">
-            <BField label="Link til GitHub-pull request" label-for="board-card-pull-request-url">
-                <BInput
-                    id="board-card-pull-request-url"
-                    ref="linkInput"
-                    v-model="url"
-                    type="url"
-                    maxlength="512"
-                    :disabled="saving"
-                    @keydown.enter.prevent="add"
-                />
-            </BField>
-            <BButton type="is-primary" size="is-small" native-type="button" :disabled="!url.trim() || saving" @click="add">
-                Tilføj PR-link
-            </BButton>
-        </div>
+        <p v-else-if="!formOpen" class="mb-3 text-xs text-muted">Ingen pull requests tilknyttet.</p>
+
+        <form v-if="canManage && formOpen" @submit.prevent="add">
+            <UFormField label="Link til GitHub-pull request">
+                <UFieldGroup class="w-full">
+                    <UInput v-model="url" type="url" maxlength="512" placeholder="https://github.com/…/pull/1" :disabled="saving" class="w-full" autofocus />
+                    <UButton type="submit" label="Tilføj" :disabled="!url.trim() || saving" :loading="saving" />
+                </UFieldGroup>
+            </UFormField>
+        </form>
     </section>
 </template>
 
 <script setup lang="ts">
-import { nextTick, ref } from 'vue';
-import { BButton, BField, BInput, useToast } from 'buefy';
-import { isAxiosError } from 'axios';
-import BoardService from '@/Services/BoardService';
-import { useBoardStore } from '@/Stores/BoardStore';
-import type { WorkItemDto } from '@/types';
+import { ref } from "vue";
+import { isAxiosError } from "axios";
+import BoardService from "@/Services/BoardService";
+import { useBoardStore } from "@/Stores/BoardStore";
+import { useNotify } from "@/lib/notify";
+import type { WorkItemDto } from "@/types";
 
 const props = defineProps<{ boardId: number; card: WorkItemDto; canManage: boolean }>();
+
 const service = new BoardService();
 const store = useBoardStore();
-const toast = useToast();
-const url = ref('');
+const notify = useNotify();
+
+const url = ref("");
 const formOpen = ref(false);
-const linkInput = ref<InstanceType<typeof BInput> | null>(null);
 const saving = ref(false);
 
 function linkLabel(link: string) {
-    return link.replace('https://github.com/', '').replace('/pull/', '#');
-}
-
-async function toggleForm() {
-    formOpen.value = !formOpen.value;
-    if (formOpen.value) {
-        await nextTick();
-        linkInput.value?.focus();
-    }
+    return link.replace("https://github.com/", "").replace("/pull/", "#");
 }
 
 function add() {
@@ -92,19 +60,18 @@ async function save(link: string, remove: boolean) {
             await service.removePullRequest(props.boardId, props.card.id, link);
         } else {
             await service.addPullRequest(props.boardId, props.card.id, link);
-            url.value = '';
+            url.value = "";
             formOpen.value = false;
         }
 
         await store.GET_BOARD(props.boardId);
     } catch (error) {
         const status = isAxiosError(error) ? error.response?.status : undefined;
-        const message = status === 409
-            ? 'PR-linket er allerede tilknyttet.'
+        notify.error(status === 409
+            ? "PR-linket er allerede tilknyttet."
             : status === 400
-                ? 'Angiv en HTTPS-adresse til en GitHub-pull request.'
-                : 'PR-linket kunne ikke opdateres.';
-        toast.open({ message, type: 'is-danger' });
+                ? "Angiv en HTTPS-adresse til en GitHub-pull request."
+                : "PR-linket kunne ikke opdateres.");
     } finally {
         saving.value = false;
     }

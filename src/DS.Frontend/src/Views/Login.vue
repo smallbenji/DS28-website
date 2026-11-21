@@ -1,214 +1,198 @@
 <template>
-    <section class="section">
-        <div class="columns is-centered">
-            <div class="column is-4-desktop is-6-tablet">
+    <UCard>
+        <template #header>
+            <h1 class="text-center text-lg font-semibold text-highlighted">Log ind</h1>
+        </template>
 
-                <div class="card frame">
-                    <header class="card-header">
-                        <p class="card-header-title is-centered">Log ind</p>
-                    </header>
+        <UAlert v-if="registered" class="mb-4" color="success" variant="subtle" icon="i-lucide-circle-check" title="Din bruger er oprettet. Du kan nu logge ind." />
 
-                    <div class="card-content">
-                        <div v-if="registered" class="notification is-success is-light py-2 px-4 my-3">
-                            Din bruger er oprettet. Du kan nu logge ind.
-                        </div>
+        <form v-if="step === 'login'" class="flex flex-col gap-4" @submit.prevent="login">
+            <UFormField label="Email" required>
+                <UInput ref="emailInput" v-model="email" type="email" icon="i-lucide-mail" autocomplete="username" class="w-full" />
+            </UFormField>
 
-                        <template v-if="step === 'login'">
-                            <BField label="Email">
-                                <BInput ref="emailInput" v-model="email" type="email" icon="envelope"
-                                    autocomplete="username" @keyup.enter="login" />
-                            </BField>
+            <UFormField label="Adgangskode" required>
+                <UInput
+                    v-model="password"
+                    :type="showPassword ? 'text' : 'password'"
+                    icon="i-lucide-lock"
+                    autocomplete="current-password"
+                    class="w-full"
+                    :ui="{ trailing: 'pe-1' }"
+                >
+                    <template #trailing>
+                        <UButton
+                            color="neutral"
+                            variant="link"
+                            size="sm"
+                            :icon="showPassword ? 'i-lucide-eye-off' : 'i-lucide-eye'"
+                            :aria-label="showPassword ? 'Skjul adgangskode' : 'Vis adgangskode'"
+                            :aria-pressed="showPassword"
+                            @click="showPassword = !showPassword"
+                        />
+                    </template>
+                </UInput>
+            </UFormField>
 
-                            <BField label="Adgangskode">
-                                <BInput v-model="password" type="password" icon="lock" password-reveal
-                                    autocomplete="current-password" @keyup.enter="login" />
-                            </BField>
+            <UAlert v-if="error" color="error" variant="subtle" icon="i-lucide-circle-alert" :title="error" />
 
-                            <div v-if="error" class="notification is-danger is-light py-2 px-4 my-3">
-                                {{ error }}
-                            </div>
+            <UButton type="submit" icon="i-lucide-log-in" label="Log ind" block :loading="isSubmitting" :disabled="!canSubmitLogin" />
 
-                            <BButton type="is-primary" expanded :loading="isSubmitting" :disabled="!canSubmitLogin"
-                                icon-left="right-to-bracket" @click="login">
-                                Log ind
-                            </BButton>
+            <p class="text-center text-sm">
+                <ULink to="/forgot-password" class="text-primary">Glemt adgangskode</ULink>
+            </p>
+        </form>
 
-                            <p class="has-text-centered mt-4">
-                                <router-link to="/forgot-password">
-                                    Glemt adgangskode
-                                </router-link>
-                            </p>
-                            <!-- <p class="has-text-centered mt-4">
-                                Skal din gruppe med?
-                                <router-link to="/group-pre-signup">Forhåndstilmeld gruppen</router-link>
-                            </p> -->
-                        </template>
+        <div v-else-if="step === 'twofactor'" class="flex flex-col gap-4">
+            <p class="text-sm">
+                {{ authenticatorAvailable ? "Indtast den 6-cifrede kode fra din autentificeringsapp." : "Log ind med din passkey." }}
+            </p>
 
-                        <template v-else-if="step === 'twofactor'">
-                            <p class="mb-4">
-                                {{
-                                    authenticatorAvailable
-                                        ? "Indtast den 6-cifrede kode fra din autentificeringsapp."
-                                        : "Login med din passkey."
-                                }}
-                            </p>
+            <UButton
+                v-if="hasPasskeys"
+                color="neutral"
+                variant="outline"
+                icon="i-lucide-fingerprint"
+                label="Log ind med passkey"
+                block
+                :loading="isSubmitting"
+                @click="verifyWithPasskey"
+            />
 
-                            <BButton v-if="hasPasskeys" type="is-info is-light" expanded :loading="isSubmitting"
-                                icon-left="fingerprint" class="mb-4" @click="verifyWithPasskey">
-                                Login med Passkey
-                            </BButton>
+            <form v-if="authenticatorAvailable" class="flex flex-col gap-4" @submit.prevent="verifyTwoFactor">
+                <UFormField label="Autentificeringskode" required>
+                    <UPinInput
+                        v-model="twoFactorDigits"
+                        :length="6"
+                        type="number"
+                        otp
+                        autofocus
+                        size="xl"
+                        :disabled="isSubmitting"
+                        aria-label="Autentificeringskode"
+                        class="w-full justify-between"
+                        @complete="verifyTwoFactor"
+                    />
+                </UFormField>
 
-                            <template v-if="authenticatorAvailable">
+                <UCheckbox v-model="rememberMachine" label="Husk denne enhed" />
 
-                                <BField label="Autentificeringskode">
-                                    <BInput ref="twoFactorInput" v-model="twoFactorCode" icon="mobile-screen-button"
-                                        autocomplete="one-time-code" @keyup.enter="verifyTwoFactor" />
-                                </BField>
+                <UAlert v-if="error" color="error" variant="subtle" icon="i-lucide-circle-alert" :title="error" />
 
-                                <BCheckbox v-model="rememberMachine">
-                                    Husk denne enhed
-                                </BCheckbox>
+                <UButton type="submit" icon="i-lucide-shield-check" label="Verificér" block :loading="isSubmitting" :disabled="!canSubmitTwoFactor" />
 
-                                <div v-if="error" class="notification is-danger is-light py-2 px-4 my-3">
-                                    {{ error }}
-                                </div>
+                <p class="text-center text-sm">
+                    <UButton variant="link" label="Log ind med en recovery code" @click="goToRecovery" />
+                </p>
+            </form>
 
-                                <BButton type="is-primary" expanded :loading="isSubmitting"
-                                    :disabled="!canSubmitTwoFactor" icon-left="shield-halved" @click="verifyTwoFactor">
-                                    Verificér
-                                </BButton>
-
-                                <p class="has-text-centered mt-4">
-                                    <a class="has-text-link" @click="goToRecovery">Log ind med en recovery code</a>
-                                </p>
-                            </template>
-                        </template>
-
-                        <template v-else>
-                            <p class="mb-4">
-                                Indtast en af dine recovery codes for at logge ind.
-                            </p>
-
-                            <BField label="Recovery code">
-                                <BInput ref="recoveryInput" v-model="recoveryCode" icon="key"
-                                    autocomplete="one-time-code" @keyup.enter="loginWithRecoveryCode" />
-                            </BField>
-
-                            <div v-if="error" class="notification is-danger is-light py-2 px-4 my-3">
-                                {{ error }}
-                            </div>
-
-                            <BButton type="is-primary" expanded :loading="isSubmitting" :disabled="!canSubmitRecovery"
-                                icon-left="right-to-bracket" @click="loginWithRecoveryCode">
-                                Log ind
-                            </BButton>
-
-                            <p class="has-text-centered mt-4">
-                                <a class="has-text-link" @click="goToTwoFactor">Tilbage til autentificeringskode</a>
-                            </p>
-                        </template>
-                    </div>
-                </div>
-
-            </div>
+            <UAlert v-else-if="error" color="error" variant="subtle" icon="i-lucide-circle-alert" :title="error" />
         </div>
-    </section>
+
+        <form v-else class="flex flex-col gap-4" @submit.prevent="loginWithRecoveryCode">
+            <p class="text-sm">Indtast en af dine recovery codes for at logge ind.</p>
+
+            <UFormField label="Recovery code" required>
+                <UInput ref="recoveryInput" v-model="recoveryCode" icon="i-lucide-key-round" autocomplete="one-time-code" class="w-full" />
+            </UFormField>
+
+            <UAlert v-if="error" color="error" variant="subtle" icon="i-lucide-circle-alert" :title="error" />
+
+            <UButton type="submit" icon="i-lucide-log-in" label="Log ind" block :loading="isSubmitting" :disabled="!canSubmitRecovery" />
+
+            <p class="text-center text-sm">
+                <UButton variant="link" label="Tilbage til autentificeringskode" @click="goToTwoFactor" />
+            </p>
+        </form>
+    </UCard>
 </template>
 
-<script lang="ts" setup>
-import { startAssertion } from '@/lib/passkeys';
-import AuthService from '@/Services/AuthService';
-import { BButton, BCheckbox, BField, BInput } from 'buefy';
-import { computed, nextTick, onMounted, ref, watch } from 'vue';
-import { useRoute } from 'vue-router';
+<script setup lang="ts">
+import { computed, nextTick, onMounted, ref, watch } from "vue";
+import { useRoute } from "vue-router";
+import { startAssertion } from "@/lib/passkeys";
+import AuthService from "@/Services/AuthService";
+
+type FocusableInput = { inputRef?: HTMLInputElement } | null;
 
 const route = useRoute();
 const authService = new AuthService();
 
-const step = ref<'login' | 'twofactor' | 'recovery'>('login');
+const step = ref<"login" | "twofactor" | "recovery">("login");
 
-const emailInput = ref<InstanceType<typeof BInput> | null>(null);
-const twoFactorInput = ref<InstanceType<typeof BInput> | null>(null);
-const recoveryInput = ref<InstanceType<typeof BInput> | null>(null);
+const emailInput = ref<FocusableInput>(null);
+const recoveryInput = ref<FocusableInput>(null);
 
-const email = ref('');
-const userId = ref('');
-const password = ref('');
-const twoFactorCode = ref('');
-const recoveryCode = ref('');
+const email = ref("");
+const userId = ref("");
+const password = ref("");
+const showPassword = ref(false);
+const twoFactorDigits = ref<number[]>([]);
+const twoFactorCode = computed(() => twoFactorDigits.value.join(""));
+const recoveryCode = ref("");
 const rememberMachine = ref(false);
 
 const isSubmitting = ref(false);
-const error = ref('');
-
-const registered = computed(() => route.query.registered === '1');
-
-const returnUrl = computed(() => {
-    const value = route.query.ReturnUrl ?? route.query.returnUrl;
-    return typeof value === 'string' && value.length > 0 ? value : '/';
-});
-
-const canSubmitLogin = computed(() => email.value.trim() !== '' && password.value.length > 0);
-const canSubmitTwoFactor = computed(() => twoFactorCode.value.trim() !== '');
-const canSubmitRecovery = computed(() => recoveryCode.value.trim() !== '');
+const error = ref("");
 
 const hasPasskeys = ref(false);
 const authenticatorAvailable = ref(true);
 
+const registered = computed(() => route.query.registered === "1");
+
+// The backend only honours local paths (starting with "/" but not "//") and falls back to "/".
+const returnUrl = computed(() => {
+    const value = route.query.ReturnUrl ?? route.query.returnUrl;
+    return typeof value === "string" && value.length > 0 ? value : "/";
+});
+
+const canSubmitLogin = computed(() => email.value.trim() !== "" && password.value.length > 0);
+const canSubmitTwoFactor = computed(() => /^[0-9]{6}$/.test(twoFactorCode.value));
+const canSubmitRecovery = computed(() => recoveryCode.value.trim() !== "");
+
 watch(step, () => {
     nextTick(() => {
-        if (step.value === 'login') {
-            emailInput.value?.focus();
-        } else if (step.value === 'twofactor') {
-            twoFactorInput.value?.focus();
-        } else {
-            recoveryInput.value?.focus();
-        }
+        const target = step.value === "login" ? emailInput.value : step.value === "recovery" ? recoveryInput.value : null;
+        target?.inputRef?.focus();
     });
 });
 
 onMounted(() => {
-    emailInput.value?.focus();
+    emailInput.value?.inputRef?.focus();
 });
 
-const login = async () => {
+async function login() {
     if (!canSubmitLogin.value || isSubmitting.value) return;
 
     isSubmitting.value = true;
-    error.value = '';
-
+    error.value = "";
     try {
-        const result = await authService.login({
-            email: email.value,
-            password: password.value,
-            returnUrl: returnUrl.value
-        });
+        const result = await authService.login({ email: email.value, password: password.value, returnUrl: returnUrl.value });
 
         if (result.error) {
             error.value = result.error;
             return;
         }
 
-            if (result.requiresTwoFactor) {
-                hasPasskeys.value = result.passkeysAvailable ?? false
-                authenticatorAvailable.value = result.hasAuthenticator ?? true
-                userId.value = result.userId ?? '';
-                step.value = 'twofactor';
-                return;
-            }
+        if (result.requiresTwoFactor) {
+            hasPasskeys.value = result.passkeysAvailable ?? false;
+            authenticatorAvailable.value = result.hasAuthenticator ?? true;
+            userId.value = result.userId ?? "";
+            step.value = "twofactor";
+            return;
+        }
 
-        window.location.assign(result.returnUrl || '/');
+        window.location.assign(result.returnUrl || "/");
     } finally {
         isSubmitting.value = false;
     }
-};
+}
 
-const verifyTwoFactor = async () => {
+async function verifyTwoFactor() {
     if (!canSubmitTwoFactor.value || isSubmitting.value) return;
 
     isSubmitting.value = true;
-    error.value = '';
-
+    error.value = "";
     try {
         const result = await authService.twoFactorLogin({
             twoFactorCode: twoFactorCode.value,
@@ -218,24 +202,25 @@ const verifyTwoFactor = async () => {
 
         if (result.error) {
             error.value = result.error;
+            twoFactorDigits.value = [];
             return;
         }
 
-        window.location.assign(result.returnUrl || '/');
+        window.location.assign(result.returnUrl || "/");
     } finally {
         isSubmitting.value = false;
     }
-};
+}
 
-const verifyWithPasskey = async () => {
+async function verifyWithPasskey() {
     if (isSubmitting.value) return;
-    isSubmitting.value = true;
-    error.value = '';
 
+    isSubmitting.value = true;
+    error.value = "";
     try {
         const options = await authService.passkeyOptions();
         const credentialJson = await startAssertion(options.optionsJson);
-        
+
         const result = await authService.passkeyVerify({
             credentialJson,
             rememberMachine: rememberMachine.value,
@@ -249,51 +234,41 @@ const verifyWithPasskey = async () => {
         }
 
         window.location.assign(result.returnUrl || "/");
-    } catch (err) {
-        error.value = (err as DOMException)?.name === "NotAllowedError"
-            ? "Login med passkey blev afbrudt"
-            : "Der skete en uvented fejl ved login"
+    } catch (cause) {
+        error.value = (cause as DOMException)?.name === "NotAllowedError"
+            ? "Login med passkey blev afbrudt."
+            : "Der skete en uventet fejl ved login.";
     } finally {
-        isSubmitting.value = false
+        isSubmitting.value = false;
     }
 }
 
-const loginWithRecoveryCode = async () => {
+async function loginWithRecoveryCode() {
     if (!canSubmitRecovery.value || isSubmitting.value) return;
 
     isSubmitting.value = true;
-    error.value = '';
-
+    error.value = "";
     try {
-        const result = await authService.recoveryCodeLogin({
-            recoveryCode: recoveryCode.value,
-            returnUrl: returnUrl.value
-        });
+        const result = await authService.recoveryCodeLogin({ recoveryCode: recoveryCode.value, returnUrl: returnUrl.value });
 
         if (result.error) {
             error.value = result.error;
             return;
         }
 
-        window.location.assign(result.returnUrl || '/');
+        window.location.assign(result.returnUrl || "/");
     } finally {
         isSubmitting.value = false;
     }
-};
-
-const goToRecovery = () => {
-    error.value = '';
-    step.value = 'recovery';
-};
-
-const goToTwoFactor = () => {
-    error.value = '';
-    step.value = 'twofactor';
-};
-</script>
-
-<style scoped>
-.frame {
-    min-width: 350px;
 }
-</style>
+
+function goToRecovery() {
+    error.value = "";
+    step.value = "recovery";
+}
+
+function goToTwoFactor() {
+    error.value = "";
+    step.value = "twofactor";
+}
+</script>

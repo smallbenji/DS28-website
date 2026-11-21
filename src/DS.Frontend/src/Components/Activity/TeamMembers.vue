@@ -1,364 +1,214 @@
 <template>
-    <nav class="panel team-members">
-        <div class="panel-heading">
-            <span>Medlemmer</span>
-            <div class="flex"></div>
-            <BButton
-                v-if="selectedTeam && canManageMembers"
-                type="is-primary"
-                size="is-small"
-                icon-left="envelope"
-                @click="openInvite"
-            >
-                Inviter bruger
-            </BButton>
+    <UCard :ui="{ body: 'p-0 sm:p-0' }">
+        <template #header>
+            <div class="flex items-center justify-between gap-2">
+                <h3 class="font-semibold text-highlighted">Medlemmer <span class="font-normal text-muted">({{ team.members.length }})</span></h3>
+                <UButton v-if="canManageMembers" size="sm" icon="i-lucide-mail" label="Inviter bruger" @click="openInvite" />
+            </div>
+        </template>
+
+        <div class="border-b border-default p-4 sm:px-6">
+            <UFormField label="Søg efter bruger">
+                <UInput v-model="search" icon="i-lucide-search" placeholder="Navn eller email…" :loading="searching" class="w-full" />
+            </UFormField>
+            <ul v-if="SearchResults.length" class="mt-2 flex flex-col divide-y divide-default rounded-md border border-default">
+                <li v-for="user in SearchResults" :key="user.id" class="flex items-center justify-between gap-2 px-3 py-2">
+                    <span class="min-w-0 text-sm">
+                        <span class="block truncate font-medium">{{ user.firstName }} {{ user.lastName }}</span>
+                        <span class="block truncate text-xs text-muted">{{ user.email }}</span>
+                    </span>
+                    <UButton size="xs" icon="i-lucide-plus" label="Tilføj" :disabled="busy" @click="addMember(user)" />
+                </li>
+            </ul>
+            <p v-else-if="search.trim() && !searching" class="mt-2 text-xs text-muted">Ingen brugere fundet.</p>
         </div>
-        <div class="panel-body">
-            <template v-if="SelectedTeamId">
-                <BField label="Søg efter bruger">
-                    <BInput
-                        v-model="search"
-                        icon="magnifying-glass"
-                        placeholder="Navn eller email..."
-                        :loading="searching"
-                    />
-                </BField>
 
-                <div v-if="SearchResults.length > 0" class="member-search-results">
-                    <div v-for="user in SearchResults" :key="user.id" class="member-result">
-                        <div class="member-info">
-                            <div class="member-name">
-                                {{ user.firstName }} {{ user.lastName }}
-                            </div>
-                            <div class="member-email">
-                                {{ user.email }}
-                            </div>
-                        </div>
-                        <BButton type="is-primary" size="is-small" icon-left="plus" @click="addMember(user)">
-                            Tilføj
-                        </BButton>
-                    </div>
-                </div>
-                <div v-else-if="search && !searching" class="empty-state">
-                    <i class="fas fa-user-plus"></i>
-                    <span>Ingen brugere fundet</span>
-                </div>
+        <p v-if="team.members.length === 0" class="px-4 py-3 text-sm text-muted sm:px-6">Der er ingen medlemmer i teamet endnu.</p>
+        <ul v-else class="divide-y divide-default">
+            <li v-for="member in team.members" :key="member.userId" class="flex items-center gap-3 px-4 py-2 sm:px-6">
+                <UAvatar :text="initials(member.name)" size="sm" />
+                <span class="min-w-0 flex-1">
+                    <span class="flex items-center gap-2 text-sm font-medium text-highlighted">
+                        <span class="truncate">{{ member.name }}</span>
+                        <UBadge v-if="member.isAdmin" label="Admin" color="neutral" variant="subtle" size="sm" />
+                    </span>
+                    <span class="block truncate text-xs text-muted">{{ member.email }}</span>
+                </span>
+                <UButton
+                    v-if="canManageMembers && member.userId !== meStore.Me?.id"
+                    color="error"
+                    variant="ghost"
+                    size="xs"
+                    icon="i-lucide-trash-2"
+                    :aria-label="`Fjern ${member.name} fra teamet`"
+                    :disabled="busy"
+                    @click="requestRemove(member)"
+                />
+            </li>
+        </ul>
 
-                <div v-if="selectedTeam && selectedTeam.members.length > 0" class="member-list">
-                    <div v-for="member in selectedTeam.members" :key="member.userId" class="member-result">
-                        <div class="member-info">
-                            <div class="member-name">
-                                {{ member.name }}
-                                <span v-if="member.isAdmin" class="tag is-dark is-small">Admin</span>
-                            </div>
-                            <div class="member-email">
-                                {{ member.email }}
-                            </div>
-                        </div>
-                        <BButton
-                            v-if="canManageMembers && member.userId !== meStore.Me?.id"
-                            type="is-light"
-                            size="is-small"
-                            icon-left="trash"
-                            @click="requestRemoveMember(member)"
-                        >
-                            Fjern
-                        </BButton>
-                    </div>
-                </div>
-                <div v-else-if="selectedTeam" class="empty-state">
-                    <i class="fas fa-users"></i>
-                    <span>Der er ingen medlemmer i teamet endnu</span>
+        <UModal v-model:open="inviteOpen" title="Inviter bruger til team">
+            <template #body>
+                <template v-if="inviteLink">
+                    <p class="text-sm">Send linket til <strong>{{ inviteLink.email }}</strong>. Det kan kun bruges én gang.</p>
+                    <UFieldGroup class="mt-3 w-full">
+                        <UInput :model-value="inviteLink.link" readonly class="w-full" aria-label="Invitationslink" />
+                        <UButton icon="i-lucide-copy" label="Kopiér" @click="copyInviteLink" />
+                    </UFieldGroup>
+                </template>
+                <form v-else id="activity-team-invite-form" class="flex flex-col gap-4" @submit.prevent="sendInvitation">
+                    <UFormField label="Email" required>
+                        <UInput v-model="inviteEmail" type="email" placeholder="eksempel@mail.dk" class="w-full" autofocus />
+                    </UFormField>
+                    <UCheckbox v-model="inviteIsAdmin" label="Admin" description="Kan administrere teamets medlemmer og aktiviteter." />
+                </form>
+            </template>
+            <template #footer>
+                <div class="flex w-full justify-end gap-2">
+                    <UButton color="neutral" variant="outline" label="Luk" @click="inviteOpen = false" />
+                    <UButton v-if="!inviteLink" type="submit" form="activity-team-invite-form" label="Opret invitationslink" :loading="inviteLoading" :disabled="!inviteEmail.trim()" />
                 </div>
             </template>
-        </div>
-    </nav>
-    <BModal v-model="inviteOpen" has-modal-card>
-        <div class="modal-card">
-            <header class="modal-card-head">
-                <p class="modal-card-title">Inviter bruger til team</p>
-            </header>
-            <section class="modal-card-body">
-                <template v-if="inviteLink">
-                    <p class="mb-2">
-                        Send nedenstående link til
-                        <strong>{{ inviteLink.email }}</strong>. Linket er gyldigt ét brug, indtil det er brugt.
-                    </p>
-                    <div class="field has-addons">
-                        <div class="control is-expanded">
-                            <input class="input" :value="inviteLink.link" readonly />
-                        </div>
-                        <div class="control">
-                            <BButton type="is-primary" icon-left="copy" @click="copyInviteLink">
-                                Kopiér
-                            </BButton>
-                        </div>
-                    </div>
-                </template>
-                <template v-else>
-                    <BField label="Email">
-                        <BInput v-model="inviteEmail" type="email" placeholder="eksempel@mail.dk" @keyup.enter="sendInvitation" />
-                    </BField>
-                    <BCheckbox v-model="inviteIsAdmin">
-                        Admin
-                    </BCheckbox>
-                </template>
-            </section>
-            <footer class="modal-card-foot">
-                <div class="buttons">
-                    <BButton v-if="inviteLink" type="is-primary" icon-left="copy" @click="copyInviteLink">
-                        Kopiér
-                    </BButton>
-                    <BButton v-else type="is-primary" :loading="inviteLoading" @click="sendInvitation">
-                        Opret invitationslink
-                    </BButton>
-                    <BButton @click="closeInvite">Luk</BButton>
-                </div>
-            </footer>
-        </div>
-    </BModal>
-    <BModal v-model="removeConfirmOpen" has-modal-card>
-        <div class="modal-card">
-            <div class="modal-card-head">
-                <p class="modal-card-title">Fjern medlem</p>
-            </div>
-            <div class="modal-card-body">
-                <p>Er du sikker på, at du vil fjerne "{{ memberToRemove?.name }}" fra teamet?</p>
-            </div>
-            <div class="modal-card-foot">
-                <div class="buttons">
-                    <BButton type="is-danger" :loading="removing" @click="confirmRemoveMember">
-                        Fjern medlem
-                    </BButton>
-                    <BButton type="is-primary" @click="removeConfirmOpen = false">
-                        Annuller
-                    </BButton>
-                </div>
-            </div>
-        </div>
-    </BModal>
-</template>
-<script lang="ts" setup>
-import { useActivityStore } from '@/Stores/ActivityStore';
-import { useMeStore } from '@/Stores/MeStore';
-import { BButton, BCheckbox, BField, BInput, BModal, useToast } from 'buefy';
-import { storeToRefs } from 'pinia';
-import { computed, ref, watch } from 'vue';
-import type { ActivityTeamDto, ActivityTeamInviteLinkDto, ActivityTeamMemberDto, UserDto } from '@/types';
+        </UModal>
 
-const Toast = useToast();
+        <ConfirmModal
+            v-model:open="removeOpen"
+            title="Fjern medlem"
+            :description="`Fjern ${memberToRemove?.name} fra teamet?`"
+            confirm-label="Fjern medlem"
+            color="error"
+            :loading="busy"
+            @confirm="confirmRemove"
+        />
+    </UCard>
+</template>
+
+<script setup lang="ts">
+import { computed, onBeforeUnmount, ref, watch } from "vue";
+import { storeToRefs } from "pinia";
+import { useActivityStore } from "@/Stores/ActivityStore";
+import { useMeStore } from "@/Stores/MeStore";
+import { useNotify } from "@/lib/notify";
+import ConfirmModal from "@/Components/ConfirmModal.vue";
+import type { ActivityTeamDto, ActivityTeamInviteLinkDto, ActivityTeamMemberDto, UserDto } from "@/types";
+
+const props = defineProps<{ team: ActivityTeamDto }>();
+
 const activityStore = useActivityStore();
 const meStore = useMeStore();
-const { Teams, SearchResults, SelectedTeamId } = storeToRefs(activityStore);
+const { SearchResults } = storeToRefs(activityStore);
+const notify = useNotify();
 
-const search = ref('');
+const search = ref("");
+const searching = ref(false);
+const busy = ref(false);
 const inviteOpen = ref(false);
-const inviteEmail = ref('');
+const inviteEmail = ref("");
 const inviteIsAdmin = ref(false);
 const inviteLoading = ref(false);
 const inviteLink = ref<ActivityTeamInviteLinkDto | null>(null);
-const searching = ref(false);
-const removeConfirmOpen = ref(false);
-const removing = ref(false);
+const removeOpen = ref(false);
 const memberToRemove = ref<ActivityTeamMemberDto | null>(null);
 let searchTimeout: ReturnType<typeof setTimeout> | null = null;
 
-const selectedTeam = computed<ActivityTeamDto | null>(
-    () => Teams.value.find((team) => team.id === SelectedTeamId.value) ?? null
-);
-
 const canManageMembers = computed(() => {
-    if (meStore.Me?.appRoles.includes('ActivityAdmin')) return true;
-    return selectedTeam.value?.members.some(
-        (member) => member.userId === meStore.Me?.id && member.isAdmin
-    ) ?? false;
+    if (meStore.Me?.appRoles.includes("ActivityAdmin")) return true;
+
+    return props.team.members.some((member) => member.userId === meStore.Me?.id && member.isAdmin);
 });
 
-watch(SelectedTeamId, () => {
-    search.value = '';
+function initials(name: string) {
+    return name.split(" ").filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toLocaleUpperCase("da-DK") || "?";
+}
+
+watch(() => props.team.id, () => {
+    search.value = "";
     SearchResults.value = [];
-});
+}, { immediate: true });
 
 watch(search, (value) => {
-    if (searchTimeout) {
-        clearTimeout(searchTimeout);
-    }
+    if (searchTimeout) clearTimeout(searchTimeout);
 
-    if (!value.trim() || !SelectedTeamId.value) {
+    if (!value.trim()) {
+        SearchResults.value = [];
+        searching.value = false;
         return;
     }
 
     searching.value = true;
     searchTimeout = setTimeout(async () => {
-        await activityStore.SEARCH_USERS(value.trim(), SelectedTeamId.value!);
+        await activityStore.SEARCH_USERS(value.trim(), props.team.id);
         searching.value = false;
     }, 300);
 });
 
-const addMember = async (user: UserDto) => {
-    if (!SelectedTeamId.value) return;
+onBeforeUnmount(() => {
+    if (searchTimeout) clearTimeout(searchTimeout);
+});
 
-    const success = await activityStore.ADD_MEMBER(SelectedTeamId.value, user.id);
-    if (success) {
-        Toast.open({
-            message: `${user.firstName} ${user.lastName} er tilføjet til teamet`,
-            type: 'is-success'
-        });
-        search.value = '';
-        SearchResults.value = [];
-    } else {
-        Toast.open({
-            message: 'Der skete en fejl ved tilføjelse af brugeren',
-            type: 'is-danger'
-        });
+async function addMember(user: UserDto) {
+    busy.value = true;
+    try {
+        const ok = await activityStore.ADD_MEMBER(props.team.id, user.id);
+        notify.result(ok, `${user.firstName} ${user.lastName} er tilføjet til teamet.`, "Brugeren kunne ikke tilføjes.");
+        if (ok) {
+            search.value = "";
+            SearchResults.value = [];
+        }
+    } finally {
+        busy.value = false;
     }
-};
+}
 
-const requestRemoveMember = (member: ActivityTeamMemberDto) => {
+function requestRemove(member: ActivityTeamMemberDto) {
     memberToRemove.value = member;
-    removeConfirmOpen.value = true;
-};
+    removeOpen.value = true;
+}
 
-const confirmRemoveMember = async () => {
-    if (!memberToRemove.value || !SelectedTeamId.value) return;
+async function confirmRemove() {
+    if (!memberToRemove.value) return;
 
-    const userId = memberToRemove.value.userId;
-    removing.value = true;
-    const success = await activityStore.REMOVE_MEMBER(SelectedTeamId.value, userId);
-    removing.value = false;
-
-    if (success) {
-        Toast.open({
-            message: 'Brugeren er fjernet fra teamet',
-            type: 'is-success'
-        });
-        removeConfirmOpen.value = false;
-        memberToRemove.value = null;
-    } else {
-        Toast.open({
-            message: 'Der skete en fejl ved fjernelse af brugeren',
-            type: 'is-danger'
-        });
+    busy.value = true;
+    try {
+        const ok = await activityStore.REMOVE_MEMBER(props.team.id, memberToRemove.value.userId);
+        notify.result(ok, "Brugeren er fjernet fra teamet.", "Brugeren kunne ikke fjernes.");
+        if (ok) {
+            removeOpen.value = false;
+            memberToRemove.value = null;
+        }
+    } finally {
+        busy.value = false;
     }
-};
+}
 
-const openInvite = () => {
-    inviteEmail.value = '';
+function openInvite() {
+    inviteEmail.value = "";
     inviteIsAdmin.value = false;
     inviteLink.value = null;
     inviteOpen.value = true;
-};
+}
 
-const closeInvite = () => {
-    inviteOpen.value = false;
-    inviteLink.value = null;
-};
-
-const sendInvitation = async () => {
-    if (!SelectedTeamId.value) return;
-
-    if (!inviteEmail.value) {
-        Toast.open({
-            message: 'Indtast venligst en email',
-            type: 'is-warning'
-        });
-        return;
-    }
+async function sendInvitation() {
+    if (!inviteEmail.value.trim()) return;
 
     inviteLoading.value = true;
     try {
-        const data = await activityStore.INVITE_USER(SelectedTeamId.value, inviteEmail.value, inviteIsAdmin.value);
-        if (data) {
-            inviteLink.value = data;
-        } else {
-            Toast.open({
-                message: 'Der skete en fejl ved oprettelse af invitationslinket',
-                type: 'is-danger'
-            });
-        }
+        const data = await activityStore.INVITE_USER(props.team.id, inviteEmail.value.trim(), inviteIsAdmin.value);
+        if (data) inviteLink.value = data;
+        else notify.error("Invitationslinket kunne ikke oprettes.");
     } finally {
         inviteLoading.value = false;
     }
-};
+}
 
-const copyInviteLink = async () => {
+async function copyInviteLink() {
     if (!inviteLink.value) return;
 
     try {
         await navigator.clipboard.writeText(inviteLink.value.link);
-        Toast.open({
-            message: 'Linket er kopieret!',
-            type: 'is-success'
-        });
+        notify.success("Linket er kopieret.");
     } catch {
-        Toast.open({
-            message: 'Kunne ikke kopiere linket',
-            type: 'is-danger'
-        });
-    }
-};
-</script>
-<style lang="scss">
-.team-members {
-    margin-bottom: 1rem;
-
-    .panel-heading {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-    }
-
-    .panel-body {
-        padding: 1rem;
-    }
-
-    .member-search-results {
-        border-top: 1px solid rgba(0, 0, 0, 0.08);
-        margin-top: 1rem;
-        padding-top: 0.5rem;
-    }
-
-    .member-list {
-        border-top: 1px solid rgba(0, 0, 0, 0.08);
-        margin-top: 1rem;
-        padding-top: 0.5rem;
-    }
-
-    .member-result {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 0.75rem;
-        padding: 0.6rem 0.5rem;
-        border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-        border-radius: 8px;
-        transition: background-color 0.15s ease;
-
-        &:hover {
-            background-color: #f7f8fa;
-        }
-
-        &:last-child {
-            border-bottom: none;
-        }
-    }
-
-    .member-info {
-        min-width: 0;
-    }
-
-    .member-name {
-        font-weight: 600;
-        font-size: 0.9rem;
-        display: flex;
-        align-items: center;
-        gap: 0.4rem;
-    }
-
-    .member-email {
-        font-size: 0.8rem;
-        color: #6b7280;
-        word-break: break-word;
+        notify.error("Linket kunne ikke kopieres.");
     }
 }
-</style>
+</script>

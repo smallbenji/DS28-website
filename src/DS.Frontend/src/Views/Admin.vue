@@ -1,254 +1,169 @@
 <template>
-    <div class="admin">
-        <div class="admin-main">
-            <BNotification v-if="error" type="is-danger" :closable="false" role="alert">{{ error }}</BNotification>
+    <UDashboardPanel id="admin">
+        <template #header>
+            <UDashboardNavbar title="Admin">
+                <template #leading>
+                    <UDashboardSidebarCollapse />
+                </template>
+            </UDashboardNavbar>
+        </template>
 
-            <p v-if="loading && sections.length === 0" class="center" role="status">Indlæser admin…</p>
+        <template #body>
+            <UAlert v-if="error" color="error" variant="subtle" icon="i-lucide-circle-alert" :title="error" :actions="[{ label: 'Prøv igen', color: 'error', variant: 'outline', onClick: load }]" />
 
-            <section v-for="section in sections" :key="section.title" class="admin-section">
-                <h2 class="title is-5 admin-heading mb-4">
-                    <font-awesome-icon :icon="section.icon" />
-                    {{ section.title }}
-                </h2>
-                <div class="grid">
-                    <component
-                        v-for="(link, index) in section.entries"
-                        :key="index"
-                        :is="isExternal(link) ? 'a' : 'router-link'"
-                        :[isExternal(link)?'href':'to']="link.url"
-                        :target="isExternal(link) ? '_blank' : undefined"
-                        :rel="isExternal(link) ? 'noopener noreferrer' : undefined"
-                        class="link-box"
-                    >
-                        <div>
-                            <font-awesome-icon :icon="link.icon.length == 1 ? link.icon[0] : link.icon" />
-                            <p>{{ link.title }}</p>
+            <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_18rem]">
+                <aside class="flex flex-col gap-4 lg:order-2">
+                    <h2 class="flex items-center gap-2 text-sm font-semibold text-highlighted">
+                        <UIcon name="i-lucide-chart-column" class="size-4 text-muted" />
+                        Tilmeldingsstatistik
+                    </h2>
+
+                    <template v-if="loading && signupProgress.length === 0">
+                        <USkeleton v-for="index in 3" :key="index" class="h-28" />
+                    </template>
+
+                    <UCard v-for="item in signupProgress" :key="item.key">
+                        <p class="text-sm font-medium text-highlighted">{{ item.label }}</p>
+                        <p class="mt-1 text-3xl font-semibold text-highlighted tabular-nums">
+                            {{ item.current }}
+                            <span class="text-base font-normal text-muted">af {{ item.target }}</span>
+                        </p>
+                        <UProgress
+                            class="mt-3"
+                            size="sm"
+                            :model-value="Math.min(item.current, item.target)"
+                            :max="item.target"
+                            :color="progressColor(item)"
+                            :aria-label="item.label"
+                            :aria-valuetext="`${item.current} af ${item.target}. ${statusText(item)}`"
+                        />
+                        <p class="mt-2 text-xs text-muted">{{ statusText(item) }}</p>
+                    </UCard>
+
+                    <p v-if="signupProgress.length > 0" class="text-xs text-muted">Måltallet er deltagerantallet ved sidste lejr.</p>
+                </aside>
+
+                <div class="flex min-w-0 flex-col gap-8">
+                    <div v-if="loading && sections.length === 0" class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                        <USkeleton v-for="index in 6" :key="index" class="h-20" />
+                    </div>
+
+                    <section v-for="section in sections" :key="section.title">
+                        <h2 class="mb-3 flex items-center gap-2 text-sm font-semibold text-highlighted">
+                            <UIcon :name="lucideIcon(section.icon)" class="size-4 text-muted" />
+                            {{ section.title }}
+                        </h2>
+                        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                            <ShortcutCard v-for="shortcut in section.shortcuts" :key="shortcut.to" :shortcut="shortcut" />
                         </div>
-                    </component>
+                    </section>
+
+                    <section>
+                        <h2 class="mb-3 flex items-center gap-2 text-sm font-semibold text-highlighted">
+                            <UIcon name="i-lucide-refresh-cw" class="size-4 text-muted" />
+                            Historisk tilmelding
+                        </h2>
+                        <UCard>
+                            <p class="text-sm text-muted">
+                                Synkroniserer historiske tilmeldinger fra Firebase som et baggrundsjob i workeren
+                                for det lejrår, der er valgt i opsætningen.
+                            </p>
+                            <UButton class="mt-4" icon="i-lucide-refresh-cw" label="Start synkronisering" :loading="syncing" @click="confirmOpen = true" />
+                        </UCard>
+                    </section>
                 </div>
-            </section>
-
-            <section class="admin-section">
-                <h2 class="title is-5 admin-heading mb-4">
-                    <font-awesome-icon icon="rotate" />
-                    Historisk tilmelding
-                </h2>
-                <div class="box">
-                    <p class="historic-sync-description">
-                        Synkroniserer historiske tilmeldinger fra Firebase som et baggrundsjob i workeren
-                        for det lejrår, der er valgt i opsætningen.
-                    </p>
-                    <BButton
-                        type="is-primary"
-                        icon-left="rotate"
-                        :loading="syncing"
-                        @click="confirmSync"
-                    >
-                        Start synkronisering
-                    </BButton>
-                </div>
-            </section>
-
-            <BButton v-if="!loading && !error && sections.length === 0" @click="load">Prøv igen</BButton>
-        </div>
-
-        <aside class="admin-aside">
-            <h2 class="title is-6 admin-heading mb-4">
-                <font-awesome-icon :icon="'chart-simple'" />
-                Tilmeldingsstatistik
-            </h2>
-
-            <p v-if="loading && signupProgress.length === 0" role="status">Indlæser…</p>
-
-            <div v-for="item in signupProgress" :key="item.key" class="box progress-card">
-                <p class="progress-label">{{ item.label }}</p>
-                <p class="progress-value">
-                    {{ item.current }}
-                    <span class="progress-target">af {{ item.target }}</span>
-                </p>
-                <progress
-                    class="progress is-small"
-                    :class="progressClass(item)"
-                    :aria-label="item.label"
-                    :aria-valuetext="`${item.current} af ${item.target}. ${statusText(item)}`"
-                    :value="item.current"
-                    :max="item.target"
-                ></progress>
-                <p class="progress-status">{{ statusText(item) }}</p>
             </div>
 
-            <p class="progress-note">
-                Måltallet er deltagerantallet ved sidste lejr.
-            </p>
-        </aside>
-    </div>
+            <UModal v-model:open="confirmOpen" title="Historisk tilmelding" description="Erstat årets historiske tilmeldinger med data fra Firebase?">
+                <template #footer>
+                    <div class="flex w-full justify-end gap-2">
+                        <UButton color="neutral" variant="outline" label="Annuller" @click="confirmOpen = false" />
+                        <UButton label="Start" @click="startSync" />
+                    </div>
+                </template>
+            </UModal>
+        </template>
+    </UDashboardPanel>
 </template>
 
-<script lang="ts" setup>
-import { onMounted, ref } from 'vue';
-import { BButton, BNotification, useDialog, useToast } from 'buefy';
-import AdminService from '@/Services/AdminService';
-import { getErrorMessage } from '@/lib/api';
-import type { AdminSectionDto, HQPanelEntryDto, SignupProgressDto } from '@/types';
+<script setup lang="ts">
+import { computed, onMounted, ref } from "vue";
+import { useToast } from "@nuxt/ui/composables";
+import AdminService from "@/Services/AdminService";
+import { getErrorMessage } from "@/lib/api";
+import { lucideIcon, toHqShortcut } from "@/lib/hqShortcuts";
+import ShortcutCard from "@/Components/ShortcutCard.vue";
+import type { AdminSectionDto, SignupProgressDto } from "@/types";
+
+type ProgressColor = "success" | "warning" | "error";
 
 const service = new AdminService();
-const Dialog = useDialog();
-const Toast = useToast();
-const sections = ref<AdminSectionDto[]>([]);
+const toast = useToast();
+
+const rawSections = ref<AdminSectionDto[]>([]);
 const signupProgress = ref<SignupProgressDto[]>([]);
 const loading = ref(true);
+const error = ref("");
 const syncing = ref(false);
-const error = ref('');
+const confirmOpen = ref(false);
 
-const isExternal = (link: HQPanelEntryDto) => {
-    if (link.mvc) return true;
+const sections = computed(() => rawSections.value
+    .filter((section) => section.entries.length > 0)
+    .map((section) => ({
+        title: section.title,
+        icon: section.icon,
+        shortcuts: section.entries.map(toHqShortcut)
+    })));
 
-    return /^https?:\/\//i.test(link.url);
-};
-
-function percent(item: SignupProgressDto) {
+function percent(item: SignupProgressDto): number {
     if (item.target <= 0) return 0;
+
     return Math.round((item.current / item.target) * 100);
 }
 
-function progressClass(item: SignupProgressDto) {
-    if (item.status === 'reached') return 'is-success';
-    if (item.status === 'halfway') return 'is-warning';
-    return 'is-danger';
+function progressColor(item: SignupProgressDto): ProgressColor {
+    if (item.status === "reached") return "success";
+    if (item.status === "halfway") return "warning";
+
+    return "error";
 }
 
-function statusText(item: SignupProgressDto) {
-    if (item.status === 'reached') return 'Målet er nået';
-    if (item.status === 'halfway') return `Halvejs – ${percent(item)} %`;
-    return `Under halvejs – ${percent(item)} %`;
-}
+function statusText(item: SignupProgressDto): string {
+    if (item.status === "reached") return "Målet er nået";
+    if (item.status === "halfway") return `Halvejs (${percent(item)} %)`;
 
-function confirmSync() {
-    Dialog.confirm({
-        title: 'Historisk tilmelding',
-        message: 'Erstat årets historiske tilmeldinger med data fra Firebase?',
-        confirmText: 'Start',
-        cancelText: 'Annuller',
-        onConfirm: () => {
-            void syncHistoricRegistration();
-        }
-    });
-}
-
-async function syncHistoricRegistration() {
-    if (syncing.value) return;
-
-    syncing.value = true;
-    try {
-        await service.syncHistoricRegistration();
-        Toast.open({ message: 'Synkroniseringen er sat i gang.', type: 'is-success' });
-    } catch (e) {
-        Toast.open({
-            message: getErrorMessage(e, 'Synkroniseringen kunne ikke startes.'),
-            type: 'is-danger'
-        });
-    } finally {
-        syncing.value = false;
-    }
+    return `Under halvejs (${percent(item)} %)`;
 }
 
 async function load() {
     loading.value = true;
-    error.value = '';
+    error.value = "";
 
     try {
         const data = await service.get();
-        sections.value = data.sections;
+        rawSections.value = data.sections;
         signupProgress.value = await service.getSignupProgress();
     } catch (e) {
-        error.value = getErrorMessage(e, 'Admin kunne ikke hentes. Kontrollér din adgang, og prøv igen.');
+        error.value = getErrorMessage(e, "Admin kunne ikke hentes. Kontrollér din adgang, og prøv igen.");
     } finally {
         loading.value = false;
     }
 }
 
-onMounted(load);
-</script>
+async function startSync() {
+    confirmOpen.value = false;
+    if (syncing.value) return;
 
-<style lang="scss" scoped>
-.admin {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: flex-start;
-    gap: 1.5rem;
-    padding: 0 1rem;
-    margin-bottom: 2rem;
-}
-
-.admin-main {
-    flex: 1 1 32rem;
-    min-width: 0;
-}
-
-.admin-main :deep(.grid) {
-    max-width: none;
-    margin: 0;
-}
-
-.admin-aside {
-    flex: 0 1 18rem;
-    min-width: 0;
-    order: 2;
-
-    @media (max-width: 768px) {
-        order: 1;
-        flex: 1 1 auto;
+    syncing.value = true;
+    try {
+        await service.syncHistoricRegistration();
+        toast.add({ title: "Synkroniseringen er sat i gang.", color: "success", icon: "i-lucide-circle-check" });
+    } catch (e) {
+        toast.add({ title: getErrorMessage(e, "Synkroniseringen kunne ikke startes."), color: "error", icon: "i-lucide-circle-alert" });
+    } finally {
+        syncing.value = false;
     }
 }
 
-.admin-section {
-    margin-bottom: 2rem;
-}
-
-.admin-heading {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    margin: 1rem 0 0;
-    padding: 0;
-}
-
-.admin-heading svg {
-    color: #595959;
-}
-
-.historic-sync-description {
-    margin-bottom: 0.75rem;
-}
-
-.progress-card {
-    margin-bottom: 1rem;
-}
-
-.progress-label {
-    font-weight: 600;
-    margin-bottom: 0.25rem;
-}
-
-.progress-value {
-    font-size: 2rem;
-    line-height: 1.1;
-    margin-bottom: 0.5rem;
-}
-
-.progress-target {
-    font-size: 1rem;
-    color: #595959;
-}
-
-.progress-status {
-    color: #595959;
-    font-size: 0.85rem;
-    margin-top: 0.35rem;
-}
-
-.progress-note {
-    font-size: 0.8rem;
-    color: #595959;
-}
-</style>
+onMounted(load);
+</script>

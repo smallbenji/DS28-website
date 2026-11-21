@@ -1,76 +1,112 @@
 <template>
     <section
-        class="board-column"
-        :class="{ 'is-done': column.isDoneColumn, 'is-dragging': dragging, 'drop-before': columnTarget && !columnTarget.after, 'drop-after': columnTarget?.after, 'drop-append': cardTarget }"
+        class="board-column flex max-h-full shrink-0 flex-col rounded-lg border-t-4 bg-default shadow-sm ring ring-default transition-opacity"
+        :class="[collapsed ? 'w-11 self-stretch max-h-96' : 'w-72', column.isDoneColumn ? 'border-t-success' : 'border-t-(--ui-border-accented)', { 'opacity-50': dragging, 'drop-before': columnTarget && !columnTarget.after, 'drop-after': columnTarget?.after, 'ring-primary': collapsed && cardTarget }]"
+        :aria-label="`Kolonne ${column.title}`"
         @dragover="onDragOver"
         @dragleave="onDragLeave"
         @drop="onDrop"
     >
-        <header class="board-column-head">
-            <button
-                v-if="canManage"
-                type="button"
-                class="board-column-handle"
-                draggable="true"
-                :aria-label="`Flyt kolonnen ${column.title}`"
-                @dragstart="onColumnDragStart"
-            >
-                <font-awesome-icon icon="grip-vertical" />
-            </button>
-            <p class="board-column-title">{{ column.title }}</p>
-            <span class="board-column-count">
-                {{ cards.length }}<template v-if="column.wipLimit"> / {{ column.wipLimit }}</template>
-            </span>
-            <div v-if="canManage" class="board-column-actions">
-                <button
-                    type="button"
-                    class="board-icon-button"
-                    :aria-label="`Rediger kolonnen ${column.title}`"
-                    @click="emit('editColumn', column)"
+        <button
+            v-if="collapsed"
+            type="button"
+            class="flex flex-1 flex-col items-center gap-3 rounded-b-lg py-3 hover:bg-elevated focus-visible:outline-2 focus-visible:outline-primary"
+            :aria-label="`Fold kolonnen ${column.title} ud (${cards.length} kort)`"
+            @click="toggleCollapsed"
+        >
+            <UIcon name="i-lucide-chevrons-left-right" class="size-4 text-muted" />
+            <UBadge :label="String(cards.length)" :color="isOverLimit ? 'warning' : 'neutral'" variant="subtle" size="sm" />
+            <UIcon v-if="column.isDoneColumn" name="i-lucide-circle-check" class="size-4 text-success" />
+            <span class="font-semibold text-highlighted [writing-mode:vertical-rl]">{{ column.title }}</span>
+        </button>
+
+        <template v-else>
+            <header class="border-b border-default px-2 py-2">
+                <div class="flex items-center gap-1">
+                    <button
+                        v-if="canManage"
+                        type="button"
+                        class="cursor-grab rounded p-1 text-muted hover:text-highlighted focus-visible:outline-2 focus-visible:outline-primary"
+                        draggable="true"
+                        :aria-label="`Flyt kolonnen ${column.title}`"
+                        @dragstart="onColumnDragStart"
+                    >
+                        <UIcon name="i-lucide-grip-vertical" class="size-4" />
+                    </button>
+                    <UIcon v-if="column.isDoneColumn" name="i-lucide-circle-check" class="ms-1 size-4 shrink-0 text-success" />
+                    <h2 class="min-w-0 flex-1 truncate font-semibold text-highlighted" :class="{ 'ps-1': !canManage && !column.isDoneColumn }">{{ column.title }}</h2>
+                    <UBadge :label="String(cards.length)" :color="isOverLimit ? 'warning' : 'neutral'" variant="subtle" size="sm" />
+                    <UDropdownMenu :items="columnMenu" :content="{ align: 'end' }">
+                        <UButton color="neutral" variant="ghost" size="xs" icon="i-lucide-ellipsis" :aria-label="`Handlinger for kolonnen ${column.title}`" />
+                    </UDropdownMenu>
+                </div>
+                <div v-if="column.wipLimit" class="px-1 pt-2">
+                    <UProgress :model-value="Math.min(cards.length, column.wipLimit)" :max="column.wipLimit" size="xs" :color="isOverLimit ? 'warning' : 'neutral'" />
+                    <p class="mt-1 flex items-center gap-1 text-xs" :class="isOverLimit ? 'font-medium text-warning' : 'text-muted'">
+                        <UIcon v-if="isOverLimit" name="i-lucide-triangle-alert" class="size-3.5" />
+                        {{ wipText }}
+                    </p>
+                </div>
+            </header>
+
+            <div ref="cardsContainer" class="flex min-h-16 flex-1 flex-col gap-2 overflow-y-auto p-2">
+                <BoardCard
+                    v-for="card in cards"
+                    :key="card.id"
+                    :card="card"
+                    :can-manage="canManage"
+                    :is-done-column="column.isDoneColumn"
+                    :drop-indicator="dropIndicatorFor(card)"
+                    @open="emit('openCard', $event)"
+                />
+                <p
+                    v-if="visibleCards.length === 0"
+                    class="rounded-md border border-dashed py-4 text-center text-xs"
+                    :class="cardTarget ? 'border-primary text-primary' : 'border-default text-muted'"
                 >
-                    <font-awesome-icon icon="pen" />
-                </button>
-                <button
-                    type="button"
-                    class="board-icon-button"
-                    :aria-label="`Slet kolonnen ${column.title}`"
-                    @click="emit('deleteColumn', column)"
-                >
-                    <font-awesome-icon icon="trash" />
-                </button>
+                    {{ cardTarget ? 'Slip kortet her' : 'Ingen kort' }}
+                </p>
             </div>
-        </header>
 
-        <div ref="cardsContainer" class="board-column-cards compact-scroll">
-            <BoardCard
-                v-for="card in cards"
-                :key="card.id"
-                :card="card"
-                :can-manage="canManage"
-                :is-done-column="column.isDoneColumn"
-                :drop-indicator="dropIndicatorFor(card)"
-                @open="emit('openCard', $event)"
-            />
-            <p v-if="visibleCards.length === 0" class="board-column-empty" :class="{ 'is-drop-target': cardTarget }">
-                {{ cardTarget ? 'Slip kortet her' : 'Ingen kort' }}
-            </p>
-        </div>
-
-        <BButton v-if="canManage" size="is-small" class="board-column-add is-ghost" @click="emit('addCard', column.id)">
-            <font-awesome-icon icon="plus" />
-            <span>Tilføj kort</span>
-        </BButton>
+            <div v-if="canManage" class="border-t border-default p-2">
+                <form v-if="quickAddOpen" class="rounded-md border border-primary bg-default p-2" @submit.prevent="createCard">
+                    <UTextarea
+                        ref="quickAddInput"
+                        v-model="quickAddTitle"
+                        :rows="2"
+                        autoresize
+                        variant="none"
+                        placeholder="Hvad skal laves?"
+                        class="w-full"
+                        :aria-label="`Titel på nyt kort i ${column.title}`"
+                        :disabled="creating"
+                        @keydown.enter.exact.prevent="createCard"
+                        @keydown.esc.prevent="closeQuickAdd"
+                    />
+                    <div class="mt-1 flex items-center justify-end gap-2">
+                        <span class="me-auto text-xs text-muted">Enter opretter</span>
+                        <UButton label="Annuller" size="xs" color="neutral" variant="outline" @click="closeQuickAdd" />
+                        <UButton type="submit" label="Opret kort" size="xs" :loading="creating" :disabled="!quickAddTitle.trim()" />
+                    </div>
+                </form>
+                <UButton v-else color="neutral" variant="ghost" size="sm" icon="i-lucide-plus" label="Tilføj kort" block class="justify-start" @click="openQuickAdd" />
+            </div>
+        </template>
     </section>
 </template>
 
 <script setup lang="ts">
-import { BButton } from 'buefy';
-import { computed, ref } from 'vue';
-import type { BoardColumnDto, WorkItemDto } from '@/types';
-import BoardCard from './BoardCard.vue';
-import { isSameDropTarget, useBoardDrag, type BoardDropTarget } from './boardDrag';
+import { computed, nextTick, ref } from "vue";
+import { useLocalStorage } from "@vueuse/core";
+import type { DropdownMenuItem } from "@nuxt/ui";
+import type { BoardColumnDto, BoardColumnUpdateDto, WorkItemDto } from "@/types";
+import { isSameDropTarget, useBoardDrag, type BoardDropTarget } from "@/lib/board/boardDrag";
+import { useBoardStore } from "@/Stores/BoardStore";
+import { useNotify } from "@/lib/notify";
+import BoardCard from "@/Components/Board/BoardCard.vue";
 
 const props = defineProps<{
+    boardId: number;
     column: BoardColumnDto;
     cards: WorkItemDto[];
     canManage: boolean;
@@ -78,30 +114,135 @@ const props = defineProps<{
 
 const emit = defineEmits<{
     openCard: [card: WorkItemDto];
-    addCard: [columnId: number];
     editColumn: [column: BoardColumnDto];
     deleteColumn: [column: BoardColumnDto];
     moveCard: [payload: { cardId: number; columnId: number; position: number }];
     reorderColumn: [payload: { targetColumnId: number; draggedColumnId: number; after: boolean }];
+    updateColumn: [column: BoardColumnDto, changes: Partial<BoardColumnUpdateDto>];
 }>();
 
 const drag = useBoardDrag();
+const store = useBoardStore();
+const notify = useNotify();
+
+const quickAddOpen = ref(false);
+const quickAddTitle = ref("");
+const creating = ref(false);
+const quickAddInput = ref<{ textareaRef?: HTMLTextAreaElement } | null>(null);
+
+async function focusQuickAdd() {
+    await nextTick();
+    quickAddInput.value?.textareaRef?.focus();
+}
+
+function openQuickAdd() {
+    quickAddTitle.value = "";
+    quickAddOpen.value = true;
+    void focusQuickAdd();
+}
+
+function closeQuickAdd() {
+    quickAddOpen.value = false;
+    quickAddTitle.value = "";
+}
+
+async function createCard() {
+    const title = quickAddTitle.value.trim();
+    if (!title || creating.value) return;
+
+    creating.value = true;
+    try {
+        const id = await store.ADD_CARD(props.boardId, {
+            columnId: columnId.value,
+            title,
+            description: null,
+            color: null,
+            assigneeUserIds: [],
+            ownerPositionId: null,
+            dueDate: null,
+            priority: 0,
+            links: []
+        });
+        if (id === null) {
+            notify.error("Kortet kunne ikke oprettes.");
+            return;
+        }
+
+        quickAddTitle.value = "";
+    } finally {
+        creating.value = false;
+        if (quickAddOpen.value) void focusQuickAdd();
+    }
+}
 const cardsContainer = ref<HTMLElement | null>(null);
 const columnId = computed(() => Number(props.column.id));
-const dragging = computed(() => drag.value?.kind === 'column' && drag.value.id === columnId.value);
-const draggedCardId = computed(() => drag.value?.kind === 'card' ? drag.value.id : null);
+const dragging = computed(() => drag.value?.kind === "column" && drag.value.id === columnId.value);
+const draggedCardId = computed(() => drag.value?.kind === "card" ? drag.value.id : null);
 const visibleCards = computed(() => props.cards.filter((card) => Number(card.id) !== draggedCardId.value));
+
+const collapsedColumnIds = useLocalStorage<number[]>("ds28.board.collapsedColumns", []);
+const collapsed = computed(() => collapsedColumnIds.value.includes(columnId.value));
+
+function toggleCollapsed() {
+    collapsedColumnIds.value = collapsed.value
+        ? collapsedColumnIds.value.filter((id) => id !== columnId.value)
+        : [...collapsedColumnIds.value, columnId.value];
+}
+
+const isOverLimit = computed(() => props.column.wipLimit != null && props.cards.length > props.column.wipLimit);
+const wipText = computed(() => {
+    const limit = props.column.wipLimit;
+    if (limit == null) return "";
+    if (!isOverLimit.value) return `Grænse: ${limit}`;
+
+    return `${props.cards.length - limit} over grænsen på ${limit}`;
+});
+
+const wipOptions = [null, 2, 3, 4, 5, 6, 8, 10];
+
+const columnMenu = computed<DropdownMenuItem[][]>(() => {
+    const collapseItem: DropdownMenuItem = { label: "Klap sammen", icon: "i-lucide-chevrons-right-left", onSelect: toggleCollapsed };
+    if (!props.canManage) return [[collapseItem]];
+
+    return [
+        [
+            { label: "Rediger kolonne …", icon: "i-lucide-pencil", onSelect: () => emit("editColumn", props.column) },
+            {
+                label: props.column.wipLimit ? `WIP-grænse: ${props.column.wipLimit}` : "WIP-grænse: ingen",
+                icon: "i-lucide-gauge",
+                children: [
+                    wipOptions.map((limit) => ({
+                        label: limit === null ? "Ingen grænse" : String(limit),
+                        type: "checkbox" as const,
+                        checked: (props.column.wipLimit ?? null) === limit,
+                        onUpdateChecked: () => emit("updateColumn", props.column, { wipLimit: limit })
+                    })),
+                    [{ label: "Anden …", onSelect: () => emit("editColumn", props.column) }]
+                ]
+            },
+            {
+                label: "Færdig-kolonne",
+                icon: "i-lucide-circle-check",
+                type: "checkbox",
+                checked: props.column.isDoneColumn,
+                onUpdateChecked: (checked: boolean) => emit("updateColumn", props.column, { isDoneColumn: checked })
+            },
+            collapseItem
+        ],
+        [{ label: "Slet kolonne …", icon: "i-lucide-trash-2", color: "error", onSelect: () => emit("deleteColumn", props.column) }]
+    ];
+});
 
 const columnTarget = computed(() => {
     const target = drag.value?.target;
 
-    return target?.kind === 'column' && target.columnId === columnId.value ? target : null;
+    return target?.kind === "column" && target.columnId === columnId.value ? target : null;
 });
 
 const cardTarget = computed(() => {
     const target = drag.value?.target;
 
-    return target?.kind === 'card' && target.columnId === columnId.value ? target : null;
+    return target?.kind === "card" && target.columnId === columnId.value ? target : null;
 });
 
 function dropIndicatorFor(card: WorkItemDto) {
@@ -110,8 +251,8 @@ function dropIndicatorFor(card: WorkItemDto) {
 
     const index = visibleCards.value.indexOf(card);
     if (index < 0) return null;
-    if (index === target.index) return 'before';
-    if (index === visibleCards.value.length - 1 && target.index === visibleCards.value.length) return 'after';
+    if (index === target.index) return "before";
+    if (index === visibleCards.value.length - 1 && target.index === visibleCards.value.length) return "after";
 
     return null;
 }
@@ -122,14 +263,15 @@ function onColumnDragStart(event: DragEvent) {
         return;
     }
 
-    event.dataTransfer?.setData('text/plain', `column:${props.column.id}`);
-    if (event.dataTransfer) event.dataTransfer.effectAllowed = 'move';
-
-    drag.value = { kind: 'column', id: columnId.value, target: null };
+    event.dataTransfer?.setData("text/plain", `column:${props.column.id}`);
+    if (event.dataTransfer) event.dataTransfer.effectAllowed = "move";
+    drag.value = { kind: "column", id: columnId.value, target: null };
 }
 
 function cardInsertionIndex(clientY: number) {
-    const elements = Array.from(cardsContainer.value?.querySelectorAll<HTMLElement>('[data-card-id]') ?? [])
+    if (collapsed.value) return visibleCards.value.length;
+
+    const elements = Array.from(cardsContainer.value?.querySelectorAll<HTMLElement>("[data-card-id]") ?? [])
         .filter((element) => Number(element.dataset.cardId) !== draggedCardId.value);
     const index = elements.findIndex((element) => {
         const bounds = element.getBoundingClientRect();
@@ -145,7 +287,7 @@ function cardDropTarget(clientY: number): BoardDropTarget | null {
     const currentIndex = props.cards.findIndex((card) => Number(card.id) === draggedCardId.value);
     if (currentIndex === index) return null;
 
-    return { kind: 'card', columnId: columnId.value, index };
+    return { kind: "card", columnId: columnId.value, index };
 }
 
 function columnDropTarget(event: DragEvent): BoardDropTarget | null {
@@ -153,7 +295,7 @@ function columnDropTarget(event: DragEvent): BoardDropTarget | null {
 
     const bounds = (event.currentTarget as HTMLElement).getBoundingClientRect();
 
-    return { kind: 'column', columnId: columnId.value, after: event.clientX > bounds.left + bounds.width / 2 };
+    return { kind: "column", columnId: columnId.value, after: event.clientX > bounds.left + bounds.width / 2 };
 }
 
 function onDragOver(event: DragEvent) {
@@ -161,9 +303,9 @@ function onDragOver(event: DragEvent) {
 
     event.preventDefault();
     event.stopPropagation();
-    if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
+    if (event.dataTransfer) event.dataTransfer.dropEffect = "move";
 
-    const target = drag.value.kind === 'card' ? cardDropTarget(event.clientY) : columnDropTarget(event);
+    const target = drag.value.kind === "card" ? cardDropTarget(event.clientY) : columnDropTarget(event);
     if (!isSameDropTarget(drag.value.target, target)) drag.value.target = target;
 }
 
@@ -181,10 +323,10 @@ function onDrop(event: DragEvent) {
     drag.value = null;
     if (!target || target.columnId !== columnId.value) return;
 
-    if (kind === 'card' && target.kind === 'card') {
-        emit('moveCard', { cardId: id, columnId: columnId.value, position: target.index });
-    } else if (kind === 'column' && target.kind === 'column') {
-        emit('reorderColumn', { targetColumnId: columnId.value, draggedColumnId: id, after: target.after });
+    if (kind === "card" && target.kind === "card") {
+        emit("moveCard", { cardId: id, columnId: columnId.value, position: target.index });
+    } else if (kind === "column" && target.kind === "column") {
+        emit("reorderColumn", { targetColumnId: columnId.value, draggedColumnId: id, after: target.after });
     }
 }
 </script>
@@ -192,169 +334,24 @@ function onDrop(event: DragEvent) {
 <style scoped>
 .board-column {
     position: relative;
-    display: flex;
-    flex-direction: column;
-    flex: 0 0 18rem;
-    width: 18rem;
-    max-height: 100%;
-    background: #f0f2f5;
-    border: 1px solid transparent;
-    border-radius: 8px;
-    overflow: hidden;
 }
 
-.board-column.drop-before {
-    border-left-color: #3273dc;
-    box-shadow: inset 3px 0 #3273dc;
+.board-column.drop-before::before,
+.board-column.drop-after::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    border-radius: 3px;
+    background: var(--ui-primary);
 }
 
-.board-column.drop-after {
-    border-right-color: #3273dc;
-    box-shadow: inset -3px 0 #3273dc;
+.board-column.drop-before::before {
+    left: -8px;
 }
 
-.board-column.drop-append {
-    border-color: #3273dc;
-}
-
-.board-column.is-done {
-    background: #f0f2f5;
-}
-
-.board-column.is-done .board-column-title::before {
-    content: '';
-    display: inline-block;
-    width: 0.45rem;
-    height: 0.45rem;
-    margin-right: 0.5rem;
-    border-radius: 50%;
-    background: #48a879;
-}
-
-.board-column.is-dragging {
-    opacity: 0.45;
-}
-
-.board-column-handle {
-    border: none;
-    background: transparent;
-    color: rgba(0, 0, 0, 0.35);
-    cursor: grab;
-    padding: 0.25rem 0.15rem;
-    border-radius: 4px;
-    line-height: 1;
-}
-
-.board-column-handle:hover {
-    background: rgba(0, 0, 0, 0.06);
-    color: rgba(0, 0, 0, 0.6);
-}
-
-.board-column-head {
-    flex-shrink: 0;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.6rem 0.75rem;
-    border-bottom: 0;
-}
-
-.board-column-title {
-    font-weight: 600;
-    font-size: 0.9rem;
-    overflow-wrap: anywhere;
-}
-
-.board-column-count {
-    color: rgba(0, 0, 0, 0.5);
-    font-size: 0.8rem;
-}
-
-.board-column-actions {
-    margin-left: auto;
-    display: flex;
-    gap: 0.15rem;
-    opacity: 0.35;
-    transition: opacity 0.15s ease;
-}
-
-.board-column:hover .board-column-actions,
-.board-column:focus-within .board-column-actions {
-    opacity: 1;
-}
-
-@media (hover: none) {
-    .board-column-actions {
-        opacity: 1;
-    }
-}
-
-.board-icon-button {
-    border: none;
-    background: transparent;
-    color: rgba(0, 0, 0, 0.5);
-    cursor: pointer;
-    padding: 0.4rem;
-    border-radius: 4px;
-    line-height: 1;
-}
-
-.board-icon-button:hover {
-    background: rgba(0, 0, 0, 0.06);
-    color: rgba(0, 0, 0, 0.75);
-}
-
-.board-column-cards {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-    padding: 0.5rem;
-    overflow-y: auto;
-    overscroll-behavior-y: contain;
-    min-height: 3rem;
-    flex: 0 1 auto;
-}
-
-.board-column-empty {
-    color: rgba(0, 0, 0, 0.4);
-    font-size: 0.85rem;
-    padding: 0.5rem 0.35rem;
-    border: 1px dashed transparent;
-    border-radius: 4px;
-}
-
-.board-column-empty.is-drop-target {
-    border-color: #3273dc;
-    background: #e8f0fd;
-    color: #2458a6;
-    pointer-events: none;
-}
-
-.board-column-add {
-    margin: 0 0.5rem 0.5rem;
-    justify-content: flex-start;
-    border: 0;
-    box-shadow: none;
-    background: transparent;
-    color: #68717d;
-    text-decoration: none;
-    flex-shrink: 0;
-}
-
-.board-column-add:hover {
-    background: #e5e8ed;
-    color: #363636;
-    text-decoration: none;
-}
-
-.board-column-handle:focus-visible,
-.board-icon-button:focus-visible,
-.board-column-add:focus-visible {
-    outline: 2px solid hsl(217, 71%, 53%);
-    outline-offset: 2px;
-}
-
-.board-column-add svg {
-    margin-right: 0.35rem;
+.board-column.drop-after::after {
+    right: -8px;
 }
 </style>

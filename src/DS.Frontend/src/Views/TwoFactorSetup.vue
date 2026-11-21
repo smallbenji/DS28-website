@@ -1,195 +1,89 @@
 <template>
-    <div class="twofactor-setup">
-        <div class="card frame">
-            <header class="card-header">
-                <p class="card-header-title is-centered">Tofaktorautentificering påkrævet</p>
-            </header>
+    <div class="flex min-h-svh items-center justify-center bg-muted p-4">
+        <UCard class="w-full max-w-md">
+            <template #header>
+                <div class="flex items-center gap-2">
+                    <UIcon name="i-lucide-shield-check" class="size-5 text-primary" />
+                    <h1 class="font-semibold text-highlighted">Tofaktorautentificering påkrævet</h1>
+                </div>
+                <p class="mt-1 text-sm text-muted">Som SysAdmin skal du aktivere tofaktorautentificering, før du kan bruge applikationen.</p>
+            </template>
 
-            <div class="card-content">
-                <p class="mb-4">
-                    Som SysAdmin skal du aktivere tofaktorautentificering, før du kan bruge applikationen.
-                </p>
+            <template v-if="recoveryCodes.length === 0">
+                <TwoFactorEnrollment submit-label="Aktivér tofaktorautentificering" @enabled="onEnabled" />
 
-                <template v-if="setup && !enabled">
-                    <div class="has-text-centered mb-3">
-                        <img :src="qrUrl" alt="QR-kode til autentificeringsappen"
-                            style="width: 200px; height: 200px;" />
-                    </div>
+                <USeparator label="eller" class="my-5" />
 
-                    <p class="has-text-centered is-family-monospace is-size-7 has-text-grey mb-4">
-                        {{ setup.manualEntryKey }}
-                    </p>
+                <div class="flex flex-col gap-2">
+                    <p class="text-center text-sm text-muted">Har du en passkey? Du kan aktivere tofaktorautentificering med den i stedet for din autentificeringsapp.</p>
+                    <UAlert v-if="passkeyError" color="error" variant="subtle" icon="i-lucide-circle-alert" :title="passkeyError" />
+                    <UButton color="neutral" variant="outline" icon="i-lucide-fingerprint" label="Aktivér med passkey" :loading="passkeyVerifying" block @click="enableWithPasskey" />
+                </div>
+            </template>
 
-                    <BField label="Verificér kode">
-                        <BInput ref="codeInput" v-model="code" placeholder="123456" autocomplete="one-time-code"
-                            @keyup.enter="verify" />
-                    </BField>
+            <template v-else>
+                <UAlert class="mb-4" color="success" variant="subtle" icon="i-lucide-shield-check" title="Tofaktorautentificering er nu aktiveret." />
+                <RecoveryCodesList :codes="recoveryCodes" />
+                <UButton class="mt-4" color="success" label="Jeg har gemt koderne" block @click="finish" />
+            </template>
 
-                    <p v-if="error" class="help is-danger">
-                        Den indtastede kode var ikke gyldig.
-                    </p>
-
-                    <BButton type="is-primary" expanded :loading="isVerifying" @click="verify">
-                        Aktivér tofaktorautentificering
-                    </BButton>
-                </template>
-
-                <template v-if="setup && !enabled">
-                    <p class="has-text-centered has-text-grey mb-3">
-                        Har du en passkey? Du kan aktivere tofaktorautentificering med den i stedet for din
-                        autentificeringsapp.
-                    </p>
-
-                    <p v-if="passkeyError" class="help is-danger has-text-centered mb-2">
-                        {{ passkeyError }}
-                    </p>
-
-                    <BButton type="is-primary is-light" 
-                            outlined
-                            rounded
-                            expanded 
-                            :loading="isPasskeyVerifying" 
-                            icon-left="fingerprint"
-                            @click="enableWithPasskey">
-                        Aktivér med passkey
-                    </BButton>
-                </template>
-
-                <template v-else-if="enabled && recoveryCodes.length">
-                    <div class="notification is-success is-light">
-                        Tofaktorautentificering er nu aktiveret.
-                    </div>
-                    <div class="notification is-warning is-light">
-                        <p class="mb-2">
-                            Gem disse recovery codes et sikkert sted. De vises kun én gang og kan bruges
-                            til at logge ind, hvis du mister adgang til din autentificeringsapp.
-                        </p>
-                        <div class="tags">
-                            <span v-for="recoveryCode in recoveryCodes" :key="recoveryCode"
-                                class="tag is-warning is-light is-medium is-family-monospace">
-                                {{ recoveryCode }}
-                            </span>
-                        </div>
-                    </div>
-
-                    <BButton type="is-success" expanded @click="finish">
-                        Jeg har gemt koderne
-                    </BButton>
-                </template>
-
-                <p v-else-if="!setup" class="has-text-grey">
-                    Indlæser...
-                </p>
-
-                <hr />
-
-                <p class="has-text-centered">
-                    <a class="has-text-danger" @click="logout">Log ud</a>
-                </p>
-            </div>
-        </div>
+            <template #footer>
+                <div class="flex justify-center">
+                    <UButton color="error" variant="link" label="Log ud" @click="logout" />
+                </div>
+            </template>
+        </UCard>
     </div>
 </template>
 
-<script lang="ts" setup>
-import { useAccountStore } from '@/Stores/AccountStore';
-import AuthService from '@/Services/AuthService';
-import { BButton, BField, BInput } from 'buefy';
-import { computed, nextTick, onMounted, ref, watch } from 'vue';
-import { useRouter } from 'vue-router';
-import type { TwoFactorSetupDto } from '@/types';
-import { useMeStore } from '@/Stores/MeStore';
+<script setup lang="ts">
+import { ref } from "vue";
+import { useRouter } from "vue-router";
+import { useAccountStore } from "@/Stores/AccountStore";
+import { useMeStore } from "@/Stores/MeStore";
+import AuthService from "@/Services/AuthService";
+import TwoFactorEnrollment from "@/Components/Account/TwoFactorEnrollment.vue";
+import RecoveryCodesList from "@/Components/Account/RecoveryCodesList.vue";
 
 const router = useRouter();
 const accountStore = useAccountStore();
 const meStore = useMeStore();
 const authService = new AuthService();
 
-const setup = ref<TwoFactorSetupDto | null>(null);
-const code = ref('');
-const enabled = ref(false);
 const recoveryCodes = ref<string[]>([]);
-const isVerifying = ref(false);
-const error = ref(false);
-const isPasskeyVerifying = ref(false);
-const passkeyError = ref('');
+const passkeyVerifying = ref(false);
+const passkeyError = ref("");
 
+function onEnabled(codes: string[]) {
+    recoveryCodes.value = codes;
+}
 
-const codeInput = ref<InstanceType<typeof BInput> | null>(null);
+async function enableWithPasskey() {
+    if (passkeyVerifying.value || !meStore.Me) return;
 
-const qrUrl = computed(() => `/api/v1/account/2fa/qr?ts=${Date.now()}`);
-
-onMounted(async () => {
-    setup.value = await accountStore.GET_SETUP();
-});
-
-watch(setup, () => {
-    nextTick(() => codeInput.value?.focus());
-});
-
-const verify = async () => {
-    if (!code.value.trim() || isVerifying.value) return;
-
-    isVerifying.value = true;
-    error.value = false;
-
-    try {
-        const result = await accountStore.ENABLE_2FA(code.value);
-        if (result) {
-            enabled.value = true;
-            recoveryCodes.value = result.recoveryCodes;
-        } else {
-            error.value = true;
-        }
-    } finally {
-        isVerifying.value = false;
-    }
-};
-
-const finish = () => {
-    router.push("/");
-};
-
-const logout = async () => {
-    await authService.logout();
-    window.location.href = "/login";
-};
-
-const enableWithPasskey = async () => {
-    if (isPasskeyVerifying.value || !meStore.Me) return;
-    isPasskeyVerifying.value = true;
-    passkeyError.value = '';
-
-
+    passkeyVerifying.value = true;
+    passkeyError.value = "";
     try {
         const result = await accountStore.CREATE_PASSKEY(meStore.Me.name);
-        if (result) {
-            enabled.value = true;
-            recoveryCodes.value = result.recoveryCodes;
-        } else {
-            passkeyError.value = "Der skete en fejl under aktiveringen af din passkey."
-        }
-    } catch (e) {
-        passkeyError.value = (e as DOMException)?.name === "NotAllowedError"
+        if (result?.recoveryCodes.length) recoveryCodes.value = result.recoveryCodes;
+        else if (result) await finish();
+        else passkeyError.value = "Der skete en fejl under aktiveringen af din passkey.";
+    } catch (cause) {
+        passkeyError.value = (cause as DOMException)?.name === "NotAllowedError"
             ? "Aktivering blev afbrudt af brugeren."
-            : 'Der skete en uventet fejl under aktiveringen af din passkey.'
+            : "Der skete en uventet fejl under aktiveringen af din passkey.";
     } finally {
-        isPasskeyVerifying.value = false;
+        passkeyVerifying.value = false;
     }
 }
+
+async function finish() {
+    await meStore.GET_ME();
+    await router.push("/");
+}
+
+async function logout() {
+    await authService.logout();
+    window.location.href = "/login";
+}
 </script>
-
-<style scoped>
-.twofactor-setup {
-    flex: 1;
-    min-height: 0;
-    display: flex;
-    overflow-y: auto;
-    padding: 1rem;
-}
-
-.frame {
-    min-width: 350px;
-    margin: auto;
-}
-</style>

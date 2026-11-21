@@ -1,81 +1,58 @@
 <template>
-    <section class="section">
-        <div class="columns is-centered">
-            <div class="column is-4-desktop is-6-tablet">
+    <UCard>
+        <template #header>
+            <h1 class="text-center text-lg font-semibold text-highlighted">Glemt adgangskode</h1>
+        </template>
 
-                <div class="card frame">
-                    <header class="card-header">
-                        <p class="card-header-title is-centered">Glemt adgangskode</p>
-                    </header>
+        <form v-if="!submitted" class="flex flex-col gap-4" @submit.prevent="submit">
+            <p class="text-sm">Skriv den email, du er oprettet med, så sender vi dig et link til at vælge en ny adgangskode.</p>
 
-                    <div class="card-content">
-                        <template v-if="!submitted">
-                            <p class="mb-4">
-                                Skriv den email du er oprettet med, så sender vi dig et link til at vælge en ny
-                                adgangskode.
-                            </p>
+            <UFormField label="Email" required>
+                <UInput ref="emailInput" v-model="email" type="email" icon="i-lucide-mail" autocomplete="username" class="w-full" />
+            </UFormField>
 
-                            <BField label="Email">
-                                <BInput ref="emailInput" v-model="email" type="email" icon="envelope"
-                                    autocomplete="username" @keyup.enter="submit" />
-                            </BField>
+            <UAlert v-if="error" color="error" variant="subtle" icon="i-lucide-circle-alert" :title="error" />
 
-                            <div v-if="error" class="notification is-danger is-light py-2 px-4 my-3">
-                                {{ error }}
-                            </div>
+            <UButton type="submit" icon="i-lucide-mail" label="Send link" block :loading="isSubmitting" :disabled="!canSubmit" />
+        </form>
 
-                            <BButton type="is-primary" expanded :loading="isSubmitting" :disabled="!canSubmit"
-                                icon-left="envelope" @click="submit">
-                                Send link
-                            </BButton>
-                        </template>
+        <UAlert
+            v-else
+            color="success"
+            variant="subtle"
+            icon="i-lucide-mail-check"
+            :description="`Hvis ${email} er oprettet, har vi sendt et link til at vælge en ny adgangskode. Tjek din spam-mappe, hvis du ikke ser det.`"
+        />
 
-                        <template v-else>
-                            <div class="notification is-success is-light py-2 px-4 my-3">
-                                Hvis {{ email }} er oprettet, har vi sendt et link til at vælge en ny adgangskode.
-                                Tjek din spam-mappe, hvis du ikke ser det.
-                            </div>
-                        </template>
-
-                        <p class="has-text-centered mt-4">
-                            <router-link to="/login">
-                                Tilbage til login
-                            </router-link>
-                        </p>
-                    </div>
-                </div>
-
-            </div>
-        </div>
-    </section>
+        <p class="mt-4 text-center text-sm">
+            <ULink to="/login" class="text-primary">Tilbage til login</ULink>
+        </p>
+    </UCard>
 </template>
 
-<script lang="ts" setup>
-import AuthService from '@/Services/AuthService';
-import { BButton, BField, BInput } from 'buefy';
-import { computed, onMounted, ref } from 'vue';
+<script setup lang="ts">
+import { computed, onMounted, ref } from "vue";
+import AuthService from "@/Services/AuthService";
 
 const authService = new AuthService();
 
-const emailInput = ref<InstanceType<typeof BInput> | null>(null);
-
-const email = ref('');
+const emailInput = ref<{ inputRef?: HTMLInputElement } | null>(null);
+const email = ref("");
 const isSubmitting = ref(false);
 const submitted = ref(false);
-const error = ref('');
+const error = ref("");
 
-const canSubmit = computed(() => email.value.trim() !== '');
+const canSubmit = computed(() => email.value.trim() !== "");
 
 onMounted(() => {
-    emailInput.value?.focus();
+    emailInput.value?.inputRef?.focus();
 });
 
-const submit = async () => {
+async function submit() {
     if (!canSubmit.value || isSubmitting.value) return;
 
     isSubmitting.value = true;
-    error.value = '';
-
+    error.value = "";
     try {
         const errorMessage = await authService.forgotPassword({ email: email.value });
 
@@ -88,11 +65,5 @@ const submit = async () => {
     } finally {
         isSubmitting.value = false;
     }
-};
-</script>
-
-<style scoped>
-.frame {
-    min-width: 350px;
 }
-</style>
+</script>

@@ -35,3 +35,6 @@ Thumbs.db
 # Tooling config
 opencode.json
 mise.toml
+
+# Archived frontend (not built or served)
+src/DS.Frontend.Archive
