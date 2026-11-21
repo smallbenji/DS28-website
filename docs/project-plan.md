@@ -483,6 +483,12 @@ De to tal har forskellige kilder og er ikke koblet til hinanden:
 Uafklaret: sidebaren skal på sigende og senere rumme de åb/luk-funktioner, der
 hidtil ligger på `/camp-settings`.
 
+**Beslutning 2026-11-21 (DS-70, implementeret):** Sidebaren viser under
+tilmeldingsstatistikken også antal brugere og antal grupper i systemet, hentet
+fra `GET /api/v1/admin/system-counts` (kræver `AdminAccess`). Det er rene
+optællinger uden persondata. Slettede grupper tælles ikke med, fordi grupper
+er soft-deleted og filtreres globalt.
+
 ### Rollevisning (SysAdmin-impersonation)
 
 **Beslutning 2026-10-12:** En systemadministrator kan skifte til en anden
@@ -2559,8 +2565,8 @@ indlæses på samme side.
   Lucide-ikoner i `lib/hqShortcuts.ts`. Genveje til moduler i frontenden
   åbner i routeren, og de øvrige åbnes med en almindelig sideindlæsning.
 - `/admin` (kræver `AdminAccess`) viser de samme sektioner og
-  tilmeldingsstatistik som `Admin.vue` og kan starte den historiske
-  synkronisering. Undersiderne og Hangfire åbner i den nuværende frontend, og
+  tilmeldingsstatistik som `Admin.vue` samt antal brugere og grupper. Den
+  historiske synkronisering er flyttet til lejrindstillingerne (DS-70). Undersiderne og Hangfire åbner i den nuværende frontend, og
   Hangfire åbner i et nyt vindue som i dag.
 - `/admin/user/:id?` er brugerstyringen fra `User.vue`: liste med søgning,
   detaljer, oprettelse, invitation, roller, stillinger, lås, nulstillingslink og
@@ -2589,6 +2595,13 @@ indlæses på samme side.
   `/admin/google` sender videre til lejrindstillingerne. Backenden sender
   brugeren tilbage til `/admin/google` efter forbindelse til Google, som nu
   sender videre til lejrindstillingerne.
+- **Beslutning 2026-11-21 (DS-70, implementeret):** Flisen "Google Drev" under
+  Admin → System er fjernet, da forbindelsen ligger i lejrindstillingerne.
+  Flisen "Lejrindstillinger" vises nu for `PreSignupManage` eller
+  `AdminAccess`, så den matcher sidens adgangskrav, og brugere med kun
+  `AdminAccess` stadig kan nå Google Drev. Knappen til historisk
+  synkronisering er flyttet fra `/admin` til en sektion i lejrindstillingerne
+  og vises for `AdminAccess`, som endpointet også kræver.
 - `/admin/exports` (kræver `ExportsView`) viser de samme udtræk som
   `Exports.vue` og henter dem som .xlsx via det samme API. Mens et udtræk
   hentes, er de andre knapper låst.

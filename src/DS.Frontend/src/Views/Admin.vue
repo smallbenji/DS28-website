@@ -41,6 +41,26 @@
                     </UCard>
 
                     <p v-if="signupProgress.length > 0" class="text-xs text-muted">Måltallet er deltagerantallet ved sidste lejr.</p>
+
+                    <h2 class="mt-2 flex items-center gap-2 text-sm font-semibold text-highlighted">
+                        <UIcon name="i-lucide-database" class="size-4 text-muted" />
+                        I systemet
+                    </h2>
+
+                    <USkeleton v-if="loading && !systemCounts" class="h-20" />
+
+                    <UCard v-else-if="systemCounts">
+                        <dl class="grid grid-cols-2 gap-4">
+                            <div>
+                                <dt class="text-sm font-medium text-highlighted">Brugere</dt>
+                                <dd class="mt-1 text-3xl font-semibold text-highlighted tabular-nums">{{ systemCounts.users }}</dd>
+                            </div>
+                            <div>
+                                <dt class="text-sm font-medium text-highlighted">Grupper</dt>
+                                <dd class="mt-1 text-3xl font-semibold text-highlighted tabular-nums">{{ systemCounts.groups }}</dd>
+                            </div>
+                        </dl>
+                    </UCard>
                 </aside>
 
                 <div class="flex min-w-0 flex-col gap-8">
@@ -57,55 +77,29 @@
                             <ShortcutCard v-for="shortcut in section.shortcuts" :key="shortcut.to" :shortcut="shortcut" />
                         </div>
                     </section>
-
-                    <section>
-                        <h2 class="mb-3 flex items-center gap-2 text-sm font-semibold text-highlighted">
-                            <UIcon name="i-lucide-refresh-cw" class="size-4 text-muted" />
-                            Historisk tilmelding
-                        </h2>
-                        <UCard>
-                            <p class="text-sm text-muted">
-                                Synkroniserer historiske tilmeldinger fra Firebase som et baggrundsjob i workeren
-                                for det lejrår, der er valgt i opsætningen.
-                            </p>
-                            <UButton class="mt-4" icon="i-lucide-refresh-cw" label="Start synkronisering" :loading="syncing" @click="confirmOpen = true" />
-                        </UCard>
-                    </section>
                 </div>
             </div>
-
-            <UModal v-model:open="confirmOpen" title="Historisk tilmelding" description="Erstat årets historiske tilmeldinger med data fra Firebase?">
-                <template #footer>
-                    <div class="flex w-full justify-end gap-2">
-                        <UButton color="neutral" variant="outline" label="Annuller" @click="confirmOpen = false" />
-                        <UButton label="Start" @click="startSync" />
-                    </div>
-                </template>
-            </UModal>
         </template>
     </UDashboardPanel>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
-import { useToast } from "@nuxt/ui/composables";
 import AdminService from "@/Services/AdminService";
 import { getErrorMessage } from "@/lib/api";
 import { lucideIcon, toHqShortcut } from "@/lib/hqShortcuts";
 import ShortcutCard from "@/Components/ShortcutCard.vue";
-import type { AdminSectionDto, SignupProgressDto } from "@/types";
+import type { AdminSectionDto, SignupProgressDto, SystemCountsDto } from "@/types";
 
 type ProgressColor = "success" | "warning" | "error";
 
 const service = new AdminService();
-const toast = useToast();
 
 const rawSections = ref<AdminSectionDto[]>([]);
 const signupProgress = ref<SignupProgressDto[]>([]);
+const systemCounts = ref<SystemCountsDto | null>(null);
 const loading = ref(true);
 const error = ref("");
-const syncing = ref(false);
-const confirmOpen = ref(false);
 
 const sections = computed(() => rawSections.value
     .filter((section) => section.entries.length > 0)
@@ -143,25 +137,11 @@ async function load() {
         const data = await service.get();
         rawSections.value = data.sections;
         signupProgress.value = await service.getSignupProgress();
+        systemCounts.value = await service.getSystemCounts();
     } catch (e) {
         error.value = getErrorMessage(e, "Admin kunne ikke hentes. Kontrollér din adgang, og prøv igen.");
     } finally {
         loading.value = false;
-    }
-}
-
-async function startSync() {
-    confirmOpen.value = false;
-    if (syncing.value) return;
-
-    syncing.value = true;
-    try {
-        await service.syncHistoricRegistration();
-        toast.add({ title: "Synkroniseringen er sat i gang.", color: "success", icon: "i-lucide-circle-check" });
-    } catch (e) {
-        toast.add({ title: getErrorMessage(e, "Synkroniseringen kunne ikke startes."), color: "error", icon: "i-lucide-circle-alert" });
-    } finally {
-        syncing.value = false;
     }
 }
 

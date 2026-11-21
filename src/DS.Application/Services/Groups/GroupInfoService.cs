@@ -13,4 +13,8 @@ public class GroupInfoService(IDataDbContext dataDb)
     }
 
     public async Task<int> GetTotalSignups() => await dataDb.Scouts.CountAsync();
+
+    public async Task<int> GetTotalGroups() => await dataDb.Groups.CountAsync();
+
+    public async Task<int> GetTotalUsers() => await dataDb.Users.CountAsync();
 }

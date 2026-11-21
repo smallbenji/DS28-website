@@ -1,4 +1,4 @@
-import type { AdminViewModelDto, SignupProgressDto } from '@/types';
+import type { AdminViewModelDto, SignupProgressDto, SystemCountsDto } from '@/types';
 import { apiGet, apiPost } from '@/lib/api';
 
 export default class AdminService {
@@ -8,6 +8,10 @@ export default class AdminService {
 
     async getSignupProgress(): Promise<SignupProgressDto[]> {
         return await apiGet<SignupProgressDto[]>('/api/v1/admin/signup-progress');
+    }
+
+    async getSystemCounts(): Promise<SystemCountsDto> {
+        return await apiGet<SystemCountsDto>('/api/v1/admin/system-counts');
     }
 
     async syncHistoricRegistration(): Promise<void> {

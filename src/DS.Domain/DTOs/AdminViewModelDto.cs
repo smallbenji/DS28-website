@@ -21,4 +21,10 @@ namespace DS.Domain.DTOs
         public int Target { get; set; }
         public string Status { get; set; }
     }
+
+    public class SystemCountsDto
+    {
+        public int Users { get; set; }
+        public int Groups { get; set; }
+    }
 }
