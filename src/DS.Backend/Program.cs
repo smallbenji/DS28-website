@@ -75,6 +75,14 @@ app.MapGet(McpAuthenticationHandler.MetadataPath, (HttpRequest request) =>
 
 var env = app.Services.GetRequiredService<IWebHostEnvironment>();
 
+app.MapFallback("/beta/{**path}", async context =>
+{
+    var filePath = Path.Combine(env.ContentRootPath, "wwwroot", "dist-beta", "index.html");
+
+    context.Response.ContentType = "text/html";
+    await context.Response.SendFileAsync(filePath);
+}).RequireAuthorization();
+
 app.MapFallback(async context =>
 {
     var filePath = Path.Combine(env.ContentRootPath, "wwwroot", "dist", "index.html");

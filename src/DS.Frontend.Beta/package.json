@@ -1,0 +1,36 @@
+{
+  "name": "ds-frontend-beta",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "npm run typecheck && vite build",
+    "typecheck": "vue-tsc -b",
+    "preview": "vite preview"
+  },
+  "volta": {
+    "node": "24.19.0"
+  },
+  "dependencies": {
+    "@microsoft/signalr": "^11.0.0",
+    "@nuxt/ui": "^4.13.0",
+    "@vueuse/core": "^14.4.0",
+    "axios": "^1.21.1",
+    "dompurify": "^3.4.18",
+    "pinia": "^4.1.0",
+    "tailwindcss": "^4.3.5",
+    "vue": "^3.5.46",
+    "vue-advanced-cropper": "^2.8.9",
+    "vue-router": "^5.5.1"
+  },
+  "devDependencies": {
+    "@iconify-json/lucide": "^1.2.157",
+    "@types/node": "^26.6.6",
+    "@vitejs/plugin-vue": "^6.0.11",
+    "@vue/tsconfig": "^0.9.1",
+    "typescript": "~5.9.3",
+    "vite": "^8.3.8",
+    "vue-tsc": "^3.3.14"
+  }
+}

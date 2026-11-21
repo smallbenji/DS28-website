@@ -1801,7 +1801,8 @@ Ubesluttede punkter:
 
 - ASP.NET Core og Vue/Vite.
 - ASP.NET Core Identity og OpenIddict til identitet og login.
-- Buefy til frontend-komponenter.
+- Buefy til frontend-komponenter. En beta-frontend med Nuxt UI afprøves, se
+  [Beta-frontend med Nuxt UI](#beta-frontend-med-nuxt-ui).
 - Hosting: Smallhosting.
 - Services: Grafana og Prometheus.
 - CMS-valget var eksempelvis WordPress.
@@ -2196,7 +2197,8 @@ til projektet. Kontrollér altid koden igen ved fremtidige ændringer.
 - Keycloak er fjernet fra planen efter Benjamins beslutning. Det er ikke en
   kommende integration eller en åben arkitekturbeslutning. Backend bruger
   ASP.NET Core Identity og OpenIddict.
-- Frontend bruger Vue/Vite og Buefy.
+- Frontend bruger Vue/Vite og Buefy. `src/DS.Frontend.Beta` er en separat
+  beta-frontend med Nuxt UI, serveret på `/beta`.
 - Globale roller og rettigheder ligger i `DS.Backend/Roles.cs`. Planens roller
   er ikke nødvendigvis implementeret med de beskrevne rettigheder.
 - Spejdergrupper er adskilt fra globale roller. `User.Group` knytter en bruger
@@ -2343,6 +2345,182 @@ tekstregler og brudpunkter ud fra de mønstre, der var mest udbredt i koden.
 Eksisterende kode er ikke omskrevet; afvigelser er listet i guiden og rettes,
 når filerne alligevel ændres. En fælles SCSS-fil med farvevariabler er foreslået,
 men ikke besluttet.
+
+### Beta-frontend med Nuxt UI
+
+**Beslutning 2026-11-20 (implementeret som første skridt):** En ny frontend,
+`src/DS.Frontend.Beta`, bygges med Vue, Nuxt UI 4 og Tailwind CSS 4 ved siden
+af den nuværende Buefy-frontend. Begrundelsen er, at Nuxt UI ser bedre ud og
+har færdige dashboard-komponenter, som gør det nemmere at give hvert modul sit
+eget dashboard. Beta er et separat projekt, så Bulma og Tailwind aldrig
+indlæses på samme side.
+
+- Services, stores, `lib` og `types` er kopieret fra `DS.Frontend`, ikke delt.
+  Ændringer i de kopierede filer skal derfor laves begge steder, så længe
+  begge frontends findes.
+- Beta bygges til `DS.Backend/wwwroot/dist-beta/` og serveres på `/beta/*`
+  (`Program.cs`), som udgangspunkt kun for indloggede brugere. Login,
+  registrering, glemt og nulstil adgangskode, invitationer og den offentlige
+  forhåndstilmelding serveres også uden login under `/beta`
+  (`AnonymousController`), ligesom de tilsvarende sider i den nuværende
+  frontend. Beta-routeren skelner mellem offentlige sider (`meta.public`),
+  sider kun for gæster (`meta.guestOnly`, indloggede sendes til forsiden) og
+  sider, der kræver login, og sender til `/beta/login` med `returnUrl`.
+  Backendens cookie-login sender stadig til den nuværende `/login`, når en
+  side under `/beta` åbnes uden login.
+- Ikoner er Lucide via `@iconify-json/lucide` og bundtes ved build, så
+  browseren ikke henter ikoner fra Iconifys API.
+- Den globale søgning fra `SearchMenu.vue` er i beta Nuxt UI's
+  `UDashboardSearch` med en søgeknap øverst i sidebaren. Den viser moduler fra
+  HQ-genvejene og søger i tavler, grupper og aktiviteter via `/api/v1/search`.
+  Den åbnes med ⌘/Ctrl+K i stedet for ⌘/Ctrl+Space, som Spotlight optager på
+  Mac. Listerne i bruger-, gruppe- og teamstyringen har derfor ikke længere
+  deres egen ⌘/Ctrl+K-genvej.
+- Brugeren nederst i sidebaren åbner en brugermenu med »Min profil«, »Vis som
+  …« (kun SysAdmin, under visning »Stop visning«) og »Log ud«, som i den
+  nuværende frontends brugermenu. »Til nuværende HQ« ligger fortsat direkte i
+  sidebaren. »Vis som …« åbner samme valg af rolle som i dag. Under visning står et gult banner øverst i sidebaren med
+  rollen og »Stop visning«. Efter start og stop sendes man til forsiden, så man
+  ikke står på en side, rollen ikke har adgang til.
+- Beta følger som udgangspunkt systemets lyse eller mørke tema. En menu ved
+  brugeren nederst i sidebaren vælger mellem Automatisk (følger systemet),
+  Lys og Mørk, og valget gemmes i browseren. Den bruger `useColorMode` fra
+  `@vueuse/core`, som Nuxt UI selv bruger, og pakken er derfor skrevet
+  eksplicit i beta's `package.json` med samme version.
+- Første modul er aktiviteter: `/beta/activity` viser for
+  aktivitetsadministratorer nøgletal, filtre og en sorterbar tabel og for
+  andre den fulde teamvisning med medlemmer, aktiviteter og oprettelse af
+  team. `/beta/activity/:id` er aktivitetsdetaljen med faner, filer i Google
+  Drev og godkendelse, og `/beta/activity/teams/:id?` (kræver `ActivityAdmin`)
+  er teamstyringen. Aktivitetsdetaljen henter selv aktiviteten, når siden
+  åbnes, og datoer på filer vises med `Intl`, fordi `formatDate` i
+  `lib/util.ts` viser måneden én for lavt.
+- Forsiden `/beta/` viser de samme HQ-genveje som `Home.vue` fra
+  `/api/v1/home` samt versionen. Backendens Font Awesome-navne oversættes til
+  Lucide-ikoner i `lib/hqShortcuts.ts`. Genveje til moduler, der findes i beta,
+  åbner i beta, og de øvrige åbner i den nuværende frontend.
+- `/beta/admin` (kræver `AdminAccess`) viser de samme sektioner og
+  tilmeldingsstatistik som `Admin.vue` og kan starte den historiske
+  synkronisering. Undersiderne og Hangfire åbner i den nuværende frontend, og
+  Hangfire åbner i et nyt vindue som i dag.
+- `/beta/admin/user/:id?` er brugerstyringen fra `User.vue`: liste med søgning,
+  detaljer, oprettelse, invitation, roller, stillinger, lås, nulstillingslink og
+  sletning med samme rolletjek som i dag. Forskelle fra den nuværende side:
+  stamdata redigeres i en kladde og gemmes først med »Gem«, så ugemte ændringer
+  ikke vises i listen, og fjernelse af roller, låsning og sletning bekræftes i
+  en dialog. På mobil åbner brugeren i en skuffe. Upload af profilbillede er
+  ikke flyttet; knappen linker til brugeren i den nuværende frontend, mens
+  »Fjern billede« virker i beta.
+- `/beta/admin/groups/:id?` er gruppestyringen fra `Groups.vue`: liste med
+  søgning, oprettelse, stamdata, spejdere med patruljemedlemskaber og
+  patruljeledere, patruljer, gruppens brugere og tilmeldingstal fra 2024 (kun
+  for `AdminAccess`). Navn og distrikt redigeres i en kladde og gemmes med
+  »Gem«. Spejdere, patruljer og medlemskaber gemmes med det samme som i dag, og
+  siden læser gruppen fra store efter hver handling i stedet for at rette en
+  lokal kopi. Gruppens brugere linker til brugerstyringen i beta.
+- `/beta/admin/camp-settings` har de samme to kontakter som `CampSettings.vue`
+  til forhåndstilmelding og endelig tilmelding. Beta viser desuden status som
+  tekst, en toast ved ændring og en fejlbesked, hvis ændringen ikke kan
+  bekræftes. Den nuværende side gemmer fejlen uden at vise den.
+- **Beslutning 2026-11-20 (implementeret i beta):** Forbindelsen til Google Drev
+  fra `GoogleAdmin.vue` ligger i beta som en sektion i lejrindstillingerne i
+  stedet for på en egen side. Siden kræver `PreSignupManage` eller
+  `AdminAccess` og viser tilmeldingssektionen for `PreSignupManage` og Google
+  Drev for `AdminAccess`, så rollekravene er de samme som i dag.
+  `/beta/admin/google` sender videre til lejrindstillingerne. Backenden sender
+  stadig brugeren tilbage til `/admin/google` i den nuværende frontend efter
+  forbindelse til Google; det ændres først, når den nuværende side udfases.
+- `/beta/admin/exports` (kræver `ExportsView`) viser de samme udtræk som
+  `Exports.vue` og henter dem som .xlsx via det samme API. Mens et udtræk
+  hentes, er de andre knapper låst.
+- `/beta/admin/openiddict` (kræver `OpenIddictManage`) har samme funktioner
+  og regler som `OpenIddictClients.vue`: oprettelse, redigering, nyt secret og
+  sletning, mindst én loginrettighed, PKCE for public-klienter, bekræftelse ved
+  skift af klienttype og en secret-dialog, der ikke kan lukkes ved et uheld.
+  Klienterne vises som kort i stedet for en bred tabel, og scopes vises på
+  kortet.
+- `/beta/org` (kræver `OrgView`) viser organisationsdiagrammet fra
+  `OrgChart.vue` med samme funktioner i en skuffe: redigering, indehavere,
+  invitation, personlig assistent, flytning, understillinger og sletning.
+  Rettighedsreglerne (`orgAccess.ts`) og farvepaletten er kopieret uændret.
+  Stillingens farve vises som en kant i toppen og en svag tone, så den virker i
+  både lyst og mørkt tema, og sletning bekræftes i samme dialog som resten af
+  beta. Organisation vises i sidebaren for brugere med `OrgView`.
+- `/beta/board` og `/beta/board/:id` (kræver `BoardView`) har hele tavlemodulet
+  fra `Board.vue` og `BoardDetail.vue`: oversigt, oprettelse, kolonner, kort,
+  træk-og-slip af kort og kolonner, tag-filter, live-opdatering via SignalR,
+  kortdialog med beskrivelse, tags, ansvarlige, stilling, deadline, prioritet,
+  farve, afhængigheder, pull requests og placeringer på andre tavler samt
+  dialoger til kolonner, medlemmer, farver, tags og tavleindstillinger.
+  Kolonnerne følger den besluttede del af kanban-redesignet (hvide flader med
+  skygge, fast grå eller grøn topkant og skillelinje under overskriften; kort
+  med let grå baggrund, der bliver lys ved hover). Redesignets uafklarede
+  forslag er ikke lavet, med én undtagelse: tavlens handlinger ligger i beta i
+  én »Tavle«-menu, fordi de fem knapper ikke er plads til i dashboard-headeren.
+  Det er ikke en beslutning om den nuværende frontend. Beskrivelseseditoren er
+  Nuxt UI's `UEditor` (TipTap) med samme formateringsmuligheder som før.
+  Kortenes egenskaber er almindelige formularfelter i sidepanelet i stedet for
+  dropdowns.
+- `/beta/group` viser gruppesiden fra `Group.vue`: gruppens navn, ID og
+  distrikt, gruppens brugere og links til forhåndstilmelding, endelig
+  tilmelding og administration af brugere, som åbner i den nuværende frontend.
+  Aktivitetsønskerunde og aktivitetstilmelding står som ikke tilgængelige, som i
+  dag. Beta viser desuden antal spejdere, patruljer og brugere ud fra de data,
+  siden allerede henter, og en tom tilstand for brugere uden gruppe.
+- `/beta/group/pre-signup` er gruppens redigering af forhåndstilmeldingen fra
+  `GroupPreSignupEdit.vue`: de syv grene med tal-felter, total, fortryd og gem,
+  og låste felter, når forhåndstilmeldingen er lukket. Den offentlige
+  `/group-pre-signup` for grupper, der ikke er logget ind, bliver i den
+  nuværende frontend, fordi `/beta` kræver login.
+- `/beta/group/final-signup` er gruppens endelige tilmelding fra
+  `GroupFinalSignup.vue`: oprettelse og sletning af spejdere og patruljer og
+  tildeling af spejdere til patruljer via gruppens eget API. Gruppen hentes
+  igen efter hver handling i stedet for at blive rettet lokalt. Fejl fra
+  serveren vises både på siden og som toast, så de også ses, mens en dialog er
+  åben. Ligesom i dag tjekker siden ikke, om den endelige tilmelding er åben;
+  det afgør backenden.
+- `/beta/group/members` er gruppens brugere fra `GroupMembers.vue`: medlemmer,
+  invitation med email og link, afventende invitationer med link og
+  annullering, og fjernelse af medlemmer med bekræftelse. Invitationslinket kan
+  kopieres med en knap. Backenden laver invitationslinket til
+  `/group-invitation/:id` i den nuværende frontend; beta har sin egen version
+  på `/beta/group-invitation/:id`.
+- `/beta/profile` er profilen fra `Profile.vue` med profilbillede (samme
+  beskæring med `vue-advanced-cropper`), stamdata, adgangskode, notifikationer,
+  MCP, totrinsbekræftelse, recovery codes, passkeys og adgangstokens, og
+  `/beta/twofactor-setup` er den tvungne totrinsopsætning. Recovery codes og
+  nye adgangstokens vises i dialoger, der ikke kan lukkes ved et uheld. Beta
+  rettede to fejl fra den nuværende side: recovery codes ved tilføjelse af en
+  passkey blev aldrig vist, og passkey-listen opdaterede sig ikke. Fjernelse af
+  passkeys og tilbagekaldelse af tokens bekræftes nu. Brugeren nederst i
+  sidebaren linker til profilen, og brugerstyringen kan nu også uploade
+  profilbilleder.
+- Siderne uden login (`/beta/login`, `/beta/register`,
+  `/beta/forgot-password`, `/beta/reset-password/:id`, `/beta/invitation/:id`,
+  `/beta/group-invitation/:id`, `/beta/group-pre-signup`) og formularvisningen
+  `/beta/forms/:id?` bruger et gæstelayout uden sidebar med en tegnet
+  lejrbaggrund (`src/assets/login-background.svg`, fra `ds-design/login`).
+  Baggrunden er lys i begge temaer, så DS28 HQ-teksten over kortet har fast
+  mørk farve. Validering af
+  `returnUrl` er uændret og sker i backenden. Invitationssiden viste i den
+  nuværende frontend formularen, selv når invitationen ikke fandtes, fordi
+  tjekket brugte ref-objektet i stedet for dets værdi; beta viser den kun for
+  gyldige invitationer.
+- **Status 2026-11-20:** Alle sider fra den nuværende frontend findes nu i
+  beta, bortset fra Hangfire, som er backendens egen side. Siderne er bygget og
+  typetjekket, men ikke testet mod den rigtige backend. Benjamin tester dem
+  samlet til sidst.
+- **Sikkerhed (fundet 2026-11-20, rettet i begge frontends):** `htmlToPlainText`
+  i `lib/util.ts` lavede kortenes forhåndsvisning ved at sætte beskrivelsen
+  som `innerHTML` på et element, så event-handlere kørte. Beta bruger
+  `DOMParser`, og den nuværende frontend er rettet på samme måde (PR #106);
+  se "Rettet 2026-11-20 (XSS i kortforhåndsvisning)" under Sikkerhed og
+  auth-hærdning.
+
+Ikke besluttet: om hele frontenden skal flyttes til Nuxt UI, i hvilken
+rækkefølge og hvornår, hvordan brugerne finder beta, og om nye funktioner kun
+skal bygges i beta under overgangen. Designguiden gælder fortsat kun
+`DS.Frontend`.
 
 ### HQ-favicon
 
