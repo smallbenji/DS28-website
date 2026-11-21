@@ -8,38 +8,43 @@ const routes: RouteRecordRaw[] = [
         children: [
             {
                 path: "",
-                component: () => import("@/Views/Home.vue")
+                component: () => import("@/Views/Home.vue"),
+                meta: { pageTitle: "HQ" }
             },
             {
                 path: "activity",
-                component: () => import("@/Views/ActivityDashboard.vue")
+                component: () => import("@/Views/ActivityDashboard.vue"),
+                meta: { pageTitle: "Aktivitetsmodul" }
             },
             {
                 path: "activity/teams/:id?",
                 component: () => import("@/Views/TeamManagement.vue"),
-                meta: { requiredRole: "ActivityAdmin" }
+                meta: { pageTitle: "Teamstyring", requiredRole: "ActivityAdmin" }
             },
             {
                 path: "activity/:id",
-                component: () => import("@/Views/ActivityDetail.vue")
+                component: () => import("@/Views/ActivityDetail.vue"),
+                meta: { pageTitle: "Aktivitetsmodul" }
             },
             {
                 path: "admin",
                 component: () => import("@/Views/Admin.vue"),
-                meta: { requiredRole: "AdminAccess" }
+                meta: { pageTitle: "Admin", requiredRole: "AdminAccess" }
             },
             {
                 path: "admin/user/:id?",
-                component: () => import("@/Views/UserManagement.vue")
+                component: () => import("@/Views/UserManagement.vue"),
+                meta: { pageTitle: "Brugerstyring" }
             },
             {
                 path: "admin/groups/:id?",
-                component: () => import("@/Views/GroupManagement.vue")
+                component: () => import("@/Views/GroupManagement.vue"),
+                meta: { pageTitle: "Gruppestyring" }
             },
             {
                 path: "admin/camp-settings",
                 component: () => import("@/Views/CampSettings.vue"),
-                meta: { requiredAnyRole: ["PreSignupManage", "AdminAccess"] }
+                meta: { pageTitle: "Lejrindstillinger", requiredAnyRole: ["PreSignupManage", "AdminAccess"] }
             },
             {
                 path: "admin/google",
@@ -48,47 +53,52 @@ const routes: RouteRecordRaw[] = [
             {
                 path: "admin/exports",
                 component: () => import("@/Views/Exports.vue"),
-                meta: { requiredRole: "ExportsView" }
+                meta: { pageTitle: "Dataudtræk", requiredRole: "ExportsView" }
             },
             {
                 path: "admin/openiddict",
                 component: () => import("@/Views/OpenIddictClients.vue"),
-                meta: { requiredRole: "OpenIddictManage" }
+                meta: { pageTitle: "OpenIddict-klienter", requiredRole: "OpenIddictManage" }
             },
             {
                 path: "org",
                 component: () => import("@/Views/OrgChart.vue"),
-                meta: { requiredRole: "OrgView" }
+                meta: { pageTitle: "Organisation", requiredRole: "OrgView" }
             },
             {
                 path: "group",
-                component: () => import("@/Views/Group.vue")
+                component: () => import("@/Views/Group.vue"),
+                meta: { pageTitle: "Gruppe" }
             },
             {
                 path: "group/pre-signup",
-                component: () => import("@/Views/GroupPreSignupEdit.vue")
+                component: () => import("@/Views/GroupPreSignupEdit.vue"),
+                meta: { pageTitle: "Forhåndstilmelding" }
             },
             {
                 path: "group/final-signup",
-                component: () => import("@/Views/GroupFinalSignup.vue")
+                component: () => import("@/Views/GroupFinalSignup.vue"),
+                meta: { pageTitle: "Endelig tilmelding" }
             },
             {
                 path: "group/members",
-                component: () => import("@/Views/GroupMembers.vue")
+                component: () => import("@/Views/GroupMembers.vue"),
+                meta: { pageTitle: "Gruppens brugere" }
             },
             {
                 path: "profile",
-                component: () => import("@/Views/Profile.vue")
+                component: () => import("@/Views/Profile.vue"),
+                meta: { pageTitle: "Min profil" }
             },
             {
                 path: "board",
                 component: () => import("@/Views/Boards.vue"),
-                meta: { requiredRole: "BoardView" }
+                meta: { pageTitle: "Tavler", requiredRole: "BoardView" }
             },
             {
                 path: "board/:id",
                 component: () => import("@/Views/BoardDetail.vue"),
-                meta: { requiredRole: "BoardView" }
+                meta: { pageTitle: "Tavle", requiredRole: "BoardView" }
             }
         ]
     },
@@ -96,23 +106,25 @@ const routes: RouteRecordRaw[] = [
         path: "/",
         component: () => import("@/Layouts/GuestLayout.vue"),
         children: [
-            { path: "login", component: () => import("@/Views/Login.vue"), meta: { guestOnly: true } },
-            { path: "register", component: () => import("@/Views/Register.vue"), meta: { guestOnly: true } },
-            { path: "forgot-password", component: () => import("@/Views/ForgotPassword.vue"), meta: { guestOnly: true } },
-            { path: "reset-password/:id", component: () => import("@/Views/ResetPassword.vue"), meta: { public: true } },
-            { path: "invitation/:id", component: () => import("@/Views/Invitation.vue"), meta: { public: true } },
-            { path: "group-invitation/:id", component: () => import("@/Views/GroupInvitation.vue"), meta: { public: true } },
-            { path: "group-pre-signup", component: () => import("@/Views/GroupPreSignup.vue"), meta: { guestOnly: true } },
-            { path: "forms/:id?", component: () => import("@/Views/FormPreview.vue"), meta: { wide: true } }
+            { path: "login", component: () => import("@/Views/Login.vue"), meta: { pageTitle: "Log ind", guestOnly: true } },
+            { path: "register", component: () => import("@/Views/Register.vue"), meta: { pageTitle: "Opret bruger", guestOnly: true } },
+            { path: "forgot-password", component: () => import("@/Views/ForgotPassword.vue"), meta: { pageTitle: "Glemt adgangskode", guestOnly: true } },
+            { path: "reset-password/:id", component: () => import("@/Views/ResetPassword.vue"), meta: { pageTitle: "Nulstil adgangskode", public: true } },
+            { path: "invitation/:id", component: () => import("@/Views/Invitation.vue"), meta: { pageTitle: "Invitation", public: true } },
+            { path: "group-invitation/:id", component: () => import("@/Views/GroupInvitation.vue"), meta: { pageTitle: "Gruppeinvitation", public: true } },
+            { path: "group-pre-signup", component: () => import("@/Views/GroupPreSignup.vue"), meta: { pageTitle: "Forhåndstilmelding", guestOnly: true } },
+            { path: "forms/:id?", component: () => import("@/Views/FormPreview.vue"), meta: { pageTitle: "Formularvisning", wide: true } }
         ]
     },
     {
         path: "/twofactor-setup",
-        component: () => import("@/Views/TwoFactorSetup.vue")
+        component: () => import("@/Views/TwoFactorSetup.vue"),
+        meta: { pageTitle: "Totrinsbekræftelse" }
     },
     {
         path: "/access-denied",
-        component: () => import("@/Views/AccessDenied.vue")
+        component: () => import("@/Views/AccessDenied.vue"),
+        meta: { pageTitle: "Adgang nægtet" }
     },
     {
         path: "/:pathMatch(.*)*",
@@ -157,6 +169,12 @@ router.beforeEach(async (to) => {
     }
 
     return true;
+});
+
+router.afterEach((to, _from, failure) => {
+    if (failure) return;
+
+    document.title = typeof to.meta.pageTitle === "string" ? `${to.meta.pageTitle} · DS28 HQ (beta)` : "DS28 HQ (beta)";
 });
 
 export default router;
