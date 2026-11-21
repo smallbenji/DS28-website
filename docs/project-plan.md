@@ -217,6 +217,13 @@ Controlleren beholder HTTP-svar og rydning af Website-lagets rettighedscache
 efter succes. Eksisterende validering, rækkefølge og invitationsadfærd bevares;
 gruppeinvitationer er fortsat et separat flow. Der ændres ikke databaseskema.
 
+**Rettet 2026-11-21 (DS-64, brugernavn ved invitation):** `InvitationService`
+lavede brugernavnet af fornavn og efternavn. Identity tillader ikke æ, ø og å i
+brugernavne, så inviterede med danske bogstaver i navnet kunne ikke oprette en
+konto, og to personer med samme navn ville støde sammen. Brugernavnet er nu
+invitationens email, som i de øvrige oprettelsesflows. Login slår op på email,
+så eksisterende brugere med navnebaserede brugernavne påvirkes ikke.
+
 **Beslutning 2026-10-19 (implementeret):** Gruppeadministration, gruppens egen
 side med forhåndstilmelding, spejdere og patruljer samt medlemsadministration
 ligger i Application som `GroupAdministrationService`, `GroupService`
