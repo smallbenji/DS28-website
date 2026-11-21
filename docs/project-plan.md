@@ -1036,7 +1036,17 @@ oprettelse, DS-61 API til medlemmer og DS-62 medlemsdialog (venter på DS-61).
 - **Kolonnemenu:** Én »…«-menu erstatter rediger- og sletknapperne: omdøb,
   WIP-grænse, færdig-kolonne, klap sammen og slet. WIP-grænsen vises som en
   bjælke og med tekst, når den overskrides. Kolonner kan klappes sammen til
-  en smal lodret strimmel.
+  en smal lodret strimmel. **Beslutning 2026-11-21:** Sammenklapningen huskes
+  kun i browseren (localStorage), ikke pr. bruger på serveren.
+  *Implementeret i beta (DS-59, `BoardColumn.vue`):* »…«-menuen har »Rediger
+  kolonne …«, en WIP-undermenu (ingen, 2, 3, 4, 5, 6, 8, 10 eller »Anden …«,
+  som åbner kolonnedialogen), »Færdig-kolonne« som afkrydsning, »Klap sammen«
+  og »Slet kolonne …«. WIP-grænse og færdig-markering gemmes straks gennem den
+  eksisterende kolonneopdatering. Antal kort bliver gult, når grænsen er
+  overskredet. Sammenklappede kolonner gemmes som kolonne-id'er under
+  `ds28.board.collapsedColumns`; strimlen viser titel, antal og færdig-ikon, er
+  selv en knap, der folder ud, og et kort, der slippes på den, lægges sidst.
+  Brugere uden redigeringsadgang kan kun klappe sammen.
 - **Tavlehoved:** Tavlens handlinger er samlet i én »Tavle«-menu med »Tilføj
   kort« som eneste primære knap. Medlemsavatarerne åbner medlemmer og
   invitation. Titel, filterlinje og handlinger står på én linje på brede
@@ -1089,8 +1099,6 @@ kræver nyt API.
 
 Åbne spørgsmål:
 
-- Skal en sammenklappet kolonne huskes pr. bruger på serveren eller kun i
-  browseren?
 - Må et kort oprettes med kun en titel via hurtig oprettelse?
 - Må det sidste medlem forlade tavlen, når kun SysAdmin og CampAdmin så har
   adgang?

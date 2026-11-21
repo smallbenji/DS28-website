@@ -71,6 +71,7 @@
                         @delete-column="confirmDeleteColumn"
                         @move-card="moveCard"
                         @reorder-column="reorderColumn"
+                        @update-column="updateColumn"
                     />
                 </div>
             </div>
@@ -134,7 +135,7 @@ import BoardColumnModal from "@/Components/Board/BoardColumnModal.vue";
 import BoardMembersModal from "@/Components/Board/BoardMembersModal.vue";
 import BoardPaletteModal from "@/Components/Board/BoardPaletteModal.vue";
 import BoardService from "@/Services/BoardService";
-import type { BoardColumnDto, BoardMemberDto, WorkItemDto } from "@/types";
+import type { BoardColumnDto, BoardColumnUpdateDto, BoardMemberDto, WorkItemDto } from "@/types";
 
 const route = useRoute();
 const store = useBoardStore();
@@ -284,6 +285,16 @@ async function saveSettings() {
     } finally {
         savingSettings.value = false;
     }
+}
+
+async function updateColumn(column: BoardColumnDto, changes: Partial<BoardColumnUpdateDto>) {
+    const ok = await store.UPDATE_COLUMN(boardId, Number(column.id), {
+        title: column.title,
+        wipLimit: column.wipLimit ?? null,
+        isDoneColumn: column.isDoneColumn,
+        ...changes
+    });
+    if (!ok) notify.error("Kolonnen kunne ikke gemmes.");
 }
 
 async function moveCard(payload: { cardId: number; columnId: number; position: number }) {
