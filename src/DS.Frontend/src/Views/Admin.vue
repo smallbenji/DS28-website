@@ -26,9 +26,10 @@
                         <p class="text-sm font-medium text-highlighted">{{ item.label }}</p>
                         <p class="mt-1 text-3xl font-semibold text-highlighted tabular-nums">
                             {{ item.current }}
-                            <span class="text-base font-normal text-muted">af {{ item.target }}</span>
+                            <span v-if="item.target != null" class="text-base font-normal text-muted">af {{ item.target }}</span>
                         </p>
                         <UProgress
+                            v-if="item.target != null"
                             class="mt-3"
                             size="sm"
                             :model-value="Math.min(item.current, item.target)"
@@ -40,7 +41,7 @@
                         <p class="mt-2 text-xs text-muted">{{ statusText(item) }}</p>
                     </UCard>
 
-                    <p v-if="signupProgress.length > 0" class="text-xs text-muted">Måltallet er deltagerantallet ved sidste lejr.</p>
+                    <p v-if="signupProgress.length > 0" class="text-xs text-muted">{{ targetNote }}</p>
 
                     <h2 class="mt-2 flex items-center gap-2 text-sm font-semibold text-highlighted">
                         <UIcon name="i-lucide-database" class="size-4 text-muted" />
@@ -109,8 +110,15 @@ const sections = computed(() => rawSections.value
         shortcuts: section.entries.map(toHqShortcut)
     })));
 
+const targetNote = computed(() => {
+    const targetYear = signupProgress.value.find((item) => item.targetYear != null)?.targetYear;
+    if (targetYear == null) return "Der er ikke importeret tilmeldinger fra en tidligere lejr, så der vises ikke måltal.";
+
+    return `Måltallet er antal tilmeldte ved lejren i ${targetYear}, inklusive ledere.`;
+});
+
 function percent(item: SignupProgressDto): number {
-    if (item.target <= 0) return 0;
+    if (item.target == null || item.target <= 0) return 0;
 
     return Math.round((item.current / item.target) * 100);
 }
@@ -123,6 +131,7 @@ function progressColor(item: SignupProgressDto): ProgressColor {
 }
 
 function statusText(item: SignupProgressDto): string {
+    if (item.status === "no-target") return "Intet måltal";
     if (item.status === "reached") return "Målet er nået";
     if (item.status === "halfway") return `Halvejs (${percent(item)} %)`;
 

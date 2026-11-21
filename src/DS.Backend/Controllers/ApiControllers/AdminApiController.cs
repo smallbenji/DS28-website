@@ -111,11 +111,13 @@ namespace DS.Backend.Controllers.ApiControllers
         [HttpGet("signup-progress")]
         public async Task<IActionResult> GetSignupProgress()
         {
-            var target = ParticipantData.Stats.TotalUniqueParticipants;
+            var targetYear = await groupInfoService.GetLatestHistoricYear();
 
             var preSignup = await groupInfoService.GetTotalPresignup();
+            var preSignupTarget = targetYear == null ? null : await groupInfoService.GetHistoricPresignupTotal(targetYear.Value);
 
             var finalSignup = await groupInfoService.GetTotalSignups();
+            var finalSignupTarget = targetYear == null ? null : await groupInfoService.GetHistoricSignupTotal(targetYear.Value);
 
             return Ok(new List<SignupProgressDto>
             {
@@ -124,16 +126,18 @@ namespace DS.Backend.Controllers.ApiControllers
                     Key = "pre-signup",
                     Label = "Forhåndstilmelding",
                     Current = preSignup,
-                    Target = target,
-                    Status = StatusFor(preSignup, target)
+                    Target = preSignupTarget,
+                    TargetYear = preSignupTarget == null ? null : targetYear,
+                    Status = StatusFor(preSignup, preSignupTarget)
                 },
                 new()
                 {
                     Key = "final-signup",
                     Label = "Endelig tilmelding",
                     Current = finalSignup,
-                    Target = target,
-                    Status = StatusFor(finalSignup, target)
+                    Target = finalSignupTarget,
+                    TargetYear = finalSignupTarget == null ? null : targetYear,
+                    Status = StatusFor(finalSignup, finalSignupTarget)
                 }
             });
         }
@@ -161,8 +165,9 @@ namespace DS.Backend.Controllers.ApiControllers
             return Accepted();
         }
 
-        private static string StatusFor(int current, int target)
+        private static string StatusFor(int current, int? target)
         {
+            if (target == null) return "no-target";
             if (target <= 0) return "reached";
             if (current >= target) return "reached";
             if (current * 2 >= target) return "halfway";

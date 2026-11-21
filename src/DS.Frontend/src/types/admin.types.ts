@@ -15,7 +15,8 @@ export interface SignupProgressDto {
     key: string;
     label: string;
     current: number;
-    target: number;
+    target: number | null;
+    targetYear: number | null;
     status: string;
 }
 

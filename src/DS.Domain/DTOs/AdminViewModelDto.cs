@@ -18,7 +18,8 @@ namespace DS.Domain.DTOs
         public string Key { get; set; }
         public string Label { get; set; }
         public int Current { get; set; }
-        public int Target { get; set; }
+        public int? Target { get; set; }
+        public int? TargetYear { get; set; }
         public string Status { get; set; }
     }
 

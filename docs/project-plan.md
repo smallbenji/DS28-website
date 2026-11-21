@@ -468,8 +468,33 @@ Aktivitetsmodulet og Wordpress-login bliver stående på HQ, fordi de også er
 tilgængelige for roller uden for systemadministrator og lejrchef.
 
 **Beslutning 2026-09-29:** Adminområdet har en sidebar med tilmeldingsstatistik,
-der sammenligner forhåndstilmelding og endelig tilmelding mod måletallet fra
-`DS/ParticipantData.cs` (`TotalUniqueParticipants`, 285).
+der sammenligner forhåndstilmelding og endelig tilmelding mod et måltal.
+Måltallet kom oprindeligt fra det hardkodede `ParticipantData`
+(`TotalUniqueParticipants`, 285); det er erstattet af DS-71 nedenfor.
+
+**Beslutning 2026-11-21 (DS-71, implementeret):** Måltallene hentes fra de
+importerede historiske tilmeldinger i stedet for et hardkodet tal. Det faste
+tal brugte samme mål for begge tilmeldinger og var et tal uden ledere, mens de
+nuværende tal tæller ledere med. `ParticipantData` og `ParticipantStatsDto`
+er fjernet, da de ikke længere bruges.
+
+- Lejråret er det seneste `camp_year` i `historic_presignup` eller
+  `historic_signup`. Det bestemmes af dataene, ikke af
+  `DS__HistoricRegistration__Year`.
+- Målet for forhåndstilmelding er summen af `participant_count` i
+  `historic_presignup` for lejråret, inklusive ledere og uden venskabsgruppens
+  `guest_count`, da nuværende forhåndstilmelding ikke har gæster.
+- Målet for endelig tilmelding er summen af `participant_count` i
+  `historic_signup` for dag 0 (patruljesummer, inklusive ledere). Dag 1–8
+  summeres ikke, fordi det ville tælle samme deltager flere gange.
+- Uden historik for lejråret har tilmeldingen intet mål: API'et returnerer
+  `target` og `targetYear` som `null` og status `no-target`, og siden viser
+  tallet uden bjælke frem for et opdigtet mål.
+- Ved en lokal import af 2024 med produktionsopsætningen giver det 427 for
+  forhåndstilmelding (15 grupper) og 385 for endelig tilmelding (19 grupper).
+- Uafklaret: om nuværende endelig tilmelding (rækker i `Scout`) omfatter
+  ledere på samme måde som dag 0 i historikken. Målet er aggregerede
+  tilmeldinger, ikke et verificeret antal unikke personer.
 
 Tærsklerne er: grøn når målet er nået, gul når mindst halvdelen er nået, rød
 under halvdelen. Tallet er hærdet som halvdelen af målet, så en tærskel ikke
@@ -1003,8 +1028,8 @@ på `/exports` og linkes fra adminområdet.
 - Der er ikke bygget udtræk for spejdere, brugere, aktiviteter, patruljer eller
   materialer. De blev gennemgået, men valgt ud i første version. Spejdere og
   brugere ville indeholde persondata og kræver en egen afvejning.
-- `ParticipantData` er hardkodet placeholder-data og eksporteres ikke, fordi
-  tallene ikke er rigtige.
+- `ParticipantData` var hardkodet placeholder-data og blev ikke eksporteret,
+  fordi tallene ikke var rigtige. Den er fjernet med DS-71.
 - Der logges ikke, hvem der har hentet et udtræk. Det aktuelle udtræk indeholder
   kun tal, men kommende udtræk med persondata bør overveje det.
 - Backend manglede hidtil danske visningsnavne på enums; de ligger nu i
@@ -2875,7 +2900,9 @@ Lejrår, gren, kilde-id, udtrækskontrolsum og importtidspunkt bevares.
   til gruppen, og historiktabellerne kræver en eksisterende gruppe. Den fremgår
   derfor af gruppelisten, indtil den eventuelt slettes igen; en ny import kræver,
   at gruppen stadig findes.
-- Produktionsimport er ikke udført. Eksisterende `ParticipantData` er uændret.
+- Produktionsimport er ikke udført. Siden DS-71 bruger tilmeldingsstatistikken
+  i Admin de importerede tal som måltal, så den viser intet mål, før importen er
+  kørt i produktion.
   Øvrige gamle datatyper er uden for denne første import.
 
 Kørsel, databetydning og dubletoplysninger er beskrevet i
