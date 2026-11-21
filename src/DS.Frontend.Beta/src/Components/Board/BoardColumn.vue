@@ -1,64 +1,85 @@
 <template>
     <section
-        class="board-column flex max-h-full w-72 shrink-0 flex-col rounded-lg border-t-4 bg-default shadow-sm ring ring-default transition-opacity"
-        :class="[column.isDoneColumn ? 'border-t-success' : 'border-t-(--ui-border-accented)', { 'opacity-50': dragging, 'drop-before': columnTarget && !columnTarget.after, 'drop-after': columnTarget?.after }]"
+        class="board-column flex max-h-full shrink-0 flex-col rounded-lg border-t-4 bg-default shadow-sm ring ring-default transition-opacity"
+        :class="[collapsed ? 'w-11 self-stretch max-h-96' : 'w-72', column.isDoneColumn ? 'border-t-success' : 'border-t-(--ui-border-accented)', { 'opacity-50': dragging, 'drop-before': columnTarget && !columnTarget.after, 'drop-after': columnTarget?.after, 'ring-primary': collapsed && cardTarget }]"
         :aria-label="`Kolonne ${column.title}`"
         @dragover="onDragOver"
         @dragleave="onDragLeave"
         @drop="onDrop"
     >
-        <header class="flex items-center gap-1 border-b border-default px-2 py-2">
-            <button
-                v-if="canManage"
-                type="button"
-                class="cursor-grab rounded p-1 text-muted hover:text-highlighted focus-visible:outline-2 focus-visible:outline-primary"
-                draggable="true"
-                :aria-label="`Flyt kolonnen ${column.title}`"
-                @dragstart="onColumnDragStart"
-            >
-                <UIcon name="i-lucide-grip-vertical" class="size-4" />
-            </button>
-            <h2 class="min-w-0 flex-1 truncate font-semibold text-highlighted">{{ column.title }}</h2>
-            <UBadge
-                :label="column.wipLimit ? `${cards.length} / ${column.wipLimit}` : String(cards.length)"
-                color="neutral"
-                variant="subtle"
-                size="sm"
-            />
-            <template v-if="canManage">
-                <UButton color="neutral" variant="ghost" size="xs" icon="i-lucide-pencil" :aria-label="`Rediger kolonnen ${column.title}`" @click="emit('editColumn', column)" />
-                <UButton color="neutral" variant="ghost" size="xs" icon="i-lucide-trash-2" :aria-label="`Slet kolonnen ${column.title}`" @click="emit('deleteColumn', column)" />
-            </template>
-        </header>
+        <button
+            v-if="collapsed"
+            type="button"
+            class="flex flex-1 flex-col items-center gap-3 rounded-b-lg py-3 hover:bg-elevated focus-visible:outline-2 focus-visible:outline-primary"
+            :aria-label="`Fold kolonnen ${column.title} ud (${cards.length} kort)`"
+            @click="toggleCollapsed"
+        >
+            <UIcon name="i-lucide-chevrons-left-right" class="size-4 text-muted" />
+            <UBadge :label="String(cards.length)" :color="isOverLimit ? 'warning' : 'neutral'" variant="subtle" size="sm" />
+            <UIcon v-if="column.isDoneColumn" name="i-lucide-circle-check" class="size-4 text-success" />
+            <span class="font-semibold text-highlighted [writing-mode:vertical-rl]">{{ column.title }}</span>
+        </button>
 
-        <div ref="cardsContainer" class="flex min-h-16 flex-1 flex-col gap-2 overflow-y-auto p-2">
-            <BoardCard
-                v-for="card in cards"
-                :key="card.id"
-                :card="card"
-                :can-manage="canManage"
-                :is-done-column="column.isDoneColumn"
-                :drop-indicator="dropIndicatorFor(card)"
-                @open="emit('openCard', $event)"
-            />
-            <p
-                v-if="visibleCards.length === 0"
-                class="rounded-md border border-dashed py-4 text-center text-xs"
-                :class="cardTarget ? 'border-primary text-primary' : 'border-default text-muted'"
-            >
-                {{ cardTarget ? 'Slip kortet her' : 'Ingen kort' }}
-            </p>
-        </div>
+        <template v-else>
+            <header class="border-b border-default px-2 py-2">
+                <div class="flex items-center gap-1">
+                    <button
+                        v-if="canManage"
+                        type="button"
+                        class="cursor-grab rounded p-1 text-muted hover:text-highlighted focus-visible:outline-2 focus-visible:outline-primary"
+                        draggable="true"
+                        :aria-label="`Flyt kolonnen ${column.title}`"
+                        @dragstart="onColumnDragStart"
+                    >
+                        <UIcon name="i-lucide-grip-vertical" class="size-4" />
+                    </button>
+                    <UIcon v-if="column.isDoneColumn" name="i-lucide-circle-check" class="ms-1 size-4 shrink-0 text-success" />
+                    <h2 class="min-w-0 flex-1 truncate font-semibold text-highlighted" :class="{ 'ps-1': !canManage && !column.isDoneColumn }">{{ column.title }}</h2>
+                    <UBadge :label="String(cards.length)" :color="isOverLimit ? 'warning' : 'neutral'" variant="subtle" size="sm" />
+                    <UDropdownMenu :items="columnMenu" :content="{ align: 'end' }">
+                        <UButton color="neutral" variant="ghost" size="xs" icon="i-lucide-ellipsis" :aria-label="`Handlinger for kolonnen ${column.title}`" />
+                    </UDropdownMenu>
+                </div>
+                <div v-if="column.wipLimit" class="px-1 pt-2">
+                    <UProgress :model-value="Math.min(cards.length, column.wipLimit)" :max="column.wipLimit" size="xs" :color="isOverLimit ? 'warning' : 'neutral'" />
+                    <p class="mt-1 flex items-center gap-1 text-xs" :class="isOverLimit ? 'font-medium text-warning' : 'text-muted'">
+                        <UIcon v-if="isOverLimit" name="i-lucide-triangle-alert" class="size-3.5" />
+                        {{ wipText }}
+                    </p>
+                </div>
+            </header>
 
-        <div v-if="canManage" class="border-t border-default p-2">
-            <UButton color="neutral" variant="ghost" size="sm" icon="i-lucide-plus" label="Tilføj kort" block class="justify-start" @click="emit('addCard', column.id)" />
-        </div>
+            <div ref="cardsContainer" class="flex min-h-16 flex-1 flex-col gap-2 overflow-y-auto p-2">
+                <BoardCard
+                    v-for="card in cards"
+                    :key="card.id"
+                    :card="card"
+                    :can-manage="canManage"
+                    :is-done-column="column.isDoneColumn"
+                    :drop-indicator="dropIndicatorFor(card)"
+                    @open="emit('openCard', $event)"
+                />
+                <p
+                    v-if="visibleCards.length === 0"
+                    class="rounded-md border border-dashed py-4 text-center text-xs"
+                    :class="cardTarget ? 'border-primary text-primary' : 'border-default text-muted'"
+                >
+                    {{ cardTarget ? 'Slip kortet her' : 'Ingen kort' }}
+                </p>
+            </div>
+
+            <div v-if="canManage" class="border-t border-default p-2">
+                <UButton color="neutral" variant="ghost" size="sm" icon="i-lucide-plus" label="Tilføj kort" block class="justify-start" @click="emit('addCard', column.id)" />
+            </div>
+        </template>
     </section>
 </template>
 
 <script setup lang="ts">
 import { computed, ref } from "vue";
-import type { BoardColumnDto, WorkItemDto } from "@/types";
+import { useLocalStorage } from "@vueuse/core";
+import type { DropdownMenuItem } from "@nuxt/ui";
+import type { BoardColumnDto, BoardColumnUpdateDto, WorkItemDto } from "@/types";
 import { isSameDropTarget, useBoardDrag, type BoardDropTarget } from "@/lib/board/boardDrag";
 import BoardCard from "@/Components/Board/BoardCard.vue";
 
@@ -75,6 +96,7 @@ const emit = defineEmits<{
     deleteColumn: [column: BoardColumnDto];
     moveCard: [payload: { cardId: number; columnId: number; position: number }];
     reorderColumn: [payload: { targetColumnId: number; draggedColumnId: number; after: boolean }];
+    updateColumn: [column: BoardColumnDto, changes: Partial<BoardColumnUpdateDto>];
 }>();
 
 const drag = useBoardDrag();
@@ -83,6 +105,59 @@ const columnId = computed(() => Number(props.column.id));
 const dragging = computed(() => drag.value?.kind === "column" && drag.value.id === columnId.value);
 const draggedCardId = computed(() => drag.value?.kind === "card" ? drag.value.id : null);
 const visibleCards = computed(() => props.cards.filter((card) => Number(card.id) !== draggedCardId.value));
+
+const collapsedColumnIds = useLocalStorage<number[]>("ds28.board.collapsedColumns", []);
+const collapsed = computed(() => collapsedColumnIds.value.includes(columnId.value));
+
+function toggleCollapsed() {
+    collapsedColumnIds.value = collapsed.value
+        ? collapsedColumnIds.value.filter((id) => id !== columnId.value)
+        : [...collapsedColumnIds.value, columnId.value];
+}
+
+const isOverLimit = computed(() => props.column.wipLimit != null && props.cards.length > props.column.wipLimit);
+const wipText = computed(() => {
+    const limit = props.column.wipLimit;
+    if (limit == null) return "";
+    if (!isOverLimit.value) return `Grænse: ${limit}`;
+
+    return `${props.cards.length - limit} over grænsen på ${limit}`;
+});
+
+const wipOptions = [null, 2, 3, 4, 5, 6, 8, 10];
+
+const columnMenu = computed<DropdownMenuItem[][]>(() => {
+    const collapseItem: DropdownMenuItem = { label: "Klap sammen", icon: "i-lucide-chevrons-right-left", onSelect: toggleCollapsed };
+    if (!props.canManage) return [[collapseItem]];
+
+    return [
+        [
+            { label: "Rediger kolonne …", icon: "i-lucide-pencil", onSelect: () => emit("editColumn", props.column) },
+            {
+                label: props.column.wipLimit ? `WIP-grænse: ${props.column.wipLimit}` : "WIP-grænse: ingen",
+                icon: "i-lucide-gauge",
+                children: [
+                    wipOptions.map((limit) => ({
+                        label: limit === null ? "Ingen grænse" : String(limit),
+                        type: "checkbox" as const,
+                        checked: (props.column.wipLimit ?? null) === limit,
+                        onUpdateChecked: () => emit("updateColumn", props.column, { wipLimit: limit })
+                    })),
+                    [{ label: "Anden …", onSelect: () => emit("editColumn", props.column) }]
+                ]
+            },
+            {
+                label: "Færdig-kolonne",
+                icon: "i-lucide-circle-check",
+                type: "checkbox",
+                checked: props.column.isDoneColumn,
+                onUpdateChecked: (checked: boolean) => emit("updateColumn", props.column, { isDoneColumn: checked })
+            },
+            collapseItem
+        ],
+        [{ label: "Slet kolonne …", icon: "i-lucide-trash-2", color: "error", onSelect: () => emit("deleteColumn", props.column) }]
+    ];
+});
 
 const columnTarget = computed(() => {
     const target = drag.value?.target;
@@ -120,6 +195,8 @@ function onColumnDragStart(event: DragEvent) {
 }
 
 function cardInsertionIndex(clientY: number) {
+    if (collapsed.value) return visibleCards.value.length;
+
     const elements = Array.from(cardsContainer.value?.querySelectorAll<HTMLElement>("[data-card-id]") ?? [])
         .filter((element) => Number(element.dataset.cardId) !== draggedCardId.value);
     const index = elements.findIndex((element) => {
