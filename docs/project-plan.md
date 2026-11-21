@@ -768,6 +768,47 @@ Implementeringsnoter:
 - Eksporter deltagerantal pr. dag og pr. gruppe.
 - Muligheden for fakturering til grupper skal undersøges; den er ikke besluttet.
 
+**Beslutning 2026-11-21 (DS-17, ikke implementeret):** Økonomimodulet skal
+afløse det regneark, lejrchefen i dag fører manuelt til budget og regnskab.
+Formålet er struktureret data, der senere kan bruges til automatisering, ikke
+et regneark bygget ind i HQ. Beslutningen erstatter den tidligere afgrænsning
+til aktivitetsbudgetter og udtræk af forbrug. Arbejdet er delt op i DS-72 til
+DS-82 med afhængigheder på tavlen. DS-17 er samlekort.
+
+- Data er et træ med Indtægter og Udgifter øverst og kategorier og
+  underkategorier i flere niveauer, som brugerne selv opretter, som i 24. Fx
+  Udgifter, Materialer, de enkelte aktiviteter, eller Administration,
+  Administrationsmateriale. Kategorier er ikke hardkodet.
+- Hver post har budget og realiseret, ét tal hver i første version, som
+  `decimal` i DKK. Et tomt beløb er ikke det samme som 0. Summer beregnes op
+  gennem træet og gemmes ikke. En post kan kobles til en aktivitet.
+- `activity_budget` flyttes over i træet, så aktivitetens budget kun har én
+  kilde. Budgetændringer må ikke påvirke aktivitetens review eller indhold.
+- Der laves ingen import af regnearket. Lejrchefen flytter tallene over manuelt
+  for at lære systemet, så redigering skal være hurtig (inline, tastatur,
+  flytning og sortering).
+- Lejrchef og kasserer får nye roller `FinanceView` og `FinanceManage`.
+  Kassereren får også `ActivityView` og `ExportsView`, men ikke
+  `ActivityAdmin`.
+- Der indtastes deltagerpriser for hel uge, halv uge og dag. Deltagerbetaling
+  beregnes som indtægt ud fra tilmeldte deltagere og priserne.
+- Kassereren skal i HQ kunne se, hvad hver gruppe skal faktureres for: antal
+  pr. pristype og beløb pr. gruppe, uden navne på spejdere. Excel-udtræk af
+  faktureringen og selve faktureringen er ude af scope foreløbig. Det afløser
+  punktet om at undersøge fakturering til grupper.
+- Det skal registreres i tilmeldingen, hvilke dage hver deltager er på lejren
+  (DS-72). Det er første kort, fordi deltagerbetaling og fakturering bygger på
+  det. Tabellen `scout_signup` findes, men bruges ikke.
+- Materialesystemet skal senere fodre forventet materialeforbrug automatisk ind
+  i økonomien (DS-82) og kræver, at `Material.Price` skiftes fra `double` til
+  `decimal`.
+- Ude af scope: bogføring, bilag, moms, bankafstemning, betalinger, udlæg og
+  refusion samt selve faktureringen.
+
+Stadig åbent: reglen fra deltagelsesdage til pris, om ledere og hjælpere
+registreres og betaler, om der er særlige priser for ledere eller
+aldersgrupper, og kassererens øvrige behov (DS-4).
+
 ### Materialer
 
 - Ved oprettelse af materialelister vises materialer, som andre aktiviteter
