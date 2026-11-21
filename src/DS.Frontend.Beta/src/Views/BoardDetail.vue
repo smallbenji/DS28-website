@@ -62,11 +62,11 @@
                     <BoardColumn
                         v-for="column in board.columns"
                         :key="column.id"
+                        :board-id="boardId"
                         :column="column"
                         :cards="cardsFor(column.id)"
                         :can-manage="canManage && !filters.isFiltering"
                         @open-card="openCard"
-                        @add-card="openNewCard"
                         @edit-column="openColumnEdit"
                         @delete-column="confirmDeleteColumn"
                         @move-card="moveCard"

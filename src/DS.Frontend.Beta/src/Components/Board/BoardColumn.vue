@@ -69,21 +69,44 @@
             </div>
 
             <div v-if="canManage" class="border-t border-default p-2">
-                <UButton color="neutral" variant="ghost" size="sm" icon="i-lucide-plus" label="Tilføj kort" block class="justify-start" @click="emit('addCard', column.id)" />
+                <form v-if="quickAddOpen" class="rounded-md border border-primary bg-default p-2" @submit.prevent="createCard">
+                    <UTextarea
+                        ref="quickAddInput"
+                        v-model="quickAddTitle"
+                        :rows="2"
+                        autoresize
+                        variant="none"
+                        placeholder="Hvad skal laves?"
+                        class="w-full"
+                        :aria-label="`Titel på nyt kort i ${column.title}`"
+                        :disabled="creating"
+                        @keydown.enter.exact.prevent="createCard"
+                        @keydown.esc.prevent="closeQuickAdd"
+                    />
+                    <div class="mt-1 flex items-center justify-end gap-2">
+                        <span class="me-auto text-xs text-muted">Enter opretter</span>
+                        <UButton label="Annuller" size="xs" color="neutral" variant="outline" @click="closeQuickAdd" />
+                        <UButton type="submit" label="Opret kort" size="xs" :loading="creating" :disabled="!quickAddTitle.trim()" />
+                    </div>
+                </form>
+                <UButton v-else color="neutral" variant="ghost" size="sm" icon="i-lucide-plus" label="Tilføj kort" block class="justify-start" @click="openQuickAdd" />
             </div>
         </template>
     </section>
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, nextTick, ref } from "vue";
 import { useLocalStorage } from "@vueuse/core";
 import type { DropdownMenuItem } from "@nuxt/ui";
 import type { BoardColumnDto, BoardColumnUpdateDto, WorkItemDto } from "@/types";
 import { isSameDropTarget, useBoardDrag, type BoardDropTarget } from "@/lib/board/boardDrag";
+import { useBoardStore } from "@/Stores/BoardStore";
+import { useNotify } from "@/lib/notify";
 import BoardCard from "@/Components/Board/BoardCard.vue";
 
 const props = defineProps<{
+    boardId: number;
     column: BoardColumnDto;
     cards: WorkItemDto[];
     canManage: boolean;
@@ -91,7 +114,6 @@ const props = defineProps<{
 
 const emit = defineEmits<{
     openCard: [card: WorkItemDto];
-    addCard: [columnId: number];
     editColumn: [column: BoardColumnDto];
     deleteColumn: [column: BoardColumnDto];
     moveCard: [payload: { cardId: number; columnId: number; position: number }];
@@ -100,6 +122,58 @@ const emit = defineEmits<{
 }>();
 
 const drag = useBoardDrag();
+const store = useBoardStore();
+const notify = useNotify();
+
+const quickAddOpen = ref(false);
+const quickAddTitle = ref("");
+const creating = ref(false);
+const quickAddInput = ref<{ textareaRef?: HTMLTextAreaElement } | null>(null);
+
+async function focusQuickAdd() {
+    await nextTick();
+    quickAddInput.value?.textareaRef?.focus();
+}
+
+function openQuickAdd() {
+    quickAddTitle.value = "";
+    quickAddOpen.value = true;
+    void focusQuickAdd();
+}
+
+function closeQuickAdd() {
+    quickAddOpen.value = false;
+    quickAddTitle.value = "";
+}
+
+async function createCard() {
+    const title = quickAddTitle.value.trim();
+    if (!title || creating.value) return;
+
+    creating.value = true;
+    try {
+        const id = await store.ADD_CARD(props.boardId, {
+            columnId: columnId.value,
+            title,
+            description: null,
+            color: null,
+            assigneeUserIds: [],
+            ownerPositionId: null,
+            dueDate: null,
+            priority: 0,
+            links: []
+        });
+        if (id === null) {
+            notify.error("Kortet kunne ikke oprettes.");
+            return;
+        }
+
+        quickAddTitle.value = "";
+    } finally {
+        creating.value = false;
+        if (quickAddOpen.value) void focusQuickAdd();
+    }
+}
 const cardsContainer = ref<HTMLElement | null>(null);
 const columnId = computed(() => Number(props.column.id));
 const dragging = computed(() => drag.value?.kind === "column" && drag.value.id === columnId.value);
