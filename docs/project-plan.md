@@ -1110,6 +1110,13 @@ oprettelse, DS-61 API til medlemmer og DS-62 medlemsdialog (venter på DS-61).
   `assignedCardCount`: antal ikke-slettede kort på tavlen, som medlemmet er
   ansvarlig for. Brugersøgningen returnerer ikke antallet. Begge frontends har
   fået `removeMember` og feltet i typerne; ingen skemaændring.
+  *Dialog implementeret i beta (DS-62, `BoardMembersModal.vue`):* Søgningen
+  starter fra 2 tegn med en kort forsinkelse, og kun det seneste svar vises.
+  Pil op/ned og Enter tilføjer den markerede bruger. Medlemslisten viser
+  »Ansvarlig for N kort« eller »Ingen kort«, og der vises et filterfelt, når
+  tavlen har flere end 5 medlemmer. Fjern-knappen og »Forlad tavle« er
+  deaktiveret, når der kun er ét medlem. Efter »Forlad tavle« lukkes dialogen,
+  og brugeren sendes til tavleoversigten.
 
 Kræver backend: »Mine kort« kan bygges med den aktuelle brugers id fra
 `MeStore`. Fjernelse af medlemmer, »Forlad tavle« og antal kort pr. medlem
