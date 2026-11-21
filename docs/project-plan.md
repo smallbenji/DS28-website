@@ -1041,6 +1041,14 @@ oprettelse, DS-61 API til medlemmer og DS-62 medlemsdialog (venter på DS-61).
   kort« som eneste primære knap. Medlemsavatarerne åbner medlemmer og
   invitation. Titel, filterlinje og handlinger står på én linje på brede
   skærme.
+  *Implementeret i beta (DS-58, `BoardDetail.vue`):* Knappen »Kolonne« er
+  fjernet fra topbaren; »Ny kolonne …« ligger i »Tavle«-menuen sammen med
+  Indstillinger, Medlemmer og invitation, Tags og Farver. »Tilføj kort« åbner
+  kortdialogen i den første kolonne, der ikke er en færdig-kolonne. Højst tre
+  medlemsavatarer vises fra 768 px og åbner medlemsdialogen, og listen hentes
+  igen, når dialogen lukkes. På mobil vises »Tavle« og »Tilføj kort« kun som
+  ikoner, og mærket »Udviklertavle« skjules. Titel og filterlinje står stadig på
+  hver sin linje, fordi beta bruger Nuxt UI's navbar og toolbar.
 - **Filterlinje:** Søgning og hurtigfiltre (Mine kort, Overskredet, Venter).
   Tags ligger i deres egen »Tags«-dropdown med afkrydsning og antal kort pr.
   tag, og de valgte vises som mærker, der kan fjernes. Flere tags kan

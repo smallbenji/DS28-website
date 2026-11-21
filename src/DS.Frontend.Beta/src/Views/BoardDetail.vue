@@ -8,13 +8,26 @@
                 </template>
                 <template #trailing>
                     <UBadge v-if="board?.isArchived" label="Arkiveret" color="warning" variant="subtle" />
-                    <UBadge v-if="board?.isDeveloperBoard" label="Udviklertavle" color="neutral" variant="outline" />
+                    <UBadge v-if="board?.isDeveloperBoard" label="Udviklertavle" color="neutral" variant="outline" class="hidden sm:inline-flex" />
                 </template>
                 <template v-if="canManage" #right>
-                    <UButton icon="i-lucide-plus" label="Kolonne" color="neutral" variant="outline" class="hidden sm:inline-flex" @click="openColumnCreate" />
+                    <UTooltip v-if="members.length" text="Medlemmer og invitation">
+                        <button
+                            type="button"
+                            class="hidden items-center rounded-full p-0.5 hover:bg-elevated focus-visible:outline-2 focus-visible:outline-primary md:flex"
+                            :aria-label="`Medlemmer og invitation (${members.length} ${members.length === 1 ? 'medlem' : 'medlemmer'})`"
+                            @click="membersOpen = true"
+                        >
+                            <UAvatarGroup size="sm" :max="3">
+                                <UAvatar v-for="member in members" :key="member.id" :text="initials(member)" :alt="`${member.firstName} ${member.lastName}`" />
+                            </UAvatarGroup>
+                            <UIcon name="i-lucide-user-plus" class="ms-2 me-1 size-4 text-muted" />
+                        </button>
+                    </UTooltip>
                     <UDropdownMenu :items="boardMenu" :content="{ align: 'end' }">
-                        <UButton icon="i-lucide-settings-2" label="Tavle" color="neutral" variant="outline" trailing-icon="i-lucide-chevron-down" />
+                        <UButton icon="i-lucide-settings-2" label="Tavle" aria-label="Tavle" color="neutral" variant="outline" trailing-icon="i-lucide-chevron-down" :ui="{ label: 'hidden sm:inline' }" />
                     </UDropdownMenu>
+                    <UButton v-if="addCardColumn" icon="i-lucide-plus" label="Tilføj kort" aria-label="Tilføj kort" :ui="{ label: 'hidden sm:inline' }" @click="openNewCard(addCardColumn.id)" />
                 </template>
             </UDashboardNavbar>
 
@@ -64,7 +77,7 @@
 
             <BoardCardModal v-model:open="cardOpen" :board-id="boardId" :column-id="targetColumnId" :card="editingCard" :can-manage="canManage" />
             <BoardColumnModal v-model:open="columnOpen" :board-id="boardId" :column="editingColumn" />
-            <BoardMembersModal v-model:open="membersOpen" :board-id="boardId" />
+            <BoardMembersModal v-model:open="membersOpen" :board-id="boardId" @update:open="(open) => { if (!open) void loadMembers(); }" />
             <BoardPaletteModal v-model:open="colorsOpen" :board-id="boardId" mode="colors" />
             <BoardPaletteModal v-model:open="tagsOpen" :board-id="boardId" mode="tags" />
 
@@ -120,7 +133,8 @@ import BoardCardModal from "@/Components/Board/BoardCardModal.vue";
 import BoardColumnModal from "@/Components/Board/BoardColumnModal.vue";
 import BoardMembersModal from "@/Components/Board/BoardMembersModal.vue";
 import BoardPaletteModal from "@/Components/Board/BoardPaletteModal.vue";
-import type { BoardColumnDto, WorkItemDto } from "@/types";
+import BoardService from "@/Services/BoardService";
+import type { BoardColumnDto, BoardMemberDto, WorkItemDto } from "@/types";
 
 const route = useRoute();
 const store = useBoardStore();
@@ -159,15 +173,36 @@ const settings = ref({ title: "", description: "", isArchived: false, isDevelope
 
 const boardMenu = computed<DropdownMenuItem[][]>(() => [
     [
-        { label: "Ny kolonne", icon: "i-lucide-plus", onSelect: openColumnCreate },
-        { label: "Medlemmer og invitation", icon: "i-lucide-users", onSelect: () => { membersOpen.value = true; } },
-        { label: "Farver", icon: "i-lucide-palette", onSelect: () => { colorsOpen.value = true; } },
-        { label: "Tags", icon: "i-lucide-tags", onSelect: () => { tagsOpen.value = true; } }
+        { label: "Indstillinger …", icon: "i-lucide-settings", onSelect: openSettings },
+        { label: "Medlemmer og invitation …", icon: "i-lucide-users", onSelect: () => { membersOpen.value = true; } },
+        { label: "Tags …", icon: "i-lucide-tags", onSelect: () => { tagsOpen.value = true; } },
+        { label: "Farver …", icon: "i-lucide-palette", onSelect: () => { colorsOpen.value = true; } }
     ],
     [
-        { label: "Indstillinger", icon: "i-lucide-settings", onSelect: openSettings }
+        { label: "Ny kolonne …", icon: "i-lucide-columns-3", onSelect: openColumnCreate }
     ]
 ]);
+
+const addCardColumn = computed(() => {
+    const columns = board.value?.columns ?? [];
+
+    return columns.find((column) => !column.isDoneColumn) ?? columns[0] ?? null;
+});
+
+const boardService = new BoardService();
+const members = ref<BoardMemberDto[]>([]);
+
+async function loadMembers() {
+    try {
+        members.value = await boardService.getMembers(boardId);
+    } catch {
+        members.value = [];
+    }
+}
+
+function initials(member: BoardMemberDto) {
+    return `${member.firstName?.[0] ?? ""}${member.lastName?.[0] ?? ""}`.toLocaleUpperCase("da-DK") || "?";
+}
 
 const filters = useBoardFilters(board, computed(() => meStore.Me?.id));
 const compact = useLocalStorage("ds28.board.compact", false);
@@ -325,6 +360,7 @@ onMounted(async () => {
         loading.value = false;
     }
 
+    void loadMembers();
     void connectLiveUpdates();
 });
 
