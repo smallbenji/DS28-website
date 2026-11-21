@@ -18,12 +18,12 @@
                 </template>
             </UDashboardNavbar>
 
-            <UDashboardToolbar v-if="board?.description || board?.tags?.length">
-                <p v-if="board?.description" class="min-w-0 flex-1 truncate text-sm text-muted" :title="board.description">{{ board.description }}</p>
-                <div v-if="board?.tags?.length" class="ms-auto flex items-center gap-2">
-                    <span v-if="selectedTagId !== null" class="text-xs text-muted" role="status">{{ filteredCards.length }} kort matcher</span>
-                    <USelect v-model="tagFilter" :items="tagItems" icon="i-lucide-tag" class="w-48" aria-label="Filtrer på tag" />
-                </div>
+            <UDashboardToolbar v-if="board?.description" class="hidden sm:flex">
+                <p class="min-w-0 flex-1 truncate text-sm text-muted" :title="board.description">{{ board.description }}</p>
+            </UDashboardToolbar>
+
+            <UDashboardToolbar v-if="board">
+                <BoardFilterBar v-model:compact="compact" :filters="filters" :tags="board.tags ?? []" :cards="board.cards" :visible-count="filters.filteredCards.length" />
             </UDashboardToolbar>
         </template>
 
@@ -36,13 +36,13 @@
 
             <div v-else class="flex h-full flex-col bg-muted">
                 <UAlert
-                    v-if="selectedTagId !== null"
+                    v-if="filters.isFiltering"
                     class="m-4 mb-0"
                     color="info"
                     variant="subtle"
                     icon="i-lucide-filter"
-                    description="Fjern tagfilteret for at flytte kort og kolonner."
-                    :actions="[{ label: 'Fjern filter', color: 'info', variant: 'outline', onClick: () => { tagFilter = allTags; } }]"
+                    description="Fjern søgning og filtre for at flytte kort og kolonner."
+                    :actions="[{ label: 'Fjern alle', color: 'info', variant: 'outline', onClick: () => filters.clearAll() }]"
                 />
                 <UEmpty v-if="board.columns.length === 0" icon="i-lucide-columns-3" title="Tavlen har ingen kolonner endnu." :actions="canManage ? [{ label: 'Tilføj kolonne', icon: 'i-lucide-plus', onClick: openColumnCreate }] : []" class="flex-1" />
                 <div v-else class="flex min-h-0 flex-1 items-start gap-4 overflow-x-auto p-4" role="region" aria-label="Tavlens kolonner" @dragover.self="clearDropTarget">
@@ -51,7 +51,7 @@
                         :key="column.id"
                         :column="column"
                         :cards="cardsFor(column.id)"
-                        :can-manage="canManage && selectedTagId === null"
+                        :can-manage="canManage && !filters.isFiltering"
                         @open-card="openCard"
                         @add-card="openNewCard"
                         @edit-column="openColumnEdit"
@@ -103,14 +103,17 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, provide, ref, watch } from "vue";
+import { computed, onBeforeUnmount, onMounted, provide, ref } from "vue";
 import { useRoute } from "vue-router";
+import { useLocalStorage } from "@vueuse/core";
 import type { HubConnection } from "@microsoft/signalr";
 import type { DropdownMenuItem } from "@nuxt/ui";
 import { useBoardStore } from "@/Stores/BoardStore";
 import { useMeStore } from "@/Stores/MeStore";
 import { useNotify } from "@/lib/notify";
 import { boardDragKey, type BoardDragState } from "@/lib/board/boardDrag";
+import { boardCompactKey, useBoardFilters } from "@/lib/board/boardFilters";
+import BoardFilterBar from "@/Components/Board/BoardFilterBar.vue";
 import ConfirmModal from "@/Components/ConfirmModal.vue";
 import BoardColumn from "@/Components/Board/BoardColumn.vue";
 import BoardCardModal from "@/Components/Board/BoardCardModal.vue";
@@ -166,23 +169,12 @@ const boardMenu = computed<DropdownMenuItem[][]>(() => [
     ]
 ]);
 
-const allTags = "all";
-const tagFilter = ref(allTags);
-const selectedTagId = computed(() => tagFilter.value === allTags ? null : Number(tagFilter.value));
-const tagItems = computed(() => [
-    { label: "Alle kort", value: allTags },
-    ...(board.value?.tags ?? []).map((tag) => ({ label: tag.name, value: String(tag.id) }))
-]);
-
-watch(() => board.value?.tags, (tags) => {
-    if (selectedTagId.value !== null && !tags?.some((tag) => Number(tag.id) === selectedTagId.value)) tagFilter.value = allTags;
-});
-
-const filteredCards = computed(() => (board.value?.cards ?? [])
-    .filter((card) => selectedTagId.value === null || card.tags?.some((tag) => Number(tag.id) === selectedTagId.value)));
+const filters = useBoardFilters(board, computed(() => meStore.Me?.id));
+const compact = useLocalStorage("ds28.board.compact", false);
+provide(boardCompactKey, compact);
 
 function cardsFor(columnId: number): WorkItemDto[] {
-    return filteredCards.value.filter((card) => String(card.columnId) === String(columnId));
+    return filters.filteredCards.filter((card) => String(card.columnId) === String(columnId));
 }
 
 function openCard(card: WorkItemDto) {

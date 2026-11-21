@@ -1046,6 +1046,14 @@ oprettelse, DS-61 API til medlemmer og DS-62 medlemsdialog (venter på DS-61).
   tag, og de valgte vises som mærker, der kan fjernes. Flere tags kan
   kombineres. Det erstatter dagens filter, hvor man kun kan vælge ét tag.
   Desuden kan man vælge mellem detaljeret og kompakt visning.
+  *Implementeret i beta (DS-57, `BoardFilterBar.vue`, `lib/board/boardFilters.ts`):*
+  Søgning matcher titel og DS-nummer (»DS-12«, »ds12« eller »12«). »Mine kort«
+  bruger den aktuelle brugers id. »Overskredet« og »Venter« medtager ikke kort i
+  en færdig-kolonne. Flere tags kombineres med »eller«, og alle filtre
+  kombineres med »og«. Mens der søges eller filtreres, kan kort og kolonner ikke
+  flyttes, og »Fjern alle« rydder både søgning og filtre. Kompakt visning skjuler
+  beskrivelse og »Venter på«-mærket og huskes i browseren (localStorage). På
+  mobil ligger filtrene i en skuffe bag »Filtre«, og tavlens beskrivelse skjules.
 - **Kort:** Kortets farve vises som en stribe i venstre side i stedet for at
   tone hele kortet. Deadline vises relativt (»I dag«, »3 dage over«), og
   prioritet får tekst. Antal PR-links vises som et tal.
