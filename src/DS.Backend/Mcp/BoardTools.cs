@@ -135,7 +135,7 @@ namespace DS.Backend.Mcp
                 Title = newTitle,
                 Description = newDescription,
                 Color = newColor,
-                AssigneeUserIds = assigneeIds,
+                AssigneeUserIds = assignees == null ? null : assigneeIds,
                 OwnerPositionId = card.OwnerPositionId,
                 DueDate = newDueDate,
                 Priority = newPriority,
@@ -300,6 +300,19 @@ namespace DS.Backend.Mcp
             return $"Fjernede PR-link fra DS-{cardId}.";
         }
 
+        [McpServerTool(Name = "set_completion")]
+        [Description("Mark your own part of a DS28 card as done, or withdraw it. Only an assignee can change their own completion; other assignees are unaffected and the card does not move.")]
+        public async Task<string> SetCompletion(
+            [Description("Board id from list_boards.")] int boardId,
+            [Description("Card number from DS-<id>, for example 42 for DS-42.")] int cardId,
+            [Description("true marks your part as done, false withdraws it.")] bool completed)
+        {
+            var result = await boards.SetCompletion(await ActorAsync(), boardId, cardId, completed);
+            if (result.Outcome != ServiceOutcome.Success) throw new McpException(Describe(result.Outcome, result.Error));
+
+            return completed ? $"Klarmeldte din del af DS-{cardId}." : $"Trak klarmeldingen af DS-{cardId} tilbage.";
+        }
+
         private async Task<BoardActor> ActorAsync()
         {
             var context = httpContextAccessor.HttpContext;
@@ -387,7 +400,7 @@ namespace DS.Backend.Mcp
                 if (card.DueDate.HasValue) meta.Add($"frist {card.DueDate.Value.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)}");
                 if (!string.IsNullOrEmpty(card.Color)) meta.Add($"farve {card.Color}");
                 if (card.Tags.Count > 0) meta.Add($"tags: {string.Join(", ", card.Tags.Select(tag => $"{tag.Name} (id {tag.Id})"))}");
-                if (card.Assignees.Count > 0) meta.Add($"ansvarlige: {string.Join(", ", card.Assignees.Select(user => $"{user.FirstName} {user.LastName}"))}");
+                if (card.Assignees.Count > 0) meta.Add($"ansvarlige: {string.Join(", ", card.Assignees.Select(Assignee))}");
                 if (card.PullRequests.Count > 0) meta.Add($"PR-links: {string.Join(", ", card.PullRequests)}");
                 if (card.WaitingOn.Count > 0) meta.Add($"venter på: {string.Join(", ", card.WaitingOn.Select(Dependency))}");
                 if (card.Blocking.Count > 0) meta.Add($"blokerer: {string.Join(", ", card.Blocking.Select(Dependency))}");
@@ -416,6 +429,12 @@ namespace DS.Backend.Mcp
         {
             var name = dependency.IsVisible ? $"DS-{dependency.Id} {dependency.Title}" : $"DS-{dependency.Id} (skjult kort)";
             return $"{name} ({(dependency.IsDone ? "færdig" : "ikke færdig")})";
+        }
+
+        private static string Assignee(WorkItemAssigneeDto assignee)
+        {
+            var name = $"{assignee.FirstName} {assignee.LastName}";
+            return assignee.CompletedAt.HasValue ? $"{name} (klarmeldt)" : name;
         }
     }
 

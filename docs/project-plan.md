@@ -1310,10 +1310,37 @@ adgang til tavler, og de eksisterende adgangsregler er uændrede.
   profilbillede eller initialer for hver ansvarlig med navnet i et tooltip.
 - API'et modtager `assigneeUserIds`, normaliserer og deduplikerer ID'er og
   afviser ukendte brugere. En tom liste fjerner alle ansvarlige. Svar bruger
-  `assignees` med `UserSummaryDto` (ID, fornavn, efternavn og profilbillede),
-  uden telefonnummer eller øvrige administrationsoplysninger.
+  `assignees` med ID, fornavn, efternavn og profilbillede, uden telefonnummer
+  eller øvrige administrationsoplysninger. DS-40 har siden gjort listen
+  valgfri ved opdatering og tilføjet klarmelding pr. ansvarlig.
 - `026_work_item_assignees.sql` flytter eksisterende tildelinger til
   `work_item_assignee` og fjerner den gamle enkeltbruger-kolonne.
+
+**Beslutning 2026-11-21 (DS-40, implementeret i denne ændring, ikke udgivet):**
+Hver ansvarlig på et kort kan klarmelde sin egen del. Klarmelding er en status
+pr. ansvarlig og er adskilt fra kortets kolonne og udgivelsesstatus: `Ikke
+udgivet` betyder stadig merget og `Færdig` deployet.
+
+- Kun den ansvarlige selv kan klarmelde eller trække sin klarmelding tilbage
+  (`PUT`/`DELETE /api/v1/boards/{id}/cards/{workItemId}/completion`). Der er
+  ingen administratoradgang til at klarmelde for andre i første version.
+- Klarmelding blokerer ikke flytning af kortet; alle behøver ikke at have
+  klarmeldt, før kortet flyttes videre.
+- Fjernes en ansvarlig, slettes klarmeldingen med tildelingen. Tilføjes
+  personen igen, starter vedkommende som ikke klarmeldt. Redigering af kortet
+  i øvrigt bevarer eksisterende klarmeldinger.
+- Ansvarlige på eksisterende kort tilføjes og fjernes enkeltvis
+  (`POST /cards/{workItemId}/assignees` og `DELETE
+  /cards/{workItemId}/assignees/{userId}`), så samtidige ændringer ikke
+  overskriver hinandens ansvarlige. `assigneeUserIds` ved opdatering af et kort
+  er nu valgfri: udeladt bevarer listen, en liste erstatter den. Kortdialogen
+  bruger enkelt-endpoints for eksisterende kort og sender kun listen ved
+  oprettelse.
+- Svar bruger `WorkItemAssigneeDto` med `completedAt` ud over brugerfelterne.
+  Kortdialogen viser status pr. ansvarlig og knappen »Klarmeld min del«;
+  tavlekortet viser »k/n« og markerer klarmeldte avatarer.
+- MCP viser »(klarmeldt)« ved ansvarlige i `get_board` og har værktøjet
+  `set_completion`. `update_card` sender kun ansvarlige, når de angives.
 
 **Beslutning 2026-10-19 (implementeret, træk og slip):** Tavlen viser en blå
 indsættelseslinje før eller efter det kort, musen peger på. Den øverste og

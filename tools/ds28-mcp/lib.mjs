@@ -116,7 +116,7 @@ export function formatBoard(board) {
         const column = board.columns.find(candidate => String(candidate.id) === String(card.columnId));
         const meta = [`kolonne ${column?.title ?? "?"} (id ${card.columnId})`];
         const priority = Number(card.priority ?? 0);
-        const assignees = (card.assignees ?? []).map(user => `${user.firstName} ${user.lastName}`);
+        const assignees = (card.assignees ?? []).map(user => `${user.firstName} ${user.lastName}${user.completedAt ? " (klarmeldt)" : ""}`);
 
         if (priority > 0) meta.push("høj prioritet");
         if (priority < 0) meta.push("lav prioritet");
@@ -174,6 +174,9 @@ export function parseCliArguments(inputSchema, pairs) {
             const value = Number(raw.replace(/^DS-/i, ""));
             if (!Number.isInteger(value)) throw new Error(`${name} skal være et helt tal.`);
             args[name] = value;
+        } else if (types.includes("boolean")) {
+            if (raw !== "true" && raw !== "false") throw new Error(`${name} skal være true eller false.`);
+            args[name] = raw === "true";
         } else if (types.includes("array")) {
             const itemType = property.items?.type;
             const items = raw.trim().startsWith("[") ? JSON.parse(raw) : raw.split(",").map(item => item.trim()).filter(Boolean);

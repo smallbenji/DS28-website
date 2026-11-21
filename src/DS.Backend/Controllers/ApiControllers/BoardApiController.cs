@@ -221,6 +221,38 @@ namespace DS.Backend.Controllers.ApiControllers
             return this.ToActionResult(result);
         }
 
+        [HttpPost("{id:int}/cards/{workItemId:int}/assignees")]
+        public async Task<IActionResult> AddAssignee([FromBody] WorkItemAssigneeCreateDto data, int id, int workItemId)
+        {
+            var result = await service.AddAssignee(GetActor(), data, id, workItemId);
+
+            return this.ToActionResult(result);
+        }
+
+        [HttpDelete("{id:int}/cards/{workItemId:int}/assignees/{userId}")]
+        public async Task<IActionResult> RemoveAssignee(int id, int workItemId, string userId)
+        {
+            var result = await service.RemoveAssignee(GetActor(), id, workItemId, userId);
+
+            return this.ToActionResult(result);
+        }
+
+        [HttpPut("{id:int}/cards/{workItemId:int}/completion")]
+        public async Task<IActionResult> CompleteCard(int id, int workItemId)
+        {
+            var result = await service.SetCompletion(GetActor(), id, workItemId, completed: true);
+
+            return this.ToActionResult(result);
+        }
+
+        [HttpDelete("{id:int}/cards/{workItemId:int}/completion")]
+        public async Task<IActionResult> ReopenCard(int id, int workItemId)
+        {
+            var result = await service.SetCompletion(GetActor(), id, workItemId, completed: false);
+
+            return this.ToActionResult(result);
+        }
+
         [HttpPost("{id:int}/cards/{workItemId:int}/dependencies")]
         public async Task<IActionResult> AddDependency([FromBody] WorkItemDependencyCreateDto data, int id, int workItemId)
         {

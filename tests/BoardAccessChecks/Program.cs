@@ -55,7 +55,7 @@ var boardText = DS.Backend.Mcp.BoardText.Board(new BoardDetailDto
             ColumnId = 4,
             Color = "#3366ff",
             DueDate = new DateOnly(2026, 11, 20),
-            Assignees = [new UserSummaryDto { FirstName = "Ada", LastName = "Lovelace" }],
+            Assignees = [new WorkItemAssigneeDto { FirstName = "Ada", LastName = "Lovelace" }],
         },
     ],
 });
@@ -210,6 +210,27 @@ Check(await controller.UpdateCard(new WorkItemUpdateDto { Title = "Shared", Assi
 Check((await Board(boardId)).Cards.Single().Assignees.Count == 2, "invalid update preserves all assignees");
 Check(await controller.UpdateCard(new WorkItemUpdateDto { Title = "Shared", Color = "#dbeafe", AssigneeUserIds = ["friend"] }, boardId, cardId) is OkResult, "individual assignee can be removed");
 Check((await Board(boardId)).Cards.Single().Assignees.Single().Id == "friend", "removing one assignee preserves the other");
+Check(await controller.UpdateCard(new WorkItemUpdateDto { Title = "Shared", Color = "#dbeafe" }, boardId, cardId) is OkResult, "card update without assignee list succeeds");
+Check((await Board(boardId)).Cards.Single().Assignees.Single().Id == "friend", "card update without assignee list preserves assignees");
+Check(await controller.AddAssignee(new WorkItemAssigneeCreateDto { UserId = "member" }, boardId, cardId) is OkResult, "single assignee can be added");
+Check(await controller.AddAssignee(new WorkItemAssigneeCreateDto { UserId = "member" }, boardId, cardId) is OkResult, "adding an existing assignee is idempotent");
+Check(await controller.AddAssignee(new WorkItemAssigneeCreateDto { UserId = "missing" }, boardId, cardId) is BadRequestObjectResult, "unknown single assignee is rejected");
+Check((await Board(boardId)).Cards.Single().Assignees.Select(user => user.Id).Order().SequenceEqual(new[] { "friend", "member" }), "adding an assignee keeps the existing one");
+Check(await controller.CompleteCard(boardId, cardId) is OkResult, "assignee can mark own part as done");
+var completionAssignees = (await Board(boardId)).Cards.Single().Assignees;
+Check(completionAssignees.Single(user => user.Id == "member").CompletedAt != null && completionAssignees.Single(user => user.Id == "friend").CompletedAt == null, "completion only affects the acting assignee");
+Check(await controller.UpdateCard(new WorkItemUpdateDto { Title = "Shared", Color = "#dbeafe", AssigneeUserIds = ["member", "friend"] }, boardId, cardId) is OkResult, "card update with unchanged assignees succeeds");
+Check((await Board(boardId)).Cards.Single().Assignees.Single(user => user.Id == "member").CompletedAt != null, "card update keeps existing completion");
+Check(await controller.ReopenCard(boardId, cardId) is OkResult, "assignee can withdraw own completion");
+Check((await Board(boardId)).Cards.Single().Assignees.All(user => user.CompletedAt == null), "withdrawn completion is cleared");
+Check(await controller.CompleteCard(boardId, cardId) is OkResult, "assignee can mark own part as done again");
+Check(await controller.RemoveAssignee(boardId, cardId, "member") is OkResult, "single assignee can be removed");
+Check(await controller.AddAssignee(new WorkItemAssigneeCreateDto { UserId = "member" }, boardId, cardId) is OkResult, "removed assignee can be added again");
+Check((await Board(boardId)).Cards.Single().Assignees.Single(user => user.Id == "member").CompletedAt == null, "removing an assignee discards their completion");
+Check(await controller.RemoveAssignee(boardId, cardId, "member") is OkResult, "assignee can be removed after re-adding");
+Check(await controller.CompleteCard(boardId, cardId) is BadRequestObjectResult, "non-assignee cannot mark the card as done");
+Check(await controller.ReopenCard(boardId, cardId) is BadRequestObjectResult, "non-assignee cannot withdraw a completion");
+Check((await Board(boardId)).Cards.Single().Assignees.Single().Id == "friend", "single assignee operations leave the original assignee");
 
 var releaseTag = (int)((OkObjectResult)await controller.CreateTag(new BoardTagUpdateDto { Name = " v0.2.13 ", Color = "#DBEAFE" }, boardId)).Value;
 var fixTag = (int)((OkObjectResult)await controller.CreateTag(new BoardTagUpdateDto { Name = "Fix" }, boardId)).Value;
@@ -251,6 +272,10 @@ var denied = new Dictionary<string, IActionResult>
     ["move card"] = await controller.MoveCard(new WorkItemMoveDto { ColumnId = columnId }, boardId, cardId),
     ["remove card"] = await controller.RemoveCard(boardId, cardId),
     ["placement"] = await controller.AddCardPlacement(new WorkItemPlacementCreateDto { ColumnId = columnId }, boardId, cardId),
+    ["add assignee"] = await controller.AddAssignee(new WorkItemAssigneeCreateDto { UserId = "outsider" }, boardId, cardId),
+    ["remove assignee"] = await controller.RemoveAssignee(boardId, cardId, "friend"),
+    ["complete card"] = await controller.CompleteCard(boardId, cardId),
+    ["reopen card"] = await controller.ReopenCard(boardId, cardId),
     ["create tag"] = await controller.CreateTag(new BoardTagUpdateDto { Name = "Denied" }, boardId),
     ["update tag"] = await controller.UpdateTag(new BoardTagUpdateDto { Name = "Denied" }, boardId, releaseTag),
     ["delete tag"] = await controller.DeleteTag(boardId, releaseTag),
@@ -366,7 +391,7 @@ await RejectMcp(() => mcp.ListBoards(), "existing MCP session cannot call tools 
 ActAs("friend");
 Check((await Board(boardId)).Cards.Single().Placements.Single().BoardId == boardId, "shared card hides inaccessible board metadata");
 Check(await controller.GetBoard(hiddenId) is ForbidResult, "shared card does not grant hidden board access");
-Check(await controller.UpdateCard(new WorkItemUpdateDto { Title = "Friend edit" }, boardId, cardId) is OkResult, "invited friend can edit cards");
+Check(await controller.UpdateCard(new WorkItemUpdateDto { Title = "Friend edit", AssigneeUserIds = [] }, boardId, cardId) is OkResult, "invited friend can edit cards");
 Check((await Board(boardId)).Cards.Single().Color == null, "member can remove card color");
 Check((await Board(boardId)).Cards.Single().Assignees.Count == 0, "empty assignee list clears assignments");
 foreach (var paletteColor in (await Board(boardId)).Colors)

@@ -273,7 +273,7 @@ const tools = [
                 title,
                 description,
                 color,
-                assigneeUserIds,
+                ...(args.assignees === undefined ? {} : { assigneeUserIds }),
                 ownerPositionId: card.ownerPositionId ?? null,
                 dueDate,
                 priority,
@@ -434,6 +434,27 @@ const tools = [
 
             await api("DELETE", `/api/v1/boards/${boardId}/cards/${cardId}/dependencies/${otherCardId}`);
             return `Fjernede afhængigheden mellem DS-${cardId} og DS-${otherCardId}.`;
+        },
+    },
+    {
+        name: "set_completion",
+        description: "Mark your own part of a DS28 card as done, or withdraw it. Only an assignee can change their own completion; other assignees are unaffected and the card does not move.",
+        inputSchema: {
+            type: "object",
+            properties: {
+                boardId: { type: "integer", description: "Board id from list_boards." },
+                cardId: { type: "integer", description: "Card number from DS-<id>, for example 42 for DS-42." },
+                completed: { type: "boolean", description: "true marks your part as done, false withdraws it." },
+            },
+            required: ["boardId", "cardId", "completed"],
+            additionalProperties: false,
+        },
+        handler: async ({ boardId, cardId, completed }) => {
+            if (![boardId, cardId].every(Number.isInteger)) throw new Error("boardId og cardId skal være heltal.");
+            if (typeof completed !== "boolean") throw new Error("completed skal være true eller false.");
+
+            await api(completed ? "PUT" : "DELETE", `/api/v1/boards/${boardId}/cards/${cardId}/completion`);
+            return completed ? `Klarmeldte din del af DS-${cardId}.` : `Trak klarmeldingen af DS-${cardId} tilbage.`;
         },
     },
     ...["add", "remove"].map(action => ({
