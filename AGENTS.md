@@ -149,6 +149,70 @@ too. The design guide does not apply to it. Use Nuxt UI components and Lucide
 icons (`i-lucide-*`) there, and never Buefy or Bulma. Build it with
 `npm run build` in `src/DS.Frontend.Beta`.
 
+## DS28 cards
+
+Work is tracked as cards (`DS-<number>`) on the `DS28 IT` board (id 1) in HQ at
+`hq.distriktssommerlejr.dk`. Do not use GitHub issues or GitHub Projects for
+cards.
+
+### Access
+
+Use the first option your environment supports. All three call the same HQ
+API with the same permissions as the user's own account.
+
+1. **Local MCP server** `tools/ds28-mcp/server.mjs` over stdio. It is
+   registered for Claude Code in `.mcp.json` and for opencode in
+   `opencode.json`.
+2. **Remote MCP** at `https://hq.distriktssommerlejr.dk/mcp`, for cloud agents
+   that cannot run a local process. It uses OAuth or a personal access token,
+   and the account needs the `McpUser` role.
+3. **CLI** for agents without MCP support. It runs the same tools as the local
+   server:
+
+   ```bash
+   node tools/ds28-mcp/cli.mjs
+   node tools/ds28-mcp/cli.mjs get_board boardId=1
+   node tools/ds28-mcp/cli.mjs create_card boardId=1 column=Backlog title="Short title" description="What and why"
+   node tools/ds28-mcp/cli.mjs move_card boardId=1 cardId=DS-42 column="I gang"
+   node tools/ds28-mcp/cli.mjs update_card boardId=1 cardId=DS-42 assignees="Benjamin Falch"
+   node tools/ds28-mcp/cli.mjs add_pull_request boardId=1 cardId=DS-42 url=https://github.com/smallbenji/ds28-website/pull/123
+   ```
+
+   Without arguments it lists every tool and its parameters. Arguments are
+   `name=value`; integers accept `DS-42`, and lists are comma-separated or a
+   JSON array. It exits with code 1 and prints the error on failure.
+
+The local server and the CLI read `DS28_MCP_URL` and `DS28_MCP_TOKEN` from
+`tools/ds28-mcp/.env` (git-ignored, template in `.env.example`) or from the
+environment. The token is a personal access token created under the user's
+profile in HQ. Never print, commit, or paste the token.
+
+### Card lifecycle
+
+- **Create** a new card in `Backlog`, with a short Danish title and a
+  description of what and why. Create a card for work that has none, even if
+  the work is already done.
+- **Start**: when you begin working on a card, first move it to `I gang` and
+  assign the person doing the work.
+- **Pull request**: title it `[DS-<number>]: <short description>` and link it
+  on the card with `add_pull_request`. Link every pull request that belongs to
+  the card.
+- **Merged**: when the pull request is approved and merged, move the card to
+  `Ikke udgivet`.
+- **Released**: when a version tag containing the change is deployed, move
+  the released cards to `Færdig`. `Færdig` means released, not merely merged.
+- Use `Blocked` for a card that cannot proceed, and `Planlægning` for cards
+  that still need clarification before they are ready for `Backlog`.
+
+### Assignees
+
+The assignee is the person who performed the work, by full name, for example
+`Benjamin Falch` when Benjamin works with an agent. Never assign the agent
+itself. `update_card` replaces the assignee list, so read the card with
+`get_board` first and include existing assignees. Before finishing a task,
+verify the assignment on the card, including cards created after the work, and
+keep it through merge and release.
+
 ## Git commits and pull requests
 
 - Commit with the user's own git identity as configured in the repository
@@ -167,14 +231,8 @@ icons (`i-lucide-*`) there, and never Buefy or Bulma. Build it with
   pull requests rather than growing one.
 - Describe what changed, why, how it was tested, and what was not tested.
 - Merge with a merge commit, not a squash, and delete the branch afterwards.
-- When you take a card, assign yourself to it in DS28 and move it to `I gang`.
-  Move it to `Ikke udgivet` when the pull request is merged, and to `Færdig`
-  once the change is part of a deployed tag. `Færdig` means released, not merely
-  merged.
-- Before finishing a task, verify that the person who performed the work is
-  assigned by name on its DS28 card, including cards created after the work.
-  Keep that assignment after completion, merge, and release; preserve any other
-  assignees when adding yourself.
+- Track every pull request on a DS28 card as described in
+  [DS28 cards](#ds28-cards).
 - Pull requests are not built in CI; only CodeQL runs. Build and test locally
   according to the verification section below before merging.
 

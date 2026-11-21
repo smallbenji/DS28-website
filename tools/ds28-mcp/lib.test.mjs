@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { formatBoard, formatBoards, matchUser, parseEnvFile, resolveColumn, resolveTagIds, toHtml } from "./lib.mjs";
+import { formatBoard, formatBoards, matchUser, parseCliArguments, parseEnvFile, resolveColumn, resolveTagIds, toHtml } from "./lib.mjs";
 
 test("parseEnvFile læser nøgler, ignorerer kommentarer og fjerner citationstegn", () => {
     const values = parseEnvFile(`
@@ -84,4 +84,30 @@ test("formatBoard viser tagdefinitioner, valgfri farve og kortets tag-id'er", ()
     const text = formatBoard({ id: 1, title: "IT", columns: [], tags, cards: [{ id: 42, title: "Fejl", tags }] });
     assert.match(text, /Tags:\n- id 1: v0.2.13 \| farve #dbeafe\n- id 2: Fix \| farve ingen/);
     assert.match(text, /tags: v0.2.13 \(id 1\), Fix \(id 2\)/);
+});
+
+test("parseCliArguments omsætter navn=værdi efter værktøjets skema", () => {
+    const schema = {
+        properties: {
+            boardId: { type: "integer" },
+            cardId: { type: "integer" },
+            title: { type: "string" },
+            dueDate: { type: ["string", "null"] },
+            tagIds: { type: ["array", "null"], items: { type: "integer" } },
+            assignees: { type: "array", items: { type: "string" } },
+        },
+    };
+
+    assert.deepEqual(parseCliArguments(schema, ["boardId=1", "cardId=DS-42", "title=42 = svaret", "dueDate=null", "tagIds=3,4", "assignees=[\"Ada Lovelace\"]"]), {
+        boardId: 1,
+        cardId: 42,
+        title: "42 = svaret",
+        dueDate: null,
+        tagIds: [3, 4],
+        assignees: ["Ada Lovelace"],
+    });
+    assert.deepEqual(parseCliArguments(schema, ["assignees="]), { assignees: [] });
+    assert.throws(() => parseCliArguments(schema, ["boardId=en"]), /helt tal/);
+    assert.throws(() => parseCliArguments(schema, ["ukendt=1"]), /Ukendt argument "ukendt"/);
+    assert.throws(() => parseCliArguments(schema, ["boardId"]), /navn=værdi/);
 });

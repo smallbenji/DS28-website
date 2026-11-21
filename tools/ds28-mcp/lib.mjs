@@ -153,3 +153,35 @@ export function formatCardSearch(cards) {
         })
         .join("\n");
 }
+
+export function parseCliArguments(inputSchema, pairs) {
+    const properties = inputSchema?.properties ?? {};
+    const args = {};
+
+    for (const pair of pairs) {
+        const separator = pair.indexOf("=");
+        if (separator <= 0) throw new Error(`Argumentet "${pair}" skal skrives som navn=værdi.`);
+
+        const name = pair.slice(0, separator);
+        const raw = pair.slice(separator + 1);
+        const property = properties[name];
+        if (!property) throw new Error(`Ukendt argument "${name}". Gyldige: ${Object.keys(properties).join(", ") || "ingen"}.`);
+
+        const types = [property.type].flat();
+        if (raw === "null" && types.includes("null")) {
+            args[name] = null;
+        } else if (types.includes("integer")) {
+            const value = Number(raw.replace(/^DS-/i, ""));
+            if (!Number.isInteger(value)) throw new Error(`${name} skal være et helt tal.`);
+            args[name] = value;
+        } else if (types.includes("array")) {
+            const itemType = property.items?.type;
+            const items = raw.trim().startsWith("[") ? JSON.parse(raw) : raw.split(",").map(item => item.trim()).filter(Boolean);
+            args[name] = itemType === "integer" ? items.map(Number) : items;
+        } else {
+            args[name] = raw;
+        }
+    }
+
+    return args;
+}

@@ -426,3 +426,40 @@ test("MCP viser flere PR-links og fjerner dem enkeltvis", async () => {
         server.close();
     }
 });
+
+test("CLI'en kalder samme værktøjer og giver fejlkode ved fejl", async () => {
+    const server = await startStubServer();
+    const env = {
+        ...process.env,
+        DS28_MCP_URL: `http://127.0.0.1:${server.address().port}`,
+        DS28_MCP_TOKEN: bearerToken,
+        DS28_MCP_INSECURE_TLS: "0",
+    };
+    const runCli = (...args) => new Promise(resolve => {
+        const child = spawn(process.execPath, [join(here, "cli.mjs"), ...args], { env });
+        let stdout = "", stderr = "";
+        child.stdout.on("data", chunk => { stdout += chunk; });
+        child.stderr.on("data", chunk => { stderr += chunk; });
+        child.on("close", code => resolve({ code, stdout, stderr }));
+    });
+
+    try {
+        const url = "https://github.com/example/project/pull/12";
+        const added = await runCli("add_pull_request", "boardId=1", "cardId=DS-42", `url=${url}`);
+        assert.equal(added.code, 0, added.stderr);
+        assert.match(added.stdout, /Tilknyttede PR-link til DS-42/);
+
+        const board = await runCli("get_board", "boardId=1");
+        assert.match(board.stdout, new RegExp(`- DS-42 .*PR-links: ${url}`));
+
+        const help = await runCli();
+        assert.equal(help.code, 0);
+        assert.match(help.stdout, /add_pull_request/);
+
+        const unknown = await runCli("move_card", "boardId=1", "cardId=42", "foo=1");
+        assert.equal(unknown.code, 1);
+        assert.match(unknown.stderr, /Ukendt argument "foo"/);
+    } finally {
+        server.close();
+    }
+});

@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "ds28-boards": {
+      "command": "node",
+      "args": ["tools/ds28-mcp/server.mjs"]
+    }
+  }
+}
