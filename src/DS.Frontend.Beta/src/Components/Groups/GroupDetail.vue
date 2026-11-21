@@ -12,9 +12,6 @@
                         <h3 class="font-semibold text-highlighted">Stamdata</h3>
                     </template>
                     <form id="group-form" class="flex flex-col gap-4" @submit.prevent="save">
-                        <UFormField label="ID">
-                            <UInput :model-value="group.id" disabled class="w-full" />
-                        </UFormField>
                         <UFormField label="Navn">
                             <UInput v-model="draftName" class="w-full" />
                         </UFormField>
@@ -23,9 +20,12 @@
                         </UFormField>
                     </form>
                     <template #footer>
-                        <div class="flex justify-end gap-2">
-                            <UButton v-if="isDirty" color="neutral" variant="ghost" label="Fortryd" @click="resetDraft" />
-                            <UButton type="submit" form="group-form" label="Gem" :loading="saving" :disabled="!isDirty || !draftName.trim()" />
+                        <div class="flex flex-wrap items-center justify-between gap-2">
+                            <CopyableValue label="Gruppe-ID" :value="group.id" />
+                            <div class="ms-auto flex gap-2">
+                                <UButton v-if="isDirty" color="neutral" variant="ghost" label="Fortryd" @click="resetDraft" />
+                                <UButton type="submit" form="group-form" label="Gem" :loading="saving" :disabled="!isDirty || !draftName.trim()" />
+                            </div>
                         </div>
                     </template>
                 </UCard>
@@ -149,6 +149,7 @@
 import { computed, ref, watch } from "vue";
 import { storeToRefs } from "pinia";
 import GroupsService from "@/Services/GroupsService";
+import CopyableValue from "@/Components/CopyableValue.vue";
 import { useGroupsStore } from "@/Stores/GroupsStore";
 import { useHasRole } from "@/lib/permissions";
 import { useNotify } from "@/lib/notify";
