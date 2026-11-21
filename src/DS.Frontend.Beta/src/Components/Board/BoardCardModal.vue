@@ -129,7 +129,7 @@
                                 type="button"
                                 class="flex size-7 items-center justify-center rounded-md border text-xs focus-visible:outline-2 focus-visible:outline-primary disabled:cursor-not-allowed"
                                 :class="form.color === color.value ? 'border-inverted ring-2 ring-primary' : 'border-default'"
-                                :style="{ backgroundColor: color.value ? `color-mix(in oklab, ${color.value} 30%, var(--ui-bg))` : 'var(--ui-bg)' }"
+                                :style="{ backgroundColor: color.value ?? 'var(--ui-bg)', color: color.value ? readableTextColor(color.value) : undefined }"
                                 :aria-label="color.label"
                                 :title="color.label"
                                 :aria-pressed="form.color === color.value"
@@ -216,6 +216,7 @@ import OrgService from "@/Services/OrgService";
 import { useBoardStore } from "@/Stores/BoardStore";
 import { htmlToPlainText } from "@/lib/util";
 import { useNotify } from "@/lib/notify";
+import { readableTextColor } from "@/lib/board/colorContrast";
 import ConfirmModal from "@/Components/ConfirmModal.vue";
 import RichTextEditor from "@/Components/RichText/RichTextEditor.vue";
 import RichTextViewer from "@/Components/RichText/RichTextViewer.vue";
