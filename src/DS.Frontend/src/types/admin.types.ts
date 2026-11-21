@@ -18,3 +18,8 @@ export interface SignupProgressDto {
     target: number;
     status: string;
 }
+
+export interface SystemCountsDto {
+    users: number;
+    groups: number;
+}

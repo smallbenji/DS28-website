@@ -75,7 +75,7 @@ app.MapGet(McpAuthenticationHandler.MetadataPath, (HttpRequest request) =>
 
 var env = app.Services.GetRequiredService<IWebHostEnvironment>();
 
-app.MapGet("/beta/{**path}", (string? path, HttpRequest request) =>
+app.MapGet("/beta/{**path}", (string path, HttpRequest request) =>
     Results.Redirect($"/{path}{request.QueryString}", permanent: true));
 
 app.MapFallback(async context =>

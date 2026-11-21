@@ -44,6 +44,8 @@
                 </UCard>
 
                 <GoogleDriveConnection v-if="hasRole('AdminAccess')" />
+
+                <HistoricRegistrationSync v-if="hasRole('AdminAccess')" />
             </div>
         </template>
     </UDashboardPanel>
@@ -55,6 +57,7 @@ import RegistrationSettingsService, { type RegistrationSettings } from "@/Servic
 import { useNotify } from "@/lib/notify";
 import { useHasRole } from "@/lib/permissions";
 import GoogleDriveConnection from "@/Components/GoogleDriveConnection.vue";
+import HistoricRegistrationSync from "@/Components/HistoricRegistrationSync.vue";
 
 type SettingKey = keyof RegistrationSettings;
 

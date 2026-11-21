@@ -48,7 +48,7 @@ namespace DS.Backend.Controllers.ApiControllers
                             Title = "Lejrindstillinger",
                             Url = "/admin/camp-settings",
                             Icon = ["sliders"],
-                            RequiredRole = nameof(AppRoles.PreSignupManage)
+                            RequiredRoles = [nameof(AppRoles.PreSignupManage), nameof(AppRoles.AdminAccess)]
                         }
                     ]
                 },
@@ -72,13 +72,6 @@ namespace DS.Backend.Controllers.ApiControllers
                             Icon = ["fa", "h"],
                             Mvc = true,
                             RequiredRole = nameof(AppRoles.HangfireView)
-                        },
-                        new HQPanelEntryDto
-                        {
-                            Title = "Google Drev",
-                            Url = "/admin/google",
-                            Icon = ["globe"],
-                            RequiredRole = nameof(AppRoles.AdminAccess)
                         },
                         new HQPanelEntryDto
                         {
@@ -143,6 +136,16 @@ namespace DS.Backend.Controllers.ApiControllers
                     Status = StatusFor(finalSignup, target)
                 }
             });
+        }
+
+        [HttpGet("system-counts")]
+        public async Task<IActionResult> GetSystemCounts()
+        {
+            var users = await groupInfoService.GetTotalUsers();
+
+            var groups = await groupInfoService.GetTotalGroups();
+
+            return Ok(new SystemCountsDto { Users = users, Groups = groups });
         }
 
         [HttpPost("historic-registration/sync")]
