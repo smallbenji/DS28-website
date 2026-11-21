@@ -33,11 +33,11 @@
                         :aria-current="selectedGroup?.id === group.id ? 'true' : undefined"
                         @click="select(group)"
                     >
-                        <UAvatar :text="group.id" size="md" />
                         <span class="min-w-0 flex-1">
                             <span class="block truncate text-sm font-medium text-highlighted">{{ group.name }}</span>
                             <span class="block truncate text-xs text-muted">{{ districtLabel(group.district) }} · {{ group.scouts.length }} spejdere · {{ group.patrols.length }} patruljer</span>
                         </span>
+                        <UBadge :label="group.id" color="neutral" variant="outline" size="sm" class="shrink-0 font-mono tabular-nums" :aria-label="`Gruppe-ID ${group.id}`" />
                     </button>
                 </li>
             </ul>
