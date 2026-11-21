@@ -183,4 +183,5 @@ export interface BoardMemberDto {
     firstName: string;
     lastName: string;
     email: string;
+    assignedCardCount?: number | null;
 }

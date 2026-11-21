@@ -1099,17 +1099,21 @@ oprettelse, DS-61 API til medlemmer og DS-62 medlemsdialog (venter på DS-61).
   medlem kan fjernes, og man kan selv forlade tavlen, begge med en bekræftelse
   i rækken. Det følger beslutningen fra 2026-10-18 om, at alle medlemmer har
   lige adgang, og indfører ingen roller.
+  **Beslutning 2026-11-21:** Det sidste medlem kan ikke forlade eller fjernes
+  fra tavlen, heller ikke af SysAdmin eller CampAdmin. Når et medlem fjernes,
+  bevares personens ansvar for kortene.
+  *API implementeret (DS-61):* `DELETE /api/v1/boards/{id}/members/{userId}`
+  fjerner et medlem, også den aktuelle bruger selv (»Forlad tavle«). Samme
+  adgang som invitation: medlemmer samt SysAdmin og CampAdmin. Ukendt medlem
+  giver 404, og det sidste medlem giver 409 med »Tavlen skal have mindst ét
+  medlem.«. Fjernelsen opdaterer tavlen live. `GET .../members` returnerer nu
+  `assignedCardCount`: antal ikke-slettede kort på tavlen, som medlemmet er
+  ansvarlig for. Brugersøgningen returnerer ikke antallet. Begge frontends har
+  fået `removeMember` og feltet i typerne; ingen skemaændring.
 
 Kræver backend: »Mine kort« kan bygges med den aktuelle brugers id fra
 `MeStore`. Fjernelse af medlemmer, »Forlad tavle« og antal kort pr. medlem
-kræver nyt API.
-
-Åbne spørgsmål:
-
-- Må det sidste medlem forlade tavlen, når kun SysAdmin og CampAdmin så har
-  adgang?
-- Bevares ansvaret for kortene, når et medlem fjernes? Tildeling giver i dag
-  ikke medlemskab.
+findes i API'et fra DS-61.
 
 **Beslutning 2026-11-19 (implementeret, afhængigheder mellem kort):**
 Et kort kan vente på andre kort. Det er særligt tænkt til udviklingsarbejde,
@@ -1310,7 +1314,9 @@ stedet for rollegated. Dette afløser `required_role`, `BoardsView` og
   tavler. Andre globale roller giver ikke længere tavleadgang i sig selv.
 - Alle medlemmer har lige adgang til tavlens kort, kolonner og indstillinger
   samt til at invitere andre. Der indføres ingen tavleadministrator eller
-  særskilt læserolle. Sletning følger samme medlemsadgang.
+  særskilt læserolle. Sletning følger samme medlemsadgang. Fra 2026-11-21 kan
+  medlemmer også fjerne andre medlemmer og forlade tavlen, så længe der er
+  mindst ét medlem tilbage (se redesignet af kanban-visningen).
 - Invitation gælder **eksisterende brugere** og tilføjer dem direkte uden
   accepttrin eller mail. Nye konti via mailinvitation er ikke del af opgaven.
   Tavlen har en dialog "Medlemmer og invitation" med medlemsliste og søgning

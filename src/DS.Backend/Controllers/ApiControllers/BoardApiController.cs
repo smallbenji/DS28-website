@@ -69,6 +69,14 @@ namespace DS.Backend.Controllers.ApiControllers
             return this.ToActionResult(result);
         }
 
+        [HttpDelete("{id:int}/members/{userId}")]
+        public async Task<IActionResult> RemoveMember(int id, string userId)
+        {
+            var result = await service.RemoveMember(GetActor(), id, userId);
+
+            return this.ToActionResult(result);
+        }
+
         [HttpPost]
         public async Task<IActionResult> CreateBoard([FromBody] BoardCreateDto data)
         {

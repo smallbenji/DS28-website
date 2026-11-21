@@ -572,6 +572,50 @@ Check(await controller.RemoveCard(depsId, depC) is OkResult, "dependency card ca
 Check(!await db.WorkItemDependencies.AnyAsync(dependency => dependency.WorkItemId == depC || dependency.DependsOnWorkItemId == depC), "deleting a card removes its dependencies");
 Check(DepCard(await Board(depsId), depB).WaitingOn.Count == 0, "deleted dependency no longer blocks");
 
+ActAs("owner");
+var membersBoardId = (int)((OkObjectResult)await controller.CreateBoard(new BoardCreateDto { Title = "Members" })).Value;
+Check(await controller.AddMember(new BoardMemberCreateDto { UserId = "member" }, membersBoardId) is OkResult, "owner invites member to member board");
+var membersColumnId = (await Board(membersBoardId)).Columns.First().Id;
+var assignedCardId = (int)((OkObjectResult)await controller.CreateCard(new WorkItemCreateDto { Title = "Assigned", ColumnId = membersColumnId, AssigneeUserIds = ["member"] }, membersBoardId)).Value;
+await controller.CreateCard(new WorkItemCreateDto { Title = "Also assigned", ColumnId = membersColumnId, AssigneeUserIds = ["member", "owner"] }, membersBoardId);
+var deletedAssignedId = (int)((OkObjectResult)await controller.CreateCard(new WorkItemCreateDto { Title = "Deleted assigned", ColumnId = membersColumnId, AssigneeUserIds = ["member"] }, membersBoardId)).Value;
+Check(await controller.RemoveCard(membersBoardId, deletedAssignedId) is OkResult, "assigned card can be deleted");
+List<BoardMemberDto> Members(IActionResult result)
+{
+    return (List<BoardMemberDto>)((OkObjectResult)result).Value;
+}
+var membersWithCounts = Members(await controller.GetMembers(membersBoardId));
+Check(membersWithCounts.Single(member => member.Id == "member").AssignedCardCount == 2, "member list counts assigned cards on the board, excluding deleted cards");
+Check(membersWithCounts.Single(member => member.Id == "owner").AssignedCardCount == 1, "member list counts each member's own assignments");
+Check(Members(await controller.SearchAssignees("member", membersBoardId)).All(user => user.AssignedCardCount == null), "assignee search does not include card counts");
+
+ActAs("outsider");
+Check(await controller.RemoveMember(membersBoardId, "member") is ForbidResult, "outsider cannot remove members");
+
+ActAs("owner");
+boardEvents.Changes.Clear();
+Check(await controller.RemoveMember(membersBoardId, "friend") is NotFoundResult, "removing a non-member returns not found");
+Check(await controller.RemoveMember(membersBoardId, "member") is OkResult, "member can remove another member");
+Check(!await db.BoardMembers.AnyAsync(member => member.BoardId == membersBoardId && member.UserId == "member"), "removed membership is deleted");
+Check(boardEvents.Changes.Contains(membersBoardId), "removing a member notifies the board");
+Check((await db.WorkItems.Include(item => item.Assignees).SingleAsync(item => item.Id == assignedCardId)).Assignees.Any(assignee => assignee.UserId == "member"), "removed member keeps card assignments");
+Check(await controller.RemoveMember(membersBoardId, "owner") is ConflictObjectResult, "last member cannot leave the board");
+Check(await db.BoardMembers.AnyAsync(member => member.BoardId == membersBoardId && member.UserId == "owner"), "last membership is kept");
+
+ActAs("member");
+Check(await controller.GetMembers(membersBoardId) is ForbidResult, "removed member loses access");
+
+ActAs("owner");
+Check(await controller.AddMember(new BoardMemberCreateDto { UserId = "member" }, membersBoardId) is OkResult, "owner invites member again");
+Check(await controller.RemoveMember(membersBoardId, "owner") is OkResult, "member can leave when another member remains");
+Check(await controller.GetMembers(membersBoardId) is ForbidResult, "member who left loses access");
+
+ActAs("admin", nameof(AppGroups.SysAdmin));
+Check(await controller.RemoveMember(membersBoardId, "member") is ConflictObjectResult, "administrator cannot remove the last member either");
+Check(await controller.AddMember(new BoardMemberCreateDto { UserId = "friend" }, membersBoardId) is OkResult, "administrator can invite without being a member");
+Check(await controller.RemoveMember(membersBoardId, "member") is OkResult, "administrator can remove a member without being one");
+
+ActAs("friend");
 Check(await controller.DeleteBoard(boardId) is OkResult, "member can delete board");
 Check(await controller.AddMember(new BoardMemberCreateDto { UserId = "outsider" }, boardId) is ForbidResult, "deleted board rejects invitations");
 Check(await controller.CreateColor(new BoardColorUpdateDto { Name = "Denied", Color = "#123456" }, boardId) is ForbidResult, "deleted board rejects palette changes");

@@ -79,6 +79,10 @@ export default class BoardService {
         await apiPost<void>(`/api/v1/boards/${boardId}/members`, { userId });
     }
 
+    public async removeMember(boardId: number, userId: string): Promise<void> {
+        await apiDelete<void>(`/api/v1/boards/${boardId}/members/${encodeURIComponent(userId)}`);
+    }
+
     public async getColumns(boardId: number): Promise<BoardColumnDto[]> {
         return safeApiCall(async () => {
             const data = await apiGet<BoardColumnDto[]>(`/api/v1/boards/${boardId}/columns`);
