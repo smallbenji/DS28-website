@@ -2487,7 +2487,10 @@ indlæses på samme side.
 - Siderne uden login (`/beta/login`, `/beta/register`,
   `/beta/forgot-password`, `/beta/reset-password/:id`, `/beta/invitation/:id`,
   `/beta/group-invitation/:id`, `/beta/group-pre-signup`) og formularvisningen
-  `/beta/forms/:id?` bruger et gæstelayout uden sidebar. Validering af
+  `/beta/forms/:id?` bruger et gæstelayout uden sidebar med en tegnet
+  lejrbaggrund (`src/assets/login-background.svg`, fra `ds-design/login`).
+  Baggrunden er lys i begge temaer, så DS28 HQ-teksten over kortet har fast
+  mørk farve. Validering af
   `returnUrl` er uændret og sker i backenden. Invitationssiden viste i den
   nuværende frontend formularen, selv når invitationen ikke fandtes, fordi
   tjekket brugte ref-objektet i stedet for dets værdi; beta viser den kun for
