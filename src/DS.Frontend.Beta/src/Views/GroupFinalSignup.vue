@@ -17,6 +17,14 @@
                 </div>
 
                 <UEmpty
+                    v-else-if="loadFailed"
+                    icon="i-lucide-circle-alert"
+                    title="Gruppen kunne ikke hentes"
+                    description="Der opstod en fejl. Prøv igen om lidt."
+                    :actions="[{ label: 'Prøv igen', icon: 'i-lucide-refresh-cw', onClick: load }]"
+                />
+
+                <UEmpty
                     v-else-if="!hasGroup"
                     icon="i-lucide-users-round"
                     title="Du er ikke tilknyttet en gruppe"
@@ -194,13 +202,21 @@ const error = ref("");
 
 const hasGroup = computed(() => !!Group.value.id && Group.value.id !== "0");
 
-onMounted(async () => {
+const loadFailed = ref(false);
+
+async function load() {
+    loading.value = true;
+    loadFailed.value = false;
     try {
-        await groupStore.GET_GROUP();
+        await groupStore.LOAD_GROUP();
+    } catch {
+        loadFailed.value = true;
     } finally {
         loading.value = false;
     }
-});
+}
+
+onMounted(load);
 
 function scoutPatrols(scout: ScoutDto): PatrolDto[] {
     const ids = new Set(scout.memberships.map((membership) => membership.patrolId));

@@ -5,7 +5,8 @@ import { ref } from "vue";
 
 export const useGroupStore = defineStore("group", () => {
     const groupStore = new GroupService();
-    const Group = ref<GroupDto>({ name: "", id: "", district: District.DANEHOF, patrols: [], scouts: [], users: [] });
+    const emptyGroup = (): GroupDto => ({ name: "", id: "", district: District.DANEHOF, patrols: [], scouts: [], users: [] });
+    const Group = ref<GroupDto>(emptyGroup());
 
     async function GET_GROUP() {
         var data = await groupStore.getGroup();
@@ -13,8 +14,15 @@ export const useGroupStore = defineStore("group", () => {
         return data;
     }
 
+    async function LOAD_GROUP() {
+        const data = await groupStore.findGroup();
+        Group.value = data ?? emptyGroup();
+        return data;
+    }
+
     return {
         Group,
-        GET_GROUP
+        GET_GROUP,
+        LOAD_GROUP
     }
 });
