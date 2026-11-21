@@ -47,9 +47,12 @@
                     </UFormField>
                 </form>
                 <template #footer>
-                    <div class="flex justify-end gap-2">
-                        <UButton v-if="isDirty" color="neutral" variant="ghost" label="Fortryd" @click="resetDraft" />
-                        <UButton type="submit" form="user-form" label="Gem" :loading="saving" :disabled="!isDirty" />
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                        <CopyableValue label="Bruger-ID" :value="user.id" />
+                        <div class="ms-auto flex gap-2">
+                            <UButton v-if="isDirty" color="neutral" variant="ghost" label="Fortryd" @click="resetDraft" />
+                            <UButton type="submit" form="user-form" label="Gem" :loading="saving" :disabled="!isDirty" />
+                        </div>
                     </div>
                 </template>
             </UCard>
@@ -164,6 +167,7 @@ import { useUserStore } from "@/Stores/UserStore";
 import { useHasRole } from "@/lib/permissions";
 import { useGroupOptions } from "@/lib/groupOptions";
 import ConfirmModal from "@/Components/ConfirmModal.vue";
+import CopyableValue from "@/Components/CopyableValue.vue";
 import UserAvatar from "@/Components/User/UserAvatar.vue";
 import ProfilePictureUpload from "@/Components/User/ProfilePictureUpload.vue";
 import FileService from "@/Services/FileService";
