@@ -1,390 +1,301 @@
 <template>
-    <BModal v-model="open" has-modal-card :width="1024" custom-content-class="board-card-modal-container" :can-cancel="saving ? false : ['escape', 'outside']">
-        <div v-if="open" class="modal-card board-card-modal">
-            <header class="modal-card-head">
-                <div class="board-card-context">
-                    <span>{{ store.SelectedBoard?.title ?? 'Tavle' }}</span>
+    <UModal v-model:open="open" :dismissible="!saving" :close="false" :ui="{ content: 'sm:max-w-5xl', body: 'p-0 sm:p-0' }">
+        <template #header>
+            <div class="flex w-full flex-wrap items-center gap-2">
+                <div class="flex min-w-0 flex-1 items-center gap-1.5 text-sm text-muted">
+                    <span class="truncate">{{ store.SelectedBoard?.title ?? 'Tavle' }}</span>
                     <span aria-hidden="true">/</span>
-                    <span class="board-card-key is-family-monospace">{{ isNew ? 'Nyt kort' : `DS-${card?.id}` }}</span>
+                    <span class="font-mono text-highlighted">{{ isNew ? 'Nyt kort' : `DS-${card?.id}` }}</span>
                 </div>
-                <div class="board-card-header-actions">
-                    <template v-if="currentPlacement">
-                        <BDropdown v-if="canManage" position="is-bottom-left" aria-role="list" append-to-body @active-change="loadStatusColumns(currentPlacement, $event)">
-                            <template #trigger>
-                                <button
-                                    type="button"
-                                    class="board-card-status-pill"
-                                    :class="{ 'is-complete': currentPlacement.isDoneColumn }"
-                                    :disabled="saving"
-                                    :aria-label="`Status på ${currentPlacement.boardTitle}: ${currentPlacement.columnTitle}. Skift status`"
-                                >
-                                    <font-awesome-icon v-if="currentPlacement.isDoneColumn" icon="check" />
-                                    <span v-else class="board-card-status-dot" aria-hidden="true"></span>
-                                    <span>{{ currentPlacement.columnTitle }}</span>
-                                    <i class="fas fa-chevron-down" aria-hidden="true"></i>
-                                </button>
-                            </template>
-                            <BDropdownItem v-if="statusLoading[currentPlacement.boardId]" disabled>Henter statusser…</BDropdownItem>
-                            <BDropdownItem v-else-if="!statusColumns[currentPlacement.boardId]?.length" @click="loadStatusColumns(currentPlacement, true)">
-                                Kunne ikke hente statusser. Prøv igen
-                            </BDropdownItem>
-                            <BDropdownItem
-                                v-for="column in statusColumns[currentPlacement.boardId] || []"
-                                :key="column.id"
-                                aria-role="listitem"
-                                :disabled="saving || String(column.id) === String(currentPlacement.columnId)"
-                                @click="changePlacementStatus(currentPlacement, column)"
-                            >
-                                <span class="board-card-status-option">
-                                    <span>{{ column.title }}</span>
-                                    <span v-if="column.isDoneColumn" class="board-card-status-done">Færdig</span>
-                                    <font-awesome-icon v-if="String(column.id) === String(currentPlacement.columnId)" icon="check" />
-                                </span>
-                            </BDropdownItem>
-                        </BDropdown>
-                        <span v-else class="board-card-status-pill is-static" :class="{ 'is-complete': currentPlacement.isDoneColumn }">
-                            <font-awesome-icon v-if="currentPlacement.isDoneColumn" icon="check" />
-                            <span v-else class="board-card-status-dot" aria-hidden="true"></span>
-                            <span>{{ currentPlacement.columnTitle }}</span>
-                        </span>
-                    </template>
-                    <BDropdown v-if="canManage && !isNew" position="is-bottom-left" aria-role="list">
-                        <template #trigger>
-                            <BButton size="is-small" class="is-ghost" aria-label="Korthandlinger" :disabled="saving">•••</BButton>
-                        </template>
-                        <BDropdownItem v-if="currentPlacement && placements.length > 1" aria-role="listitem" @click="confirmRemovePlacement(currentPlacement)">Fjern fra denne tavle</BDropdownItem>
-                        <BDropdownItem aria-role="listitem" class="has-text-danger" @click="remove">Slet kort</BDropdownItem>
-                    </BDropdown>
-                    <button type="button" class="delete" aria-label="Luk" :disabled="saving" @click="open = false" />
-                </div>
-            </header>
 
-            <section class="modal-card-body">
-                <div class="board-card-columns">
-                    <div class="board-card-main">
-                        <BoardTagInput v-if="canManage" ref="tagInput" v-model="selectedTags" class="board-card-tags" :tags="availableTags" :disabled="saving" />
-                        <div v-else-if="card?.tags.length" class="tags board-card-tags">
-                            <BoardTagBadge v-for="tag in card.tags" :key="tag.id" :tag="tag" />
-                        </div>
-
-                        <BField v-if="canManage" class="board-card-title-field">
-                            <BInput v-model="form.title" aria-label="Kortets titel" placeholder="Hvad skal gøres?" @keydown.enter="save" />
-                        </BField>
-                        <h2 v-else class="board-card-read-only-title">{{ card?.title }}</h2>
-
-                        <section class="board-card-description" aria-labelledby="board-card-description-heading">
-                            <div class="board-card-section-header">
-                                <h3 id="board-card-description-heading" class="board-card-heading">Beskrivelse</h3>
-                                <BButton v-if="canManage" size="is-small" class="is-ghost" icon-left="pen" @click="focusDescription">Rediger</BButton>
-                            </div>
-                            <div v-if="canManage" ref="descriptionFrame" class="board-card-description-frame" @click="focusDescription">
-                                <RichTextEditor v-model="form.description" />
-                            </div>
-                            <div v-else class="board-card-description-frame is-read-only">
-                                <RichTextViewer v-if="card?.description" :html="card.description" />
-                                <p v-else class="has-text-grey is-size-7">Ingen beskrivelse.</p>
-                            </div>
-                        </section>
-
-                        <BoardCardDependencies v-if="!isNew && card" :board-id="boardId" :card="card" :can-manage="canManage" />
-
-                        <BoardCardPullRequests
-                            v-if="pullRequestCard"
-                            :key="pullRequestCard.id"
-                            :board-id="boardId"
-                            :card="pullRequestCard"
-                            :can-manage="canManage"
+                <template v-if="currentPlacement">
+                    <UDropdownMenu v-if="canManage" :items="statusItems(currentPlacement)" :content="{ align: 'end' }" @update:open="(value: boolean) => loadStatusColumns(currentPlacement!, value)">
+                        <UButton
+                            :color="currentPlacement.isDoneColumn ? 'success' : 'neutral'"
+                            variant="subtle"
+                            size="sm"
+                            :icon="currentPlacement.isDoneColumn ? 'i-lucide-check' : 'i-lucide-circle-dot'"
+                            :label="currentPlacement.columnTitle"
+                            trailing-icon="i-lucide-chevron-down"
+                            :disabled="saving"
+                            :aria-label="`Status på ${currentPlacement.boardTitle}: ${currentPlacement.columnTitle}. Skift status`"
                         />
+                    </UDropdownMenu>
+                    <UBadge v-else :color="currentPlacement.isDoneColumn ? 'success' : 'neutral'" variant="subtle" :label="currentPlacement.columnTitle" />
+                </template>
 
-                        <section v-if="!isNew && card && card.links.length" class="board-card-links-section" aria-labelledby="board-card-links-heading">
-                            <h3 id="board-card-links-heading" class="board-card-heading">Koblinger</h3>
-                            <div class="board-card-links">
-                                <div v-for="link in card.links" :key="`${link.entityType}-${link.entityId}`" class="board-card-link">
-                                    <i class="fas fa-link" aria-hidden="true"></i>
-                                    <span>{{ link.entityType }} #{{ link.entityId }}</span>
-                                </div>
-                            </div>
-                        </section>
+                <UDropdownMenu v-if="canManage && !isNew" :items="cardMenu" :content="{ align: 'end' }">
+                    <UButton color="neutral" variant="ghost" size="sm" icon="i-lucide-ellipsis" aria-label="Korthandlinger" :disabled="saving" />
+                </UDropdownMenu>
+                <UButton color="neutral" variant="ghost" size="sm" icon="i-lucide-x" aria-label="Luk" :disabled="saving" @click="open = false" />
+            </div>
+        </template>
+
+        <template #body>
+            <div class="grid lg:grid-cols-[minmax(0,1fr)_18rem]">
+                <div class="flex min-w-0 flex-col gap-6 p-4 sm:p-6">
+                    <BoardTagInput v-if="canManage" ref="tagInput" v-model="selectedTags" :tags="availableTags" :disabled="saving" />
+                    <div v-else-if="card?.tags.length" class="flex flex-wrap gap-1">
+                        <BoardTagBadge v-for="tag in card.tags" :key="tag.id" :tag="tag" />
                     </div>
 
-                    <aside class="board-card-side" aria-label="Detaljer">
-                        <div class="board-card-properties">
-                            <BoardCardProperty label="Ansvarlige" :action-label="`Ansvarlige: ${assigneeNames || 'ingen'}. Rediger`" :editable="canManage" :close-on-click="false" :disabled="saving">
-                                <template #value>
-                                    <template v-if="form.assignees.length">
-                                        <span class="board-card-avatars" aria-hidden="true">
-                                            <span v-for="user in form.assignees" :key="user.id" class="board-card-avatar">
-                                                <img v-if="user.profilePicture?.url" :src="user.profilePicture.url" alt="" />
-                                                <span v-else>{{ initials(user) }}</span>
-                                            </span>
+                    <UInput
+                        v-if="canManage"
+                        v-model="form.title"
+                        size="xl"
+                        variant="ghost"
+                        placeholder="Hvad skal gøres?"
+                        aria-label="Kortets titel"
+                        class="w-full"
+                        :ui="{ base: 'px-0 text-xl font-semibold' }"
+                        @keydown.enter.prevent="save"
+                    />
+                    <h2 v-else class="text-xl font-semibold text-highlighted">{{ card?.title }}</h2>
+
+                    <section aria-labelledby="card-description-heading">
+                        <h3 id="card-description-heading" class="mb-2 text-sm font-semibold text-highlighted">Beskrivelse</h3>
+                        <RichTextEditor v-if="canManage" v-model="form.description" placeholder="Tilføj en beskrivelse…" />
+                        <RichTextViewer v-else-if="card?.description" :html="card.description" />
+                        <p v-else class="text-xs text-muted">Ingen beskrivelse.</p>
+                    </section>
+
+                    <BoardCardDependencies v-if="!isNew && card" :board-id="boardId" :card="card" :can-manage="canManage" />
+
+                    <BoardCardPullRequests v-if="pullRequestCard" :key="pullRequestCard.id" :board-id="boardId" :card="pullRequestCard" :can-manage="canManage" />
+
+                    <section v-if="!isNew && card && card.links.length" aria-labelledby="card-links-heading">
+                        <h3 id="card-links-heading" class="mb-2 text-sm font-semibold text-highlighted">Koblinger</h3>
+                        <ul class="flex flex-col gap-1 text-sm">
+                            <li v-for="link in card.links" :key="`${link.entityType}-${link.entityId}`" class="flex items-center gap-2">
+                                <UIcon name="i-lucide-link" class="size-4 text-muted" />
+                                {{ link.entityType }} #{{ link.entityId }}
+                            </li>
+                        </ul>
+                    </section>
+                </div>
+
+                <aside class="flex flex-col gap-5 border-t border-default bg-elevated/40 p-4 sm:p-6 lg:border-s lg:border-t-0" aria-label="Detaljer">
+                    <UFormField label="Ansvarlige">
+                        <ul v-if="form.assignees.length" class="mb-2 flex flex-col gap-1">
+                            <li v-for="user in form.assignees" :key="user.id" class="flex items-center gap-2 text-sm">
+                                <UAvatar :src="user.profilePicture?.url" :text="initials(user)" size="2xs" />
+                                <span class="min-w-0 flex-1 truncate">{{ user.firstName }} {{ user.lastName }}</span>
+                                <UButton v-if="canManage" color="neutral" variant="ghost" size="xs" icon="i-lucide-x" :aria-label="`Fjern ${user.firstName} ${user.lastName} som ansvarlig`" :disabled="saving" @click="removeAssignee(user.id)" />
+                            </li>
+                        </ul>
+                        <p v-else class="mb-2 text-sm text-muted">Ingen</p>
+                        <template v-if="canManage">
+                            <UInput v-model="assigneeSearch" icon="i-lucide-search" placeholder="Tilføj: navn eller email…" :loading="assigneeSearching" size="sm" class="w-full" aria-label="Søg efter ansvarlig" />
+                            <ul v-if="assigneeResults.length" class="mt-1 flex flex-col rounded-md border border-default bg-default">
+                                <li v-for="user in assigneeResults" :key="user.id">
+                                    <button
+                                        type="button"
+                                        class="flex w-full items-center justify-between gap-2 px-2 py-1.5 text-left text-sm hover:bg-elevated disabled:opacity-50"
+                                        :disabled="form.assignees.some((assignee) => assignee.id === user.id)"
+                                        @click="selectAssignee(user)"
+                                    >
+                                        <span class="min-w-0">
+                                            <span class="block truncate">{{ user.firstName }} {{ user.lastName }}</span>
+                                            <span class="block truncate text-xs text-muted">{{ user.email }}</span>
                                         </span>
-                                        <span class="board-card-property-text">{{ assigneeFirstNames }}</span>
-                                    </template>
-                                    <span v-else class="has-text-grey">Ingen</span>
-                                </template>
-                                <template #editor>
-                                    <div class="board-card-editor">
-                                        <div v-for="user in form.assignees" :key="user.id" class="board-card-editor-row">
-                                            <span>{{ user.firstName }} {{ user.lastName }}</span>
-                                            <BButton size="is-small" class="is-ghost" :aria-label="`Fjern ${user.firstName} ${user.lastName} som ansvarlig`" title="Fjern ansvarlig" @click="removeAssignee(user.id)">×</BButton>
-                                        </div>
-                                        <BField label="Tilføj ansvarlig" class="mt-2">
-                                            <BInput v-model="assigneeSearch" icon="magnifying-glass" placeholder="Navn eller email..." :loading="assigneeSearching" />
-                                        </BField>
-                                        <div v-if="assigneeResults.length > 0" class="board-card-assignee-results">
-                                            <div v-for="user in assigneeResults" :key="user.id" class="board-card-assignee-result">
-                                                <div class="board-card-assignee-info">
-                                                    <div class="board-card-assignee-name">{{ user.firstName }} {{ user.lastName }}</div>
-                                                    <div class="board-card-assignee-email">{{ user.email }}</div>
-                                                </div>
-                                                <BButton size="is-small" type="is-primary" :disabled="form.assignees.some(assignee => assignee.id === user.id)" @click="selectAssignee(user)">
-                                                    {{ form.assignees.some(assignee => assignee.id === user.id) ? 'Tilføjet' : 'Tilføj' }}
-                                                </BButton>
-                                            </div>
-                                        </div>
-                                        <p v-else-if="assigneeSearch && !assigneeSearching" class="has-text-grey is-size-7">Ingen brugere fundet.</p>
-                                    </div>
-                                </template>
-                            </BoardCardProperty>
-
-                            <BoardCardProperty label="Stilling" :action-label="`Stilling: ${positionTitle ?? 'ingen'}. Rediger`" :editable="canManage" :disabled="saving">
-                                <template #value>
-                                    <span v-if="positionTitle" class="board-card-property-text">{{ positionTitle }}</span>
-                                    <span v-else class="has-text-grey">Ingen stilling</span>
-                                </template>
-                                <template #editor>
-                                    <div class="board-card-editor board-card-choices">
-                                        <button type="button" class="board-card-choice" :aria-pressed="form.ownerPositionId === null" @click="form.ownerPositionId = null">
-                                            <span>Ingen stilling</span>
-                                            <font-awesome-icon v-if="form.ownerPositionId === null" icon="check" />
-                                        </button>
-                                        <button v-for="position in orgPositions" :key="position.id" type="button" class="board-card-choice" :aria-pressed="form.ownerPositionId === position.id" @click="form.ownerPositionId = position.id">
-                                            <span>{{ position.title }}</span>
-                                            <font-awesome-icon v-if="form.ownerPositionId === position.id" icon="check" />
-                                        </button>
-                                    </div>
-                                </template>
-                            </BoardCardProperty>
-
-                            <BoardCardProperty label="Deadline" :action-label="`Deadline: ${dueDateLabel || 'ingen'}. Rediger`" :editable="canManage" :close-on-click="false" :disabled="saving">
-                                <template #value>
-                                    <span v-if="dueDateLabel" class="board-card-property-text" :title="dueDateHint">{{ dueDateLabel }}</span>
-                                    <span v-else class="has-text-grey">Ingen</span>
-                                </template>
-                                <template #editor>
-                                    <div class="board-card-editor">
-                                        <BField label="Deadline">
-                                            <BInput v-model="form.dueDate" type="date" />
-                                        </BField>
-                                        <BButton v-if="form.dueDate" size="is-small" @click="form.dueDate = ''">Fjern deadline</BButton>
-                                    </div>
-                                </template>
-                            </BoardCardProperty>
-
-                            <BoardCardProperty label="Prioritet" :action-label="`Prioritet: ${boardPriorityLabel(form.priority)}. Rediger`" :editable="canManage" :disabled="saving">
-                                <template #value>
-                                    <i v-if="Number(form.priority) > 0" class="fas fa-arrow-up board-card-priority-high" aria-hidden="true"></i>
-                                    <i v-else-if="Number(form.priority) < 0" class="fas fa-arrow-down has-text-grey" aria-hidden="true"></i>
-                                    <span class="board-card-property-text">{{ boardPriorityLabel(form.priority) }}</span>
-                                </template>
-                                <template #editor>
-                                    <div class="board-card-editor board-card-choices">
-                                        <button v-for="option in boardPriorityOptions" :key="option.value" type="button" class="board-card-choice" :aria-pressed="form.priority === option.value" @click="form.priority = option.value">
-                                            <span>{{ option.label }}</span>
-                                            <font-awesome-icon v-if="form.priority === option.value" icon="check" />
-                                        </button>
-                                    </div>
-                                </template>
-                            </BoardCardProperty>
-
-                            <BoardCardProperty label="Farve" :action-label="`Farve: ${selectedColorLabel}. Rediger`" :editable="canManage" :disabled="saving">
-                                <template #value>
-                                    <span class="board-card-color-dot" :style="{ backgroundColor: colorFill(form.color) }" aria-hidden="true"></span>
-                                    <span class="board-card-property-text">{{ selectedColorLabel }}</span>
-                                </template>
-                                <template #editor>
-                                    <div class="board-card-editor">
-                                        <div class="board-card-color-options" role="group" aria-label="Kortets farve">
-                                            <button
-                                                v-for="color in cardColorOptions"
-                                                :key="color.key"
-                                                type="button"
-                                                class="board-card-color-option"
-                                                :style="{ backgroundColor: colorFill(color.value) }"
-                                                :aria-label="color.label"
-                                                :title="color.label"
-                                                :aria-pressed="form.color === color.value"
-                                                @click="form.color = color.value"
-                                            >
-                                                <span aria-hidden="true">{{ form.color === color.value ? '✓' : color.value === null ? '×' : '' }}</span>
-                                            </button>
-                                        </div>
-                                    </div>
-                                </template>
-                            </BoardCardProperty>
-                        </div>
-
-                        <section v-if="!isNew && (otherPlacements.length > 0 || (canManage && availableBoards.length > 0))" class="board-card-section" aria-labelledby="board-card-placements-heading">
-                            <h3 id="board-card-placements-heading" class="board-card-heading">Også på andre tavler</h3>
-
-                            <ul class="board-card-placements">
-                                <li v-for="placement in otherPlacements" :key="placement.boardId" class="board-card-placement">
-                                    <span class="board-card-placement-board">{{ placement.boardTitle }}</span>
-                                    <BDropdown v-if="canManage" position="is-bottom-left" aria-role="list" append-to-body @active-change="loadStatusColumns(placement, $event)">
-                                        <template #trigger>
-                                            <BButton size="is-small" class="board-card-status" :class="{ 'is-complete': placement.isDoneColumn }" :disabled="saving" :loading="statusLoading[placement.boardId]" :aria-label="`Status på ${placement.boardTitle}: ${placement.columnTitle}. Skift status`">
-                                                <font-awesome-icon v-if="placement.isDoneColumn" icon="check" />
-                                                <span>{{ placement.columnTitle }}</span>
-                                                <i class="fas fa-chevron-down" aria-hidden="true"></i>
-                                            </BButton>
-                                        </template>
-                                        <BDropdownItem v-if="statusLoading[placement.boardId]" disabled>Henter statusser…</BDropdownItem>
-                                        <BDropdownItem v-else-if="!statusColumns[placement.boardId]?.length" @click="loadStatusColumns(placement, true)">
-                                            Kunne ikke hente statusser. Prøv igen
-                                        </BDropdownItem>
-                                        <BDropdownItem v-for="column in statusColumns[placement.boardId] || []" :key="column.id" aria-role="listitem" :disabled="saving || String(column.id) === String(placement.columnId)" @click="changePlacementStatus(placement, column)">
-                                            <span class="board-card-status-option">
-                                                <span>{{ column.title }}</span>
-                                                <span v-if="column.isDoneColumn" class="board-card-status-done">Færdig</span>
-                                                <font-awesome-icon v-if="String(column.id) === String(placement.columnId)" icon="check" />
-                                            </span>
-                                        </BDropdownItem>
-                                    </BDropdown>
-                                    <span v-else class="board-card-status is-static" :class="{ 'is-complete': placement.isDoneColumn }">{{ placement.columnTitle }}</span>
-                                    <BButton v-if="canManage" size="is-small" class="is-ghost" :disabled="saving" @click="confirmRemovePlacement(placement)">Fjern</BButton>
+                                        <UIcon :name="form.assignees.some((assignee) => assignee.id === user.id) ? 'i-lucide-check' : 'i-lucide-plus'" class="size-4 shrink-0 text-muted" />
+                                    </button>
                                 </li>
                             </ul>
+                            <p v-else-if="assigneeSearch && !assigneeSearching" class="mt-1 text-xs text-muted">Ingen brugere fundet.</p>
+                        </template>
+                    </UFormField>
 
-                            <template v-if="canManage && availableBoards.length > 0">
-                                <BButton v-if="!placementPickerOpen" size="is-small" class="is-ghost board-card-add-placement" icon-left="plus" @click="placementPickerOpen = true">Tilføj til tavle</BButton>
-                                <div v-else class="board-card-placement-picker">
-                                    <BSelect v-model="placementBoardId" expanded size="is-small">
-                                        <option :value="null">Vælg tavle…</option>
-                                        <option v-for="board in availableBoards" :key="board.id" :value="String(board.id)">{{ board.title }}</option>
-                                    </BSelect>
-                                    <BSelect v-if="placementBoardId !== null && placementColumns.length > 0" v-model="placementColumnId" expanded size="is-small">
-                                        <option v-for="column in placementColumns" :key="column.id" :value="String(column.id)">{{ column.title }}</option>
-                                    </BSelect>
-                                    <div class="buttons">
-                                        <BButton size="is-small" @click="closePlacementPicker">Annuller</BButton>
-                                        <BButton size="is-small" type="is-primary" :disabled="placementBoardId === null || placementColumnId === null" :loading="saving" @click="addPlacement">Tilføj til tavle</BButton>
-                                    </div>
+                    <UFormField label="Stilling">
+                        <USelectMenu v-if="canManage" v-model="positionValue" :items="positionItems" value-key="value" size="sm" class="w-full" :disabled="saving" />
+                        <p v-else class="text-sm" :class="{ 'text-muted': !positionTitle }">{{ positionTitle ?? 'Ingen stilling' }}</p>
+                    </UFormField>
+
+                    <UFormField label="Deadline" :help="dueDateHint || undefined">
+                        <UInput v-if="canManage" v-model="form.dueDate" type="date" size="sm" class="w-full" :disabled="saving" />
+                        <p v-else class="text-sm" :class="{ 'text-muted': !dueDateLabel }">{{ dueDateLabel || 'Ingen' }}</p>
+                    </UFormField>
+
+                    <UFormField label="Prioritet">
+                        <USelect v-if="canManage" v-model="form.priority" :items="priorityItems" size="sm" class="w-full" :disabled="saving" />
+                        <p v-else class="text-sm">{{ boardPriorityLabel(form.priority) }}</p>
+                    </UFormField>
+
+                    <UFormField label="Farve" :help="selectedColorLabel">
+                        <div class="flex flex-wrap gap-1.5" role="group" aria-label="Kortets farve">
+                            <button
+                                v-for="color in cardColorOptions"
+                                :key="color.key"
+                                type="button"
+                                class="flex size-7 items-center justify-center rounded-md border text-xs focus-visible:outline-2 focus-visible:outline-primary disabled:cursor-not-allowed"
+                                :class="form.color === color.value ? 'border-inverted ring-2 ring-primary' : 'border-default'"
+                                :style="{ backgroundColor: color.value ?? 'var(--ui-bg)', color: color.value ? readableTextColor(color.value) : undefined }"
+                                :aria-label="color.label"
+                                :title="color.label"
+                                :aria-pressed="form.color === color.value"
+                                :disabled="!canManage || saving"
+                                @click="form.color = color.value"
+                            >
+                                <UIcon v-if="form.color === color.value" name="i-lucide-check" class="size-3.5" />
+                                <UIcon v-else-if="color.value === null" name="i-lucide-ban" class="size-3.5 text-muted" />
+                            </button>
+                        </div>
+                    </UFormField>
+
+                    <section v-if="!isNew && (otherPlacements.length > 0 || (canManage && availableBoards.length > 0))" aria-labelledby="card-placements-heading">
+                        <h3 id="card-placements-heading" class="mb-2 text-sm font-medium text-highlighted">Også på andre tavler</h3>
+                        <ul class="flex flex-col gap-2">
+                            <li v-for="placement in otherPlacements" :key="placement.boardId" class="flex items-center gap-2 text-sm">
+                                <span class="min-w-0 flex-1 truncate">{{ placement.boardTitle }}</span>
+                                <UDropdownMenu v-if="canManage" :items="statusItems(placement)" :content="{ align: 'end' }" @update:open="(value: boolean) => loadStatusColumns(placement, value)">
+                                    <UButton :color="placement.isDoneColumn ? 'success' : 'neutral'" variant="subtle" size="xs" :label="placement.columnTitle" trailing-icon="i-lucide-chevron-down" :disabled="saving" :aria-label="`Status på ${placement.boardTitle}: ${placement.columnTitle}. Skift status`" />
+                                </UDropdownMenu>
+                                <UBadge v-else :color="placement.isDoneColumn ? 'success' : 'neutral'" variant="subtle" size="sm" :label="placement.columnTitle" />
+                                <UButton v-if="canManage" color="neutral" variant="ghost" size="xs" icon="i-lucide-x" :aria-label="`Fjern fra ${placement.boardTitle}`" :disabled="saving" @click="confirmRemovePlacement(placement)" />
+                            </li>
+                        </ul>
+
+                        <template v-if="canManage && availableBoards.length > 0">
+                            <UButton v-if="!placementPickerOpen" class="mt-2" color="neutral" variant="ghost" size="xs" icon="i-lucide-plus" label="Tilføj til tavle" @click="placementPickerOpen = true" />
+                            <div v-else class="mt-2 flex flex-col gap-2">
+                                <USelectMenu v-model="placementBoardId" :items="placementBoardItems" value-key="value" placeholder="Vælg tavle…" size="sm" class="w-full" />
+                                <USelect v-if="placementColumns.length" v-model="placementColumnId" :items="placementColumnItems" size="sm" class="w-full" />
+                                <div class="flex gap-2">
+                                    <UButton color="neutral" variant="outline" size="xs" label="Annuller" @click="closePlacementPicker" />
+                                    <UButton size="xs" label="Tilføj til tavle" :disabled="!placementBoardId || !placementColumnId" :loading="saving" @click="addPlacement" />
                                 </div>
-                                <p class="board-card-status-help">Status og tavler gemmes med det samme.</p>
-                            </template>
-                        </section>
-                    </aside>
-                </div>
-            </section>
+                            </div>
+                            <p class="mt-2 text-xs text-muted">Status og tavler gemmes med det samme.</p>
+                        </template>
+                    </section>
+                </aside>
+            </div>
+        </template>
 
-            <footer v-if="canManage" class="modal-card-foot">
-                <span v-if="isDirty" class="board-card-dirty">
-                    <span class="board-card-dirty-dot" aria-hidden="true"></span>
+        <template v-if="canManage" #footer>
+            <div class="flex w-full items-center justify-between gap-2">
+                <span v-if="isDirty" class="flex items-center gap-1.5 text-xs text-warning">
+                    <span class="size-2 rounded-full bg-warning" aria-hidden="true" />
                     Ugemte ændringer
                 </span>
-                <div class="buttons">
-                    <BButton :disabled="saving" @click="open = false">Annuller</BButton>
-                    <BButton type="is-primary" :loading="saving" @click="save">{{ isNew ? 'Opret kort' : 'Gem ændringer' }}</BButton>
+                <span v-else />
+                <div class="flex gap-2">
+                    <UButton color="neutral" variant="outline" label="Annuller" :disabled="saving" @click="open = false" />
+                    <UButton :label="isNew ? 'Opret kort' : 'Gem ændringer'" :loading="saving" @click="save" />
                 </div>
-            </footer>
-        </div>
-    </BModal>
+            </div>
+        </template>
+    </UModal>
+
+    <ConfirmModal
+        v-model:open="deleteOpen"
+        title="Slet kort"
+        :description="`Slet ${card?.title}?`"
+        confirm-label="Slet"
+        color="error"
+        :loading="saving"
+        @confirm="doRemove"
+    />
+
+    <ConfirmModal
+        v-model:open="removePlacementOpen"
+        title="Fjern fra tavle"
+        :description="removePlacementDescription"
+        confirm-label="Fjern"
+        color="error"
+        :loading="saving"
+        @confirm="doRemovePlacement"
+    />
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue';
-import { BButton, BDropdown, BDropdownItem, BField, BInput, BModal, BSelect, useDialog, useToast } from 'buefy';
-import BoardService from '@/Services/BoardService';
-import OrgService from '@/Services/OrgService';
-import { boardPriorityLabel, boardPriorityOptions, type BoardColumnDto, type OrgPositionDto, type BoardMemberDto, type WorkItemDto, type WorkItemPlacementDto } from '@/types';
-import { useBoardStore } from '@/Stores/BoardStore';
-import BoardTagInput from './BoardTagInput.vue';
-import BoardTagBadge from './BoardTagBadge.vue';
-import BoardCardPullRequests from './BoardCardPullRequests.vue';
-import BoardCardDependencies from './BoardCardDependencies.vue';
-import BoardCardProperty from './BoardCardProperty.vue';
-import type { BoardTagDto } from '@/types';
-import RichTextEditor from '@/Components/RichText/RichTextEditor.vue';
-import RichTextViewer from '@/Components/RichText/RichTextViewer.vue';
-import { htmlToPlainText } from '@/lib/util';
-import type { UserSummaryDto } from '@/types';
+import { computed, onBeforeUnmount, reactive, ref, watch } from "vue";
+import type { DropdownMenuItem } from "@nuxt/ui";
+import BoardService from "@/Services/BoardService";
+import OrgService from "@/Services/OrgService";
+import { useBoardStore } from "@/Stores/BoardStore";
+import { htmlToPlainText } from "@/lib/util";
+import { useNotify } from "@/lib/notify";
+import { readableTextColor } from "@/lib/board/colorContrast";
+import ConfirmModal from "@/Components/ConfirmModal.vue";
+import RichTextEditor from "@/Components/RichText/RichTextEditor.vue";
+import RichTextViewer from "@/Components/RichText/RichTextViewer.vue";
+import BoardTagInput from "@/Components/Board/BoardTagInput.vue";
+import BoardTagBadge from "@/Components/Board/BoardTagBadge.vue";
+import BoardCardDependencies from "@/Components/Board/BoardCardDependencies.vue";
+import BoardCardPullRequests from "@/Components/Board/BoardCardPullRequests.vue";
+import {
+    boardPriorityLabel,
+    boardPriorityOptions,
+    type BoardColumnDto,
+    type BoardMemberDto,
+    type BoardTagDto,
+    type OrgPositionDto,
+    type UserSummaryDto,
+    type WorkItemDto,
+    type WorkItemPlacementDto
+} from "@/types";
 
-const props = defineProps<{
-    modelValue: boolean;
-    boardId: number;
-    columnId: number;
-    card: WorkItemDto | null;
-    canManage: boolean;
-}>();
-
-const emit = defineEmits<{
-    'update:modelValue': [value: boolean];
-    saved: [];
-}>();
+const props = defineProps<{ boardId: number; columnId: number; card: WorkItemDto | null; canManage: boolean }>();
+const open = defineModel<boolean>("open", { required: true });
 
 const store = useBoardStore();
-const pullRequestCard = computed(() => {
-    const board = store.SelectedBoard;
-    if (!board?.isDeveloperBoard || Number(board.id) !== props.boardId) return undefined;
-
-    return board.cards.find(card => card.id === props.card?.id);
-});
 const boardService = new BoardService();
 const orgService = new OrgService();
-const Toast = useToast();
-const Dialog = useDialog();
+const notify = useNotify();
 
 const saving = ref(false);
 const selectedTags = ref<BoardTagDto[]>([]);
 const tagInput = ref<InstanceType<typeof BoardTagInput>>();
-const descriptionFrame = ref<HTMLElement>();
-const assigneeSearch = ref('');
+const assigneeSearch = ref("");
 const assigneeSearching = ref(false);
 const assigneeResults = ref<BoardMemberDto[]>([]);
 const orgPositions = ref<OrgPositionDto[]>([]);
 const placementPickerOpen = ref(false);
-const placementBoardId = ref<string | null>(null);
-const placementColumnId = ref<string | null>(null);
+const placementBoardId = ref<string | undefined>();
+const placementColumnId = ref<string | undefined>();
 const placementColumns = ref<BoardColumnDto[]>([]);
 const statusColumns = ref<Record<number, BoardColumnDto[]>>({});
 const statusLoading = ref<Record<number, boolean>>({});
-const savedSnapshot = ref('');
+const savedSnapshot = ref("");
+const deleteOpen = ref(false);
+const removePlacementOpen = ref(false);
+const placementToRemove = ref<WorkItemPlacementDto | null>(null);
 let searchTimeout: ReturnType<typeof setTimeout> | null = null;
 
 const form = reactive({
-    title: '',
-    description: '',
+    title: "",
+    description: "",
     color: null as string | null,
-    dueDate: '',
-    priority: '0',
+    dueDate: "",
+    priority: "0",
     assignees: [] as UserSummaryDto[],
     ownerPositionId: null as number | null
 });
 
-const open = computed({
-    get: () => props.modelValue,
-    set: (value: boolean) => emit('update:modelValue', value)
-});
-
+const isNew = computed(() => props.card === null);
 const availableTags = computed(() => String(store.SelectedBoard?.id) === String(props.boardId) ? store.SelectedBoard?.tags ?? [] : []);
 
-const isNew = computed(() => props.card === null);
+const pullRequestCard = computed(() => {
+    const board = store.SelectedBoard;
+    if (!board?.isDeveloperBoard || Number(board.id) !== props.boardId) return undefined;
 
-const cardColorOptions = computed(() => {
-    const options: { key: string; value: string | null; label: string }[] = [
-        { key: 'none', value: null, label: 'Ingen farve' },
-        ...(store.SelectedBoard?.colors ?? []).map((color) => ({ key: String(color.id), value: color.color, label: color.name }))
-    ];
-    if (form.color && !options.some((color) => color.value === form.color)) {
-        options.push({ key: 'current', value: form.color, label: 'Nuværende farve (uden for tavlens palette)' });
-    }
-    return options;
+    return board.cards.find((card) => card.id === props.card?.id);
 });
-const selectedColorLabel = computed(() => cardColorOptions.value.find((color) => color.value === form.color)?.label ?? 'Ingen farve');
 
-const assigneeNames = computed(() => form.assignees.map((user) => `${user.firstName} ${user.lastName}`).join(', '));
-const assigneeFirstNames = computed(() => form.assignees.map((user) => user.firstName).join(', '));
+const priorityItems = boardPriorityOptions.map((option) => ({ label: option.label, value: option.value }));
 
+const noPosition = "none";
+const positionItems = computed(() => [
+    { label: "Ingen stilling", value: noPosition },
+    ...orgPositions.value.map((position) => ({ label: position.title, value: String(position.id) }))
+]);
+const positionValue = computed({
+    get: () => form.ownerPositionId === null ? noPosition : String(form.ownerPositionId),
+    set: (value: string) => {
+        form.ownerPositionId = value === noPosition ? null : Number(value);
+    }
+});
 const positionTitle = computed(() => {
     if (form.ownerPositionId === null) return null;
 
@@ -393,17 +304,30 @@ const positionTitle = computed(() => {
         ?? null;
 });
 
+const cardColorOptions = computed(() => {
+    const options: { key: string; value: string | null; label: string }[] = [
+        { key: "none", value: null, label: "Ingen farve" },
+        ...(store.SelectedBoard?.colors ?? []).map((color) => ({ key: String(color.id), value: color.color, label: color.name }))
+    ];
+    if (form.color && !options.some((color) => color.value === form.color)) {
+        options.push({ key: "current", value: form.color, label: "Nuværende farve (uden for tavlens palette)" });
+    }
+
+    return options;
+});
+const selectedColorLabel = computed(() => cardColorOptions.value.find((color) => color.value === form.color)?.label ?? "Ingen farve");
+
 const dueDate = computed(() => form.dueDate ? new Date(`${form.dueDate}T12:00:00`) : null);
-const dueDateLabel = computed(() => dueDate.value ? new Intl.DateTimeFormat('da-DK', { day: 'numeric', month: 'short', year: 'numeric' }).format(dueDate.value) : '');
+const dueDateLabel = computed(() => dueDate.value ? new Intl.DateTimeFormat("da-DK", { day: "numeric", month: "short", year: "numeric" }).format(dueDate.value) : "");
 const dueDateHint = computed(() => {
-    if (!dueDate.value) return '';
+    if (!dueDate.value) return "";
 
-    const today = new Date(`${new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Copenhagen' }).format(new Date())}T12:00:00`);
+    const today = new Date(`${new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Copenhagen" }).format(new Date())}T12:00:00`);
     const days = Math.round((dueDate.value.getTime() - today.getTime()) / 86400000);
-    if (days === 0) return 'I dag';
-    if (days > 0) return `Om ${days} ${days === 1 ? 'dag' : 'dage'}`;
+    if (days === 0) return "I dag";
+    if (days > 0) return `Om ${days} ${days === 1 ? "dag" : "dage"}`;
 
-    return `${-days} ${days === -1 ? 'dag' : 'dage'} siden`;
+    return `${-days} ${days === -1 ? "dag" : "dage"} siden`;
 });
 
 const placements = computed<WorkItemPlacementDto[]>(() => {
@@ -411,44 +335,56 @@ const placements = computed<WorkItemPlacementDto[]>(() => {
     if (cardId == null) return [];
 
     const live = store.SelectedBoard?.cards.find((card) => String(card.id) === String(cardId));
+
     return live?.placements ?? props.card?.placements ?? [];
 });
 const currentPlacement = computed(() => placements.value.find((placement) => isCurrentBoard(placement)) ?? null);
 const otherPlacements = computed(() => placements.value.filter((placement) => !isCurrentBoard(placement)));
+const availableBoards = computed(() => store.Boards.filter((board) => !board.isArchived
+    && !placements.value.some((placement) => String(placement.boardId) === String(board.id))));
+const placementBoardItems = computed(() => availableBoards.value.map((board) => ({ label: board.title, value: String(board.id) })));
+const placementColumnItems = computed(() => placementColumns.value.map((column) => ({ label: column.title, value: String(column.id) })));
 
-const availableBoards = computed(() =>
-    store.Boards.filter((board) => !board.isArchived && !placements.value.some((placement) => String(placement.boardId) === String(board.id)))
-);
+const cardMenu = computed<DropdownMenuItem[][]>(() => [
+    ...(currentPlacement.value && placements.value.length > 1
+        ? [[{ label: "Fjern fra denne tavle", icon: "i-lucide-log-out", onSelect: () => confirmRemovePlacement(currentPlacement.value!) }]]
+        : []),
+    [{ label: "Slet kort", icon: "i-lucide-trash-2", color: "error" as const, onSelect: () => { deleteOpen.value = true; } }]
+]);
 
-const isDirty = computed(() => savedSnapshot.value !== '' && snapshot() !== savedSnapshot.value);
+const removePlacementDescription = computed(() => {
+    const placement = placementToRemove.value;
+    if (!placement || !props.card) return "";
 
-watch(
-    () => [props.modelValue, props.card, props.boardId] as const,
-    () => {
-        if (!props.modelValue) return;
+    return isCurrentBoard(placement)
+        ? `Fjern ${props.card.title} fra denne tavle? Kortet bevares på de øvrige tavler.`
+        : `Fjern ${props.card.title} fra tavlen ${placement.boardTitle}?`;
+});
 
-        selectedTags.value = (props.card?.tags ?? []).filter(tag => availableTags.value.some(option => Number(option.id) === Number(tag.id)));
-        form.title = props.card?.title ?? '';
-        form.description = props.card?.description ?? '';
-        form.color = props.card?.color ?? null;
-        form.dueDate = props.card?.dueDate ?? '';
-        form.priority = String(props.card?.priority ?? 0);
-        form.assignees = [...(props.card?.assignees ?? [])];
-        form.ownerPositionId = props.card?.ownerPositionId ?? null;
-        savedSnapshot.value = snapshot();
+const isDirty = computed(() => savedSnapshot.value !== "" && snapshot() !== savedSnapshot.value);
 
-        assigneeSearch.value = '';
-        assigneeResults.value = [];
-        assigneeSearching.value = false;
+watch(() => [open.value, props.card, props.boardId] as const, () => {
+    if (!open.value) return;
 
-        closePlacementPicker();
-        statusColumns.value = {};
+    selectedTags.value = (props.card?.tags ?? []).filter((tag) => availableTags.value.some((option) => Number(option.id) === Number(tag.id)));
+    form.title = props.card?.title ?? "";
+    form.description = props.card?.description ?? "";
+    form.color = props.card?.color ?? null;
+    form.dueDate = props.card?.dueDate ?? "";
+    form.priority = String(props.card?.priority ?? 0);
+    form.assignees = [...(props.card?.assignees ?? [])];
+    form.ownerPositionId = props.card?.ownerPositionId ?? null;
+    savedSnapshot.value = snapshot();
 
-        void loadOrgPositions();
-        void loadBoards();
-    },
-    { immediate: true }
-);
+    assigneeSearch.value = "";
+    assigneeResults.value = [];
+    assigneeSearching.value = false;
+    closePlacementPicker();
+    statusColumns.value = {};
+
+    void loadOrgPositions();
+    void loadBoards();
+}, { immediate: true });
 
 watch(placementBoardId, () => {
     void loadPlacementColumns();
@@ -477,7 +413,7 @@ onBeforeUnmount(() => {
 function snapshot() {
     return JSON.stringify({
         title: form.title,
-        description: htmlToPlainText(form.description) ? form.description : '',
+        description: htmlToPlainText(form.description) ? form.description : "",
         color: form.color,
         dueDate: form.dueDate,
         priority: form.priority,
@@ -488,15 +424,11 @@ function snapshot() {
 }
 
 function initials(user: UserSummaryDto) {
-    return `${user.firstName?.[0] ?? ''}${user.lastName?.[0] ?? ''}`.toLocaleUpperCase('da-DK');
+    return `${user.firstName?.[0] ?? ""}${user.lastName?.[0] ?? ""}`.toLocaleUpperCase("da-DK");
 }
 
-function colorFill(color: string | null) {
-    return color ? `color-mix(in srgb, ${color} 40%, white)` : '#fff';
-}
-
-function focusDescription() {
-    descriptionFrame.value?.querySelector<HTMLElement>('.tiptap')?.focus();
+function isCurrentBoard(placement: WorkItemPlacementDto) {
+    return String(placement.boardId) === String(props.boardId);
 }
 
 async function loadOrgPositions() {
@@ -512,27 +444,20 @@ async function loadBoards() {
 }
 
 async function loadPlacementColumns() {
-    placementColumnId.value = null;
+    placementColumnId.value = undefined;
     placementColumns.value = [];
-
-    if (placementBoardId.value === null) return;
+    if (!placementBoardId.value) return;
 
     const columns = await boardService.getColumns(Number(placementBoardId.value));
     placementColumns.value = columns;
-
-    const first = columns[0];
-    if (first) placementColumnId.value = String(first.id);
+    if (columns[0]) placementColumnId.value = String(columns[0].id);
 }
 
 function closePlacementPicker() {
     placementPickerOpen.value = false;
-    placementBoardId.value = null;
-    placementColumnId.value = null;
+    placementBoardId.value = undefined;
+    placementColumnId.value = undefined;
     placementColumns.value = [];
-}
-
-function isCurrentBoard(placement: WorkItemPlacementDto) {
-    return String(placement.boardId) === String(props.boardId);
 }
 
 async function loadStatusColumns(placement: WorkItemPlacementDto, active: boolean) {
@@ -546,84 +471,79 @@ async function loadStatusColumns(placement: WorkItemPlacementDto, active: boolea
     }
 }
 
+function statusItems(placement: WorkItemPlacementDto): DropdownMenuItem[] {
+    if (statusLoading.value[placement.boardId]) return [{ label: "Henter statusser…", disabled: true }];
+
+    const columns = statusColumns.value[placement.boardId];
+    if (!columns?.length) return [{ label: "Kunne ikke hente statusser. Prøv igen", onSelect: (event: Event) => { event.preventDefault(); void loadStatusColumns(placement, true); } }];
+
+    return columns.map((column) => {
+        const isCurrent = String(column.id) === String(placement.columnId);
+
+        return {
+            label: column.title,
+            icon: isCurrent ? "i-lucide-check" : undefined,
+            suffix: column.isDoneColumn ? "Færdig" : undefined,
+            disabled: saving.value || isCurrent,
+            onSelect: () => { void changePlacementStatus(placement, column); }
+        };
+    });
+}
+
 async function changePlacementStatus(placement: WorkItemPlacementDto, column: BoardColumnDto) {
     if (!props.card || saving.value || String(placement.columnId) === String(column.id)) return;
 
     saving.value = true;
     try {
-        const success = await boardService.moveCard(Number(placement.boardId), Number(props.card.id), {
-            columnId: Number(column.id),
-            position: 2147483647
-        });
-        if (!success) {
-            Toast.open({ message: 'Status kunne ikke ændres. Prøv igen.', type: 'is-danger' });
+        const ok = await boardService.moveCard(Number(placement.boardId), Number(props.card.id), { columnId: Number(column.id), position: 2147483647 });
+        if (!ok) {
+            notify.error("Status kunne ikke ændres. Prøv igen.");
             return;
         }
 
         await store.GET_BOARD(props.boardId);
-        Toast.open({ message: `Status på ${placement.boardTitle} er ændret til ${column.title}.`, type: 'is-success' });
+        notify.success(`Status på ${placement.boardTitle} er ændret til ${column.title}.`);
     } finally {
         saving.value = false;
     }
 }
 
 async function addPlacement() {
-    if (!props.card || placementBoardId.value === null || placementColumnId.value === null) return;
+    if (!props.card || !placementBoardId.value || !placementColumnId.value) return;
 
     saving.value = true;
     try {
-        const success = await store.ADD_PLACEMENT(
-            props.boardId,
-            Number(placementBoardId.value),
-            Number(props.card.id),
-            Number(placementColumnId.value)
-        );
-
-        if (success) {
-            Toast.open({ message: 'Kortet er tilføjet til tavlen.', type: 'is-success' });
-            closePlacementPicker();
-        } else {
-            Toast.open({ message: 'Kortet kunne ikke tilføjes til tavlen.', type: 'is-danger' });
-        }
+        const ok = await store.ADD_PLACEMENT(props.boardId, Number(placementBoardId.value), Number(props.card.id), Number(placementColumnId.value));
+        notify.result(ok, "Kortet er tilføjet til tavlen.", "Kortet kunne ikke tilføjes til tavlen.");
+        if (ok) closePlacementPicker();
     } finally {
         saving.value = false;
     }
 }
 
 function confirmRemovePlacement(placement: WorkItemPlacementDto) {
-    if (!props.card) return;
-
-    Dialog.confirm({
-        title: 'Fjern fra tavle',
-        message: isCurrentBoard(placement)
-            ? `Er du sikker på, at du vil fjerne "${props.card.title}" fra denne tavle? Kortet bevares på de øvrige tavler.`
-            : `Er du sikker på, at du vil fjerne "${props.card.title}" fra tavlen "${placement.boardTitle}"?`,
-        confirmText: 'Fjern',
-        cancelText: 'Annuller',
-        type: 'is-danger',
-        onConfirm: () => {
-            void doRemovePlacement(placement);
-        }
-    });
+    placementToRemove.value = placement;
+    removePlacementOpen.value = true;
 }
 
-async function doRemovePlacement(placement: WorkItemPlacementDto) {
-    if (!props.card) return;
+async function doRemovePlacement() {
+    const placement = placementToRemove.value;
+    if (!props.card || !placement) return;
 
     saving.value = true;
     try {
-        const success = await store.REMOVE_PLACEMENT(props.boardId, Number(placement.boardId), Number(props.card.id));
-        if (!success) {
-            Toast.open({ message: 'Kortet kunne ikke fjernes fra tavlen.', type: 'is-danger' });
+        const ok = await store.REMOVE_PLACEMENT(props.boardId, Number(placement.boardId), Number(props.card.id));
+        if (!ok) {
+            notify.error("Kortet kunne ikke fjernes fra tavlen.");
             return;
         }
 
+        removePlacementOpen.value = false;
         if (isCurrentBoard(placement)) {
-            Toast.open({ message: 'Kortet er fjernet fra tavlen.', type: 'is-success' });
-            emit('saved');
+            notify.success("Kortet er fjernet fra tavlen.");
             open.value = false;
         } else {
-            Toast.open({ message: `Kortet er fjernet fra "${placement.boardTitle}".`, type: 'is-success' });
+            notify.success(`Kortet er fjernet fra ${placement.boardTitle}.`);
         }
     } finally {
         saving.value = false;
@@ -631,15 +551,15 @@ async function doRemovePlacement(placement: WorkItemPlacementDto) {
 }
 
 function selectAssignee(user: BoardMemberDto) {
-    if (form.assignees.some(assignee => assignee.id === user.id)) return;
+    if (form.assignees.some((assignee) => assignee.id === user.id)) return;
 
     form.assignees.push({ id: user.id, firstName: user.firstName, lastName: user.lastName, profilePicture: null });
-    assigneeSearch.value = '';
+    assigneeSearch.value = "";
     assigneeResults.value = [];
 }
 
 function removeAssignee(userId: string) {
-    form.assignees = form.assignees.filter(user => user.id !== userId);
+    form.assignees = form.assignees.filter((user) => user.id !== userId);
 }
 
 async function save() {
@@ -647,57 +567,33 @@ async function save() {
     if (tagInput.value && !tagInput.value.commitPending()) return;
 
     if (!form.title.trim()) {
-        Toast.open({ message: 'Titlen må ikke være tom.', type: 'is-danger' });
+        notify.error("Titlen må ikke være tom.");
         return;
     }
 
     saving.value = true;
     try {
         const base = {
-            tagIds: selectedTags.value.filter(tag => tag.id > 0).map(tag => Number(tag.id)),
-            newTagNames: selectedTags.value.filter(tag => tag.id < 0).map(tag => tag.name),
+            tagIds: selectedTags.value.filter((tag) => tag.id > 0).map((tag) => Number(tag.id)),
+            newTagNames: selectedTags.value.filter((tag) => tag.id < 0).map((tag) => tag.name),
             title: form.title.trim(),
             description: htmlToPlainText(form.description) ? form.description : null,
             color: form.color,
-            assigneeUserIds: form.assignees.map(user => user.id),
+            assigneeUserIds: form.assignees.map((user) => user.id),
             ownerPositionId: form.ownerPositionId,
             dueDate: form.dueDate ? form.dueDate : null,
             priority: Number(form.priority)
         };
 
-        const success = isNew.value
-            ? (await store.ADD_CARD(props.boardId, {
-                ...base,
-                columnId: props.columnId,
-                links: []
-            })) !== null
+        const ok = isNew.value
+            ? (await store.ADD_CARD(props.boardId, { ...base, columnId: props.columnId, links: [] })) !== null
             : await store.UPDATE_CARD(props.boardId, Number(props.card!.id), base);
 
-        if (success) {
-            Toast.open({ message: 'Kortet er gemt.', type: 'is-success' });
-            emit('saved');
-            open.value = false;
-        } else {
-            Toast.open({ message: 'Kortet kunne ikke gemmes.', type: 'is-danger' });
-        }
+        notify.result(ok, "Kortet er gemt.", "Kortet kunne ikke gemmes.");
+        if (ok) open.value = false;
     } finally {
         saving.value = false;
     }
-}
-
-function remove() {
-    if (!props.card) return;
-
-    Dialog.confirm({
-        title: 'Slet kort',
-        message: `Er du sikker på, at du vil slette "${props.card.title}"?`,
-        confirmText: 'Slet',
-        cancelText: 'Annuller',
-        type: 'is-danger',
-        onConfirm: () => {
-            void doRemove();
-        }
-    });
 }
 
 async function doRemove() {
@@ -705,575 +601,14 @@ async function doRemove() {
 
     saving.value = true;
     try {
-        const success = await store.REMOVE_CARD(props.boardId, Number(props.card.id));
-        if (success) {
-            Toast.open({ message: 'Kortet er slettet.', type: 'is-success' });
-            emit('saved');
+        const ok = await store.REMOVE_CARD(props.boardId, Number(props.card.id));
+        notify.result(ok, "Kortet er slettet.", "Kortet kunne ikke slettes.");
+        if (ok) {
+            deleteOpen.value = false;
             open.value = false;
-        } else {
-            Toast.open({ message: 'Kortet kunne ikke slettes.', type: 'is-danger' });
         }
     } finally {
         saving.value = false;
     }
 }
 </script>
-
-<style scoped>
-.board-card-modal {
-    width: 100%;
-    max-width: 64rem;
-    max-height: calc(100vh - 3rem);
-}
-
-.board-card-modal .modal-card-head {
-    padding: 0.85rem 1.25rem 0.85rem 1.75rem;
-    background: #fff;
-    border-bottom: 1px solid #edf0f2;
-    box-shadow: none;
-    gap: 1rem;
-}
-
-.board-card-context {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    min-width: 0;
-    color: #6b7280;
-    font-size: 0.8rem;
-    overflow-wrap: anywhere;
-}
-
-.board-card-key {
-    padding: 0.1rem 0.4rem;
-    border-radius: 4px;
-    background: #f1f3f5;
-    color: #374151;
-    font-size: 0.75rem;
-}
-
-.board-card-header-actions {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    margin-left: auto;
-    flex-shrink: 0;
-}
-
-.board-card-status-pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.45rem;
-    min-height: 2rem;
-    padding: 0 0.8rem;
-    border: 0;
-    border-radius: 999px;
-    background: #edf0f4;
-    color: #3f4a57;
-    font: inherit;
-    font-size: 0.8rem;
-    font-weight: 600;
-    cursor: pointer;
-}
-
-.board-card-status-pill.is-static {
-    cursor: default;
-}
-
-.board-card-status-pill.is-complete {
-    background: #e8f5ed;
-    color: #287b4e;
-}
-
-.board-card-status-pill .fa-chevron-down {
-    font-size: 0.6rem;
-}
-
-.board-card-status-dot {
-    width: 0.5rem;
-    height: 0.5rem;
-    border-radius: 50%;
-    background: #6b7280;
-}
-
-.board-card-modal .modal-card-body {
-    padding: 0;
-}
-
-.board-card-columns {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) 19rem;
-    align-items: stretch;
-}
-
-.board-card-main,
-.board-card-side {
-    min-width: 0;
-}
-
-.board-card-main {
-    padding: 1.5rem 1.75rem;
-    min-height: 24rem;
-}
-
-.board-card-side {
-    padding: 1.5rem 1.25rem;
-    background: #fafbfc;
-    border-left: 1px solid #f1f3f5;
-}
-
-.board-card-tags {
-    margin-bottom: 0.75rem;
-}
-
-.board-card-title-field :deep(.input) {
-    height: auto;
-    padding: 0.25rem 0;
-    border-color: transparent;
-    box-shadow: none;
-    background: transparent;
-    font-size: 1.6rem;
-    font-weight: 700;
-}
-
-.board-card-title-field :deep(.input:hover) {
-    border-bottom-color: #dce2e7;
-}
-
-.board-card-title-field :deep(.input:focus) {
-    border-bottom-color: var(--bulma-primary);
-}
-
-.board-card-read-only-title {
-    font-size: 1.6rem;
-    font-weight: 700;
-    line-height: 1.25;
-    overflow-wrap: anywhere;
-    margin-bottom: 0.75rem;
-}
-
-.board-card-heading {
-    font-size: 0.75rem;
-    font-weight: 600;
-    color: #66717e;
-}
-
-.board-card-section-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 0.5rem;
-}
-
-.board-card-description {
-    margin-top: 1.25rem;
-}
-
-.board-card-description-frame {
-    border: 1px solid #edf0f2;
-    border-radius: 10px;
-    background: #fcfcfd;
-    cursor: text;
-}
-
-.board-card-description-frame.is-read-only {
-    padding: 0.75rem 1rem;
-    cursor: default;
-}
-
-.board-card-description-frame :deep(.rich-text-editor) {
-    border-color: transparent;
-    background: transparent;
-}
-
-.board-card-description-frame :deep(.rich-text-toolbar) {
-    display: none;
-    background: transparent;
-    border-bottom: 1px solid #edf0f2;
-    padding: 0.25rem 0.5rem;
-}
-
-.board-card-description-frame :deep(.tiptap) {
-    min-height: 10rem;
-    padding: 0.75rem 1rem;
-}
-
-.board-card-description-frame:focus-within {
-    border-color: #cfd5dd;
-    background: #fff;
-}
-
-.board-card-description-frame:focus-within :deep(.rich-text-toolbar) {
-    display: flex;
-}
-
-.board-card-links-section {
-    margin-top: 1.5rem;
-}
-
-.board-card-links {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    margin-top: 0.5rem;
-}
-
-.board-card-link {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.5rem 0.75rem;
-    border: 1px solid #e5e9ed;
-    border-radius: 10px;
-    font-size: 0.85rem;
-}
-
-.board-card-link .fa-link {
-    color: #6b7280;
-}
-
-.board-card-properties {
-    display: flex;
-    flex-direction: column;
-    gap: 0.1rem;
-}
-
-.board-card-property-text {
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.board-card-avatars {
-    display: inline-flex;
-    flex: none;
-}
-
-.board-card-avatar {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 1.4rem;
-    height: 1.4rem;
-    border-radius: 50%;
-    overflow: hidden;
-    background: #dbe4f0;
-    color: #374151;
-    font-size: 0.6rem;
-    font-weight: 700;
-    box-shadow: 0 0 0 2px #fafbfc;
-}
-
-.board-card-avatar + .board-card-avatar {
-    margin-left: -0.35rem;
-}
-
-.board-card-avatar img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-.board-card-priority-high {
-    color: #c2410c;
-}
-
-.board-card-color-dot {
-    flex: none;
-    width: 0.9rem;
-    height: 0.9rem;
-    border-radius: 50%;
-    border: 1px solid rgba(0, 0, 0, 0.12);
-}
-
-.board-card-editor {
-    width: 16rem;
-    max-width: calc(100vw - 3rem);
-    white-space: normal;
-}
-
-.board-card-editor-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.5rem;
-    font-size: 0.9rem;
-}
-
-.board-card-choices {
-    display: flex;
-    flex-direction: column;
-}
-
-.board-card-choice {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.5rem;
-    min-height: 2.25rem;
-    padding: 0 0.5rem;
-    border: 0;
-    border-radius: 4px;
-    background: transparent;
-    font: inherit;
-    font-size: 0.9rem;
-    text-align: left;
-    cursor: pointer;
-}
-
-.board-card-choice:hover,
-.board-card-choice:focus-visible {
-    background: #f7f8fa;
-}
-
-.board-card-color-options {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.4rem;
-}
-
-.board-card-color-option {
-    width: 1.75rem;
-    height: 1.75rem;
-    padding: 0;
-    border: 1px solid #cfd5dd;
-    border-radius: 50%;
-    color: #363636;
-    cursor: pointer;
-}
-
-.board-card-color-option[aria-pressed="true"] {
-    outline: 2px solid #68717d;
-    outline-offset: 2px;
-}
-
-.board-card-assignee-results {
-    border-top: 1px solid rgba(0, 0, 0, 0.08);
-    margin-top: 0.5rem;
-    padding-top: 0.25rem;
-}
-
-.board-card-assignee-result {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.5rem 0.75rem;
-    padding: 0.5rem 0;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-}
-
-.board-card-assignee-result:last-child {
-    border-bottom: none;
-}
-
-.board-card-assignee-info {
-    min-width: 0;
-}
-
-.board-card-assignee-name {
-    font-weight: 600;
-    font-size: 0.9rem;
-}
-
-.board-card-assignee-email {
-    font-size: 0.8rem;
-    color: #6b7280;
-    word-break: break-word;
-}
-
-.board-card-section {
-    margin-top: 1.25rem;
-    padding-top: 1.25rem;
-    border-top: 1px solid #e9edf0;
-}
-
-.board-card-placements {
-    list-style: none;
-    margin: 0.5rem 0 0.5rem;
-    padding: 0;
-}
-
-.board-card-placement {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0.35rem 0.5rem;
-    padding: 0.5rem 0.65rem;
-    margin-bottom: 0.4rem;
-    background: #fff;
-    border: 1px solid #e9edf0;
-    border-radius: 10px;
-}
-
-.board-card-placement-board {
-    flex: 1 1 auto;
-    min-width: 0;
-    font-size: 0.85rem;
-    font-weight: 600;
-    overflow-wrap: anywhere;
-}
-
-.board-card-side :deep(.board-card-status),
-.board-card-status.is-static {
-    height: auto;
-    min-height: 1.8rem;
-    padding: 0.25rem 0.6rem;
-    border: 0;
-    border-radius: 999px;
-    background: #edf0f4;
-    color: #596575;
-    box-shadow: none;
-    font-size: 0.75rem;
-    font-weight: 600;
-    white-space: normal;
-    text-align: left;
-}
-
-.board-card-side :deep(.board-card-status.is-complete),
-.board-card-status.is-static.is-complete {
-    background: #e8f5ed;
-    color: #287b4e;
-}
-
-.board-card-status svg,
-.board-card-status-pill svg {
-    margin-right: 0.1rem;
-}
-
-.board-card-status .fa-chevron-down {
-    margin-left: 0.4rem;
-    font-size: 0.6rem;
-}
-
-.board-card-status-option {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    white-space: normal;
-}
-
-.board-card-status-done {
-    color: #287b4e;
-    font-size: 0.7rem;
-    margin-left: auto;
-}
-
-.board-card-side :deep(.button.is-ghost) {
-    color: #66717e;
-    padding-left: 0.5rem;
-    padding-right: 0.5rem;
-    text-decoration: none;
-}
-
-.board-card-side :deep(.button.is-ghost:hover) {
-    background: #edf0f2;
-    color: #363636;
-}
-
-.board-card-add-placement {
-    margin-left: -0.5rem;
-}
-
-.board-card-placement-picker {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-}
-
-.board-card-placement-picker .buttons {
-    justify-content: flex-end;
-    margin: 0;
-}
-
-.board-card-status-help {
-    margin: 0.5rem 0 0;
-    font-size: 0.72rem;
-    color: #6b7280;
-}
-
-.board-card-modal .modal-card-foot {
-    justify-content: flex-end;
-    gap: 1rem;
-    padding: 0.85rem 1.75rem;
-    background: #fff;
-    border-top: 1px solid #edf0f2;
-}
-
-.board-card-dirty {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    margin-right: auto;
-    font-size: 0.8rem;
-    color: #6b7280;
-}
-
-.board-card-dirty-dot {
-    width: 0.5rem;
-    height: 0.5rem;
-    border-radius: 50%;
-    background: #f5a524;
-}
-
-.board-card-modal .modal-card-foot .buttons {
-    margin: 0;
-}
-
-.board-card-modal .modal-card-foot .button {
-    margin-bottom: 0;
-}
-
-@media screen and (max-width: 768px) {
-    .board-card-modal {
-        max-height: calc(100dvh - 1rem);
-        max-width: calc(100vw - 1rem);
-        margin: 0 auto;
-    }
-
-    .board-card-modal .modal-card-head {
-        flex-wrap: wrap;
-        padding: 0.75rem 1rem;
-    }
-
-    .board-card-columns {
-        grid-template-columns: 1fr;
-    }
-
-    .board-card-main {
-        min-height: 0;
-        padding: 1.25rem 1rem;
-    }
-
-    .board-card-side {
-        padding: 1.25rem 1rem;
-        border-left: none;
-        border-top: 1px solid #edf0f2;
-    }
-
-    .board-card-modal .modal-card-foot {
-        padding: 0.75rem 1rem;
-    }
-
-    .board-card-modal .modal-card-foot .buttons {
-        flex: 1 1 auto;
-        flex-wrap: nowrap;
-    }
-
-    .board-card-modal .modal-card-foot .buttons .button {
-        flex: 1 1 0;
-        min-height: 2.75rem;
-    }
-
-    .board-card-modal .modal-card-foot .buttons .button.is-primary {
-        flex-grow: 2;
-    }
-}
-</style>
-
-<style>
-.board-card-modal-container {
-    width: calc(100vw - 2.5rem);
-}
-</style>

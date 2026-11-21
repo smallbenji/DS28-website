@@ -1,12 +1,26 @@
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
+import ui from '@nuxt/ui/vite'
 import { fileURLToPath } from 'url'
-import VitePluginVueDevTools from 'vite-plugin-vue-devtools'
 
-// https://vite.dev/config/
 export default defineConfig(({ command }) => {
   return {
-    plugins: [vue(), VitePluginVueDevTools()],
+    plugins: [
+      vue(),
+      ui({
+        ui: {
+          colors: {
+            primary: 'blue',
+            neutral: 'slate'
+          }
+        },
+        icon: {
+          clientBundle: {
+            scan: true
+          }
+        }
+      })
+    ],
     resolve: {
       alias: {
         "@": fileURLToPath(new URL("./src", import.meta.url))
@@ -15,29 +29,16 @@ export default defineConfig(({ command }) => {
     base: command === "build" ? "/dist/" : "/",
     build: {
       outDir: "../DS.Backend/wwwroot/dist/",
-      emptyOutDir: true,
-      cssMinify: "esbuild",
-      rollupOptions: {
-        output: {
-          manualChunks: undefined
-        }
-      }
+      emptyOutDir: true
     },
     server: {
-      ws: {
-        protocol: "ws"
-      },
+      port: 5174,
       proxy: {
         '/api': {
           target: "https://localhost:44310",
           changeOrigin: true,
           secure: false,
           ws: true
-        },
-        '/hangfire': {
-          target: "https://localhost:44310",
-          changeOrigin: true,
-          secure: false
         }
       }
     }

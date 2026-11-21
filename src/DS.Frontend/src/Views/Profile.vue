@@ -1,461 +1,386 @@
 <template>
-    <div v-if="Me" class="profile-scroll compact-scroll">
-        <div class="profile-page">
-            <section class="profile-header">
-                <UserAvatar :user="Me" size="large" />
+    <UDashboardPanel id="profile">
+        <template #header>
+            <UDashboardNavbar title="Min profil">
+                <template #leading>
+                    <UDashboardSidebarCollapse />
+                </template>
+            </UDashboardNavbar>
+        </template>
 
-                <div class="profile-identity">
-                    <p class="title is-4">{{ Me.firstName }} {{ Me.lastName }}</p>
-                    <p class="subtitle is-6 has-text-grey">
-                        <template v-if="Me.phone">
-                            <BIcon icon="phone" size="is-small" />
-                            {{ Me.phone }}
-                        </template>
-                        <template v-else>Intet telefonnummer</template>
-                    </p>
-                </div>
-
-                <div class="profile-picture-actions">
-                    <div class="buttons is-right">
-                        <ProfilePictureUpload :has-picture="!!Me.profilePicture" :disabled="isUpdatingPicture"
-                            @confirm="updatePicture" />
-                        <BButton v-if="Me.profilePicture" type="is-danger is-light"
-                            :disabled="isUpdatingPicture" @click="removePicture">
-                            Fjern
-                        </BButton>
-                    </div>
-                </div>
-            </section>
-
-            <div class="profile-grid">
-                <div class="card" :class="{ 'profile-grid-wide': !hasNotificationOptions }">
-                    <header class="card-header">
-                        <p class="card-header-title">Profil og sikkerhed</p>
-                    </header>
-                    <div class="card-content">
-                        <div class="profile-summary">
-                            <div class="profile-summary-row">
-                                <span class="has-text-grey">Navn</span>
-                                <span class="profile-summary-value">
-                                    <span>{{ Me.firstName }} {{ Me.lastName }}</span>
-                                    <BButton size="is-small" type="is-primary is-light" icon-left="user-pen"
-                                        @click="openNameModal">
-                                        Rediger
-                                    </BButton>
-                                </span>
-                            </div>
-                            <div class="profile-summary-row">
-                                <span class="has-text-grey">Email</span>
-                                <span class="profile-summary-value">{{ Me.email }}</span>
-                            </div>
-                            <div class="profile-summary-row">
-                                <span class="has-text-grey">Telefon</span>
-                                <span class="profile-summary-value">
-                                    <span>{{ Me.phone || 'Intet telefonnummer' }}</span>
-                                    <BButton size="is-small" type="is-primary is-light" icon-left="phone"
-                                        @click="openPhoneModal">
-                                        Rediger
-                                    </BButton>
-                                </span>
-                            </div>
-                        </div>
-
-                        <hr />
-
-                        <p class="mb-2">
-                            Hold din konto sikker ved at skifte din adgangskode.
+        <template #body>
+            <div v-if="Me" class="mx-auto flex w-full max-w-4xl flex-col gap-6">
+                <section class="flex flex-wrap items-center gap-4">
+                    <UserAvatar :user="Me" size="3xl" />
+                    <div class="min-w-0 flex-1">
+                        <h1 class="truncate text-2xl font-semibold text-highlighted">{{ Me.firstName }} {{ Me.lastName }}</h1>
+                        <p class="flex items-center gap-1.5 text-sm text-muted">
+                            <template v-if="Me.phone">
+                                <UIcon name="i-lucide-phone" class="size-4" />
+                                {{ Me.phone }}
+                            </template>
+                            <template v-else>Intet telefonnummer</template>
                         </p>
-                        <BButton icon-left="key" @click="openPasswordModal">
-                            Skift adgangskode
-                        </BButton>
                     </div>
-                </div>
-
-                <div v-if="hasNotificationOptions" class="card">
-                    <header class="card-header">
-                        <p class="card-header-title">Notifikationer</p>
-                    </header>
-                    <div class="card-content">
-                        <BField v-for="notification in notifications" :key="notification.type">
-                            <BCheckbox v-model="notification.subscribed"
-                                :disabled="!notification.canSubscribe">
-                                {{ notificationLabels[notification.type] ?? notification.type }}
-                            </BCheckbox>
-                        </BField>
-                        <BButton type="is-primary" :loading="isUpdatingNotifications" @click="updateNotifications">
-                            Gem notifikationer
-                        </BButton>
+                    <div class="flex flex-wrap gap-2">
+                        <ProfilePictureUpload :has-picture="!!Me.profilePicture" :disabled="updatingPicture" size="sm" @confirm="updatePicture" />
+                        <UButton v-if="Me.profilePicture" color="error" variant="ghost" size="sm" label="Fjern" :disabled="updatingPicture" @click="removePicture" />
                     </div>
-                </div>
+                </section>
 
-                <div v-if="Me.roles.includes('McpUser')" class="card profile-grid-wide">
-                    <header class="card-header">
-                        <p class="card-header-title">Forbind en AI-assistent</p>
-                    </header>
-                    <div class="card-content">
-                        <p class="mb-3">Forbind din AI-assistent til DS28 via MCP. Assistenten får adgang til tavler på dine vegne med dine eksisterende rettigheder.</p>
-                        <BField label="MCP-adresse">
-                            <BInput :model-value="mcpUrl" readonly @focus="selectMcpUrl" />
-                        </BField>
-                        <div class="buttons">
-                            <BButton type="is-primary" @click="mcpClient = 'Claude'">Tilføj til Claude</BButton>
-                            <BButton type="is-primary" @click="mcpClient = 'ChatGPT'">Tilføj til ChatGPT</BButton>
-                            <BButton icon-left="copy" @click="copyMcpUrl">Kopiér MCP-adresse</BButton>
-                        </div>
-                        <p class="has-text-grey">Du skal godkende forbindelsen og logge ind med din DS28-konto. Din konto skal have rollen McpUser.</p>
-                    </div>
-                </div>
-
-                <div class="card profile-grid-wide">
-                    <header class="card-header">
-                        <p class="card-header-title">Tofaktorautentificering</p>
-                    </header>
-                    <div class="card-content">
-                        <div class="tfa-status">
-                            <BIcon icon="shield-halved" size="is-medium"
-                                :class="Status.twoFactorEnabled ? 'has-text-success' : 'has-text-grey'" />
-                            <div class="tfa-status-text">
-                                <p class="has-text-weight-medium">
-                                    Tofaktorautentificering er {{ Status.twoFactorEnabled ? 'aktiv' : 'deaktiveret' }}
-                                </p>
-                                <p class="has-text-grey">
-                                    <template v-if="Status.twoFactorEnabled">
-                                        Du har {{ Status.recoveryCodesLeft }} recovery codes tilbage.
-                                    </template>
-                                    <template v-else>
-                                        Ved at aktivere det, tilføjes et ekstra sikkerhedslag ved login med din
-                                        autentificeringsapp.
-                                    </template>
-                                </p>
+                <div class="grid gap-6" :class="{ 'lg:grid-cols-2': hasNotificationOptions }">
+                    <UCard>
+                        <template #header>
+                            <h2 class="font-semibold text-highlighted">Profil og sikkerhed</h2>
+                        </template>
+                        <dl class="flex flex-col divide-y divide-default text-sm">
+                            <div class="flex items-center justify-between gap-3 py-2">
+                                <dt class="text-muted">Navn</dt>
+                                <dd class="flex items-center gap-2">
+                                    <span>{{ Me.firstName }} {{ Me.lastName }}</span>
+                                    <UButton color="neutral" variant="ghost" size="xs" icon="i-lucide-pencil" aria-label="Rediger navn" @click="openNameModal" />
+                                </dd>
                             </div>
-                            <span class="tag" :class="Status.twoFactorEnabled ? 'is-success is-light' : 'is-light'">
-                                {{ Status.twoFactorEnabled ? 'Aktiv' : 'Deaktiveret' }}
-                            </span>
-                        </div>
-
-                        <hr />
-
-                        <template v-if="Status.twoFactorEnabled && passkeys != null && passkeys.length > 0">
-                            <div class="tfa-section-head">
-                                <h3 class="title is-5">Dine passkeys</h3>
-                                <BButton type="is-primary" size="is-small" icon-left="plus" @click="addPasskey">
-                                    Tilføj passkey
-                                </BButton>
+                            <div class="flex items-center justify-between gap-3 py-2">
+                                <dt class="text-muted">Email</dt>
+                                <dd class="truncate">{{ Me.email }}</dd>
                             </div>
-
-                            <div class="tfa-passkeys">
-                                <div v-for="passkey in passkeys" :key="passkey.id" class="tfa-passkey">
-                                    <div class="tfa-passkey-info">
-                                        <BIcon icon="key" />
-                                        <div>
-                                            <p class="has-text-weight-medium">{{ passkey.name }}</p>
-                                            <p class="has-text-grey">Tilføjet {{ formatDate(passkey.createdAt) }}</p>
-                                        </div>
-                                    </div>
-                                    <BButton type="is-danger is-light" size="is-small" icon-left="trash"
-                                        @click="deletePasskey(passkey.id)">
-                                        Fjern
-                                    </BButton>
-                                </div>
+                            <div class="flex items-center justify-between gap-3 py-2">
+                                <dt class="text-muted">Telefon</dt>
+                                <dd class="flex items-center gap-2">
+                                    <span>{{ Me.phone || 'Intet telefonnummer' }}</span>
+                                    <UButton color="neutral" variant="ghost" size="xs" icon="i-lucide-pencil" aria-label="Rediger telefon" @click="openPhoneModal" />
+                                </dd>
+                            </div>
+                        </dl>
+                        <template #footer>
+                            <div class="flex flex-wrap items-center justify-between gap-2">
+                                <p class="text-sm text-muted">Hold din konto sikker ved at skifte din adgangskode.</p>
+                                <UButton color="neutral" variant="outline" icon="i-lucide-key-round" label="Skift adgangskode" @click="openPasswordModal" />
                             </div>
                         </template>
-                        <div v-else-if="Status.twoFactorEnabled" class="tfa-passkey-row">
-                            <p class="has-text-grey">Passkeys er ikke aktiveret.</p>
-                            <BButton size="is-small" type="is-primary is-light" icon-left="plus"
-                                @click="addPasskey">
-                                Tilføj passkey
-                            </BButton>
+                    </UCard>
+
+                    <UCard v-if="hasNotificationOptions">
+                        <template #header>
+                            <h2 class="font-semibold text-highlighted">Notifikationer</h2>
+                        </template>
+                        <div class="flex flex-col gap-3">
+                            <UCheckbox
+                                v-for="notification in notifications"
+                                :key="notification.type"
+                                v-model="notification.subscribed"
+                                :label="notificationLabels[notification.type] ?? notification.type"
+                                :disabled="!notification.canSubscribe"
+                            />
                         </div>
+                        <template #footer>
+                            <div class="flex justify-end">
+                                <UButton label="Gem notifikationer" :loading="updatingNotifications" @click="updateNotifications" />
+                            </div>
+                        </template>
+                    </UCard>
+                </div>
 
-                        <hr />
+                <UCard v-if="Me.roles.includes('McpUser')">
+                    <template #header>
+                        <h2 class="font-semibold text-highlighted">Forbind en AI-assistent</h2>
+                        <p class="text-sm text-muted">Forbind din AI-assistent til DS28 via MCP. Assistenten får adgang til tavler på dine vegne med dine eksisterende rettigheder.</p>
+                    </template>
+                    <UFormField label="MCP-adresse">
+                        <UFieldGroup class="w-full">
+                            <UInput :model-value="mcpUrl" readonly class="w-full font-mono" @focus="selectInput" />
+                            <UButton icon="i-lucide-copy" aria-label="Kopiér MCP-adresse" @click="copyMcpUrl" />
+                        </UFieldGroup>
+                    </UFormField>
+                    <div class="mt-3 flex flex-wrap gap-2">
+                        <UButton label="Tilføj til Claude" @click="mcpClient = 'Claude'" />
+                        <UButton label="Tilføj til ChatGPT" @click="mcpClient = 'ChatGPT'" />
+                    </div>
+                    <p class="mt-3 text-sm text-muted">Du skal godkende forbindelsen og logge ind med din DS28-konto. Din konto skal have rollen McpUser.</p>
+                </UCard>
 
-                        <div class="buttons">
-                            <BButton v-if="!Status.twoFactorEnabled" type="is-primary" icon-left="shield-halved"
-                                @click="openSetup">
-                                Aktivér 2FA
-                            </BButton>
+                <UCard>
+                    <template #header>
+                        <div class="flex flex-wrap items-center gap-3">
+                            <UIcon name="i-lucide-shield-check" class="size-6" :class="Status.twoFactorEnabled ? 'text-success' : 'text-muted'" />
+                            <div class="min-w-0 flex-1">
+                                <h2 class="font-semibold text-highlighted">Tofaktorautentificering</h2>
+                                <p class="text-sm text-muted">
+                                    <template v-if="Status.twoFactorEnabled">Du har {{ Status.recoveryCodesLeft }} recovery codes tilbage.</template>
+                                    <template v-else>Ved at aktivere det, tilføjes et ekstra sikkerhedslag ved login med din autentificeringsapp.</template>
+                                </p>
+                            </div>
+                            <UBadge :label="Status.twoFactorEnabled ? 'Aktiv' : 'Deaktiveret'" :color="Status.twoFactorEnabled ? 'success' : 'neutral'" variant="subtle" />
+                        </div>
+                    </template>
+
+                    <template v-if="Status.twoFactorEnabled">
+                        <div class="mb-3 flex items-center justify-between gap-2">
+                            <h3 class="text-sm font-semibold text-highlighted">Dine passkeys</h3>
+                            <UButton size="sm" icon="i-lucide-plus" label="Tilføj passkey" :loading="addingPasskey" @click="addPasskey" />
+                        </div>
+                        <ul v-if="passkeys.length" class="flex flex-col divide-y divide-default">
+                            <li v-for="passkey in passkeys" :key="passkey.id" class="flex items-center gap-3 py-2">
+                                <UIcon name="i-lucide-fingerprint" class="size-5 text-muted" />
+                                <div class="min-w-0 flex-1">
+                                    <p class="truncate text-sm font-medium">{{ passkey.name }}</p>
+                                    <p class="text-xs text-muted">Tilføjet {{ formatDate(passkey.createdAt) }}</p>
+                                </div>
+                                <UButton color="error" variant="ghost" size="xs" icon="i-lucide-trash-2" :aria-label="`Fjern passkey ${passkey.name}`" @click="confirmDeletePasskey(passkey)" />
+                            </li>
+                        </ul>
+                        <p v-else class="text-sm text-muted">Passkeys er ikke aktiveret.</p>
+                    </template>
+
+                    <template #footer>
+                        <div class="flex flex-wrap gap-2">
+                            <UButton v-if="!Status.twoFactorEnabled" icon="i-lucide-shield-check" label="Aktivér 2FA" @click="setupOpen = true" />
                             <template v-else>
-                                <BButton icon-left="rotate" @click="regenerate">
-                                    Generér nye recovery codes
-                                </BButton>
-                                <BButton type="is-warning" icon-left="mobile-screen" @click="openReset">
-                                    Nulstil autentificeringsnøgle
-                                </BButton>
-                                <BButton type="is-danger is-light" icon-left="shield-halved" @click="openDisable">
-                                    Deaktiver 2FA
-                                </BButton>
+                                <UButton color="neutral" variant="outline" icon="i-lucide-refresh-cw" label="Generér nye recovery codes" @click="regenerate" />
+                                <UButton color="warning" variant="outline" icon="i-lucide-smartphone" label="Nulstil autentificeringsnøgle" @click="resetOpen = true" />
+                                <UButton color="error" variant="outline" icon="i-lucide-shield-off" label="Deaktiver 2FA" @click="openDisable" />
                             </template>
                         </div>
-                    </div>
-                </div>
+                    </template>
+                </UCard>
 
-                <div class="card profile-grid-wide">
-                    <header class="card-header">
-                        <p class="card-header-title">Adgangstokens</p>
-                    </header>
-                    <div class="card-content">
-                        <p class="mb-3">
-                            Adgangstokens bruges af værktøjer og scripts, så de kan læse og skrive i DS28 uden din
-                            adgangskode. Behandl dem som adgangskoder, og tilbagekald dem, du ikke bruger.
-                        </p>
-
-                        <p v-if="tokens.length === 0" class="has-text-grey mb-3">
-                            Du har ingen aktive adgangstokens.
-                        </p>
-                        <div v-for="token in tokens" :key="token.id" class="tfa-passkey">
-                            <div class="tfa-passkey-info">
-                                <BIcon icon="key" />
-                                <div>
-                                    <p class="has-text-weight-medium">{{ token.name }}</p>
-                                    <p class="has-text-grey">
-                                        Oprettet {{ formatTokenDate(token.createdAt) }}
-                                        <template v-if="token.expiresAt">
-                                            · udløber {{ formatTokenDate(token.expiresAt) }}
-                                        </template>
-                                    </p>
-                                </div>
+                <UCard>
+                    <template #header>
+                        <div class="flex flex-wrap items-center justify-between gap-2">
+                            <div class="min-w-0">
+                                <h2 class="font-semibold text-highlighted">Adgangstokens</h2>
+                                <p class="text-sm text-muted">Adgangstokens bruges af værktøjer og scripts, så de kan læse og skrive i DS28 uden din adgangskode. Behandl dem som adgangskoder, og tilbagekald dem, du ikke bruger.</p>
                             </div>
-                            <BButton type="is-danger is-light" size="is-small" icon-left="trash"
-                                @click="revokeToken(token.id)">
-                                Tilbagekald
-                            </BButton>
                         </div>
-
-                        <div class="buttons mt-3">
-                            <BButton type="is-primary" icon-left="plus" @click="openCreateToken">
-                                Opret token
-                            </BButton>
-                        </div>
-                    </div>
-                </div>
+                    </template>
+                    <p v-if="tokens.length === 0" class="text-sm text-muted">Du har ingen aktive adgangstokens.</p>
+                    <ul v-else class="flex flex-col divide-y divide-default">
+                        <li v-for="token in tokens" :key="token.id" class="flex items-center gap-3 py-2">
+                            <UIcon name="i-lucide-key-round" class="size-5 text-muted" />
+                            <div class="min-w-0 flex-1">
+                                <p class="truncate text-sm font-medium">{{ token.name }}</p>
+                                <p class="text-xs text-muted">
+                                    Oprettet {{ formatTokenDate(token.createdAt) }}
+                                    <template v-if="token.expiresAt"> · udløber {{ formatTokenDate(token.expiresAt) }}</template>
+                                </p>
+                            </div>
+                            <UButton color="error" variant="ghost" size="xs" label="Tilbagekald" @click="confirmRevokeToken(token)" />
+                        </li>
+                    </ul>
+                    <template #footer>
+                        <UButton icon="i-lucide-plus" label="Opret token" @click="openCreateToken" />
+                    </template>
+                </UCard>
             </div>
-        </div>
-    </div>
 
-    <BModal v-model="showName" has-modal-card>
-        <div class="modal-card">
-            <header class="modal-card-head">
-                <p class="modal-card-title">Rediger navn</p>
-            </header>
-            <section class="modal-card-body">
-                <BField label="Fornavn">
-                    <BInput v-model="firstName" />
-                </BField>
-                <BField label="Efternavn">
-                    <BInput v-model="lastName" />
-                </BField>
-            </section>
-            <footer class="modal-card-foot">
-                <div class="buttons">
-                    <BButton type="is-primary" :loading="isUpdatingName" @click="updateName">
-                        Gem
-                    </BButton>
-                    <BButton @click="showName = false">Annuller</BButton>
-                </div>
-            </footer>
-        </div>
-    </BModal>
+            <UModal v-model:open="nameOpen" title="Rediger navn">
+                <template #body>
+                    <form id="profile-name-form" class="grid gap-4 sm:grid-cols-2" @submit.prevent="updateName">
+                        <UFormField label="Fornavn" required>
+                            <UInput v-model="firstName" class="w-full" autofocus />
+                        </UFormField>
+                        <UFormField label="Efternavn" required>
+                            <UInput v-model="lastName" class="w-full" />
+                        </UFormField>
+                    </form>
+                </template>
+                <template #footer>
+                    <div class="flex w-full justify-end gap-2">
+                        <UButton color="neutral" variant="outline" label="Annuller" @click="nameOpen = false" />
+                        <UButton type="submit" form="profile-name-form" label="Gem" :loading="updatingName" />
+                    </div>
+                </template>
+            </UModal>
 
-    <BModal v-model="showPhone" has-modal-card>
-        <div class="modal-card">
-            <header class="modal-card-head">
-                <p class="modal-card-title">Rediger telefon</p>
-            </header>
-            <section class="modal-card-body">
-                <BField label="Telefon">
-                    <BInput v-model="phone" type="tel" />
-                </BField>
-            </section>
-            <footer class="modal-card-foot">
-                <div class="buttons">
-                    <BButton type="is-primary" :loading="isUpdatingPhone" @click="updatePhone">
-                        Gem
-                    </BButton>
-                    <BButton @click="showPhone = false">Annuller</BButton>
-                </div>
-            </footer>
-        </div>
-    </BModal>
+            <UModal v-model:open="phoneOpen" title="Rediger telefon">
+                <template #body>
+                    <form id="profile-phone-form" @submit.prevent="updatePhone">
+                        <UFormField label="Telefon">
+                            <UInput v-model="phone" type="tel" class="w-full" autofocus />
+                        </UFormField>
+                    </form>
+                </template>
+                <template #footer>
+                    <div class="flex w-full justify-end gap-2">
+                        <UButton color="neutral" variant="outline" label="Annuller" @click="phoneOpen = false" />
+                        <UButton type="submit" form="profile-phone-form" label="Gem" :loading="updatingPhone" />
+                    </div>
+                </template>
+            </UModal>
 
-    <BModal v-model="showPassword" has-modal-card>
-        <div class="modal-card">
-            <header class="modal-card-head">
-                <p class="modal-card-title">Skift adgangskode</p>
-            </header>
-            <section class="modal-card-body">
-                <BField label="Nuværende adgangskode">
-                    <BInput v-model="oldPassword" type="password" password-reveal />
-                </BField>
-                <BField label="Ny adgangskode">
-                    <BInput v-model="newPassword" type="password" password-reveal />
-                </BField>
-                <BField label="Gentag ny adgangskode">
-                    <BInput v-model="repeatPassword" type="password" password-reveal />
-                </BField>
-            </section>
-            <footer class="modal-card-foot">
-                <div class="buttons">
-                    <BButton type="is-primary" :loading="isChangingPassword" @click="changePassword">
-                        Gem
-                    </BButton>
-                    <BButton @click="showPassword = false">Annuller</BButton>
-                </div>
-            </footer>
-        </div>
-    </BModal>
+            <UModal v-model:open="passwordOpen" title="Skift adgangskode">
+                <template #body>
+                    <form id="profile-password-form" class="flex flex-col gap-4" @submit.prevent="changePassword">
+                        <UFormField label="Nuværende adgangskode" required>
+                            <UInput v-model="oldPassword" :type="showPasswords ? 'text' : 'password'" autocomplete="current-password" class="w-full" autofocus />
+                        </UFormField>
+                        <UFormField label="Ny adgangskode" required>
+                            <UInput v-model="newPassword" :type="showPasswords ? 'text' : 'password'" autocomplete="new-password" class="w-full" />
+                        </UFormField>
+                        <UFormField label="Gentag ny adgangskode" required :error="repeatPassword && newPassword !== repeatPassword ? 'Adgangskoderne er ikke ens' : undefined">
+                            <UInput v-model="repeatPassword" :type="showPasswords ? 'text' : 'password'" autocomplete="new-password" class="w-full" />
+                        </UFormField>
+                        <UCheckbox v-model="showPasswords" label="Vis adgangskoder" />
+                    </form>
+                </template>
+                <template #footer>
+                    <div class="flex w-full justify-end gap-2">
+                        <UButton color="neutral" variant="outline" label="Annuller" @click="passwordOpen = false" />
+                        <UButton type="submit" form="profile-password-form" label="Gem" :loading="changingPassword" />
+                    </div>
+                </template>
+            </UModal>
 
-    <BModal v-model="mcpSetupOpen" has-modal-card>
-        <div class="modal-card">
-            <header class="modal-card-head">
-                <p class="modal-card-title">Tilføj til {{ mcpClient }}</p>
-            </header>
-            <section class="modal-card-body">
-                <p class="mb-3" v-if="mcpClient === 'Claude'">Åbn Claude, gå til Connectors, og vælg Add custom connector. Angiv DS28 som navn og indsæt MCP-adressen nedenfor.</p>
-                <p class="mb-3" v-else>Åbn ChatGPTs indstillinger for apps, og opret en forbindelse til en egen MCP-server med navnet DS28 og adressen nedenfor. Opsætningen kan kræve udviklertilstand og tilladelse fra din workspace-administrator.</p>
-                <BField label="MCP-adresse">
-                    <BInput :model-value="mcpUrl" readonly @focus="selectMcpUrl" />
-                </BField>
-                <p>Vælg OAuth, hvis du bliver spurgt om godkendelsesmetode, og log ind med din DS28-konto. Hvis klienten kræver et klient-id og en klienthemmelighed, skal en systemadministrator oprette en OAuth-klient til den pågældende assistent.</p>
-            </section>
-            <footer class="modal-card-foot">
-                <div class="buttons">
-                    <BButton type="is-primary" tag="a" :href="mcpClient === 'Claude' ? 'https://claude.ai/settings/connectors' : 'https://chatgpt.com/#settings/Connectors'" target="_blank" rel="noopener noreferrer">Åbn {{ mcpClient }} (ny fane)</BButton>
-                    <BButton icon-left="copy" @click="copyMcpUrl">Kopiér MCP-adresse</BButton>
-                    <BButton @click="mcpClient = null">Luk</BButton>
-                </div>
-            </footer>
-        </div>
-    </BModal>
+            <UModal v-model:open="mcpSetupOpen" :title="`Tilføj til ${mcpClient ?? ''}`">
+                <template #body>
+                    <p v-if="mcpClient === 'Claude'" class="mb-3 text-sm">Åbn Claude, gå til Connectors, og vælg Add custom connector. Angiv DS28 som navn og indsæt MCP-adressen nedenfor.</p>
+                    <p v-else class="mb-3 text-sm">Åbn ChatGPTs indstillinger for apps, og opret en forbindelse til en egen MCP-server med navnet DS28 og adressen nedenfor. Opsætningen kan kræve udviklertilstand og tilladelse fra din workspace-administrator.</p>
+                    <UFormField label="MCP-adresse">
+                        <UFieldGroup class="w-full">
+                            <UInput :model-value="mcpUrl" readonly class="w-full font-mono" @focus="selectInput" />
+                            <UButton icon="i-lucide-copy" aria-label="Kopiér MCP-adresse" @click="copyMcpUrl" />
+                        </UFieldGroup>
+                    </UFormField>
+                    <p class="mt-3 text-sm text-muted">Vælg OAuth, hvis du bliver spurgt om godkendelsesmetode, og log ind med din DS28-konto. Hvis klienten kræver et klient-id og en klienthemmelighed, skal en systemadministrator oprette en OAuth-klient til den pågældende assistent.</p>
+                </template>
+                <template #footer>
+                    <div class="flex w-full flex-wrap justify-end gap-2">
+                        <UButton color="neutral" variant="outline" label="Luk" @click="mcpClient = null" />
+                        <UButton :to="mcpClient === 'Claude' ? 'https://claude.ai/settings/connectors' : 'https://chatgpt.com/#settings/Connectors'" target="_blank" rel="noopener noreferrer" trailing-icon="i-lucide-external-link" :label="`Åbn ${mcpClient ?? ''} (ny fane)`" />
+                    </div>
+                </template>
+            </UModal>
 
-    <TwoFactorSetupModal v-model:active="showSetup" @enabled="onEnabled" />
-    <RecoveryCodesModal v-model:active="showRecoveryCodes" :codes="recoveryCodes" />
+            <TwoFactorSetupModal v-model:open="setupOpen" @enabled="notify.success('Tofaktorautentificering er aktiveret.')" />
+            <RecoveryCodesModal v-model:open="recoveryCodesOpen" :codes="recoveryCodes" />
 
-    <BModal v-model="showCreateToken" has-modal-card>
-        <div class="modal-card">
-            <header class="modal-card-head">
-                <p class="modal-card-title">Opret adgangstoken</p>
-            </header>
-            <section class="modal-card-body">
-                <BField label="Navn">
-                    <BInput v-model="tokenName" placeholder="Fx MCP eller CI" maxlength="64" />
-                </BField>
-                <BField label="Udløber om">
-                    <BSelect v-model="tokenExpiryDays" expanded>
-                        <option :value="30">30 dage</option>
-                        <option :value="90">90 dage</option>
-                        <option :value="365">1 år</option>
-                    </BSelect>
-                </BField>
-            </section>
-            <footer class="modal-card-foot">
-                <div class="buttons">
-                    <BButton type="is-primary" :loading="isCreatingToken" @click="createToken">
-                        Opret
-                    </BButton>
-                    <BButton @click="showCreateToken = false">Annuller</BButton>
-                </div>
-            </footer>
-        </div>
-    </BModal>
+            <UModal v-model:open="createTokenOpen" title="Opret adgangstoken">
+                <template #body>
+                    <form id="profile-token-form" class="flex flex-col gap-4" @submit.prevent="createToken">
+                        <UFormField label="Navn" required>
+                            <UInput v-model="tokenName" placeholder="Fx MCP eller CI" maxlength="64" class="w-full" autofocus />
+                        </UFormField>
+                        <UFormField label="Udløber om">
+                            <USelect v-model="tokenExpiryDays" :items="tokenExpiryItems" class="w-full" />
+                        </UFormField>
+                    </form>
+                </template>
+                <template #footer>
+                    <div class="flex w-full justify-end gap-2">
+                        <UButton color="neutral" variant="outline" label="Annuller" @click="createTokenOpen = false" />
+                        <UButton type="submit" form="profile-token-form" label="Opret" :loading="creatingToken" />
+                    </div>
+                </template>
+            </UModal>
 
-    <BModal v-model="showCreatedToken" has-modal-card>
-        <div class="modal-card">
-            <header class="modal-card-head">
-                <p class="modal-card-title">Dit nye adgangstoken</p>
-            </header>
-            <section class="modal-card-body">
-                <p class="mb-3">
-                    Kopiér token nu. Du kan ikke se det igen. Brug det i stedet for din adgangskode i værktøjet.
-                </p>
-                <BField label="Token">
-                    <BInput :model-value="createdToken" readonly @focus="selectToken" />
-                </BField>
-            </section>
-            <footer class="modal-card-foot">
-                <div class="buttons">
-                    <BButton type="is-primary" icon-left="copy" @click="copyToken">Kopiér</BButton>
-                    <BButton @click="showCreatedToken = false">Luk</BButton>
-                </div>
-            </footer>
-        </div>
-    </BModal>
+            <UModal v-model:open="createdTokenOpen" title="Dit nye adgangstoken" :dismissible="false">
+                <template #body>
+                    <UAlert color="warning" variant="subtle" icon="i-lucide-triangle-alert" title="Kopiér token nu. Du kan ikke se det igen." description="Brug det i stedet for din adgangskode i værktøjet." />
+                    <UFormField label="Token" class="mt-4">
+                        <UFieldGroup class="w-full">
+                            <UInput :model-value="createdToken" readonly class="w-full font-mono" aria-label="Token" @focus="selectInput" />
+                            <UButton icon="i-lucide-copy" label="Kopiér" @click="copyToken" />
+                        </UFieldGroup>
+                    </UFormField>
+                </template>
+                <template #footer>
+                    <div class="flex w-full justify-end">
+                        <UButton label="Luk" @click="closeCreatedToken" />
+                    </div>
+                </template>
+            </UModal>
 
-    <BModal v-model="showDisable" has-modal-card>
-        <div class="modal-card">
-            <header class="modal-card-head">
-                <p class="modal-card-title">Deaktiver tofaktorautentificering</p>
-            </header>
-            <section class="modal-card-body">
-                <p class="mb-3">
-                    Indtast din nuværende adgangskode for at deaktivere tofaktorautentificering.
-                </p>
-                <BField label="Adgangskode">
-                    <BInput v-model="disablePassword" type="password" password-reveal />
-                </BField>
-            </section>
-            <footer class="modal-card-foot">
-                <div class="buttons">
-                    <BButton type="is-danger" :loading="isDisabling" @click="disable">
-                        Deaktiver
-                    </BButton>
-                    <BButton @click="showDisable = false">Annuller</BButton>
-                </div>
-            </footer>
-        </div>
-    </BModal>
+            <UModal v-model:open="disableOpen" title="Deaktiver tofaktorautentificering" description="Indtast din nuværende adgangskode for at deaktivere tofaktorautentificering.">
+                <template #body>
+                    <form id="profile-disable-2fa-form" @submit.prevent="disable">
+                        <UFormField label="Adgangskode" required>
+                            <UInput v-model="disablePassword" type="password" autocomplete="current-password" class="w-full" autofocus />
+                        </UFormField>
+                    </form>
+                </template>
+                <template #footer>
+                    <div class="flex w-full justify-end gap-2">
+                        <UButton color="neutral" variant="outline" label="Annuller" @click="disableOpen = false" />
+                        <UButton type="submit" form="profile-disable-2fa-form" color="error" label="Deaktiver" :loading="disabling" />
+                    </div>
+                </template>
+            </UModal>
 
-    <BModal v-model="showReset" has-modal-card>
-        <div class="modal-card">
-            <header class="modal-card-head">
-                <p class="modal-card-title">Nulstil autentificeringsnøgle</p>
-            </header>
-            <section class="modal-card-body">
-                <p>
-                    Nulstilling af autentificeringsnøglen deaktiverer tofaktorautentificering,
-                    så du skal sætte den op igen med din autentificeringsapp.
-                </p>
-            </section>
-            <footer class="modal-card-foot">
-                <div class="buttons">
-                    <BButton type="is-warning" :loading="isResetting" @click="reset">
-                        Nulstil og deaktiver
-                    </BButton>
-                    <BButton @click="showReset = false">Annuller</BButton>
-                </div>
-            </footer>
-        </div>
-    </BModal>
+            <ConfirmModal
+                v-model:open="resetOpen"
+                title="Nulstil autentificeringsnøgle"
+                description="Nulstilling af autentificeringsnøglen deaktiverer tofaktorautentificering, så du skal sætte den op igen med din autentificeringsapp."
+                confirm-label="Nulstil og deaktiver"
+                color="warning"
+                :loading="resetting"
+                @confirm="reset"
+            />
+
+            <ConfirmModal
+                v-model:open="deletePasskeyOpen"
+                title="Fjern passkey"
+                :description="`Fjern passkeyen ${passkeyToDelete?.name}? Du kan ikke længere logge ind med den.`"
+                confirm-label="Fjern"
+                color="error"
+                :loading="deletingPasskey"
+                @confirm="deletePasskey"
+            />
+
+            <ConfirmModal
+                v-model:open="revokeTokenOpen"
+                title="Tilbagekald token"
+                :description="`Tilbagekald ${tokenToRevoke?.name}? Værktøjer, der bruger det, mister adgangen med det samme.`"
+                confirm-label="Tilbagekald"
+                color="error"
+                :loading="revokingToken"
+                @confirm="revokeToken"
+            />
+        </template>
+    </UDashboardPanel>
 </template>
-<script lang="ts" setup>
-import { useAccountStore } from '@/Stores/AccountStore';
-import { useMeStore } from '@/Stores/MeStore';
-import { BButton, BField, BIcon, BInput, BModal, BSelect, useToast, BCheckbox } from 'buefy';
-import { computed, onMounted, ref } from 'vue';
-import { storeToRefs } from 'pinia';
-import TwoFactorSetupModal from '@/Components/Account/TwoFactorSetupModal.vue';
-import RecoveryCodesModal from '@/Components/Account/RecoveryCodesModal.vue';
-import UserAvatar from '@/Components/User/UserAvatar.vue';
-import ProfilePictureUpload from '@/Components/User/ProfilePictureUpload.vue';
-import NotificationService from '@/Services/NotificationService';
-import AccessTokenService from '@/Services/AccessTokenService';
-import FileService from '@/Services/FileService';
-import type { AccessTokenDto, NotificationPreferenceDto, PasskeyDto } from '@/types';
-import { formatDate } from '@/lib/util';
 
-function selectToken(event?: Event) {
-    if (event?.target instanceof HTMLInputElement) event.target.select();
-}
+<script setup lang="ts">
+import { computed, onMounted, ref } from "vue";
+import { storeToRefs } from "pinia";
+import { useAccountStore } from "@/Stores/AccountStore";
+import { useMeStore } from "@/Stores/MeStore";
+import NotificationService from "@/Services/NotificationService";
+import AccessTokenService from "@/Services/AccessTokenService";
+import FileService from "@/Services/FileService";
+import { formatDate } from "@/lib/util";
+import { useNotify } from "@/lib/notify";
+import ConfirmModal from "@/Components/ConfirmModal.vue";
+import UserAvatar from "@/Components/User/UserAvatar.vue";
+import ProfilePictureUpload from "@/Components/User/ProfilePictureUpload.vue";
+import TwoFactorSetupModal from "@/Components/Account/TwoFactorSetupModal.vue";
+import RecoveryCodesModal from "@/Components/Account/RecoveryCodesModal.vue";
+import type { AccessTokenDto, NotificationPreferenceDto, PasskeyDto } from "@/types";
 
-const Toast = useToast();
 const accountStore = useAccountStore();
 const meStore = useMeStore();
 const notificationService = new NotificationService();
 const accessTokenService = new AccessTokenService();
 const fileService = new FileService();
+const notify = useNotify();
 const { Status } = storeToRefs(accountStore);
 const { Me } = storeToRefs(meStore);
-const mcpUrl = new URL('/mcp', window.location.origin).href;
-const mcpClient = ref<'Claude' | 'ChatGPT' | null>(null);
+
+function selectInput(event?: Event) {
+    if (event?.target instanceof HTMLInputElement) event.target.select();
+}
+
+async function copyText(value: string, success: string, failure: string) {
+    try {
+        await navigator.clipboard.writeText(value);
+        notify.success(success);
+    } catch {
+        notify.error(failure);
+    }
+}
+
+const mcpUrl = new URL("/mcp", window.location.origin).href;
+const mcpClient = ref<"Claude" | "ChatGPT" | null>(null);
 const mcpSetupOpen = computed({
     get: () => mcpClient.value !== null,
     set: (open: boolean) => {
@@ -463,626 +388,360 @@ const mcpSetupOpen = computed({
     }
 });
 
-const selectMcpUrl = (event?: Event) => {
-    if (event?.target instanceof HTMLInputElement) event.target.select();
-};
-
-const copyMcpUrl = async () => {
-    try {
-        await navigator.clipboard.writeText(mcpUrl);
-        Toast.open({ message: 'MCP-adressen er kopieret', type: 'is-success' });
-    } catch {
-        Toast.open({ message: 'Kunne ikke kopiere adressen. Markér og kopiér den fra feltet.', type: 'is-danger' });
-    }
-};
+function copyMcpUrl() {
+    void copyText(mcpUrl, "MCP-adressen er kopieret.", "Kunne ikke kopiere adressen. Markér og kopiér den fra feltet.");
+}
 
 const notificationLabels: Record<string, string> = {
-    NewUser: 'Ny bruger oprettet'
+    NewUser: "Ny bruger oprettet"
 };
-
 const notifications = ref<NotificationPreferenceDto[]>([]);
-const isUpdatingNotifications = ref(false);
+const updatingNotifications = ref(false);
 const hasNotificationOptions = computed(() => notifications.value.some((notification) => notification.canSubscribe));
 
-const firstName = ref('');
-const lastName = ref('');
-const phone = ref('');
-const isUpdatingName = ref(false);
-const passkeys = ref<PasskeyDto[] | null>(null);
+const updatingPicture = ref(false);
 
-const oldPassword = ref('');
-const newPassword = ref('');
-const repeatPassword = ref('');
-const isChangingPassword = ref(false);
-
-const showSetup = ref(false);
-const showRecoveryCodes = ref(false);
-const recoveryCodes = ref<string[]>([]);
-
-const showDisable = ref(false);
-const disablePassword = ref('');
-const isDisabling = ref(false);
-
-const showReset = ref(false);
-const isResetting = ref(false);
-
-const isUpdatingPicture = ref(false);
-
-const tokens = ref<AccessTokenDto[]>([]);
-const showCreateToken = ref(false);
-const showCreatedToken = ref(false);
-const isCreatingToken = ref(false);
-const tokenName = ref('');
-const tokenExpiryDays = ref(90);
-const createdToken = ref('');
-
-const showName = ref(false);
-const showPhone = ref(false);
-const isUpdatingPhone = ref(false);
-const showPassword = ref(false);
-
-const updatePicture = async (file: File) => {
-    isUpdatingPicture.value = true;
-
+async function updatePicture(file: File) {
+    updatingPicture.value = true;
     try {
         const uploaded = await fileService.uploadProfilePicture(file);
         const ready = await fileService.waitUntilReady(uploaded.publicId);
-
         if (!ready) {
-            Toast.open({
-                message: 'Billedet kunne ikke behandles. Prøv igen.',
-                type: 'is-danger'
-            });
+            notify.error("Billedet kunne ikke behandles. Prøv igen.");
             return;
         }
 
         const ok = await meStore.UPDATE_PROFILE_PICTURE(uploaded.publicId);
-        Toast.open({
-            message: ok
-                ? 'Dit profilbillede er blevet opdateret!'
-                : 'Der skete en fejl under opdatering af dit profilbillede',
-            type: ok ? 'is-success' : 'is-danger'
-        });
+        notify.result(ok, "Dit profilbillede er opdateret.", "Der skete en fejl under opdatering af dit profilbillede.");
     } catch {
-        Toast.open({
-            message: 'Der skete en fejl under upload af billedet',
-            type: 'is-danger'
-        });
+        notify.error("Der skete en fejl under upload af billedet.");
     } finally {
-        isUpdatingPicture.value = false;
+        updatingPicture.value = false;
     }
-};
+}
 
-const removePicture = async () => {
-    isUpdatingPicture.value = true;
-
+async function removePicture() {
+    updatingPicture.value = true;
     try {
         const ok = await meStore.UPDATE_PROFILE_PICTURE(null);
-        Toast.open({
-            message: ok
-                ? 'Dit profilbillede er blevet fjernet!'
-                : 'Der skete en fejl under fjernelse af dit profilbillede',
-            type: ok ? 'is-success' : 'is-danger'
-        });
+        notify.result(ok, "Dit profilbillede er fjernet.", "Der skete en fejl under fjernelse af dit profilbillede.");
     } finally {
-        isUpdatingPicture.value = false;
+        updatingPicture.value = false;
     }
-};
+}
 
 onMounted(() => {
-    accountStore.GET_STATUS();
-    firstName.value = Me.value?.firstName ?? '';
-    lastName.value = Me.value?.lastName ?? '';
-    phone.value = Me.value?.phone ?? '';
-    passkeys.value = Me.value?.passkeys ?? null;
-    loadNotifications();
-    loadTokens();
+    void accountStore.GET_STATUS();
+    passkeys.value = Me.value?.passkeys ?? [];
+    void loadNotifications();
+    void loadTokens();
 });
 
-const loadTokens = async () => {
-    tokens.value = await accessTokenService.getTokens();
-};
-
-const openCreateToken = () => {
-    tokenName.value = '';
-    tokenExpiryDays.value = 90;
-    showCreateToken.value = true;
-};
-
-const createToken = async () => {
-    if (!tokenName.value.trim()) {
-        Toast.open({
-            message: 'Giv tokenet et navn.',
-            type: 'is-warning'
-        });
-        return;
-    }
-
-    isCreatingToken.value = true;
-
-    try {
-        const created = await accessTokenService.createToken(tokenName.value, tokenExpiryDays.value);
-        createdToken.value = created.token;
-        showCreateToken.value = false;
-        showCreatedToken.value = true;
-        await loadTokens();
-    } catch {
-        Toast.open({
-            message: 'Der skete en fejl under oprettelse af tokenet',
-            type: 'is-danger'
-        });
-    } finally {
-        isCreatingToken.value = false;
-    }
-};
-
-const revokeToken = async (id: number) => {
-    try {
-        await accessTokenService.revokeToken(id);
-        await loadTokens();
-        Toast.open({
-            message: 'Tokenet er tilbagekaldt!',
-            type: 'is-success'
-        });
-    } catch {
-        Toast.open({
-            message: 'Der skete en fejl under tilbagekaldelse af tokenet',
-            type: 'is-danger'
-        });
-    }
-};
-
-const copyToken = async () => {
-    await navigator.clipboard.writeText(createdToken.value);
-    Toast.open({
-        message: 'Tokenet er kopieret',
-        type: 'is-success'
-    });
-};
-
-const formatTokenDate = (value: string) => new Date(value).toLocaleDateString('da-DK');
-
-const loadNotifications = async () => {
+async function loadNotifications() {
     try {
         notifications.value = await notificationService.getPreferences();
     } catch {
         notifications.value = [];
     }
-};
+}
 
-const updateNotifications = async () => {
-    isUpdatingNotifications.value = true;
-
+async function updateNotifications() {
+    updatingNotifications.value = true;
     try {
         const types = notifications.value
             .filter((notification) => notification.subscribed && notification.canSubscribe)
             .map((notification) => notification.type);
-
         await notificationService.updatePreferences(types);
-
-        Toast.open({
-            message: 'Dine notifikationer er blevet opdateret!',
-            type: 'is-success'
-        });
+        notify.success("Dine notifikationer er opdateret.");
     } catch {
-        Toast.open({
-            message: 'Der skete en fejl under opdatering af dine notifikationer',
-            type: 'is-danger'
-        });
+        notify.error("Der skete en fejl under opdatering af dine notifikationer.");
     } finally {
-        isUpdatingNotifications.value = false;
+        updatingNotifications.value = false;
     }
-};
+}
 
-const openNameModal = () => {
-    firstName.value = Me.value?.firstName ?? '';
-    lastName.value = Me.value?.lastName ?? '';
-    showName.value = true;
-};
+const nameOpen = ref(false);
+const firstName = ref("");
+const lastName = ref("");
+const updatingName = ref(false);
 
-const openPhoneModal = () => {
-    phone.value = Me.value?.phone ?? '';
-    showPhone.value = true;
-};
+function openNameModal() {
+    firstName.value = Me.value?.firstName ?? "";
+    lastName.value = Me.value?.lastName ?? "";
+    nameOpen.value = true;
+}
 
-const openPasswordModal = () => {
-    oldPassword.value = '';
-    newPassword.value = '';
-    repeatPassword.value = '';
-    showPassword.value = true;
-};
-
-const updateName = async () => {
+async function updateName() {
     if (!firstName.value.trim() || !lastName.value.trim()) {
-        Toast.open({
-            message: 'Fornavn og efternavn skal udfyldes',
-            type: 'is-warning'
-        });
+        notify.error("Fornavn og efternavn skal udfyldes.");
         return;
     }
 
-    isUpdatingName.value = true;
-
+    updatingName.value = true;
     try {
         const ok = await accountStore.UPDATE_NAME(firstName.value, lastName.value);
+        notify.result(ok, "Dit navn er opdateret.", "Der skete en fejl under opdatering af dit navn.");
         if (ok) {
-            Toast.open({
-                message: 'Dit navn er blevet opdateret!',
-                type: 'is-success'
-            });
             await meStore.GET_ME();
-            showName.value = false;
-        } else {
-            Toast.open({
-                message: 'Der skete en fejl under opdatering af dit navn',
-                type: 'is-danger'
-            });
+            nameOpen.value = false;
         }
     } finally {
-        isUpdatingName.value = false;
+        updatingName.value = false;
     }
-};
+}
 
-const updatePhone = async () => {
-    isUpdatingPhone.value = true;
+const phoneOpen = ref(false);
+const phone = ref("");
+const updatingPhone = ref(false);
 
+function openPhoneModal() {
+    phone.value = Me.value?.phone ?? "";
+    phoneOpen.value = true;
+}
+
+async function updatePhone() {
+    updatingPhone.value = true;
     try {
         const ok = await meStore.UPDATE_PHONE(phone.value);
-        if (ok) {
-            Toast.open({
-                message: 'Dit telefonnummer er blevet opdateret!',
-                type: 'is-success'
-            });
-            showPhone.value = false;
-        } else {
-            Toast.open({
-                message: 'Der skete en fejl under opdatering af dit telefonnummer',
-                type: 'is-danger'
-            });
-        }
+        notify.result(ok, "Dit telefonnummer er opdateret.", "Der skete en fejl under opdatering af dit telefonnummer.");
+        if (ok) phoneOpen.value = false;
     } finally {
-        isUpdatingPhone.value = false;
-    }
-};
-
-const addPasskey = async () => {
-    if (!meStore.Me) return;
-
-    try {
-        const result = await accountStore.CREATE_PASSKEY(meStore.Me.name);
-        if (result) {
-            recoveryCodes.value = result.recoveryCodes;
-        } else {
-        }
-    } catch (e) {
-        return Toast.open({
-            message: (e as DOMException)?.name === "NotAllowedError"
-            ? "Aktivering blev afbrudt af brugeren."
-            : 'Der skete en uventet fejl under aktiveringen af din passkey.',
-            type: "is-warning"
-        })
+        updatingPhone.value = false;
     }
 }
 
-const deletePasskey = async (passkey: string) => {
-    if(!passkeys.value) return;
-    if(passkeys.value?.length <= 1 && !Status.value.hasEnabledAuthenticator) {
-        return Toast.open({
-            message: "Du kan ikke slette din sidste passkey.",
-            type: "is-danger"
-        })
-    }
+const passwordOpen = ref(false);
+const oldPassword = ref("");
+const newPassword = ref("");
+const repeatPassword = ref("");
+const showPasswords = ref(false);
+const changingPassword = ref(false);
 
-    const passkeyIndex = passkeys.value.findIndex((p) => p.id === passkey);
-    if(passkeyIndex === -1) {
-        return Toast.open({
-            message: "Kunne ikke finde passkey",
-            type: "is-warning"
-        })
-    }
-
-    const error = await accountStore.REMOVE_PASSKEY(passkey);
-    if(error) {
-        return Toast.open({
-            message: "Der skete en fejl ved fjenelsen af din passkey",
-            type: "is-warning"
-        })
-    }
-
-    const newPasskeyList = passkeys.value.filter((_, i) => i !== passkeyIndex);
-
-    meStore.$patch({
-        Me: {
-            passkeys: newPasskeyList
-        }
-    })
+function openPasswordModal() {
+    oldPassword.value = "";
+    newPassword.value = "";
+    repeatPassword.value = "";
+    showPasswords.value = false;
+    passwordOpen.value = true;
 }
 
-const changePassword = async () => {
+async function changePassword() {
     if (newPassword.value !== repeatPassword.value) {
-        Toast.open({
-            message: 'Adgangskoderne er ikke ens',
-            type: 'is-warning'
-        });
+        notify.error("Adgangskoderne er ikke ens.");
         return;
     }
 
-    isChangingPassword.value = true;
-
+    changingPassword.value = true;
     try {
         const ok = await accountStore.CHANGE_PASSWORD(oldPassword.value, newPassword.value);
+        notify.result(ok, "Din adgangskode er opdateret.", "Der skete en fejl. Tjek din nuværende adgangskode.");
         if (ok) {
-            Toast.open({
-                message: 'Din adgangskode er blevet opdateret!',
-                type: 'is-success'
-            });
-            oldPassword.value = '';
-            newPassword.value = '';
-            repeatPassword.value = '';
-            showPassword.value = false;
-        } else {
-            Toast.open({
-                message: 'Der skete en fejl. Tjek din nuværende adgangskode.',
-                type: 'is-danger'
-            });
+            oldPassword.value = "";
+            newPassword.value = "";
+            repeatPassword.value = "";
+            passwordOpen.value = false;
         }
     } finally {
-        isChangingPassword.value = false;
+        changingPassword.value = false;
     }
-};
+}
 
-const openSetup = () => {
-    showSetup.value = true;
-};
+const setupOpen = ref(false);
+const recoveryCodesOpen = ref(false);
+const recoveryCodes = ref<string[]>([]);
 
-const onEnabled = () => {
-    Toast.open({
-        message: 'Tofaktorautentificering er aktiveret!',
-        type: 'is-success'
-    });
-};
+function showRecoveryCodes(codes: string[]) {
+    recoveryCodes.value = codes;
+    recoveryCodesOpen.value = true;
+}
 
-const regenerate = async () => {
+async function regenerate() {
     const result = await accountStore.GENERATE_RECOVERY_CODES();
-    if (result) {
-        recoveryCodes.value = result.recoveryCodes;
-        showRecoveryCodes.value = true;
-    } else {
-        Toast.open({
-            message: 'Der skete en fejl under generering af recovery codes',
-            type: 'is-danger'
-        });
-    }
-};
+    if (result) showRecoveryCodes(result.recoveryCodes);
+    else notify.error("Der skete en fejl under generering af recovery codes.");
+}
 
-const openDisable = () => {
-    disablePassword.value = '';
-    showDisable.value = true;
-};
+const disableOpen = ref(false);
+const disablePassword = ref("");
+const disabling = ref(false);
 
-const disable = async () => {
+function openDisable() {
+    disablePassword.value = "";
+    disableOpen.value = true;
+}
+
+async function disable() {
     if (!disablePassword.value) {
-        Toast.open({
-            message: 'Indtast venligst din adgangskode',
-            type: 'is-warning'
-        });
+        notify.error("Indtast venligst din adgangskode.");
         return;
     }
 
-    isDisabling.value = true;
-
+    disabling.value = true;
     try {
         const errorMessage = await accountStore.DISABLE_2FA(disablePassword.value);
         if (errorMessage === null) {
-            Toast.open({
-                message: 'Tofaktorautentificering er deaktiveret',
-                type: 'is-success'
-            });
-            showDisable.value = false;
+            notify.success("Tofaktorautentificering er deaktiveret.");
+            disableOpen.value = false;
         } else {
-            Toast.open({
-                message: errorMessage,
-                type: 'is-danger'
-            });
+            notify.error(errorMessage);
         }
     } finally {
-        isDisabling.value = false;
+        disabling.value = false;
     }
-};
+}
 
-const openReset = () => {
-    showReset.value = true;
-};
+const resetOpen = ref(false);
+const resetting = ref(false);
 
-const reset = async () => {
-    isResetting.value = true;
-
+async function reset() {
+    resetting.value = true;
     try {
         const ok = await accountStore.RESET_AUTHENTICATOR();
-        if (ok) {
-            Toast.open({
-                message: 'Autentificeringsnøgle er nulstillet',
-                type: 'is-success'
-            });
-            showReset.value = false;
-        } else {
-            Toast.open({
-                message: 'Der skete en fejl',
-                type: 'is-danger'
-            });
-        }
+        notify.result(ok, "Autentificeringsnøglen er nulstillet.", "Der skete en fejl.");
+        if (ok) resetOpen.value = false;
     } finally {
-        isResetting.value = false;
+        resetting.value = false;
     }
-};
+}
+
+const passkeys = ref<PasskeyDto[]>([]);
+const addingPasskey = ref(false);
+const deletePasskeyOpen = ref(false);
+const passkeyToDelete = ref<PasskeyDto | null>(null);
+const deletingPasskey = ref(false);
+
+async function addPasskey() {
+    if (!meStore.Me || addingPasskey.value) return;
+
+    addingPasskey.value = true;
+    try {
+        const result = await accountStore.CREATE_PASSKEY(meStore.Me.name);
+        if (!result) {
+            notify.error("Passkeyen blev ikke tilføjet.");
+            return;
+        }
+
+        passkeys.value = accountStore.Passkeys;
+        notify.success("Passkeyen er tilføjet.");
+        if (result.recoveryCodes?.length) showRecoveryCodes(result.recoveryCodes);
+    } catch (cause) {
+        notify.error((cause as DOMException)?.name === "NotAllowedError"
+            ? "Aktivering blev afbrudt af brugeren."
+            : "Der skete en uventet fejl under aktiveringen af din passkey.");
+    } finally {
+        addingPasskey.value = false;
+    }
+}
+
+function confirmDeletePasskey(passkey: PasskeyDto) {
+    if (passkeys.value.length <= 1 && !Status.value.hasEnabledAuthenticator) {
+        notify.error("Du kan ikke slette din sidste passkey.");
+        return;
+    }
+
+    passkeyToDelete.value = passkey;
+    deletePasskeyOpen.value = true;
+}
+
+async function deletePasskey() {
+    const passkey = passkeyToDelete.value;
+    if (!passkey) return;
+
+    deletingPasskey.value = true;
+    try {
+        const error = await accountStore.REMOVE_PASSKEY(passkey.id);
+        if (error) {
+            notify.error("Der skete en fejl ved fjernelsen af din passkey.");
+            return;
+        }
+
+        passkeys.value = accountStore.Passkeys;
+        meStore.$patch({ Me: { passkeys: passkeys.value } });
+        deletePasskeyOpen.value = false;
+        notify.success("Passkeyen er fjernet.");
+    } finally {
+        deletingPasskey.value = false;
+    }
+}
+
+const tokens = ref<AccessTokenDto[]>([]);
+const tokenExpiryItems = [
+    { label: "30 dage", value: 30 },
+    { label: "90 dage", value: 90 },
+    { label: "1 år", value: 365 }
+];
+const createTokenOpen = ref(false);
+const createdTokenOpen = ref(false);
+const creatingToken = ref(false);
+const tokenName = ref("");
+const tokenExpiryDays = ref(90);
+const createdToken = ref("");
+const revokeTokenOpen = ref(false);
+const tokenToRevoke = ref<AccessTokenDto | null>(null);
+const revokingToken = ref(false);
+
+async function loadTokens() {
+    tokens.value = await accessTokenService.getTokens();
+}
+
+function formatTokenDate(value: string) {
+    return new Date(value).toLocaleDateString("da-DK");
+}
+
+function openCreateToken() {
+    tokenName.value = "";
+    tokenExpiryDays.value = 90;
+    createTokenOpen.value = true;
+}
+
+async function createToken() {
+    if (!tokenName.value.trim()) {
+        notify.error("Giv tokenet et navn.");
+        return;
+    }
+
+    creatingToken.value = true;
+    try {
+        const created = await accessTokenService.createToken(tokenName.value, tokenExpiryDays.value);
+        createdToken.value = created.token;
+        createTokenOpen.value = false;
+        createdTokenOpen.value = true;
+        await loadTokens();
+    } catch {
+        notify.error("Der skete en fejl under oprettelse af tokenet.");
+    } finally {
+        creatingToken.value = false;
+    }
+}
+
+function copyToken() {
+    void copyText(createdToken.value, "Tokenet er kopieret.", "Tokenet kunne ikke kopieres. Markér og kopiér det fra feltet.");
+}
+
+function closeCreatedToken() {
+    createdTokenOpen.value = false;
+    createdToken.value = "";
+}
+
+function confirmRevokeToken(token: AccessTokenDto) {
+    tokenToRevoke.value = token;
+    revokeTokenOpen.value = true;
+}
+
+async function revokeToken() {
+    const token = tokenToRevoke.value;
+    if (!token) return;
+
+    revokingToken.value = true;
+    try {
+        await accessTokenService.revokeToken(token.id);
+        await loadTokens();
+        revokeTokenOpen.value = false;
+        notify.success("Tokenet er tilbagekaldt.");
+    } catch {
+        notify.error("Der skete en fejl under tilbagekaldelse af tokenet.");
+    } finally {
+        revokingToken.value = false;
+    }
+}
 </script>
-<style lang="scss" scoped>
-.profile-scroll {
-    flex: 1;
-    min-height: 0;
-    overflow-y: auto;
-}
-
-.profile-page {
-    max-width: 64rem;
-    margin: 0 auto;
-    padding: 0 1rem 1rem;
-}
-
-.profile-header {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    background-color: #fff;
-    border-radius: 10px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-    padding: 1.25rem;
-    margin-bottom: 1rem;
-
-    .title,
-    .subtitle {
-        margin-bottom: 0.25rem;
-    }
-}
-
-.profile-identity {
-    flex: 1;
-    min-width: 0;
-}
-
-.profile-picture-actions {
-    text-align: right;
-}
-
-.profile-grid {
-    display: grid;
-    gap: 1rem;
-    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
-}
-
-.profile-grid-wide {
-    grid-column: 1 / -1;
-}
-
-.card {
-    margin-bottom: 0;
-}
-
-.profile-summary {
-    margin-bottom: 1rem;
-}
-
-.profile-summary-row {
-    display: flex;
-    justify-content: space-between;
-    gap: 1rem;
-    padding: 0.5rem 0;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
-
-    &:last-child {
-        border-bottom: none;
-    }
-}
-
-.profile-summary-value {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    text-align: right;
-}
-
-.tfa-status {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-}
-
-.tfa-status-text {
-    flex: 1;
-    min-width: 0;
-
-    p {
-        margin-bottom: 0.25rem;
-
-        &:last-child {
-            margin-bottom: 0;
-        }
-    }
-}
-
-.tfa-section-head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
-    margin-bottom: 0.75rem;
-
-    .title {
-        margin-bottom: 0;
-    }
-}
-
-.tfa-passkeys {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-}
-
-.tfa-passkey-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
-
-    p {
-        margin-bottom: 0;
-    }
-}
-
-.tfa-passkey {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
-    padding: 0.75rem;
-    border: 1px solid rgba(0, 0, 0, 0.08);
-    border-radius: 8px;
-
-    &:hover {
-        background-color: #f7f8fa;
-    }
-}
-
-.tfa-passkey-info {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-
-    > i {
-        color: #6b7280;
-    }
-
-    p {
-        margin-bottom: 0.1rem;
-
-        &:last-child {
-            margin-bottom: 0;
-        }
-    }
-}
-
-@media (max-width: 768px) {
-    .profile-grid {
-        grid-template-columns: minmax(0, 1fr);
-    }
-
-    .profile-header {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-
-    .profile-picture-actions {
-        text-align: left;
-    }
-}
-</style>

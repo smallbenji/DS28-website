@@ -1,41 +1,22 @@
 <template>
-    <section class="section">
-        <div class="columns is-centered">
-            <div class="column is-5-desktop is-7-tablet">
-                <div class="card frame">
-                    <header class="card-header">
-                        <p class="card-header-title is-centered">Adgang nægtet</p>
-                    </header>
-
-                    <div class="card-content has-text-centered">
-                        <p class="mb-4">
-                            Du har ikke adgang til denne side.
-                        </p>
-                        <p class="mb-4">
-                            Kontakt en administrator, hvis du mener, du skulle have adgang.
-                        </p>
-                        <p v-if="from" class="is-size-7 has-text-grey mb-4">
-                            <code>{{ from }}</code>
-                        </p>
-                        <div class="buttons is-centered">
-                            <BButton type="is-primary" @click="goHome">
-                                Gå til forsiden
-                            </BButton>
-                            <BButton v-if="from" @click="goBack">
-                                Gå tilbage
-                            </BButton>
-                        </div>
-                    </div>
-                </div>
+    <div class="flex min-h-svh items-center justify-center p-4">
+        <UCard class="w-full max-w-md text-center">
+            <UIcon name="i-lucide-ban" class="size-10 text-muted" />
+            <h1 class="mt-3 text-lg font-semibold text-highlighted">Adgang nægtet</h1>
+            <p class="mt-1 text-sm text-muted">Du har ikke adgang til denne side.</p>
+            <p class="mt-1 text-sm text-muted">Kontakt en administrator, hvis du mener, du skulle have adgang.</p>
+            <code v-if="from" class="mt-3 block break-all rounded-md bg-elevated px-2 py-1 font-mono text-xs text-muted">{{ from }}</code>
+            <div class="mt-4 flex flex-wrap justify-center gap-2">
+                <UButton to="/" label="Til forsiden" />
+                <UButton v-if="from" color="neutral" variant="outline" icon="i-lucide-arrow-left" label="Gå tilbage" @click="router.back()" />
             </div>
-        </div>
-    </section>
+        </UCard>
+    </div>
 </template>
 
-<script lang="ts" setup>
-import { BButton } from 'buefy';
-import { computed } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
+<script setup lang="ts">
+import { computed } from "vue";
+import { useRoute, useRouter } from "vue-router";
 
 const route = useRoute();
 const router = useRouter();
@@ -43,20 +24,6 @@ const router = useRouter();
 const from = computed(() => {
     const value = route.query.from;
 
-    return typeof value === 'string' && value.startsWith('/') ? value : '';
+    return typeof value === "string" && value.startsWith("/") ? value : "";
 });
-
-const goHome = () => {
-    router.push('/');
-};
-
-const goBack = () => {
-    router.back();
-};
 </script>
-
-<style>
-.frame {
-    min-width: 300px;
-}
-</style>

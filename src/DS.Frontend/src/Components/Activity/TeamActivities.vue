@@ -1,160 +1,84 @@
 <template>
-    <nav class="panel team-activities">
-        <div class="panel-heading">
-            <span>Aktiviteter</span>
-            <div class="flex"></div>
-            <BButton
-                v-if="canManageActivities"
-                type="is-primary"
-                size="is-small"
-                icon-left="plus"
-                @click="open = true"
-            >
-                Opret aktivitet
-            </BButton>
-        </div>
-        <div class="panel-body">
-            <template v-if="SelectedTeamId">
-                <div v-if="selectedTeam && selectedTeam.activities.length > 0" class="team-activities-table-wrapper">
-                    <table class="ui-table">
-                        <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th>Navn</th>
-                                <th>Budget</th>
-                                <th class="has-text-right">Status</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr
-                                v-for="activity in selectedTeam.activities"
-                                :key="activity.id"
-                                class="team-activities-row"
-                                @click="openActivity(activity.id)"
-                            >
-                                <td class="has-text-grey">{{ activity.id }}</td>
-                                <td class="has-text-weight-medium">{{ activity.name }}</td>
-                                <td>{{ activity.budget }}</td>
-                                <td class="has-text-right">
-                                    <span class="tag" :class="activityReviewStatus(activity.reviewStatus).type">{{ activityReviewStatus(activity.reviewStatus).label }}</span>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-                <div v-else class="empty-state">
-                    <i class="fas fa-newspaper"></i>
-                    <span class="empty-state-title">Der er endnu ingen aktiviteter i dette team</span>
+    <UCard :ui="{ body: 'p-0 sm:p-0' }">
+        <template #header>
+            <div class="flex items-center justify-between gap-2">
+                <h3 class="font-semibold text-highlighted">Aktiviteter <span class="font-normal text-muted">({{ team.activities.length }})</span></h3>
+                <UButton v-if="canManageActivities" size="sm" icon="i-lucide-plus" label="Opret aktivitet" @click="openCreate" />
+            </div>
+        </template>
+
+        <p v-if="team.activities.length === 0" class="px-4 py-3 text-sm text-muted sm:px-6">Der er endnu ingen aktiviteter i dette team.</p>
+        <ul v-else class="divide-y divide-default">
+            <li v-for="activity in team.activities" :key="activity.id">
+                <RouterLink :to="`/activity/${activity.id}`" class="flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-elevated/50 focus-visible:outline-2 focus-visible:outline-primary sm:px-6">
+                    <span class="font-mono text-xs text-muted">{{ activity.id }}</span>
+                    <span class="min-w-0 flex-1 truncate font-medium text-highlighted">{{ activity.name }}</span>
+                    <span class="text-xs text-muted tabular-nums">{{ currency.format(activity.budget) }}</span>
+                    <UBadge :color="activityReviewBadgeColor(activity.reviewStatus)" variant="subtle" size="sm" :label="activityReviewStatus(activity.reviewStatus).label" />
+                </RouterLink>
+            </li>
+        </ul>
+
+        <UModal v-model:open="createOpen" title="Opret aktivitet">
+            <template #body>
+                <form id="activity-create-form" @submit.prevent="createActivity">
+                    <UFormField label="Navn" required>
+                        <UInput v-model="activityName" placeholder="Aktivitetens navn" class="w-full" autofocus />
+                    </UFormField>
+                </form>
+            </template>
+            <template #footer>
+                <div class="flex w-full justify-end gap-2">
+                    <UButton color="neutral" variant="outline" label="Annuller" @click="createOpen = false" />
+                    <UButton type="submit" form="activity-create-form" label="Opret aktivitet" :loading="creating" :disabled="!activityName.trim()" />
                 </div>
             </template>
-        </div>
-    </nav>
-    <BModal v-model="open" has-modal-card>
-        <div class="modal-card">
-            <header class="modal-card-head">
-                <p class="modal-card-title">Opret aktivitet</p>
-            </header>
-            <section class="modal-card-body">
-                <BField label="Navn">
-                    <BInput v-model="activityName" placeholder="Aktivitetens navn" @keyup.enter="createActivity" />
-                </BField>
-            </section>
-            <footer class="modal-card-foot">
-                <div class="buttons">
-                    <BButton type="is-primary" :loading="creating" @click="createActivity">
-                        Opret aktivitet
-                    </BButton>
-                    <BButton @click="open = false">Annuller</BButton>
-                </div>
-            </footer>
-        </div>
-    </BModal>
+        </UModal>
+    </UCard>
 </template>
-<script lang="ts" setup>
-import { useActivityStore } from '@/Stores/ActivityStore';
-import { useMeStore } from '@/Stores/MeStore';
-import { BButton, BField, BInput, BModal, useToast } from 'buefy';
-import { storeToRefs } from 'pinia';
-import { computed, ref } from 'vue';
-import { useRouter } from 'vue-router';
-import { activityReviewStatus } from '@/lib/activityReview';
-import type { ActivityTeamDto } from '@/types';
 
-const Toast = useToast();
-const router = useRouter();
-const open = ref(false);
-const creating = ref(false);
-const activityName = ref('');
+<script setup lang="ts">
+import { computed, ref } from "vue";
+import { useActivityStore } from "@/Stores/ActivityStore";
+import { useMeStore } from "@/Stores/MeStore";
+import { useNotify } from "@/lib/notify";
+import { activityReviewStatus } from "@/lib/activityReview";
+import { activityReviewBadgeColor } from "@/lib/activityReviewBadge";
+import type { ActivityTeamDto } from "@/types";
+
+const props = defineProps<{ team: ActivityTeamDto }>();
+
 const activityStore = useActivityStore();
 const meStore = useMeStore();
-const { Me } = storeToRefs(meStore);
-const { Teams, SelectedTeamId } = storeToRefs(activityStore);
+const notify = useNotify();
 
-const selectedTeam = computed<ActivityTeamDto | null>(
-    () => Teams.value.find((team) => team.id === SelectedTeamId.value) ?? null
-);
+const currency = new Intl.NumberFormat("da-DK", { style: "currency", currency: "DKK", minimumFractionDigits: 0, maximumFractionDigits: 2 });
+
+const createOpen = ref(false);
+const creating = ref(false);
+const activityName = ref("");
 
 const canManageActivities = computed(() => {
-    if (Me.value?.appRoles.includes('ActivityAdmin')) return true;
-    return selectedTeam.value?.members.some(
-        (member) => member.userId === Me.value?.id && member.isAdmin
-    ) ?? false;
+    if (meStore.Me?.appRoles.includes("ActivityAdmin")) return true;
+
+    return props.team.members.some((member) => member.userId === meStore.Me?.id && member.isAdmin);
 });
 
-const openActivity = (id: number) => {
-    router.push(`/activity/${id}`);
-};
+function openCreate() {
+    activityName.value = "";
+    createOpen.value = true;
+}
 
-const createActivity = async () => {
-    if (!SelectedTeamId.value) return;
-
-    if (!activityName.value) {
-        Toast.open({
-            message: 'Udfyld venligst aktivitetens navn',
-            type: 'is-warning'
-        });
-        return;
-    }
+async function createActivity() {
+    if (!activityName.value.trim() || creating.value) return;
 
     creating.value = true;
-    const success = await activityStore.ADD_ACTIVITY(SelectedTeamId.value, activityName.value);
-    creating.value = false;
-
-    if (success) {
-        Toast.open({
-            message: 'Aktiviteten er oprettet',
-            type: 'is-success'
-        });
-        open.value = false;
-        activityName.value = '';
-    } else {
-        Toast.open({
-            message: 'Der skete en fejl ved oprettelse af aktiviteten',
-            type: 'is-danger'
-        });
-    }
-};
-</script>
-<style lang="scss">
-.team-activities {
-    margin-bottom: 1rem;
-
-    .panel-heading {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-    }
-
-    .panel-body {
-        padding: 1rem 0;
-    }
-
-    &-table-wrapper {
-        overflow-x: auto;
-    }
-
-    .tag i {
-        margin-right: 0.3rem;
+    try {
+        const ok = await activityStore.ADD_ACTIVITY(props.team.id, activityName.value.trim());
+        notify.result(ok, "Aktiviteten er oprettet.", "Aktiviteten kunne ikke oprettes.");
+        if (ok) createOpen.value = false;
+    } finally {
+        creating.value = false;
     }
 }
-</style>
+</script>

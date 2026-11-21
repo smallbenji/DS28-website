@@ -1,68 +1,15 @@
+import "./assets/main.css";
+
 import { createApp } from "vue";
-import App from "./App.vue";
 import { createPinia } from "pinia";
+import ui from "@nuxt/ui/vue-plugin";
+import App from "./App.vue";
 import router from "@/router";
-import 'buefy/dist/css/buefy.css';
-import Buefy from "buefy";
 
 const app = createApp(App);
 
-import '@fortawesome/fontawesome-free/css/all.css'
-
-import { library } from "@fortawesome/fontawesome-svg-core";
-import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
-
-import { faArrowLeft, faUser, faUsers, faHouse, faDiceD6, faUserPlus, faSearch, faMagnifyingGlass, faPlus, faUserPen, faUsersGear, faNewspaper, faGlobe, faSliders, faInbox, faGear, faChartSimple, faFileArrowDown, faDownload, faH, faSitemap, faTableColumns, faPen, faTrash, faCalendarDay, faGripVertical, faBold, faItalic, faListUl, faListOl, faQuoteLeft, faTextSlash, faCheck, faBan, faUpRightFromSquare } from "@fortawesome/free-solid-svg-icons";
-import { faWordpress } from "@fortawesome/free-brands-svg-icons";
-
-library.add(
-    faBan,
-    faUpRightFromSquare,
-    faSliders,
-    faArrowLeft,
-    faUser,
-    faUsers,
-    faHouse,
-    faDiceD6,
-    faUserPlus,
-    faSearch,
-    faMagnifyingGlass,
-    faPlus,
-    faWordpress,
-    faUserPen,
-    faUsersGear,
-    faNewspaper,
-    faGlobe,
-    faInbox,
-    faGear,
-    faChartSimple,
-    faFileArrowDown,
-    faH,
-    faSitemap,
-    faDownload,
-    faTableColumns,
-    faPen,
-    faTrash,
-    faCalendarDay,
-    faGripVertical,
-    faBold,
-    faItalic,
-    faListUl,
-    faListOl,
-    faQuoteLeft,
-    faTextSlash,
-    faCheck
-);
-
-app.component("font-awesome-icon", FontAwesomeIcon);
-app.component('vue-fontawesome', FontAwesomeIcon);
-
-const pinia = createPinia();
-
+app.use(createPinia());
 app.use(router);
-app.use(pinia);
-app.use(Buefy, {
-    defaultIconPack: "fas"
-});
+app.use(ui);
 
 app.mount("#app");

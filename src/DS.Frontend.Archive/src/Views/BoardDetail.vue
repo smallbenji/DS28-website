@@ -1,0 +1,421 @@
+<template>
+    <div class="board-detail">
+        <header class="board-detail-head">
+            <div class="board-detail-info">
+                <h1 class="board-detail-title">{{ board?.title ?? 'Tavle' }}</h1>
+                <p v-if="board?.description" class="board-detail-description">{{ board.description }}</p>
+                <p v-if="board?.isArchived" class="tag is-warning is-light">Arkiveret</p>
+            </div>
+            <div v-if="canManage" class="board-detail-actions">
+                <BButton size="is-small" class="is-ghost" @click="membersOpen = true">Medlemmer og invitation</BButton>
+                <BButton size="is-small" class="is-ghost" @click="colorsOpen = true">Farver</BButton>
+                <BButton size="is-small" class="is-ghost" @click="tagsOpen = true">Tags</BButton>
+                <BButton size="is-small" class="is-ghost" @click="openColumnCreate">
+                    <font-awesome-icon icon="plus" />
+                    <span>Kolonne</span>
+                </BButton>
+                <BButton size="is-small" class="is-ghost" @click="openSettings">Indstillinger</BButton>
+            </div>
+        </header>
+
+        <div v-if="board?.tags?.length" class="board-tag-filter">
+            <BField label="Filtrer på tag">
+                <BSelect v-model="selectedTagId" aria-label="Filtrer på tag">
+                    <option :value="null">Alle kort</option>
+                    <option v-for="tag in board.tags" :key="tag.id" :value="Number(tag.id)">{{ tag.name }}</option>
+                </BSelect>
+            </BField>
+            <p v-if="selectedTagId !== null" class="help" role="status">{{ filteredCards.length }} kort matcher. Fjern tagfilteret for at flytte kort og kolonner.</p>
+        </div>
+
+        <p v-if="loading && !board" role="status">Indlæser tavle…</p>
+
+        <p v-else-if="!board" class="has-text-grey">Tavlen blev ikke fundet.</p>
+
+        <div v-else class="board-columns" role="region" aria-label="Tavlens kolonner" @dragover.self="clearDropTarget">
+            <BoardColumn
+                v-for="column in board.columns"
+                :key="column.id"
+                :column="column"
+                :cards="cardsFor(column.id)"
+                :can-manage="canManage && selectedTagId === null"
+                @open-card="openCard"
+                @add-card="openNewCard"
+                @edit-column="openColumnEdit"
+                @delete-column="confirmDeleteColumn"
+                @move-card="handleMoveCard"
+                @reorder-column="handleReorderColumn"
+            />
+        </div>
+
+        <BoardCardModal
+            v-model="cardDrawerOpen"
+            :board-id="boardId"
+            :column-id="targetColumnId"
+            :card="editingCard"
+            :can-manage="canManage"
+        />
+
+        <BoardColumnDrawer
+            v-model="columnDrawerOpen"
+            :board-id="boardId"
+            :column="editingColumn"
+        />
+
+        <BModal v-model="settingsOpen" has-modal-card>
+            <div class="modal-card">
+                <header class="modal-card-head">
+                    <p class="modal-card-title">Tavleindstillinger</p>
+                    <button type="button" class="delete" @click="settingsOpen = false" />
+                </header>
+                <section class="modal-card-body">
+                    <BField label="Titel">
+                        <BInput v-model="settings.title" />
+                    </BField>
+                    <BField label="Beskrivelse">
+                        <BInput v-model="settings.description" type="textarea" :rows="3" />
+                    </BField>
+                    <BCheckbox v-model="settings.isArchived">Arkiveret</BCheckbox>
+                    <BField v-if="isSysAdmin">
+                        <BCheckbox v-model="settings.isDeveloperBoard">Udviklertavle</BCheckbox>
+                    </BField>
+                </section>
+                <footer class="modal-card-foot">
+                    <div class="buttons">
+                        <BButton type="is-primary" :loading="savingSettings" @click="saveSettings">Gem</BButton>
+                        <BButton @click="settingsOpen = false">Annuller</BButton>
+                    </div>
+                </footer>
+            </div>
+        </BModal>
+        <BoardMembersModal v-model="membersOpen" :board-id="boardId" />
+        <BoardColorsModal v-model="colorsOpen" :board-id="boardId" />
+        <BoardTagsModal v-model="tagsOpen" :board-id="boardId" />
+    </div>
+</template>
+
+<script setup lang="ts">
+import { computed, onBeforeUnmount, onMounted, provide, ref, watch } from 'vue';
+import { useRoute } from 'vue-router';
+import { BButton, BCheckbox, BField, BInput, BModal, BSelect, useDialog, useToast } from 'buefy';
+import type { HubConnection } from '@microsoft/signalr';
+import type { BoardColumnDto, WorkItemDto } from '@/types';
+import { useMeStore } from '@/Stores/MeStore';
+import { useBoardStore } from '@/Stores/BoardStore';
+import BoardMembersModal from '@/Components/Board/BoardMembersModal.vue';
+import BoardTagsModal from '@/Components/Board/BoardTagsModal.vue';
+import BoardColorsModal from '@/Components/Board/BoardColorsModal.vue';
+import BoardColumn from '@/Components/Board/BoardColumn.vue';
+import BoardCardModal from '@/Components/Board/BoardCardModal.vue';
+import BoardColumnDrawer from '@/Components/Board/BoardColumnDrawer.vue';
+import { boardDragKey, type BoardDragState } from '@/Components/Board/boardDrag';
+
+const route = useRoute();
+const store = useBoardStore();
+const meStore = useMeStore();
+const isSysAdmin = computed(() => meStore.Me?.roles.includes('SysAdmin') ?? false);
+const Toast = useToast();
+const Dialog = useDialog();
+
+const boardId = Number(route.params.id);
+const loading = ref(true);
+const drag = ref<BoardDragState | null>(null);
+provide(boardDragKey, drag);
+
+function clearDrag() {
+    drag.value = null;
+}
+
+function clearDropTarget() {
+    if (drag.value) drag.value.target = null;
+}
+
+const cardDrawerOpen = ref(false);
+const editingCard = ref<WorkItemDto | null>(null);
+const targetColumnId = ref(0);
+
+const columnDrawerOpen = ref(false);
+const editingColumn = ref<BoardColumnDto | null>(null);
+
+const settingsOpen = ref(false);
+const membersOpen = ref(false);
+const colorsOpen = ref(false);
+const tagsOpen = ref(false);
+const selectedTagId = ref<number | null>(null);
+const savingSettings = ref(false);
+const settings = ref({ title: '', description: '', isArchived: false, isDeveloperBoard: false });
+
+const board = computed(() => store.SelectedBoard);
+const canManage = computed(() => board.value !== null);
+
+const filteredCards = computed(() => (board.value?.cards ?? []).filter(card => selectedTagId.value === null || card.tags?.some(tag => Number(tag.id) === selectedTagId.value)));
+watch(() => board.value?.tags, tags => {
+    if (selectedTagId.value !== null && !tags?.some(tag => Number(tag.id) === selectedTagId.value)) selectedTagId.value = null;
+});
+
+function cardsFor(columnId: number): WorkItemDto[] {
+    return filteredCards.value.filter((card) => String(card.columnId) === String(columnId));
+}
+
+function openCard(card: WorkItemDto) {
+    editingCard.value = card;
+    targetColumnId.value = Number(card.columnId);
+    cardDrawerOpen.value = true;
+}
+
+function openNewCard(columnId: number) {
+    editingCard.value = null;
+    targetColumnId.value = Number(columnId);
+    cardDrawerOpen.value = true;
+}
+
+function openColumnCreate() {
+    editingColumn.value = null;
+    columnDrawerOpen.value = true;
+}
+
+function openColumnEdit(column: BoardColumnDto) {
+    editingColumn.value = column;
+    columnDrawerOpen.value = true;
+}
+
+function confirmDeleteColumn(column: BoardColumnDto) {
+    Dialog.confirm({
+        title: 'Slet kolonne',
+        message: `Er du sikker på, at du vil slette kolonnen "${column.title}"?`,
+        confirmText: 'Slet',
+        cancelText: 'Annuller',
+        type: 'is-danger',
+        onConfirm: () => {
+            void doDeleteColumn(column);
+        }
+    });
+}
+
+async function doDeleteColumn(column: BoardColumnDto) {
+    const success = await store.DELETE_COLUMN(boardId, Number(column.id));
+    Toast.open({
+        message: success
+            ? 'Kolonnen er slettet.'
+            : 'Kolonnen kunne ikke slettes. Den må ikke indeholde kort.',
+        type: success ? 'is-success' : 'is-danger'
+    });
+}
+
+function openSettings() {
+    settings.value = {
+        title: board.value?.title ?? '',
+        description: board.value?.description ?? '',
+        isArchived: board.value?.isArchived ?? false,
+        isDeveloperBoard: board.value?.isDeveloperBoard ?? false
+    };
+    settingsOpen.value = true;
+}
+
+async function saveSettings() {
+    if (savingSettings.value) return;
+
+    if (!settings.value.title.trim()) {
+        Toast.open({ message: 'Titlen må ikke være tom.', type: 'is-danger' });
+        return;
+    }
+
+    savingSettings.value = true;
+    try {
+        const success = await store.UPDATE_BOARD(boardId, {
+            title: settings.value.title.trim(),
+            description: settings.value.description.trim() ? settings.value.description.trim() : null,
+            icon: board.value?.icon ?? null,
+            color: board.value?.color ?? null,
+            isArchived: settings.value.isArchived,
+            isDeveloperBoard: isSysAdmin.value ? settings.value.isDeveloperBoard : undefined
+        });
+
+        if (success) {
+            Toast.open({ message: 'Tavlen er gemt.', type: 'is-success' });
+            settingsOpen.value = false;
+        } else {
+            Toast.open({ message: 'Tavlen kunne ikke gemmes.', type: 'is-danger' });
+        }
+    } finally {
+        savingSettings.value = false;
+    }
+}
+
+function handleMoveCard(payload: { cardId: number; columnId: number; position: number }) {
+    void moveCard(payload.cardId, payload.columnId, payload.position);
+}
+
+function handleReorderColumn(payload: { targetColumnId: number; draggedColumnId: number; after: boolean }) {
+    const order = columnOrder();
+    const from = order.indexOf(Number(payload.draggedColumnId));
+    const to = order.indexOf(Number(payload.targetColumnId));
+    if (from < 0 || to < 0 || from === to) return;
+
+    const next = order.filter((columnId) => columnId !== order[from]);
+    const targetIndex = next.indexOf(Number(payload.targetColumnId));
+    next.splice(targetIndex + Number(payload.after), 0, order[from]);
+    if (next.every((columnId, index) => columnId === order[index])) return;
+
+    void reorderColumns(next);
+}
+
+function columnOrder(): number[] {
+    return (board.value?.columns ?? []).map((column) => Number(column.id));
+}
+
+async function reorderColumns(order: number[]) {
+    const success = await store.REORDER_COLUMNS(boardId, order);
+    if (!success) {
+        Toast.open({ message: 'Kolonnerne kunne ikke ombyttes.', type: 'is-danger' });
+    }
+}
+
+async function moveCard(cardId: number, columnId: number, position: number) {
+    const success = await store.MOVE_CARD(boardId, cardId, Number(columnId), position);
+    if (!success) {
+        Toast.open({ message: 'Kortet kunne ikke flyttes.', type: 'is-danger' });
+    }
+}
+
+let liveConnection: HubConnection | null = null;
+let liveReloadTimer: ReturnType<typeof setTimeout> | null = null;
+
+function scheduleLiveReload() {
+    if (liveReloadTimer) clearTimeout(liveReloadTimer);
+
+    liveReloadTimer = setTimeout(() => {
+        liveReloadTimer = null;
+        if (drag.value) {
+            scheduleLiveReload();
+            return;
+        }
+
+        void store.GET_BOARD(boardId);
+    }, 250);
+}
+
+async function connectLiveUpdates() {
+    const { HubConnectionBuilder } = await import('@microsoft/signalr');
+
+    const connection = new HubConnectionBuilder()
+        .withUrl('/api/v1/boards/hub')
+        .withAutomaticReconnect()
+        .build();
+
+    connection.on('boardChanged', (changedBoardId: number) => {
+        if (Number(changedBoardId) === boardId) scheduleLiveReload();
+    });
+    connection.onreconnected(() => {
+        void connection.invoke('JoinBoard', boardId);
+    });
+
+    liveConnection = connection;
+
+    try {
+        await connection.start();
+        await connection.invoke('JoinBoard', boardId);
+    } catch {
+        liveConnection = null;
+    }
+}
+
+onMounted(async () => {
+    window.addEventListener('dragend', clearDrag);
+    window.addEventListener('drop', clearDrag);
+    window.addEventListener('blur', clearDrag);
+    loading.value = true;
+    try {
+        await store.GET_BOARD(boardId);
+    } finally {
+        loading.value = false;
+    }
+    void connectLiveUpdates();
+});
+
+onBeforeUnmount(() => {
+    window.removeEventListener('dragend', clearDrag);
+    window.removeEventListener('drop', clearDrag);
+    window.removeEventListener('blur', clearDrag);
+    if (liveReloadTimer) clearTimeout(liveReloadTimer);
+    void liveConnection?.stop();
+});
+</script>
+
+<style scoped>
+.board-tag-filter {
+    margin-bottom: 1rem;
+}
+
+.board-tag-filter :deep(.select),
+.board-tag-filter :deep(select) {
+    max-width: 100%;
+}
+
+.board-detail {
+    display: flex;
+    flex-direction: column;
+    height: calc(100% - 0.5rem);
+    min-width: 0;
+    padding: 1rem;
+    background: #fafbfc;
+    border-radius: 8px;
+    margin: 0 0.5rem 0.5rem;
+}
+
+.board-detail-head {
+    flex-shrink: 0;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 1.25rem;
+}
+
+.board-detail-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+
+.board-detail-description {
+    margin-top: 0.25rem;
+    color: rgba(0, 0, 0, 0.6);
+}
+
+.board-detail-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.board-detail-actions .button {
+    color: #68717d;
+    text-decoration: none;
+    box-shadow: none;
+}
+
+.board-detail-actions .button:hover {
+    background: #edf0f3;
+    color: #363636;
+}
+
+.board-detail-actions .button svg {
+    margin-right: 0.35rem;
+}
+
+.board-columns {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+    overflow-x: auto;
+    padding-bottom: 0.5rem;
+    flex: 1;
+    min-height: 9rem;
+}
+
+.board-detail :deep(.b-sidebar) {
+    --bulma-sidebar-width: 32rem;
+}
+</style>

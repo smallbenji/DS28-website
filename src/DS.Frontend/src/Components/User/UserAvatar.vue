@@ -1,67 +1,17 @@
 <template>
-    <figure class="user-avatar" :class="`is-${size}`" v-if="user">
-        <img v-if="url" :src="url" :alt="`${user.firstName} ${user.lastName}`" />
-        <span v-else class="user-avatar-initials">{{ initials }}</span>
-    </figure>
+    <UAvatar :src="user.profilePicture?.url" :alt="`${user.firstName} ${user.lastName}`" :text="initials" :size="size" />
 </template>
-<script lang="ts" setup>
-import { computed } from 'vue';
-import type { MeDto } from '@/types';
+
+<script setup lang="ts">
+import { computed } from "vue";
+import type { UserDto } from "@/types";
 
 const props = withDefaults(defineProps<{
-    user: Pick<MeDto, 'firstName' | 'lastName' | 'profilePicture'> | null;
-    size?: 'xsmall' | 'small' | 'medium' | 'large';
+    user: Pick<UserDto, "firstName" | "lastName" | "profilePicture">;
+    size?: "sm" | "md" | "lg" | "xl" | "3xl";
 }>(), {
-    size: 'medium'
+    size: "md"
 });
 
-const url = computed(() => props.user?.profilePicture?.url ?? null);
-const initials = computed(() => {
-    const value = `${props.user?.firstName?.[0] ?? ''}${props.user?.lastName?.[0] ?? ''}`.toUpperCase();
-    return value || '?';
-});
+const initials = computed(() => `${props.user.firstName?.[0] ?? ""}${props.user.lastName?.[0] ?? ""}`.toUpperCase() || "?");
 </script>
-<style lang="scss">
-.user-avatar {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    border-radius: 50%;
-    overflow: hidden;
-    background-color: hsl(0, 0%, 86%);
-    color: hsl(0, 0%, 29%);
-    font-weight: 600;
-    text-transform: uppercase;
-
-    &.is-xsmall {
-        width: 1.5rem;
-        height: 1.5rem;
-        font-size: 0.40rem;
-    }
-
-    &.is-small {
-        width: 2rem;
-        height: 2rem;
-        font-size: 0.75rem;
-    }
-
-    &.is-medium {
-        width: 3rem;
-        height: 3rem;
-        font-size: 1rem;
-    }
-
-    &.is-large {
-        width: 5rem;
-        height: 5rem;
-        font-size: 1.5rem;
-    }
-
-    img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-    }
-}
-</style>

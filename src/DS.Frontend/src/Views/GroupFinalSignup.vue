@@ -1,516 +1,361 @@
 <template>
-    <section class="section">
-        <div class="columns is-centered">
-            <div class="column is-10-tablet is-8-desktop">
-                <template v-if="loading">
-                    <div class="card">
-                        <div class="card-content">
-                            <p role="status">Henter tilmeldingsdata…</p>
-                        </div>
-                    </div>
+    <UDashboardPanel id="group-final-signup">
+        <template #header>
+            <UDashboardNavbar title="Endelig tilmelding">
+                <template #leading>
+                    <UDashboardSidebarCollapse />
+                    <UButton to="/group" color="neutral" variant="ghost" icon="i-lucide-arrow-left" aria-label="Tilbage til gruppen" />
                 </template>
-                <template v-else-if="error && !loaded">
-                    <div class="card">
-                        <div class="card-content">
-                            <BNotification type="is-danger" :closable="false" role="alert">{{ error }}</BNotification>
-                            <BButton @click="load">Prøv igen</BButton>
-                        </div>
-                    </div>
-                </template>
+            </UDashboardNavbar>
+        </template>
+
+        <template #body>
+            <div class="mx-auto flex w-full max-w-5xl flex-col gap-4">
+                <div v-if="loading" class="grid gap-6 lg:grid-cols-2">
+                    <USkeleton class="h-72" />
+                    <USkeleton class="h-72" />
+                </div>
+
+                <UEmpty
+                    v-else-if="loadFailed"
+                    icon="i-lucide-circle-alert"
+                    title="Gruppen kunne ikke hentes"
+                    description="Der opstod en fejl. Prøv igen om lidt."
+                    :actions="[{ label: 'Prøv igen', icon: 'i-lucide-refresh-cw', onClick: load }]"
+                />
+
+                <UEmpty
+                    v-else-if="!hasGroup"
+                    icon="i-lucide-users-round"
+                    title="Du er ikke tilknyttet en gruppe"
+                    description="Kontakt lejrens ledelse, hvis du skal tilknyttes en spejdergruppe."
+                />
+
                 <template v-else>
-                    <div class="mb-4">
-                        <h1 class="title is-4 mb-1">Endelig tilmelding</h1>
-                        <p class="subtitle is-6 has-text-grey">{{ groupName }} · Gruppenummer {{ groupId }}</p>
+                    <div>
+                        <h1 class="text-xl font-semibold text-highlighted">{{ Group.name }}</h1>
+                        <p class="text-sm text-muted">Gruppenummer {{ Group.id }}</p>
                     </div>
 
-                    <BNotification v-if="error" type="is-danger" :closable="false" role="alert" class="mb-4">{{ error }}</BNotification>
+                    <UAlert v-if="error" color="error" variant="subtle" icon="i-lucide-circle-alert" :title="error" />
 
-                    <div class="columns is-desktop">
-                        <div class="column">
-                            <div class="card">
-                                <header class="card-header">
-                                    <p class="card-header-title">
-                                        <span class="icon mr-2"><i class="fas fa-users"></i></span>
-                                        Spejdere ({{ scouts.length }})
-                                    </p>
-                                    <div class="card-header-icon">
-                                        <BButton size="is-small" type="is-success" @click="openCreateScoutModal">
-                                            <span class="icon"><i class="fas fa-plus"></i></span>
-                                            <span>Opret</span>
-                                        </BButton>
-                                    </div>
-                                </header>
-                                <div class="card-content p-0">
-                                    <div v-if="scouts.length === 0" class="px-5 py-4 has-text-grey is-italic">
-                                        Ingen spejdere oprettet endnu.
-                                    </div>
-                                    <div
-                                        v-for="scout in scouts"
-                                        :key="scout.id"
-                                        class="scout-row px-5 py-3"
-                                    >
-                                        <div class="scout-info">
-                                            <strong>{{ scout.name }}</strong>
-                                            <div class="is-size-7 has-text-grey">
-                                                {{ formatBirthday(scout.birthday) }} · {{ translateGender(scout.gender) }}
-                                            </div>
-                                            <div v-if="scoutPatrols(scout).length > 0" class="tags mt-1">
-                                                <span
-                                                    v-for="patrol in scoutPatrols(scout)"
-                                                    :key="patrol.id"
-                                                    class="tag is-info is-light is-small"
-                                                >{{ patrol.name }}</span>
-                                            </div>
-                                        </div>
-                                        <div class="scout-actions">
-                                            <BButton size="is-small" type="is-info is-light" @click="openPatrolModal(scout)">
-                                                Patruljer
-                                            </BButton>
-                                            <BButton size="is-small" type="is-danger is-light" @click="openDeleteScoutModal(scout)">
-                                                Slet
-                                            </BButton>
-                                        </div>
-                                    </div>
+                    <div class="grid gap-6 lg:grid-cols-2">
+                        <UCard :ui="{ body: 'p-0 sm:p-0' }">
+                            <template #header>
+                                <div class="flex items-center justify-between gap-2">
+                                    <h2 class="font-semibold text-highlighted">Spejdere <span class="font-normal text-muted">({{ Group.scouts.length }})</span></h2>
+                                    <UButton size="sm" icon="i-lucide-plus" label="Opret" @click="openCreateScout" />
                                 </div>
-                                <footer class="card-footer px-5 py-3">
-                                    <span class="has-text-grey is-size-7">En spejder kan tilknyttes flere patruljer.</span>
-                                </footer>
-                            </div>
-                        </div>
-
-                        <div class="column">
-                            <div class="card">
-                                <header class="card-header">
-                                    <p class="card-header-title">
-                                        <span class="icon mr-2"><i class="fas fa-flag"></i></span>
-                                        Patruljer ({{ patrols.length }})
-                                    </p>
-                                    <div class="card-header-icon">
-                                        <BButton size="is-small" type="is-success" @click="openCreatePatrolModal">
-                                            <span class="icon"><i class="fas fa-plus"></i></span>
-                                            <span>Opret</span>
-                                        </BButton>
-                                    </div>
-                                </header>
-                                <div class="card-content p-0">
-                                    <div v-if="patrols.length === 0" class="px-5 py-4 has-text-grey is-italic">
-                                        Ingen patruljer oprettet endnu.
-                                    </div>
-                                    <div
-                                        v-for="patrol in patrols"
-                                        :key="patrol.id"
-                                        class="patrol-row px-5 py-3"
-                                    >
-                                        <div class="patrol-info">
-                                            <strong>{{ patrol.name }}</strong>
-                                            <div class="is-size-7 has-text-grey">
-                                                {{ patrolMemberCount(patrol) }} spejder{{ patrolMemberCount(patrol) === 1 ? '' : 'e' }}
-                                            </div>
-                                            <div v-if="patrolScouts(patrol).length > 0" class="mt-1">
-                                                <span
-                                                    v-for="scout in patrolScouts(patrol)"
-                                                    :key="scout.id"
-                                                    class="is-size-7 has-text-grey"
-                                                    style="margin-right: 0.5rem;"
-                                                >{{ scout.name }}</span>
-                                            </div>
+                            </template>
+                            <p v-if="Group.scouts.length === 0" class="px-4 py-3 text-sm italic text-muted sm:px-6">Ingen spejdere oprettet endnu.</p>
+                            <ul v-else class="divide-y divide-default">
+                                <li v-for="scout in Group.scouts" :key="scout.id" class="flex items-start justify-between gap-2 px-4 py-3 sm:px-6">
+                                    <div class="min-w-0">
+                                        <p class="font-medium text-highlighted">{{ scout.name }}</p>
+                                        <p class="text-xs text-muted">{{ formatBirthday(scout.birthday) }} · {{ genderLabel(scout.gender) }}</p>
+                                        <div v-if="scoutPatrols(scout).length" class="mt-1 flex flex-wrap gap-1">
+                                            <UBadge v-for="patrol in scoutPatrols(scout)" :key="patrol.id" :label="patrol.name" color="info" variant="subtle" size="sm" />
                                         </div>
-                                        <BButton size="is-small" type="is-danger is-light" @click="openDeletePatrolModal(patrol)">
-                                            Slet
-                                        </BButton>
                                     </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                                    <div class="flex shrink-0 gap-1">
+                                        <UButton color="neutral" variant="outline" size="xs" icon="i-lucide-flag" label="Patruljer" @click="openPatrols(scout)" />
+                                        <UButton color="error" variant="ghost" size="xs" icon="i-lucide-trash-2" :aria-label="`Slet ${scout.name}`" @click="confirmDeleteScout(scout)" />
+                                    </div>
+                                </li>
+                            </ul>
+                            <template #footer>
+                                <p class="text-xs text-muted">En spejder kan tilknyttes flere patruljer.</p>
+                            </template>
+                        </UCard>
 
-                    <div class="mt-4">
-                        <BButton @click="router.push('/group')">Tilbage til gruppen</BButton>
+                        <UCard class="self-start" :ui="{ body: 'p-0 sm:p-0' }">
+                            <template #header>
+                                <div class="flex items-center justify-between gap-2">
+                                    <h2 class="font-semibold text-highlighted">Patruljer <span class="font-normal text-muted">({{ Group.patrols.length }})</span></h2>
+                                    <UButton size="sm" icon="i-lucide-plus" label="Opret" @click="openCreatePatrol" />
+                                </div>
+                            </template>
+                            <p v-if="Group.patrols.length === 0" class="px-4 py-3 text-sm italic text-muted sm:px-6">Ingen patruljer oprettet endnu.</p>
+                            <ul v-else class="divide-y divide-default">
+                                <li v-for="patrol in Group.patrols" :key="patrol.id" class="flex items-start justify-between gap-2 px-4 py-3 sm:px-6">
+                                    <div class="min-w-0">
+                                        <p class="font-medium text-highlighted">{{ patrol.name }}</p>
+                                        <p class="text-xs text-muted">{{ patrolScouts(patrol).length }} {{ patrolScouts(patrol).length === 1 ? 'spejder' : 'spejdere' }}</p>
+                                        <p v-if="patrolScouts(patrol).length" class="mt-1 text-xs text-muted">{{ patrolScouts(patrol).map((scout) => scout.name).join(', ') }}</p>
+                                    </div>
+                                    <UButton color="error" variant="ghost" size="xs" icon="i-lucide-trash-2" :aria-label="`Slet ${patrol.name}`" @click="confirmDeletePatrol(patrol)" />
+                                </li>
+                            </ul>
+                        </UCard>
                     </div>
                 </template>
             </div>
-        </div>
 
-        <BModal v-model="isCreateScoutModalOpen" has-modal-card>
-            <div class="modal-card">
-                <header class="modal-card-head">
-                    <p class="modal-card-title">Opret spejder</p>
-                </header>
-                <section class="modal-card-body">
-                    <BField label="Navn">
-                        <BInput v-model="newScoutName" placeholder="Spejderens fulde navn" :disabled="busy" />
-                    </BField>
-                    <BField label="Fødselsdato">
-                        <BDatepicker v-model="newScoutBirthday" locale="da-DK" placeholder="dd-mm-åååå" :disabled="busy" icon="calendar" editable :append-to-body="true" />
-                    </BField>
-                    <BField label="Køn">
-                        <BSelect v-model="newScoutGender" expanded :disabled="busy">
-                            <option value="Male">Mand</option>
-                            <option value="Female">Kvinde</option>
-                        </BSelect>
-                    </BField>
-                </section>
-                <footer class="modal-card-foot buttons">
-                    <BButton type="is-success" :loading="busy" :disabled="!canCreateScout || busy" @click="createScout">Opret spejder</BButton>
-                    <BButton :disabled="busy" @click="isCreateScoutModalOpen = false">Annuller</BButton>
-                </footer>
-            </div>
-        </BModal>
-
-        <BModal v-model="isDeleteScoutModalOpen" has-modal-card>
-            <div class="modal-card">
-                <header class="modal-card-head">
-                    <p class="modal-card-title">Slet spejder</p>
-                </header>
-                <section class="modal-card-body">
-                    Er du sikker på, at du vil slette <strong>{{ scoutToDelete?.name }}</strong>? Alle tilknyttede patruljemedlemsskaber slettes også.
-                </section>
-                <footer class="modal-card-foot">
-                    <BButton type="is-danger" :loading="busy" :disabled="busy" @click="deleteScout">Slet spejder</BButton>
-                    <BButton :disabled="busy" @click="isDeleteScoutModalOpen = false">Annuller</BButton>
-                </footer>
-            </div>
-        </BModal>
-
-        <BModal v-model="isCreatePatrolModalOpen" has-modal-card>
-            <div class="modal-card">
-                <header class="modal-card-head">
-                    <p class="modal-card-title">Opret patrulje</p>
-                </header>
-                <section class="modal-card-body">
-                    <BField label="Patruljens navn">
-                        <BInput v-model="newPatrolName" placeholder="f.eks. Ulvepatruljen" :disabled="busy" />
-                    </BField>
-                </section>
-                <footer class="modal-card-foot buttons">
-                    <BButton type="is-success" :loading="busy" :disabled="!newPatrolName.trim() || busy" @click="createPatrol">Opret patrulje</BButton>
-                    <BButton :disabled="busy" @click="isCreatePatrolModalOpen = false">Annuller</BButton>
-                </footer>
-            </div>
-        </BModal>
-
-        <BModal v-model="isDeletePatrolModalOpen" has-modal-card>
-            <div class="modal-card">
-                <header class="modal-card-head">
-                    <p class="modal-card-title">Slet patrulje</p>
-                </header>
-                <section class="modal-card-body">
-                    Er du sikker på, at du vil slette patruljen <strong>{{ patrolToDelete?.name }}</strong>? Alle tilknyttede medlemsskaber slettes også.
-                </section>
-                <footer class="modal-card-foot">
-                    <BButton type="is-danger" :loading="busy" :disabled="busy" @click="deletePatrol">Slet patrulje</BButton>
-                    <BButton :disabled="busy" @click="isDeletePatrolModalOpen = false">Annuller</BButton>
-                </footer>
-            </div>
-        </BModal>
-
-        <BModal v-model="isPatrolModalOpen" has-modal-card>
-            <div class="modal-card">
-                <header class="modal-card-head">
-                    <p class="modal-card-title">Patruljer for {{ scoutToEdit?.name }}</p>
-                </header>
-                <section class="modal-card-body">
-                    <div v-if="scoutToEdit && scoutPatrols(scoutToEdit).length > 0">
-                        <div
-                            v-for="patrol in scoutPatrols(scoutToEdit)"
-                            :key="patrol.id"
-                            class="field is-grouped is-align-items-center"
-                            style="margin-bottom: 0.5rem;"
-                        >
-                            <div class="control is-expanded">
-                                <span class="tag is-info is-medium">{{ patrol.name }}</span>
-                            </div>
-                            <div class="control">
-                                <BButton size="is-small" type="is-danger is-light" :loading="busy" :disabled="busy" @click="removeFromPatrol(patrol.id)">
-                                    Fjern
-                                </BButton>
-                            </div>
+            <UModal v-model:open="createScoutOpen" title="Opret spejder" :dismissible="!busy">
+                <template #body>
+                    <form id="final-signup-scout-form" class="flex flex-col gap-4" @submit.prevent="createScout">
+                        <UFormField label="Navn" required>
+                            <UInput v-model="newScoutName" placeholder="Spejderens fulde navn" :disabled="busy" class="w-full" autofocus />
+                        </UFormField>
+                        <div class="grid gap-4 sm:grid-cols-2">
+                            <UFormField label="Fødselsdato" required>
+                                <UInput v-model="newScoutBirthday" type="date" :disabled="busy" class="w-full" />
+                            </UFormField>
+                            <UFormField label="Køn">
+                                <USelect v-model="newScoutGender" :items="genderItems" :disabled="busy" class="w-full" />
+                            </UFormField>
                         </div>
+                    </form>
+                </template>
+                <template #footer>
+                    <div class="flex w-full justify-end gap-2">
+                        <UButton color="neutral" variant="outline" label="Annuller" :disabled="busy" @click="createScoutOpen = false" />
+                        <UButton type="submit" form="final-signup-scout-form" label="Opret spejder" :loading="busy" :disabled="!newScoutName.trim() || !newScoutBirthday || busy" />
                     </div>
-                    <p v-else class="has-text-grey is-italic">Spejderen er ikke tilknyttet nogen patruljer endnu.</p>
+                </template>
+            </UModal>
 
-                    <div v-if="availablePatrolsForEdit.length > 0" class="mt-4">
-                        <BField label="Tilføj til patrulje">
-                            <div class="field has-addons">
-                                <div class="control is-expanded">
-                                    <BSelect v-model="selectedPatrolToAdd" expanded placeholder="Vælg patrulje…">
-                                        <option v-for="p in availablePatrolsForEdit" :key="p.id" :value="p.id">{{ p.name }}</option>
-                                    </BSelect>
-                                </div>
-                                <div class="control">
-                                    <BButton type="is-success" :disabled="!selectedPatrolToAdd || busy" :loading="busy" @click="addToPatrol">Tilføj</BButton>
-                                </div>
-                            </div>
-                        </BField>
+            <UModal v-model:open="createPatrolOpen" title="Opret patrulje" :dismissible="!busy">
+                <template #body>
+                    <form id="final-signup-patrol-form" @submit.prevent="createPatrol">
+                        <UFormField label="Patruljens navn" required>
+                            <UInput v-model="newPatrolName" placeholder="Fx Ulvepatruljen" :disabled="busy" class="w-full" autofocus />
+                        </UFormField>
+                    </form>
+                </template>
+                <template #footer>
+                    <div class="flex w-full justify-end gap-2">
+                        <UButton color="neutral" variant="outline" label="Annuller" :disabled="busy" @click="createPatrolOpen = false" />
+                        <UButton type="submit" form="final-signup-patrol-form" label="Opret patrulje" :loading="busy" :disabled="!newPatrolName.trim() || busy" />
                     </div>
-                    <p v-else-if="patrols.length > 0" class="has-text-grey is-size-7 mt-4">Spejderen er allerede i alle patruljer.</p>
-                    <p v-else class="has-text-grey is-size-7 mt-4">Opret patruljer først for at tildele spejdere.</p>
-                </section>
-                <footer class="modal-card-foot">
-                    <BButton type="is-primary" @click="isPatrolModalOpen = false">Luk</BButton>
-                </footer>
-            </div>
-        </BModal>
-    </section>
+                </template>
+            </UModal>
+
+            <UModal v-model:open="patrolsOpen" :title="`Patruljer for ${scoutForPatrols?.name ?? ''}`">
+                <template #body>
+                    <ul v-if="scoutForPatrols && scoutPatrols(scoutForPatrols).length" class="flex flex-col gap-2">
+                        <li v-for="patrol in scoutPatrols(scoutForPatrols)" :key="patrol.id" class="flex items-center justify-between gap-2 rounded-md border border-default px-3 py-2">
+                            <span class="text-sm font-medium">{{ patrol.name }}</span>
+                            <UButton color="error" variant="ghost" size="sm" label="Fjern" :disabled="busy" @click="removeFromPatrol(patrol.id)" />
+                        </li>
+                    </ul>
+                    <p v-else class="text-sm italic text-muted">Spejderen er ikke tilknyttet nogen patruljer endnu.</p>
+
+                    <UFormField v-if="availablePatrols.length" label="Tilføj til patrulje" class="mt-4">
+                        <UFieldGroup class="w-full">
+                            <USelect v-model="patrolToAdd" :items="availablePatrols" placeholder="Vælg patrulje…" class="w-full" />
+                            <UButton label="Tilføj" :disabled="patrolToAdd == null || busy" :loading="busy" @click="addToPatrol" />
+                        </UFieldGroup>
+                    </UFormField>
+                    <p v-else-if="Group.patrols.length" class="mt-4 text-xs text-muted">Spejderen er allerede i alle patruljer.</p>
+                    <p v-else class="mt-4 text-xs text-muted">Opret patruljer først for at tildele spejdere.</p>
+                </template>
+                <template #footer>
+                    <div class="flex w-full justify-end">
+                        <UButton color="neutral" variant="outline" label="Luk" @click="patrolsOpen = false" />
+                    </div>
+                </template>
+            </UModal>
+
+            <ConfirmModal
+                v-model:open="deleteScoutOpen"
+                title="Slet spejder"
+                :description="`Slet ${scoutToDelete?.name}? Spejderens patruljemedlemskaber slettes også.`"
+                confirm-label="Slet spejder"
+                color="error"
+                :loading="busy"
+                @confirm="deleteScout"
+            />
+
+            <ConfirmModal
+                v-model:open="deletePatrolOpen"
+                title="Slet patrulje"
+                :description="`Slet ${patrolToDelete?.name}? Alle medlemskaber af patruljen slettes også.`"
+                confirm-label="Slet patrulje"
+                color="error"
+                :loading="busy"
+                @confirm="deletePatrol"
+            />
+        </template>
+    </UDashboardPanel>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
-import { useRouter } from 'vue-router';
-import { BButton, BDatepicker, BField, BInput, BModal, BNotification, BSelect, useToast } from 'buefy';
-import GroupService from '@/Services/GroupService';
-import GroupFinalSignupService from '@/Services/GroupFinalSignupService';
-import type { PatrolDto, ScoutDto } from '@/types';
+import { computed, onMounted, ref } from "vue";
+import { storeToRefs } from "pinia";
+import { useGroupStore } from "@/Stores/GroupStore";
+import GroupFinalSignupService from "@/Services/GroupFinalSignupService";
+import { getErrorMessage } from "@/lib/api";
+import { useNotify } from "@/lib/notify";
+import { formatBirthday, genderItems, genderLabel } from "@/lib/scouts";
+import ConfirmModal from "@/Components/ConfirmModal.vue";
+import type { PatrolDto, ScoutDto } from "@/types";
 
-const router = useRouter();
-const groupService = new GroupService();
+const groupStore = useGroupStore();
+const { Group } = storeToRefs(groupStore);
 const signupService = new GroupFinalSignupService();
-const Toast = useToast();
+const notify = useNotify();
 
 const loading = ref(true);
-const loaded = ref(false);
-const error = ref('');
 const busy = ref(false);
+const error = ref("");
 
-const groupName = ref('');
-const groupId = ref('');
-const scouts = ref<ScoutDto[]>([]);
-const patrols = ref<PatrolDto[]>([]);
+const hasGroup = computed(() => !!Group.value.id && Group.value.id !== "0");
 
-const isCreateScoutModalOpen = ref(false);
-const newScoutName = ref('');
-const newScoutBirthday = ref<Date | null>(null);
-const newScoutGender = ref<'Male' | 'Female'>('Male');
-const canCreateScout = computed(() => newScoutName.value.trim().length > 0 && newScoutBirthday.value != null);
-
-const isDeleteScoutModalOpen = ref(false);
-const scoutToDelete = ref<ScoutDto | null>(null);
-
-const isCreatePatrolModalOpen = ref(false);
-const newPatrolName = ref('');
-
-const isDeletePatrolModalOpen = ref(false);
-const patrolToDelete = ref<PatrolDto | null>(null);
-
-const isPatrolModalOpen = ref(false);
-const scoutToEdit = ref<ScoutDto | null>(null);
-const selectedPatrolToAdd = ref<number | null>(null);
-
-const availablePatrolsForEdit = computed(() => {
-    if (!scoutToEdit.value) return [];
-    const memberIds = new Set(scoutToEdit.value.memberships.map(m => m.patrolId));
-    return patrols.value.filter(p => !memberIds.has(p.id));
-});
-
-function scoutPatrols(scout: ScoutDto): PatrolDto[] {
-    const ids = new Set(scout.memberships.map(m => m.patrolId));
-    return patrols.value.filter(p => ids.has(p.id));
-}
-
-function patrolScouts(patrol: PatrolDto): ScoutDto[] {
-    return scouts.value.filter(s => s.memberships.some(m => m.patrolId === patrol.id));
-}
-
-function patrolMemberCount(patrol: PatrolDto): number {
-    return scouts.value.filter(s => s.memberships.some(m => m.patrolId === patrol.id)).length;
-}
-
-function formatBirthday(dateStr: string): string {
-    if (!dateStr) return '';
-    return new Date(dateStr).toLocaleDateString('da-DK', { day: 'numeric', month: 'short', year: 'numeric' });
-}
-
-function translateGender(gender: 'Male' | 'Female' | number): string {
-    return (gender === 'Male' || gender === 0) ? 'Mand' : 'Kvinde';
-}
-
-function showError(cause: unknown) {
-    import('axios').then(({ default: axios }) => {
-        error.value = axios.isAxiosError(cause) && typeof cause.response?.data === 'string'
-            ? cause.response.data
-            : 'Der opstod en fejl. Prøv igen.';
-    });
-}
+const loadFailed = ref(false);
 
 async function load() {
     loading.value = true;
-    error.value = '';
+    loadFailed.value = false;
     try {
-        const group = await groupService.getGroup();
-        groupName.value = group.name;
-        groupId.value = group.id;
-        scouts.value = group.scouts ?? [];
-        patrols.value = group.patrols ?? [];
-        loaded.value = true;
-    } catch (cause) {
-        showError(cause);
+        await groupStore.LOAD_GROUP();
+    } catch {
+        loadFailed.value = true;
     } finally {
         loading.value = false;
     }
 }
 
-function openCreateScoutModal() {
-    newScoutName.value = '';
-    newScoutBirthday.value = null;
-    newScoutGender.value = 'Male';
-    isCreateScoutModalOpen.value = true;
+onMounted(load);
+
+function scoutPatrols(scout: ScoutDto): PatrolDto[] {
+    const ids = new Set(scout.memberships.map((membership) => membership.patrolId));
+
+    return Group.value.patrols.filter((patrol) => ids.has(patrol.id));
+}
+
+function patrolScouts(patrol: PatrolDto): ScoutDto[] {
+    return Group.value.scouts.filter((scout) => scout.memberships.some((membership) => membership.patrolId === patrol.id));
+}
+
+async function run(action: () => Promise<unknown>, success: string): Promise<boolean> {
+    if (busy.value) return false;
+
+    busy.value = true;
+    error.value = "";
+    try {
+        await action();
+        await groupStore.GET_GROUP();
+        notify.success(success);
+
+        return true;
+    } catch (cause) {
+        error.value = getErrorMessage(cause, "Der opstod en fejl. Prøv igen.");
+        notify.error(error.value);
+
+        return false;
+    } finally {
+        busy.value = false;
+    }
+}
+
+const createScoutOpen = ref(false);
+const newScoutName = ref("");
+const newScoutBirthday = ref("");
+const newScoutGender = ref<"Male" | "Female">("Male");
+
+function openCreateScout() {
+    newScoutName.value = "";
+    newScoutBirthday.value = "";
+    newScoutGender.value = "Male";
+    createScoutOpen.value = true;
 }
 
 async function createScout() {
-    if (!canCreateScout.value || !newScoutBirthday.value || busy.value) return;
-    busy.value = true;
-    error.value = '';
-    try {
-        const scout = await signupService.createScout(newScoutName.value.trim(), newScoutBirthday.value.toISOString(), newScoutGender.value);
-        scout.memberships = scout.memberships ?? [];
-        scouts.value.push(scout);
-        isCreateScoutModalOpen.value = false;
-        Toast.open({ message: 'Spejderen er oprettet', type: 'is-success' });
-    } catch (cause) {
-        showError(cause);
-    } finally {
-        busy.value = false;
+    if (!newScoutName.value.trim() || !newScoutBirthday.value) return;
+
+    const birthday = new Date(`${newScoutBirthday.value}T00:00:00`).toISOString();
+    if (await run(() => signupService.createScout(newScoutName.value.trim(), birthday, newScoutGender.value), "Spejderen er oprettet.")) {
+        createScoutOpen.value = false;
     }
 }
 
-function openDeleteScoutModal(scout: ScoutDto) {
+const deleteScoutOpen = ref(false);
+const scoutToDelete = ref<ScoutDto | null>(null);
+
+function confirmDeleteScout(scout: ScoutDto) {
     scoutToDelete.value = scout;
-    isDeleteScoutModalOpen.value = true;
+    deleteScoutOpen.value = true;
 }
 
 async function deleteScout() {
-    if (!scoutToDelete.value || busy.value) return;
-    busy.value = true;
-    error.value = '';
-    try {
-        await signupService.deleteScout(scoutToDelete.value.id);
-        scouts.value = scouts.value.filter(s => s.id !== scoutToDelete.value!.id);
-        isDeleteScoutModalOpen.value = false;
-        scoutToDelete.value = null;
-        Toast.open({ message: 'Spejderen er slettet', type: 'is-success' });
-    } catch (cause) {
-        showError(cause);
-    } finally {
-        busy.value = false;
+    const scout = scoutToDelete.value;
+    if (!scout) return;
+
+    if (await run(() => signupService.deleteScout(scout.id), "Spejderen er slettet.")) {
+        deleteScoutOpen.value = false;
     }
 }
 
-function openCreatePatrolModal() {
-    newPatrolName.value = '';
-    isCreatePatrolModalOpen.value = true;
+const createPatrolOpen = ref(false);
+const newPatrolName = ref("");
+
+function openCreatePatrol() {
+    newPatrolName.value = "";
+    createPatrolOpen.value = true;
 }
 
 async function createPatrol() {
-    if (!newPatrolName.value.trim() || busy.value) return;
-    busy.value = true;
-    error.value = '';
-    try {
-        const patrol = await signupService.createPatrol(newPatrolName.value.trim());
-        patrol.memberships = patrol.memberships ?? [];
-        patrols.value.push(patrol);
-        isCreatePatrolModalOpen.value = false;
-        Toast.open({ message: 'Patruljen er oprettet', type: 'is-success' });
-    } catch (cause) {
-        showError(cause);
-    } finally {
-        busy.value = false;
+    if (!newPatrolName.value.trim()) return;
+
+    if (await run(() => signupService.createPatrol(newPatrolName.value.trim()), "Patruljen er oprettet.")) {
+        createPatrolOpen.value = false;
     }
 }
 
-function openDeletePatrolModal(patrol: PatrolDto) {
+const deletePatrolOpen = ref(false);
+const patrolToDelete = ref<PatrolDto | null>(null);
+
+function confirmDeletePatrol(patrol: PatrolDto) {
     patrolToDelete.value = patrol;
-    isDeletePatrolModalOpen.value = true;
+    deletePatrolOpen.value = true;
 }
 
 async function deletePatrol() {
-    if (!patrolToDelete.value || busy.value) return;
-    busy.value = true;
-    error.value = '';
-    try {
-        await signupService.deletePatrol(patrolToDelete.value.id);
-        const deletedId = patrolToDelete.value.id;
-        patrols.value = patrols.value.filter(p => p.id !== deletedId);
-        for (const scout of scouts.value) {
-            scout.memberships = scout.memberships.filter(m => m.patrolId !== deletedId);
-        }
-        isDeletePatrolModalOpen.value = false;
-        patrolToDelete.value = null;
-        Toast.open({ message: 'Patruljen er slettet', type: 'is-success' });
-    } catch (cause) {
-        showError(cause);
-    } finally {
-        busy.value = false;
+    const patrol = patrolToDelete.value;
+    if (!patrol) return;
+
+    if (await run(() => signupService.deletePatrol(patrol.id), "Patruljen er slettet.")) {
+        deletePatrolOpen.value = false;
     }
 }
 
-function openPatrolModal(scout: ScoutDto) {
-    scoutToEdit.value = scout;
-    selectedPatrolToAdd.value = null;
-    isPatrolModalOpen.value = true;
+const patrolsOpen = ref(false);
+const scoutForPatrolsId = ref<number | null>(null);
+const scoutForPatrols = computed(() => Group.value.scouts.find((scout) => scout.id === scoutForPatrolsId.value) ?? null);
+const patrolToAdd = ref<number | undefined>();
+
+const availablePatrols = computed(() => {
+    const scout = scoutForPatrols.value;
+    if (!scout) return [];
+
+    const memberOf = new Set(scout.memberships.map((membership) => membership.patrolId));
+
+    return Group.value.patrols
+        .filter((patrol) => !memberOf.has(patrol.id))
+        .map((patrol) => ({ label: patrol.name, value: patrol.id }));
+});
+
+function openPatrols(scout: ScoutDto) {
+    scoutForPatrolsId.value = scout.id;
+    patrolToAdd.value = undefined;
+    patrolsOpen.value = true;
 }
 
 async function addToPatrol() {
-    if (!scoutToEdit.value || !selectedPatrolToAdd.value || busy.value) return;
-    const scout = scoutToEdit.value;
-    const patrolId = selectedPatrolToAdd.value;
-    busy.value = true;
-    error.value = '';
-    try {
-        await signupService.addScoutToPatrol(scout.id, patrolId);
-        scout.memberships.push({ id: 0, scoutId: scout.id, patrolId, joinedDate: new Date().toISOString(), isPatrolLeader: false });
-        selectedPatrolToAdd.value = null;
-        Toast.open({ message: `${scout.name} er tilføjet til patruljen`, type: 'is-success' });
-    } catch (cause) {
-        showError(cause);
-    } finally {
-        busy.value = false;
+    const scout = scoutForPatrols.value;
+    const patrolId = patrolToAdd.value;
+    if (!scout || patrolId == null) return;
+
+    if (await run(() => signupService.addScoutToPatrol(scout.id, patrolId), `${scout.name} er tilføjet til patruljen.`)) {
+        patrolToAdd.value = undefined;
     }
 }
 
 async function removeFromPatrol(patrolId: number) {
-    if (!scoutToEdit.value || busy.value) return;
-    const scout = scoutToEdit.value;
-    busy.value = true;
-    error.value = '';
-    try {
-        await signupService.removeScoutFromPatrol(scout.id, patrolId);
-        scout.memberships = scout.memberships.filter(m => m.patrolId !== patrolId);
-        Toast.open({ message: `${scout.name} er fjernet fra patruljen`, type: 'is-success' });
-    } catch (cause) {
-        showError(cause);
-    } finally {
-        busy.value = false;
-    }
-}
+    const scout = scoutForPatrols.value;
+    if (!scout) return;
 
-onMounted(load);
+    await run(() => signupService.removeScoutFromPatrol(scout.id, patrolId), `${scout.name} er fjernet fra patruljen.`);
+}
 </script>
-
-<style lang="scss" scoped>
-.scout-row,
-.patrol-row {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 1rem;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
-
-    &:last-child {
-        border-bottom: none;
-    }
-}
-
-.scout-info,
-.patrol-info {
-    flex: 1;
-    min-width: 0;
-}
-
-.scout-actions {
-    display: flex;
-    gap: 0.5rem;
-    flex-shrink: 0;
-    align-items: flex-start;
-    padding-top: 0.1rem;
-}
-</style>

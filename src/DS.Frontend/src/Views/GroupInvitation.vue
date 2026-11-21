@@ -1,70 +1,138 @@
 <template>
-    <section class="section">
-        <div class="columns is-centered"><div class="column is-6-tablet is-5-desktop">
-            <div class="box">
-                <h1 class="title is-4">Invitation til en gruppe</h1>
-                <p v-if="loading" role="status">Henter invitation…</p>
-                <BNotification v-if="error" type="is-danger" :closable="false" role="alert">{{ error }}</BNotification>
-                <template v-if="invitation && me.Me">
-                    <p class="mb-4">Du er inviteret til <strong>{{ invitation.groupName }}</strong> som <strong>{{ invitation.email }}</strong>.</p>
-                    <template v-if="invitation.existingUser && !me.Me.isAuthenticated">
-                        <p class="mb-4">Log ind med den inviterede email for at acceptere invitationen.</p>
-                        <BButton type="is-primary" @click="login">Log ind</BButton>
-                    </template>
-                    <template v-else-if="!invitation.existingUser && me.Me.isAuthenticated">
-                        <p>Log ud, før du opretter en konto med den inviterede email.</p>
-                        <BButton :disabled="busy" @click="logout">Log ud</BButton>
-                    </template>
-                    <form v-else @submit.prevent="accept">
-                        <template v-if="!invitation.existingUser">
-                            <BField label="Fornavn"><BInput v-model="firstName" autocomplete="given-name" required :disabled="busy" /></BField>
-                            <BField label="Efternavn"><BInput v-model="lastName" autocomplete="family-name" required :disabled="busy" /></BField>
-                            <BField label="Adgangskode" message="Mindst 4 tegn"><BInput v-model="password" type="password" autocomplete="new-password" minlength="4" required :disabled="busy" /></BField>
-                            <BField label="Gentag adgangskode"><BInput v-model="repeatPassword" type="password" autocomplete="new-password" required :disabled="busy" /></BField>
-                        </template>
-                        <p v-else class="mb-4">Du er logget ind som {{ me.Me.name }}. Kontoen skal have den inviterede email og må ikke allerede tilhøre en gruppe.</p>
-                        <BButton native-type="submit" type="is-primary" :loading="busy" :disabled="busy || !valid">{{ invitation.existingUser ? 'Accepter invitation' : 'Opret bruger og tilslut gruppen' }}</BButton>
-                        <BButton v-if="invitation.existingUser" class="mt-3" :disabled="busy" @click="logout">Log ind med en anden konto</BButton>
-                    </form>
-                </template>
+    <UCard>
+        <template #header>
+            <h1 class="text-center text-lg font-semibold text-highlighted">Invitation til en gruppe</h1>
+        </template>
+
+        <div v-if="loading" class="flex flex-col gap-3">
+            <USkeleton v-for="index in 3" :key="index" class="h-10" />
+        </div>
+
+        <UAlert v-if="error" class="mb-4" color="error" variant="subtle" icon="i-lucide-circle-alert" :title="error" />
+
+        <template v-if="invitation && meStore.Me">
+            <p class="mb-4 text-sm">
+                Du er inviteret til <strong>{{ invitation.groupName }}</strong> som <strong>{{ invitation.email }}</strong>.
+            </p>
+
+            <div v-if="invitation.existingUser && !meStore.Me.isAuthenticated" class="flex flex-col gap-3">
+                <p class="text-sm">Log ind med den inviterede email for at acceptere invitationen.</p>
+                <UButton icon="i-lucide-log-in" label="Log ind" block @click="login" />
             </div>
-        </div></div>
-    </section>
+
+            <div v-else-if="!invitation.existingUser && meStore.Me.isAuthenticated" class="flex flex-col gap-3">
+                <p class="text-sm">Log ud, før du opretter en konto med den inviterede email.</p>
+                <UButton color="neutral" variant="outline" icon="i-lucide-log-out" label="Log ud" block :loading="busy" :disabled="busy" @click="logout" />
+            </div>
+
+            <form v-else class="flex flex-col gap-4" @submit.prevent="accept">
+                <template v-if="!invitation.existingUser">
+                    <div class="grid gap-4 sm:grid-cols-2">
+                        <UFormField label="Fornavn" required>
+                            <UInput v-model="firstName" autocomplete="given-name" :disabled="busy" class="w-full" />
+                        </UFormField>
+                        <UFormField label="Efternavn" required>
+                            <UInput v-model="lastName" autocomplete="family-name" :disabled="busy" class="w-full" />
+                        </UFormField>
+                    </div>
+                    <PasswordFields v-model:password="password" v-model:repeat-password="repeatPassword" :disabled="busy" />
+                </template>
+                <p v-else class="text-sm">
+                    Du er logget ind som {{ meStore.Me.name }}. Kontoen skal have den inviterede email og må ikke allerede tilhøre en gruppe.
+                </p>
+
+                <UButton
+                    type="submit"
+                    :label="invitation.existingUser ? 'Accepter invitation' : 'Opret bruger og tilslut gruppen'"
+                    block
+                    :loading="busy"
+                    :disabled="busy || !valid"
+                />
+                <UButton
+                    v-if="invitation.existingUser"
+                    color="neutral"
+                    variant="outline"
+                    label="Log ind med en anden konto"
+                    block
+                    :disabled="busy"
+                    @click="logout"
+                />
+            </form>
+        </template>
+    </UCard>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
-import { BButton, BField, BInput, BNotification } from 'buefy';
-import AuthService from '@/Services/AuthService';
-import GroupInvitationService, { type GroupInvitationDto } from '@/Services/GroupInvitationService';
-import { getErrorMessage } from '@/lib/api';
-import { useMeStore } from '@/Stores/MeStore';
-const route = useRoute(); const router = useRouter(); const me = useMeStore();
+import { computed, onMounted, ref } from "vue";
+import { useRoute, useRouter } from "vue-router";
+import AuthService from "@/Services/AuthService";
+import GroupInvitationService, { type GroupInvitationDto } from "@/Services/GroupInvitationService";
+import { useMeStore } from "@/Stores/MeStore";
+import { getErrorMessage } from "@/lib/api";
+import PasswordFields from "@/Components/Auth/PasswordFields.vue";
+
+const route = useRoute();
+const router = useRouter();
+const meStore = useMeStore();
 const service = new GroupInvitationService();
 const authService = new AuthService();
+
 const invitation = ref<GroupInvitationDto | null>(null);
-const firstName = ref(''); const lastName = ref(''); const password = ref(''); const repeatPassword = ref('');
-const busy = ref(false); const loading = ref(true); const error = ref('');
-const valid = computed(() => invitation.value?.existingUser || (firstName.value.trim() && lastName.value.trim() && password.value.length >= 4 && password.value === repeatPassword.value));
+const firstName = ref("");
+const lastName = ref("");
+const password = ref("");
+const repeatPassword = ref("");
+const busy = ref(false);
+const loading = ref(true);
+const error = ref("");
+
 const invitationId = computed(() => String(route.params.id));
-function fail(e: unknown) { error.value = getErrorMessage(e, 'Der opstod en fejl. Prøv igen.'); }
-function login() { router.push({ path: '/login', query: { returnUrl: route.fullPath } }); }
+const returnPath = computed(() => route.fullPath);
+
+const valid = computed(() => invitation.value?.existingUser
+    || (firstName.value.trim() !== "" && lastName.value.trim() !== "" && password.value.length >= 4 && password.value === repeatPassword.value));
+
+function fail(cause: unknown) {
+    error.value = getErrorMessage(cause, "Der opstod en fejl. Prøv igen.");
+}
+
+function login() {
+    router.push({ path: "/login", query: { returnUrl: returnPath.value } });
+}
+
 async function logout() {
     busy.value = true;
-    try { await authService.logout(); window.location.assign(`/login?returnUrl=${encodeURIComponent(route.fullPath)}`); }
-    catch (e) { fail(e); busy.value = false; }
+    try {
+        await authService.logout();
+        window.location.assign(`/login?returnUrl=${encodeURIComponent(returnPath.value)}`);
+    } catch (cause) {
+        fail(cause);
+        busy.value = false;
+    }
 }
+
 async function accept() {
     if (!valid.value || busy.value) return;
-    busy.value = true; error.value = '';
+
+    busy.value = true;
+    error.value = "";
     try {
         await service.accept(invitationId.value, { firstName: firstName.value.trim(), lastName: lastName.value.trim(), password: password.value });
-        window.location.assign('/group');
-    } catch (e) { fail(e); busy.value = false; }
+        window.location.assign("/group");
+    } catch (cause) {
+        fail(cause);
+        busy.value = false;
+    }
 }
+
 onMounted(async () => {
-    try { invitation.value = await service.get(invitationId.value); }
-    catch (e) { fail(e); } finally { loading.value = false; }
+    try {
+        if (!meStore.Me) await meStore.GET_ME();
+        invitation.value = await service.get(invitationId.value);
+    } catch (cause) {
+        fail(cause);
+    } finally {
+        loading.value = false;
+    }
 });
 </script>

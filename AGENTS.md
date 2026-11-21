@@ -132,22 +132,17 @@ namespace DS.Backend.Controllers
 
 ## Frontend
 
-The frontend lives in `src/DS.Frontend` and uses Vue and Buefy. Read
-[the design guide](docs/design-guide.md) before building or substantially
-changing UI. Use existing Buefy components and surrounding project patterns for
-forms, buttons, tables, notifications, and step flows.
+The frontend lives in `src/DS.Frontend` and uses Vue, Nuxt UI, and Tailwind,
+served at `/`. Use Nuxt UI components and Lucide icons (`i-lucide-*`), and
+never Buefy or Bulma. Follow the patterns in surrounding pages and layouts.
 
-- Follow the guide's page types, colors, button types, wording, and
-  breakpoints. Fix listed deviations only in files you are already changing.
-- Update the design guide in the same task when you establish a new shared UI
-  pattern or change an existing one.
+`src/DS.Frontend.Archive` is the archived Buefy frontend. It is not built in
+`Containerfile.Website` and not served by the backend. Do not change it or
+port changes to it. [The design guide](docs/design-guide.md) describes that
+archived frontend and does not apply to `src/DS.Frontend`.
 
-`src/DS.Frontend.Beta` is a separate beta frontend with Vue, Nuxt UI, and
-Tailwind, served at `/beta`. Its services, stores, `lib`, and `types` are
-copies of the ones in `src/DS.Frontend`; when you change one, change the copy
-too. The design guide does not apply to it. Use Nuxt UI components and Lucide
-icons (`i-lucide-*`) there, and never Buefy or Bulma. Build it with
-`npm run build` in `src/DS.Frontend.Beta`.
+Old `/beta/*` links redirect to the same path without the prefix
+(`DS.Backend/Program.cs`).
 
 ## DS28 cards
 

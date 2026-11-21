@@ -1,107 +1,62 @@
 <template>
-    <div class="home">
-        <div class="grid">
-            <component
-                v-for="(link, index) in Hq.shortcuts"
-                :key="index"
-                :is="isExternal(link.url) ? 'a' : 'router-link'"
-                :[isExternal(link.url)?'href':'to']="link.url"
-                :target="isExternal(link.url) ? '_blank' : undefined"
-                :rel="isExternal(link.url) ? 'noopener noreferrer' : undefined"
-                class="link-box"
-                :aria-label="isExternal(link.url) ? link.title + ' (åbner i nyt vindue)' : link.title"
-            >
-                <div>
-                    <font-awesome-icon :icon="link.icon.length == 1 ? link.icon[0] : link.icon" aria-hidden="true" />
-                    <p>{{ link.title }}</p>
-                    <font-awesome-icon v-if="isExternal(link.url)" icon="up-right-from-square" class="external-icon" aria-hidden="true" />
+    <UDashboardPanel id="home">
+        <template #header>
+            <UDashboardNavbar title="HQ">
+                <template #leading>
+                    <UDashboardSidebarCollapse />
+                </template>
+            </UDashboardNavbar>
+        </template>
+
+        <template #body>
+            <div class="mx-auto w-full max-w-5xl">
+                <h1 class="text-2xl font-semibold text-highlighted">Hej {{ firstName }}</h1>
+                <p class="mt-1 text-muted">Her er dine genveje i HQ.</p>
+
+                <div v-if="loading" class="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    <USkeleton v-for="index in 6" :key="index" class="h-24" />
                 </div>
-            </component>
-        </div>
-        <p class="home-version">{{ Version.version }}</p>
-    </div>
+
+                <UAlert v-else-if="loadFailed" class="mt-6" color="error" variant="subtle" icon="i-lucide-circle-alert" title="Genvejene kunne ikke hentes" description="Prøv at genindlæse siden." />
+
+                <UEmpty v-else-if="shortcuts.length === 0" class="mt-6" icon="i-lucide-layout-grid" title="Du har ingen genveje endnu" />
+
+                <div v-else class="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    <ShortcutCard v-for="shortcut in shortcuts" :key="shortcut.to" :shortcut="shortcut" />
+                </div>
+
+                <p v-if="Version.version" class="mt-8 text-center text-sm text-muted">{{ Version.version }}</p>
+            </div>
+        </template>
+    </UDashboardPanel>
 </template>
 
-<script lang="ts" setup>
-import { useMeStore } from '@/Stores/MeStore';
-import { useVersionStore } from '@/Stores/VersionStore';
-import { storeToRefs } from 'pinia';
-
-const versionStore = useVersionStore();
-const { Version } = storeToRefs(versionStore);
+<script setup lang="ts">
+import { computed, onMounted, ref } from "vue";
+import { storeToRefs } from "pinia";
+import { useMeStore } from "@/Stores/MeStore";
+import { useVersionStore } from "@/Stores/VersionStore";
+import { toHqShortcut } from "@/lib/hqShortcuts";
+import ShortcutCard from "@/Components/ShortcutCard.vue";
 
 const meStore = useMeStore();
-const { Hq } = storeToRefs(meStore);
+const versionStore = useVersionStore();
+const { Me, Hq } = storeToRefs(meStore);
+const { Version } = storeToRefs(versionStore);
 
-// Helper function to check if a URL is external
-const isExternal = (url: string) => {
-    return /^https?:\/\//i.test(url);
-};
+const loading = ref(true);
+const loadFailed = ref(false);
+
+onMounted(async () => {
+    try {
+        await Promise.all([meStore.GET_HQ(), versionStore.GET_VERSION()]);
+    } catch {
+        loadFailed.value = true;
+    } finally {
+        loading.value = false;
+    }
+});
+
+const firstName = computed(() => Me.value?.name.split(" ")[0] ?? "");
+const shortcuts = computed(() => Hq.value.shortcuts.map(toHqShortcut));
 </script>
-
-<style scoped>
-.home {
-    width: 100%;
-    padding: 1rem;
-}
-
-.home > .grid {
-    width: 100%;
-    margin: 0 auto;
-}
-
-.home-version {
-    margin: 1.5rem auto 0;
-    max-width: 52rem;
-    color: #595959;
-    font-size: 0.85rem;
-    text-align: center;
-}
-
-@media (max-width: 1024px) {
-    .grid {
-        display: flex;
-        flex-direction: column;
-        gap: 0.75rem;
-    }
-
-    .link-box {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        flex: 0 0 auto;
-        gap: 1rem;
-        height: auto;
-        min-height: 4.5rem;
-        padding: 1rem;
-        border-radius: 10px;
-    }
-
-    .link-box > div {
-        flex: 1;
-        min-width: 0;
-        height: auto;
-        flex-direction: row;
-        justify-content: flex-start;
-        gap: 0.75rem;
-    }
-
-    .link-box svg {
-        flex: 0 0 2rem;
-        width: 2rem;
-        font-size: 28px;
-    }
-
-    .link-box .external-icon {
-        flex: 0 0 auto;
-        width: auto;
-        font-size: 12px;
-        margin-left: auto;
-    }
-
-    .link-box p {
-        text-align: left;
-        overflow-wrap: anywhere;
-    }
-}
-</style>

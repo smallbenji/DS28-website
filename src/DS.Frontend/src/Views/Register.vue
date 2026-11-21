@@ -1,92 +1,65 @@
 <template>
-    <section class="section">
-        <div class="columns is-centered">
-            <div class="column is-5-desktop is-7-tablet">
+    <UCard>
+        <template #header>
+            <h1 class="text-center text-lg font-semibold text-highlighted">Opret bruger</h1>
+        </template>
 
-                <div class="card frame">
-                    <header class="card-header">
-                        <p class="card-header-title is-centered">Opret bruger</p>
-                    </header>
-
-                    <div class="card-content">
-                        <div class="columns">
-                            <div class="column">
-                                <BField label="Fornavn">
-                                    <BInput v-model="firstName" />
-                                </BField>
-                            </div>
-                            <div class="column">
-                                <BField label="Efternavn">
-                                    <BInput v-model="lastName" />
-                                </BField>
-                            </div>
-                        </div>
-
-                        <BField label="Email">
-                            <BInput v-model="email" type="email" icon="envelope" autocomplete="email" @keyup.enter="submit" />
-                        </BField>
-
-                        <BField label="Adgangskode">
-                            <BInput v-model="password" type="password" icon="lock" password-reveal autocomplete="new-password" @keyup.enter="submit" />
-                        </BField>
-
-                        <BField label="Gentag adgangskode">
-                            <BInput v-model="repeatPassword" type="password" icon="lock" password-reveal autocomplete="new-password" @keyup.enter="submit" />
-                        </BField>
-
-                        <div v-if="error" class="notification is-danger is-light py-2 px-4 my-3">
-                            {{ error }}
-                        </div>
-
-                        <BButton type="is-primary" expanded :loading="isSubmitting" :disabled="!canSubmit" icon-left="user-plus" @click="submit">
-                            Opret bruger
-                        </BButton>
-
-                        <p class="has-text-centered mt-4">
-                            Har du allerede en bruger?
-                            <router-link to="/login">Log ind</router-link>
-                        </p>
-                    </div>
-                </div>
-
+        <form class="flex flex-col gap-4" @submit.prevent="submit">
+            <div class="grid gap-4 sm:grid-cols-2">
+                <UFormField label="Fornavn" required>
+                    <UInput v-model="firstName" autocomplete="given-name" class="w-full" />
+                </UFormField>
+                <UFormField label="Efternavn" required>
+                    <UInput v-model="lastName" autocomplete="family-name" class="w-full" />
+                </UFormField>
             </div>
-        </div>
-    </section>
+
+            <UFormField label="Email" required>
+                <UInput v-model="email" type="email" icon="i-lucide-mail" autocomplete="email" class="w-full" />
+            </UFormField>
+
+            <PasswordFields v-model:password="password" v-model:repeat-password="repeatPassword" :disabled="isSubmitting" />
+
+            <UAlert v-if="error" color="error" variant="subtle" icon="i-lucide-circle-alert" :title="error" />
+
+            <UButton type="submit" icon="i-lucide-user-plus" label="Opret bruger" block :loading="isSubmitting" :disabled="!canSubmit" />
+
+            <p class="text-center text-sm">
+                Har du allerede en bruger?
+                <ULink to="/login" class="text-primary">Log ind</ULink>
+            </p>
+        </form>
+    </UCard>
 </template>
 
-<script lang="ts" setup>
-import AuthService from '@/Services/AuthService';
-import { BButton, BField, BInput } from 'buefy';
-import { computed, ref } from 'vue';
-import { useRouter } from 'vue-router';
+<script setup lang="ts">
+import { computed, ref } from "vue";
+import { useRouter } from "vue-router";
+import AuthService from "@/Services/AuthService";
+import PasswordFields from "@/Components/Auth/PasswordFields.vue";
 
 const router = useRouter();
 const authService = new AuthService();
 
-const firstName = ref('');
-const lastName = ref('');
-const email = ref('');
-const password = ref('');
-const repeatPassword = ref('');
-
+const firstName = ref("");
+const lastName = ref("");
+const email = ref("");
+const password = ref("");
+const repeatPassword = ref("");
 const isSubmitting = ref(false);
-const error = ref('');
+const error = ref("");
 
-const canSubmit = computed(() => {
-    if (firstName.value.trim() === '') return false;
-    if (lastName.value.trim() === '') return false;
-    if (email.value.trim() === '') return false;
-    if (password.value.length < 4) return false;
-    if (password.value !== repeatPassword.value) return false;
-    return true;
-});
+const canSubmit = computed(() => firstName.value.trim() !== ""
+    && lastName.value.trim() !== ""
+    && email.value.trim() !== ""
+    && password.value.length >= 4
+    && password.value === repeatPassword.value);
 
-const submit = async () => {
+async function submit() {
     if (!canSubmit.value || isSubmitting.value) return;
 
     isSubmitting.value = true;
-    error.value = '';
-
+    error.value = "";
     try {
         const errorMessage = await authService.register({
             firstName: firstName.value,
@@ -100,15 +73,9 @@ const submit = async () => {
             return;
         }
 
-        router.push({ path: '/login', query: { registered: '1' } });
+        await router.push({ path: "/login", query: { registered: "1" } });
     } finally {
         isSubmitting.value = false;
     }
-};
-</script>
-
-<style scoped>
-.frame {
-    min-width: 350px;
 }
-</style>
+</script>

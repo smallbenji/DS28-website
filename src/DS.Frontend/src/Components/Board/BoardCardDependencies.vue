@@ -1,92 +1,82 @@
 <template>
-    <section class="board-card-dependencies" aria-labelledby="board-card-dependencies-heading">
-        <div class="board-card-dependencies-header">
-            <h3 id="board-card-dependencies-heading" class="board-card-dependencies-heading">Afhængigheder</h3>
-            <BButton v-if="canManage" size="is-small" class="is-ghost" icon-left="plus" :aria-expanded="pickerOpen" :disabled="saving" @click="togglePicker">
-                {{ pickerOpen ? 'Luk søgning' : 'Tilføj' }}
-            </BButton>
+    <section aria-labelledby="card-dependencies-heading">
+        <div class="mb-2 flex items-center justify-between gap-2">
+            <h3 id="card-dependencies-heading" class="text-sm font-semibold text-highlighted">Afhængigheder</h3>
+            <UButton v-if="canManage" color="neutral" variant="ghost" size="xs" :icon="pickerOpen ? 'i-lucide-x' : 'i-lucide-plus'" :label="pickerOpen ? 'Luk søgning' : 'Tilføj'" :aria-expanded="pickerOpen" :disabled="saving" @click="togglePicker" />
         </div>
 
-        <div v-if="pickerOpen" class="board-card-dependency-picker">
-            <BField label="Kortet venter på">
-                <BInput v-model="search" icon="magnifying-glass" placeholder="DS-nummer eller titel..." :loading="searching" />
-            </BField>
-
-            <ul v-if="results.length > 0" class="board-card-dependency-results">
-                <li v-for="result in results" :key="result.id" class="board-card-dependency-result">
-                    <div class="board-card-dependency-result-info">
-                        <span class="is-family-monospace is-size-7 has-text-grey">DS-{{ result.id }}</span>
-                        <span class="board-card-dependency-title">{{ result.title }}</span>
-                        <span v-if="result.placements.length" class="is-size-7 has-text-grey">{{ placementSummary(result.placements) }}</span>
-                    </div>
-                    <BButton size="is-small" type="is-primary" :disabled="isLinked(result.id) || saving" @click="add(result.id)">
-                        {{ isLinked(result.id) ? 'Tilføjet' : 'Tilføj' }}
-                    </BButton>
+        <div v-if="pickerOpen" class="mb-3 rounded-md border border-default p-3">
+            <UFormField label="Kortet venter på">
+                <UInput v-model="search" icon="i-lucide-search" placeholder="DS-nummer eller titel…" :loading="searching" class="w-full" autofocus />
+            </UFormField>
+            <ul v-if="results.length" class="mt-2 flex flex-col divide-y divide-default">
+                <li v-for="result in results" :key="result.id" class="flex items-center justify-between gap-2 py-2">
+                    <span class="min-w-0 text-sm">
+                        <span class="font-mono text-xs text-muted">DS-{{ result.id }}</span>
+                        <span class="ms-1">{{ result.title }}</span>
+                        <span v-if="result.placements.length" class="block truncate text-xs text-muted">{{ placementSummary(result.placements) }}</span>
+                    </span>
+                    <UButton size="xs" :label="isLinked(result.id) ? 'Tilføjet' : 'Tilføj'" :disabled="isLinked(result.id) || saving" @click="add(result.id)" />
                 </li>
             </ul>
-            <p v-else-if="search.trim() && !searching" class="has-text-grey is-size-7">Ingen kort fundet.</p>
+            <p v-else-if="search.trim() && !searching" class="mt-2 text-xs text-muted">Ingen kort fundet.</p>
         </div>
 
         <template v-for="group in groups" :key="group.key">
-            <div v-if="group.items.length > 0" class="board-card-dependency-group">
-                <div class="board-card-dependency-group-head">
+            <div v-if="group.items.length" class="mb-3">
+                <div class="mb-1 flex items-center justify-between text-xs font-medium text-muted">
                     <span>{{ group.label }}</span>
-                    <span v-if="group.summary" class="has-text-grey">{{ group.summary }}</span>
+                    <span v-if="group.summary">{{ group.summary }}</span>
                 </div>
-                <ul>
-                    <li v-for="item in group.items" :key="item.id" class="board-card-dependency" :class="{ 'is-done': item.isDone }">
-                        <span class="is-family-monospace is-size-7 has-text-grey">DS-{{ item.id }}</span>
-                        <span class="board-card-dependency-title" :class="{ 'has-text-grey': !item.isVisible }">
+                <ul class="flex flex-col gap-1">
+                    <li v-for="item in group.items" :key="item.id" class="flex items-center gap-2 rounded-md bg-elevated px-2 py-1.5 text-sm">
+                        <span class="font-mono text-xs text-muted">DS-{{ item.id }}</span>
+                        <span class="min-w-0 flex-1 truncate" :class="{ 'text-muted': !item.isVisible, 'line-through': item.isDone }">
                             {{ item.isVisible ? item.title : 'Kort på en tavle, du ikke har adgang til' }}
                         </span>
-                        <span class="tag" :class="item.isDone ? 'is-success is-light' : 'is-warning is-light'">
-                            <font-awesome-icon v-if="item.isDone" icon="check" class="mr-1" />
-                            {{ statusLabel(item) }}
-                        </span>
-                        <BButton
-                            v-if="canManage"
-                            size="is-small"
-                            class="is-ghost"
-                            :aria-label="`Fjern afhængighed til DS-${item.id}`"
-                            title="Fjern afhængighed"
-                            :disabled="saving"
-                            @click="confirmRemove(item)"
-                        >
-                            ×
-                        </BButton>
+                        <UBadge :label="statusLabel(item)" :icon="item.isDone ? 'i-lucide-check' : undefined" :color="item.isDone ? 'success' : 'warning'" variant="subtle" size="sm" />
+                        <UButton v-if="canManage" color="neutral" variant="ghost" size="xs" icon="i-lucide-x" :aria-label="`Fjern afhængighed til DS-${item.id}`" :disabled="saving" @click="confirmRemove(item)" />
                     </li>
                 </ul>
             </div>
         </template>
 
-        <p v-if="!hasDependencies && !pickerOpen" class="has-text-grey is-size-7">Kortet venter ikke på andre kort.</p>
+        <p v-if="!hasDependencies && !pickerOpen" class="text-xs text-muted">Kortet venter ikke på andre kort.</p>
+
+        <ConfirmModal
+            v-model:open="removeOpen"
+            title="Fjern afhængighed"
+            :description="`Fjern afhængigheden mellem dette kort og DS-${toRemove?.id}? Kortene bevares.`"
+            confirm-label="Fjern"
+            color="error"
+            :loading="saving"
+            @confirm="remove"
+        />
     </section>
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref, watch } from 'vue';
-import { BButton, BField, BInput, useDialog, useToast } from 'buefy';
-import BoardService from '@/Services/BoardService';
-import { useBoardStore } from '@/Stores/BoardStore';
-import { getErrorMessage } from '@/lib/api';
-import type { WorkItemDependencyDto, WorkItemDto, WorkItemPlacementDto, WorkItemSearchResultDto } from '@/types';
+import { computed, onBeforeUnmount, ref, watch } from "vue";
+import BoardService from "@/Services/BoardService";
+import { useBoardStore } from "@/Stores/BoardStore";
+import { getErrorMessage } from "@/lib/api";
+import { useNotify } from "@/lib/notify";
+import ConfirmModal from "@/Components/ConfirmModal.vue";
+import type { WorkItemDependencyDto, WorkItemDto, WorkItemPlacementDto, WorkItemSearchResultDto } from "@/types";
 
-const props = defineProps<{
-    boardId: number;
-    card: WorkItemDto;
-    canManage: boolean;
-}>();
+const props = defineProps<{ boardId: number; card: WorkItemDto; canManage: boolean }>();
 
 const store = useBoardStore();
 const boardService = new BoardService();
-const Toast = useToast();
-const Dialog = useDialog();
+const notify = useNotify();
 
 const pickerOpen = ref(false);
-const search = ref('');
+const search = ref("");
 const searching = ref(false);
 const saving = ref(false);
 const results = ref<WorkItemSearchResultDto[]>([]);
+const removeOpen = ref(false);
+const toRemove = ref<WorkItemDependencyDto | null>(null);
 let searchTimeout: ReturnType<typeof setTimeout> | null = null;
 
 const liveCard = computed(() => store.SelectedBoard?.cards.find((card) => String(card.id) === String(props.card.id)) ?? props.card);
@@ -95,18 +85,8 @@ const blocking = computed(() => liveCard.value.blocking ?? []);
 const hasDependencies = computed(() => waitingOn.value.length > 0 || blocking.value.length > 0);
 
 const groups = computed(() => [
-    {
-        key: 'waiting-on',
-        label: 'Venter på',
-        summary: `${waitingOn.value.filter((item) => item.isDone).length} af ${waitingOn.value.length} færdig`,
-        items: waitingOn.value
-    },
-    {
-        key: 'blocking',
-        label: 'Blokerer',
-        summary: '',
-        items: blocking.value
-    }
+    { key: "waiting-on", label: "Venter på", summary: `${waitingOn.value.filter((item) => item.isDone).length} af ${waitingOn.value.length} færdig`, items: waitingOn.value },
+    { key: "blocking", label: "Blokerer", summary: "", items: blocking.value }
 ]);
 
 watch(search, (value) => {
@@ -132,7 +112,7 @@ onBeforeUnmount(() => {
 
 function togglePicker() {
     pickerOpen.value = !pickerOpen.value;
-    search.value = '';
+    search.value = "";
     results.value = [];
 }
 
@@ -141,13 +121,13 @@ function isLinked(cardId: number) {
 }
 
 function placementSummary(placements: WorkItemPlacementDto[]) {
-    return placements.map((placement) => `${placement.boardTitle} - ${placement.columnTitle}`).join(', ');
+    return placements.map((placement) => `${placement.boardTitle}: ${placement.columnTitle}`).join(", ");
 }
 
 function statusLabel(item: WorkItemDependencyDto) {
-    if (item.isDone) return 'Færdig';
+    if (item.isDone) return "Færdig";
 
-    return item.placements.find((placement) => !placement.isDoneColumn)?.columnTitle ?? 'Ikke færdig';
+    return item.placements.find((placement) => !placement.isDoneColumn)?.columnTitle ?? "Ikke færdig";
 }
 
 async function add(dependsOnId: number) {
@@ -157,140 +137,31 @@ async function add(dependsOnId: number) {
     try {
         await boardService.addDependency(props.boardId, Number(props.card.id), Number(dependsOnId));
         await store.GET_BOARD(props.boardId);
-        Toast.open({ message: `Kortet venter nu på DS-${dependsOnId}.`, type: 'is-success' });
+        notify.success(`Kortet venter nu på DS-${dependsOnId}.`);
         togglePicker();
     } catch (error) {
-        Toast.open({ message: getErrorMessage(error, 'Afhængigheden kunne ikke tilføjes.'), type: 'is-danger' });
+        notify.error(getErrorMessage(error, "Afhængigheden kunne ikke tilføjes."));
     } finally {
         saving.value = false;
     }
 }
 
 function confirmRemove(item: WorkItemDependencyDto) {
-    Dialog.confirm({
-        title: 'Fjern afhængighed',
-        message: `Er du sikker på, at du vil fjerne afhængigheden mellem dette kort og DS-${item.id}? Kortene bevares.`,
-        confirmText: 'Fjern',
-        cancelText: 'Annuller',
-        type: 'is-danger',
-        onConfirm: () => {
-            void remove(item.id);
-        }
-    });
+    toRemove.value = item;
+    removeOpen.value = true;
 }
 
-async function remove(otherId: number) {
+async function remove() {
+    if (!toRemove.value) return;
+
     saving.value = true;
     try {
-        const success = await boardService.removeDependency(props.boardId, Number(props.card.id), Number(otherId));
-        if (!success) {
-            Toast.open({ message: 'Afhængigheden kunne ikke fjernes.', type: 'is-danger' });
-            return;
-        }
-
-        await store.GET_BOARD(props.boardId);
-        Toast.open({ message: 'Afhængigheden er fjernet.', type: 'is-success' });
+        const ok = await boardService.removeDependency(props.boardId, Number(props.card.id), Number(toRemove.value.id));
+        if (ok) await store.GET_BOARD(props.boardId);
+        notify.result(ok, "Afhængigheden er fjernet.", "Afhængigheden kunne ikke fjernes.");
+        if (ok) removeOpen.value = false;
     } finally {
         saving.value = false;
     }
 }
 </script>
-
-<style scoped>
-.board-card-dependencies {
-    margin-top: 1.5rem;
-}
-
-.board-card-dependencies-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 0.5rem;
-}
-
-.board-card-dependencies-heading {
-    font-size: 0.75rem;
-    font-weight: 600;
-    color: #66717e;
-}
-
-.board-card-dependency-picker {
-    margin-bottom: 0.75rem;
-}
-
-.board-card-dependency-results {
-    border-top: 1px solid rgba(0, 0, 0, 0.08);
-    margin-top: 0.5rem;
-}
-
-.board-card-dependency-result {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.5rem 0.75rem;
-    padding: 0.5rem 0;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-}
-
-.board-card-dependency-result-info {
-    display: flex;
-    flex-direction: column;
-    min-width: 0;
-}
-
-.board-card-dependency-group {
-    border: 1px solid rgba(0, 0, 0, 0.1);
-    border-radius: 10px;
-    overflow: hidden;
-    margin-bottom: 0.75rem;
-}
-
-.board-card-dependency-group-head {
-    display: flex;
-    justify-content: space-between;
-    padding: 0.4rem 0.85rem;
-    background: #f7f8fa;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
-    font-size: 0.75rem;
-    font-weight: 600;
-    color: #374151;
-}
-
-.board-card-dependency {
-    display: grid;
-    grid-template-columns: 4rem minmax(0, 1fr) auto auto;
-    align-items: center;
-    gap: 0.6rem;
-    min-height: 2.75rem;
-    padding: 0.25rem 0.5rem 0.25rem 0.85rem;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-}
-
-.board-card-dependency:last-child {
-    border-bottom: none;
-}
-
-.board-card-dependency-title {
-    font-size: 0.9rem;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.board-card-dependency.is-done .board-card-dependency-title {
-    color: #6b7280;
-}
-
-@media screen and (max-width: 768px) {
-    .board-card-dependency {
-        grid-template-columns: minmax(0, 1fr) auto auto;
-    }
-
-    .board-card-dependency-title {
-        grid-column: 1 / -1;
-        grid-row: 2;
-        white-space: normal;
-    }
-}
-</style>
