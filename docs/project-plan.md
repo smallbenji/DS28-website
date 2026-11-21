@@ -1597,10 +1597,11 @@ det eksisterende HTTP-API. Værktøjet er udviklingssupport og ændrer ikke
 produktets adgangsregler; det bruger det personlige adgangstoken beskrevet
 nedenfor.
 
-- MCP-serveren kører lokalt over stdio og er registreret i `opencode.json` med
-  værktøjerne `list_boards`, `get_board`, `create_card`, `update_card`,
-  `move_card`, `delete_card`, `create_tag`, `update_tag`, `delete_tag`,
-  `search_cards`, `add_dependency` og `remove_dependency`.
+- MCP-serveren kører lokalt over stdio og er registreret i `opencode.json` og
+  `.mcp.json` (Claude Code) med værktøjerne `list_boards`, `get_board`,
+  `create_card`, `update_card`, `move_card`, `delete_card`, `create_tag`,
+  `update_tag`, `delete_tag`, `search_cards`, `add_dependency`,
+  `remove_dependency`, `add_pull_request` og `remove_pull_request`.
   Alle kald går til `/api/v1/boards` med samme
   adgangskontrol som brugerens egen konto, så medlemskab, SysAdmin/CampAdmin og
   API-validering gælder uændret.
@@ -1648,6 +1649,26 @@ andre tavler gennem et delt kort.
   bruger mod en isoleret PostgreSQL-database og dækker afgrænsning, CRUD,
   bevar/ryd-semantik og delte kort. OAuth/transportens loginflow er ikke en del
   af denne test.
+
+**Beslutning 2026-11-21 (DS-67, implementeret i denne ændring, ikke udgivet):**
+Alle agenter skal kunne oprette, hente og flytte kort på samme måde, også
+agenter uden MCP-understøttelse. Kort føres på DS28 IT-tavlen i HQ, ikke i
+GitHub Issues eller GitHub Projects.
+
+- `tools/ds28-mcp/cli.mjs` er en CLI til agenter uden MCP. Den starter
+  stdio-serveren og kalder dens værktøjer, så CLI og MCP altid har samme
+  værktøjer, validering og adgangstoken. Argumenter skrives `navn=værdi` og
+  omsættes efter værktøjets skema; heltal accepterer `DS-42`. Uden argumenter
+  vises alle værktøjer. Fejl giver exitkode 1. Ingen nye afhængigheder.
+- Stdio-serveren er registreret for Claude Code i `.mcp.json` ud over
+  `opencode.json`.
+- Kortflowet er fastlagt i `AGENTS.md`: nye kort oprettes i `Backlog`, flyttes
+  til `I gang` ved start, PR'er linkes med `add_pull_request`, kortet flyttes
+  til `Ikke udgivet`, når PR'en er godkendt og merget, og til `Færdig`, når et
+  udgivet tag indeholder ændringen. Den person, der har udført arbejdet, sættes
+  som ansvarlig ved fuldt navn, aldrig agenten.
+- Tests: `node --test tools/ds28-mcp/*.test.mjs` dækker argumentparseren og
+  CLI'en mod stub-API'et.
 
 **Beslutning 2026-11-16 (implementeret):** Website udstiller et remote
 MCP-endpoint på `/mcp`, så cloud-agenter kan bruge tavlerne. Codex Cloud og
