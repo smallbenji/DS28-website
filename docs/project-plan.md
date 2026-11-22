@@ -381,6 +381,16 @@ ikke seneste aktivitet. MCP-adgang med OAuth-refresh-tokens eller personlige
 adgangstokens opdaterer det heller ikke. Brugere, der ikke har logget ind
 siden ændringen, vises som "Intet login registreret".
 
+**Beslutning 2026-11-22 (implementeret, DS-85):** Fordi seneste login ikke
+viser, om en bruger med en levende cookie bruger platformen, gemmes også
+`User.LastActiveAt`. `UserActivityMiddleware` kører efter `UseAuthorization`
+og opdaterer det ved godkendte requests, uanset om brugeren er logget ind med
+cookie, personligt adgangstoken eller MCP-token. Det skrives højst hvert femte
+minut pr. bruger (hukommelsescache plus en betingelse i `UPDATE`), så
+præcisionen er fem minutter. Et login sætter både `LastLoginAt` og
+`LastActiveAt`. Brugerlisten viser "Sidst aktiv"; detaljevisningen viser både
+sidst aktiv og seneste login. Kun ét tidsstempel gemmes, ingen aktivitetslog.
+
 ### Min profil
 
 **Sikkerhedsrettelse 2026-10-20 (implementeret):** Login- og antiforgery-cookies

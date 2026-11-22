@@ -38,9 +38,12 @@ namespace DS.Infrastructure.Identity
             var lastLoginAt = DateTimeOffset.UtcNow;
             await context.Users
                 .Where(candidate => candidate.Id == user.Id)
-                .ExecuteUpdateAsync(setters => setters.SetProperty(candidate => candidate.LastLoginAt, lastLoginAt));
+                .ExecuteUpdateAsync(setters => setters
+                    .SetProperty(candidate => candidate.LastLoginAt, lastLoginAt)
+                    .SetProperty(candidate => candidate.LastActiveAt, lastLoginAt));
 
             user.LastLoginAt = lastLoginAt;
+            user.LastActiveAt = lastLoginAt;
         }
 
         public override async Task RefreshSignInAsync(User user)

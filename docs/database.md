@@ -262,6 +262,11 @@ kolonner tilføjes.
 brugerens seneste vellykkede login. `NULL` betyder, at brugeren ikke har logget
 ind, siden kolonnen blev tilføjet. Der gemmes ingen loginhistorik.
 
+`asp_net_users.last_active_at` (`timestamptz`, nullable) er tidspunktet for
+brugerens seneste godkendte request, med en præcision på op til fem minutter.
+`NULL` betyder, at der ikke er registreret aktivitet, siden kolonnen blev
+tilføjet. Der gemmes ingen aktivitetslog.
+
 ```mermaid
 erDiagram
     asp_net_users {
@@ -286,6 +291,7 @@ erDiagram
         bool has_enabled_authenticator
         int profile_picture_file_id FK "SET NULL"
         timestamptz last_login_at
+        timestamptz last_active_at
     }
 
     asp_net_roles {

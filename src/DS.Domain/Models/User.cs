@@ -22,6 +22,8 @@ public class User : IdentityUser
 
     public DateTimeOffset? LastLoginAt { get; set; }
 
+    public DateTimeOffset? LastActiveAt { get; set; }
+
     public int? ProfilePictureFileId { get; set; }
     public StoredFile ProfilePicture { get; set; }
 
