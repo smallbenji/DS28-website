@@ -20,7 +20,7 @@
                     </template>
 
                     <div v-if="loading" class="flex flex-col gap-3 p-4 sm:p-6">
-                        <USkeleton v-for="index in 2" :key="index" class="h-10" />
+                        <USkeleton v-for="index in options.length" :key="index" class="h-10" />
                     </div>
 
                     <ul v-else-if="settings" class="divide-y divide-default">
@@ -68,7 +68,9 @@ const canManageSignup = hasRole("PreSignupManage");
 
 const options: { key: SettingKey; label: string; description: string }[] = [
     { key: "isPreSignupOpen", label: "Forhåndstilmelding", description: "Styrer, om grupperne kan forhåndstilmelde sig." },
-    { key: "isSignupOpen", label: "Endelig tilmelding", description: "Styrer, om grupperne kan lave den endelige tilmelding." }
+    { key: "isSignupOpen", label: "Endelig tilmelding", description: "Styrer, om grupperne kan lave den endelige tilmelding." },
+    { key: "isActivityWishRoundOpen", label: "Aktivitetsønskerunde", description: "Styrer, om grupperne kan ønske aktiviteter." },
+    { key: "isActivitySignupOpen", label: "Endelig aktivitetstilmelding", description: "Styrer, om grupperne kan tilmelde patruljer til aktiviteter." }
 ];
 
 const settings = ref<RegistrationSettings | null>(null);

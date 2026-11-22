@@ -5,5 +5,7 @@ namespace DS.Domain.Models
         public int Id { get; set; }
         public bool IsPreSignupOpen { get; set; }
         public bool IsSignupOpen { get; set; }
+        public bool IsActivityWishRoundOpen { get; set; }
+        public bool IsActivitySignupOpen { get; set; }
     }
 }

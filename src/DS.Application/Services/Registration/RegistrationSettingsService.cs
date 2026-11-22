@@ -15,7 +15,9 @@ namespace DS.Application.Services.Registration
                 .Select(s => new RegistrationSettingsDto
                 {
                     IsPreSignupOpen = s.IsPreSignupOpen,
-                    IsSignupOpen = s.IsSignupOpen
+                    IsSignupOpen = s.IsSignupOpen,
+                    IsActivityWishRoundOpen = s.IsActivityWishRoundOpen,
+                    IsActivitySignupOpen = s.IsActivitySignupOpen
                 })
                 .SingleOrDefaultAsync();
         }
@@ -28,13 +30,17 @@ namespace DS.Application.Services.Registration
 
             if (data.IsPreSignupOpen != null) settings.IsPreSignupOpen = data.IsPreSignupOpen.Value;
             if (data.IsSignupOpen != null) settings.IsSignupOpen = data.IsSignupOpen.Value;
+            if (data.IsActivityWishRoundOpen != null) settings.IsActivityWishRoundOpen = data.IsActivityWishRoundOpen.Value;
+            if (data.IsActivitySignupOpen != null) settings.IsActivitySignupOpen = data.IsActivitySignupOpen.Value;
 
             await dataDb.SaveChangesAsync();
 
             return new RegistrationSettingsDto
             {
                 IsPreSignupOpen = settings.IsPreSignupOpen,
-                IsSignupOpen = settings.IsSignupOpen
+                IsSignupOpen = settings.IsSignupOpen,
+                IsActivityWishRoundOpen = settings.IsActivityWishRoundOpen,
+                IsActivitySignupOpen = settings.IsActivitySignupOpen
             };
         }
     }

@@ -2539,6 +2539,23 @@ til projektet. Kontrollér altid koden igen ved fremtidige ændringer.
   tilmeldinger og ændringer af deltagerantal blokeres i backend. Eksisterende
   tilmeldinger kan fortsat ses. Om eksisterende grupper skal kunne ændre deres
   tal efter lukning, er endnu ikke bekræftet af Benjamin.
+- **DS-92 (implementeret, afventer review):** Lejrindstillinger har to nye
+  flag, `IsActivityWishRoundOpen` (aktivitetsønskerunde, hvor grupperne ønsker
+  aktiviteter) og `IsActivitySignupOpen` (endelig aktivitetstilmelding, hvor
+  grupperne tilmelder patruljer til aktiviteter). De gemmes i
+  `registration_settings`, starter lukket og åbnes og lukkes manuelt med to
+  toggles på `/camp-settings` via det eksisterende
+  `PUT /api/v1/registration-settings`. De er uafhængige af datoerne i den
+  foreløbige tidsplan, så der indføres ingen hardkodede deadlines. Flagene
+  gater endnu intet, fordi ønske- og tilmeldingsflowet ikke er bygget, og
+  gruppesiden viser fortsat begge kort som »Ikke tilgængelig endnu«.
+  Følgende er forsigtige standardvalg, som afventer Benjamins bekræftelse:
+  - Flagene kræver samme adgang som de eksisterende tilmeldingsflag
+    (`PreSignupManage`); der er ikke indført en ny rolle.
+  - Flagene er uafhængige, og begge kan være åbne samtidig.
+  - Det er ikke besluttet, hvad lukket endelig aktivitetstilmelding betyder,
+    fx om tilmeldingerne bliver skrivebeskyttede eller skjules. Det afklares,
+    når flowet bygges.
 - Glemt adgangskode er et selvbetjent flow på `/forgot-password`. Brugeren
   indtaster sin email, og backend sender et nulstillingslink på
   `/reset-password/{brugerId}?token=...`. Det er en mail, der sendes

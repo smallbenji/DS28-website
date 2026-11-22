@@ -393,6 +393,8 @@ erDiagram
         int id PK "Singleton, CHECK id = 1"
         bool is_pre_signup_open
         bool is_signup_open
+        bool is_activity_wish_round_open
+        bool is_activity_signup_open
     }
 
     google_connection {
@@ -812,6 +814,12 @@ mindst syv dage gamle. Det er ren dataoprydning uden skemaændring.
   app-instans med den rigtige nøglering. Der holdes højst én række ad gangen:
   ved en ny forbindelse slettes den gamle, og `connected_by_user_id` har
   `ON DELETE SET NULL`, så en slettet bruger ikke fjerner forbindelsen.
+- `registration_settings` har altid præcis én række (`id = 1`). Alle fire
+  flag, `is_pre_signup_open`, `is_signup_open`,
+  `is_activity_wish_round_open` og `is_activity_signup_open`, er
+  `BOOLEAN NOT NULL DEFAULT FALSE` og ændres manuelt i lejrindstillingerne.
+  De to aktivitetsflag styrer endnu ingen adgang, fordi ønske- og
+  tilmeldingsflowet ikke er bygget.
 - `user_access_token` gemmer personlige adgangstokens til værktøjer og
   scripts. Kun SHA-256-hashen i `token_hash` gemmes (unik), så den rå token
   ikke kan gendannes fra databasen og kun vises én gang ved oprettelse.
