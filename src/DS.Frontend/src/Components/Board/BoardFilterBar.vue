@@ -16,48 +16,51 @@
         </UButton>
 
         <div class="hidden sm:contents">
-            <UButton
-                v-for="filter in boardQuickFilters"
-                :key="filter.key"
-                :label="filter.label"
-                :icon="filter.icon"
-                size="sm"
-                :color="filters.quick[filter.key] ? 'primary' : 'neutral'"
-                :variant="filters.quick[filter.key] ? 'subtle' : 'outline'"
-                :aria-pressed="filters.quick[filter.key]"
-                class="rounded-full"
-                @click="filters.quick[filter.key] = !filters.quick[filter.key]"
-            />
-
-            <template v-if="tags.length">
-                <USeparator orientation="vertical" class="h-5" />
-                <UDropdownMenu :items="tagMenu" :content="{ align: 'start' }">
-                    <UButton
-                        icon="i-lucide-tags"
-                        label="Tags"
-                        size="sm"
-                        :color="filters.tagIds.length ? 'primary' : 'neutral'"
-                        :variant="filters.tagIds.length ? 'subtle' : 'outline'"
-                        class="rounded-full"
-                    >
-                        <template #trailing>
-                            <UBadge v-if="filters.tagIds.length" :label="String(filters.tagIds.length)" size="sm" />
-                            <UIcon name="i-lucide-chevron-down" class="size-4" />
-                        </template>
-                    </UButton>
-                </UDropdownMenu>
-                <button
-                    v-for="tag in selectedTags"
-                    :key="tag.id"
-                    type="button"
-                    class="inline-flex items-center gap-0.5 rounded focus-visible:outline-2 focus-visible:outline-primary"
-                    :aria-label="`Fjern tagfilteret ${tag.name}`"
-                    @click="filters.toggleTag(Number(tag.id))"
+            <UPopover :content="{ align: 'start' }">
+                <UButton
+                    icon="i-lucide-sliders-horizontal"
+                    label="Filtre"
+                    size="sm"
+                    :color="filters.activeCount ? 'primary' : 'neutral'"
+                    :variant="filters.activeCount ? 'subtle' : 'outline'"
+                    class="rounded-full"
                 >
-                    <BoardTagBadge :tag="tag" />
-                    <UIcon name="i-lucide-x" class="size-3.5 text-muted" />
-                </button>
-            </template>
+                    <template #trailing>
+                        <UBadge v-if="filters.activeCount" :label="String(filters.activeCount)" size="sm" />
+                        <UIcon name="i-lucide-chevron-down" class="size-4" />
+                    </template>
+                </UButton>
+
+                <template #content>
+                    <div class="flex w-80 flex-col">
+                        <div class="max-h-[70vh] overflow-y-auto p-4">
+                            <BoardFilterPanel :filters="filters" :tags="tags" :cards="cards" size="sm" />
+                        </div>
+                        <div class="flex items-center justify-between gap-2 border-t border-default px-4 py-2">
+                            <span class="text-xs text-muted">{{ visibleCount }} af {{ cards.length }} kort</span>
+                            <UButton label="Ryd filtre" icon="i-lucide-x" size="sm" color="neutral" variant="ghost" :disabled="!filters.activeCount" @click="filters.clearFilters()" />
+                        </div>
+                    </div>
+                </template>
+            </UPopover>
+
+            <button
+                v-for="chip in activeChips"
+                :key="chip.key"
+                type="button"
+                class="inline-flex items-center gap-1 rounded-full border border-default py-0.5 ps-2 pe-1.5 text-xs hover:bg-elevated focus-visible:outline-2 focus-visible:outline-primary"
+                :aria-label="`Fjern filteret ${chip.label}`"
+                @click="chip.remove()"
+            >
+                <BoardTagBadge v-if="chip.tag" :tag="chip.tag" />
+                <template v-else>
+                    <UIcon :name="chip.icon" class="size-3.5 text-muted" />
+                    <span>{{ chip.label }}</span>
+                </template>
+                <UIcon name="i-lucide-x" class="size-3.5 text-muted" />
+            </button>
+
+            <UButton v-if="filters.activeCount" label="Ryd filtre" size="sm" color="neutral" variant="link" @click="filters.clearFilters()" />
         </div>
 
         <span v-if="filters.isFiltering" class="w-full text-xs text-muted sm:w-auto" role="status">{{ visibleCount }} af {{ cards.length }} kort</span>
@@ -75,33 +78,7 @@
     <UDrawer v-model:open="drawerOpen" title="Filtre" :description="`${visibleCount} af ${cards.length} kort vises`">
         <template #body>
             <div class="flex flex-col gap-5">
-                <div>
-                    <p class="mb-2 text-sm font-semibold text-highlighted">Vis kun</p>
-                    <div class="flex flex-wrap gap-2">
-                        <UButton
-                            v-for="filter in boardQuickFilters"
-                            :key="filter.key"
-                            :label="filter.label"
-                            :icon="filter.icon"
-                            :color="filters.quick[filter.key] ? 'primary' : 'neutral'"
-                            :variant="filters.quick[filter.key] ? 'subtle' : 'outline'"
-                            :aria-pressed="filters.quick[filter.key]"
-                            class="rounded-full"
-                            @click="filters.quick[filter.key] = !filters.quick[filter.key]"
-                        />
-                    </div>
-                </div>
-
-                <div v-if="tags.length">
-                    <p class="mb-2 text-sm font-semibold text-highlighted">Tags</p>
-                    <div class="flex flex-col divide-y divide-default rounded-md border border-default">
-                        <label v-for="tag in tags" :key="tag.id" class="flex cursor-pointer items-center gap-3 px-3 py-2.5">
-                            <UCheckbox :model-value="filters.tagIds.includes(Number(tag.id))" @update:model-value="filters.toggleTag(Number(tag.id))" />
-                            <BoardTagBadge :tag="tag" />
-                            <span class="ms-auto text-xs text-muted">{{ tagCount(tag.id) }} kort</span>
-                        </label>
-                    </div>
-                </div>
+                <BoardFilterPanel :filters="filters" :tags="tags" :cards="cards" />
 
                 <div>
                     <p class="mb-2 text-sm font-semibold text-highlighted">Visning</p>
@@ -123,10 +100,10 @@
 
 <script setup lang="ts">
 import { computed, ref } from "vue";
-import type { DropdownMenuItem } from "@nuxt/ui";
 import type { BoardTagDto, WorkItemDto } from "@/types";
-import { boardQuickFilters, type BoardFilters } from "@/lib/board/boardFilters";
+import { boardPriorityFilters, boardQuickFilters, boardUnassignedFilterId, type BoardFilters } from "@/lib/board/boardFilters";
 import BoardTagBadge from "@/Components/Board/BoardTagBadge.vue";
+import BoardFilterPanel from "@/Components/Board/BoardFilterPanel.vue";
 
 const props = defineProps<{
     filters: BoardFilters;
@@ -138,20 +115,45 @@ const props = defineProps<{
 const compact = defineModel<boolean>("compact", { default: false });
 const drawerOpen = ref(false);
 
-const selectedTags = computed(() => props.tags.filter((tag) => props.filters.tagIds.includes(Number(tag.id))));
-
-function tagCount(tagId: number) {
-    return props.cards.filter((card) => card.tags?.some((tag) => Number(tag.id) === Number(tagId))).length;
+interface ActiveFilterChip {
+    key: string;
+    label: string;
+    icon?: string;
+    tag?: BoardTagDto;
+    remove: () => void;
 }
 
-const tagMenu = computed<DropdownMenuItem[][]>(() => [
-    props.tags.map((tag) => ({
-        label: `${tag.name} (${tagCount(tag.id)})`,
-        type: "checkbox" as const,
-        checked: props.filters.tagIds.includes(Number(tag.id)),
-        onUpdateChecked: () => props.filters.toggleTag(Number(tag.id)),
-        onSelect: (event: Event) => event.preventDefault()
-    })),
-    [{ label: "Ryd tags", icon: "i-lucide-x", disabled: props.filters.tagIds.length === 0, onSelect: () => { props.filters.tagIds = []; } }]
-]);
+const assigneeNames = computed(() => {
+    const names = new Map<string, string>();
+    for (const card of props.cards) {
+        for (const user of card.assignees) names.set(user.id, `${user.firstName} ${user.lastName}`);
+    }
+
+    return names;
+});
+
+const activeChips = computed<ActiveFilterChip[]>(() => {
+    const filters = props.filters;
+
+    const quick = boardQuickFilters
+        .filter((filter) => filters.quick[filter.key])
+        .map((filter) => ({ key: `quick-${filter.key}`, label: filter.label, icon: filter.icon, remove: () => { filters.quick[filter.key] = false; } }));
+
+    const assignees = filters.assigneeIds.map((id) => ({
+        key: `assignee-${id}`,
+        label: id === boardUnassignedFilterId ? "Ingen ansvarlig" : assigneeNames.value.get(id) ?? "Ukendt",
+        icon: id === boardUnassignedFilterId ? "i-lucide-user-x" : "i-lucide-user",
+        remove: () => filters.toggleAssignee(id)
+    }));
+
+    const priorities = boardPriorityFilters
+        .filter((priority) => filters.priorities.includes(priority.value))
+        .map((priority) => ({ key: `priority-${priority.value}`, label: `${priority.label} prioritet`, icon: priority.icon, remove: () => filters.togglePriority(priority.value) }));
+
+    const tags = props.tags
+        .filter((tag) => filters.tagIds.includes(Number(tag.id)))
+        .map((tag) => ({ key: `tag-${tag.id}`, label: tag.name, tag, remove: () => filters.toggleTag(Number(tag.id)) }));
+
+    return [...quick, ...assignees, ...priorities, ...tags];
+});
 </script>
