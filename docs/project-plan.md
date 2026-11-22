@@ -2926,6 +2926,23 @@ med lejrlogoets blå og brune farver som favicon. Ikonet leveres som ICO med
 16, 32 og 48 pixels til både Vue-appen og serverrenderede sider. Det erstatter
 Vue-appens reference til en manglende SVG-fil og backendens standardikon.
 
+### Installerbar app (PWA)
+
+**Beslutning 2026-11-22 (implementeret, DS-94):** HQ kan installeres som app
+på hjemmeskærmen og skrivebordet via et web app manifest
+(`src/DS.Frontend/public/manifest.webmanifest`, serveret fra
+`/dist/manifest.webmanifest`). Appen hedder »DS28 HQ«, starter på `/` med
+scope `/` og åbner i eget vindue (`standalone`) med temafarven `#4caee7`.
+Ikonerne er cowboyhatten fra faviconet, tegnet op i 192 og 512 pixels, en
+maskable variant på blå baggrund til Android og et 180 pixels
+`apple-touch-icon` til iOS. Manifestet og ikonerne er statiske filer og kræver
+ikke login.
+
+Der er bevidst ingen service worker endnu, så appen virker ikke offline og har
+ingen push-notifikationer. Chromium-browsere kan stadig tilbyde installation
+uden service worker. Offline-understøttelse og push er åbne forslag, ikke
+vedtagne krav.
+
 ### Navigation og tilgængelighed
 
 **Implementeret:** Søgningen kan åbnes med en synlig »Søg«-knap samt
