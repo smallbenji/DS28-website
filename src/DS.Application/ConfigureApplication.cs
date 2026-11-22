@@ -4,6 +4,7 @@ using DS.Application.Seeders;
 using DS.Application.Services.Email;
 using DS.Application.Services.Groups;
 using DS.Application.Services.Activities;
+using DS.Application.Services.BackgroundJobs;
 using DS.Application.Services.Invitations;
 using DS.Application.Services.Files;
 using DS.Application.Services.Organization;
@@ -24,6 +25,7 @@ public static class ConfigureApplication
     public static IServiceCollection ConfigureDsApplication(this IServiceCollection services)
     {
         services.AddScoped<ActivityService>();
+        services.AddScoped<BackgroundJobService>();
         services.AddScoped<FormTemplate, TestFormTemplate>();
         services.AddScoped<FormTemplateService>();
         services.AddScoped<ActivityTeamService>();

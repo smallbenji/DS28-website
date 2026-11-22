@@ -67,10 +67,9 @@ namespace DS.Backend.Controllers.ApiControllers
                         },
                         new HQPanelEntryDto
                         {
-                            Title = "Hangfire",
-                            Url = "/hangfire",
-                            Icon = ["fa", "h"],
-                            Mvc = true,
+                            Title = "Baggrundsjob",
+                            Url = "/admin/jobs",
+                            Icon = ["list-check"],
                             RequiredRole = nameof(AppRoles.HangfireView)
                         },
                         new HQPanelEntryDto
