@@ -1185,6 +1185,16 @@ oprettelse, DS-61 API til medlemmer og DS-62 medlemsdialog (venter på DS-61).
   flyttes, og »Fjern alle« rydder både søgning og filtre. Kompakt visning skjuler
   beskrivelse og »Venter på«-mærket og huskes i browseren (localStorage). På
   mobil ligger filtrene i en skuffe bag »Filtre«, og tavlens beskrivelse skjules.
+  *Udvidet (DS-88, `BoardFilterPanel.vue`):* Man kan filtrere på ansvarlige
+  (en eller flere personer samt »Ingen ansvarlig«) og på prioritet (Høj,
+  Normal, Lav). Flere valg inden for samme filter kombineres med »eller«.
+  Listen over ansvarlige bygges af de personer, der er tildelt kort på
+  tavlen, med den aktuelle bruger øverst. På brede skærme erstatter én
+  »Filtre«-knap med en popover rækken af hurtigfiltre og »Tags«-dropdownen;
+  aktive filtre vises som mærker, der kan fjernes, ved siden af knappen
+  sammen med »Ryd filtre«. Mobilskuffen har de samme filtre. Filtrene huskes
+  ikke mellem besøg, ligesom i DS-57. Filtre på forfaldsdato og kolonne er
+  ikke med.
 - **Kort:** Kortets farve vises som en stribe i venstre side i stedet for at
   tone hele kortet. Deadline vises relativt (»I dag«, »3 dage over«), og
   prioritet får tekst. Antal PR-links vises som et tal.

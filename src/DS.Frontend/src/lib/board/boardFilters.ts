@@ -9,6 +9,14 @@ export const boardQuickFilters: { key: BoardQuickFilter; label: string; icon: st
     { key: "waiting", label: "Venter", icon: "i-lucide-link" }
 ];
 
+export const boardUnassignedFilterId = "none";
+
+export const boardPriorityFilters: { value: number; label: string; icon: string }[] = [
+    { value: 1, label: "Høj", icon: "i-lucide-arrow-up" },
+    { value: 0, label: "Normal", icon: "i-lucide-minus" },
+    { value: -1, label: "Lav", icon: "i-lucide-arrow-down" }
+];
+
 export const boardCompactKey: InjectionKey<Ref<boolean>> = Symbol("boardCompact");
 
 export function useBoardCompact() {
@@ -22,10 +30,12 @@ function currentDate() {
 export function useBoardFilters(board: Ref<BoardDetailDto | null>, currentUserId: Ref<string | undefined>) {
     const search = ref("");
     const tagIds = ref<number[]>([]);
+    const assigneeIds = ref<string[]>([]);
+    const priorities = ref<number[]>([]);
     const quick = reactive<Record<BoardQuickFilter, boolean>>({ mine: false, overdue: false, waiting: false });
 
     const doneColumnIds = computed(() => new Set((board.value?.columns ?? []).filter((column) => column.isDoneColumn).map((column) => Number(column.id))));
-    const activeCount = computed(() => tagIds.value.length + Object.values(quick).filter(Boolean).length);
+    const activeCount = computed(() => tagIds.value.length + assigneeIds.value.length + priorities.value.length + Object.values(quick).filter(Boolean).length);
     const isFiltering = computed(() => activeCount.value > 0 || search.value.trim() !== "");
 
     function matchesSearch(card: WorkItemDto, query: string) {
@@ -37,9 +47,17 @@ export function useBoardFilters(board: Ref<BoardDetailDto | null>, currentUserId
         return number !== "" && String(card.id) === number;
     }
 
+    function matchesAssignees(card: WorkItemDto) {
+        if (!card.assignees.length) return assigneeIds.value.includes(boardUnassignedFilterId);
+
+        return card.assignees.some((user) => assigneeIds.value.includes(user.id));
+    }
+
     function matches(card: WorkItemDto, today: string) {
         if (!matchesSearch(card, search.value.trim().toLowerCase())) return false;
         if (tagIds.value.length && !card.tags?.some((tag) => tagIds.value.includes(Number(tag.id)))) return false;
+        if (assigneeIds.value.length && !matchesAssignees(card)) return false;
+        if (priorities.value.length && !priorities.value.includes(Number(card.priority))) return false;
         if (quick.mine && !card.assignees.some((user) => user.id === currentUserId.value)) return false;
 
         const isDone = doneColumnIds.value.has(Number(card.columnId));
@@ -62,8 +80,18 @@ export function useBoardFilters(board: Ref<BoardDetailDto | null>, currentUserId
         tagIds.value = tagIds.value.includes(tagId) ? tagIds.value.filter((id) => id !== tagId) : [...tagIds.value, tagId];
     }
 
+    function toggleAssignee(userId: string) {
+        assigneeIds.value = assigneeIds.value.includes(userId) ? assigneeIds.value.filter((id) => id !== userId) : [...assigneeIds.value, userId];
+    }
+
+    function togglePriority(priority: number) {
+        priorities.value = priorities.value.includes(priority) ? priorities.value.filter((value) => value !== priority) : [...priorities.value, priority];
+    }
+
     function clearFilters() {
         tagIds.value = [];
+        assigneeIds.value = [];
+        priorities.value = [];
         quick.mine = false;
         quick.overdue = false;
         quick.waiting = false;
@@ -79,7 +107,30 @@ export function useBoardFilters(board: Ref<BoardDetailDto | null>, currentUserId
         if (tagIds.value.some((id) => !existing.has(id))) tagIds.value = tagIds.value.filter((id) => existing.has(id));
     });
 
-    return reactive({ search, tagIds, quick, activeCount, isFiltering, filteredCards, toggleTag, clearFilters, clearAll });
+    watch(() => board.value?.cards, (cards) => {
+        if (!cards) return;
+
+        const existing = new Set(cards.flatMap((card) => card.assignees.map((user) => user.id)));
+        existing.add(boardUnassignedFilterId);
+        if (assigneeIds.value.some((id) => !existing.has(id))) assigneeIds.value = assigneeIds.value.filter((id) => existing.has(id));
+    });
+
+    return reactive({
+        search,
+        tagIds,
+        assigneeIds,
+        priorities,
+        quick,
+        currentUserId,
+        activeCount,
+        isFiltering,
+        filteredCards,
+        toggleTag,
+        toggleAssignee,
+        togglePriority,
+        clearFilters,
+        clearAll
+    });
 }
 
 export type BoardFilters = ReturnType<typeof useBoardFilters>;
