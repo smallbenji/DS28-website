@@ -258,6 +258,10 @@ Importeren erstatter kun det angivne lejrårs historik i én transaktion.
 organisationsstillinger giver ikke automatisk adgang. Ingen nye tabeller eller
 kolonner tilføjes.
 
+`asp_net_users.last_login_at` (`timestamptz`, nullable) er tidspunktet for
+brugerens seneste vellykkede login. `NULL` betyder, at brugeren ikke har logget
+ind, siden kolonnen blev tilføjet. Der gemmes ingen loginhistorik.
+
 ```mermaid
 erDiagram
     asp_net_users {
@@ -281,6 +285,7 @@ erDiagram
         int group_id FK "RESTRICT"
         bool has_enabled_authenticator
         int profile_picture_file_id FK "SET NULL"
+        timestamptz last_login_at
     }
 
     asp_net_roles {

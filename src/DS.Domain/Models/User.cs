@@ -20,6 +20,8 @@ public class User : IdentityUser
 
     public bool HasEnabledAuthenticator { get; set; }
 
+    public DateTimeOffset? LastLoginAt { get; set; }
+
     public int? ProfilePictureFileId { get; set; }
     public StoredFile ProfilePicture { get; set; }
 

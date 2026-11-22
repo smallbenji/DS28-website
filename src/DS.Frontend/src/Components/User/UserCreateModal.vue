@@ -74,6 +74,7 @@ async function create() {
         positions: [],
         group: findGroup(groupId.value),
         lockoutEnd: null,
+        lastLoginAt: null,
         profilePicture: null
     };
 

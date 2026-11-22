@@ -16,6 +16,7 @@ namespace DS.Domain.DTOs
             LastName = user.LastName ?? string.Empty;
             Group = user.Group != null ? new GroupDto(user.Group) : null;
             LockoutEnd = user.LockoutEnd;
+            LastLoginAt = user.LastLoginAt;
             ProfilePicture = user.ProfilePicture != null
                 && user.ProfilePicture.Status == StoredFileStatus.Ready
                 && user.ProfilePicture.DeletedAt == null
@@ -31,6 +32,7 @@ namespace DS.Domain.DTOs
         public string Phone { get; set; }
         public GroupDto Group { get; set; }
         public DateTimeOffset? LockoutEnd { get; set; }
+        public DateTimeOffset? LastLoginAt { get; set; }
         public ImageReferenceDto ProfilePicture { get; set; }
         public List<string> Roles { get; set; } = [];
         public List<OrgPositionDto> Positions { get; set; } = [];

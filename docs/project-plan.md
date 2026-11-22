@@ -366,6 +366,21 @@ Ubesluttede punkter:
   i profilen eller i brugerstyringen; der findes ingen separat
   afmeldingsmulighed.
 
+### Seneste login
+
+**Beslutning 2026-11-22 (implementeret, DS-84):** Brugerstyringen viser,
+hvornår hver bruger sidst loggede ind, så det kan ses, om folk bruger
+platformen. Kun ét tidsstempel pr. bruger gemmes (`User.LastLoginAt`), ingen
+loginhistorik, af hensyn til dataminimering. `LoginTrackingSignInManager`
+opdaterer det ved hvert vellykket login gennem `SignInManager`: adgangskode,
+2FA, recovery code, passkey og automatisk login efter invitation eller
+forhåndstilmelding. `RefreshSignInAsync` efter profilændringer tæller ikke.
+Login-cookien er persistent med sliding expiration, så en aktiv bruger kan
+blive logget ind længe uden et nyt login; tidsstemplet viser seneste login,
+ikke seneste aktivitet. MCP-adgang med OAuth-refresh-tokens eller personlige
+adgangstokens opdaterer det heller ikke. Brugere, der ikke har logget ind
+siden ændringen, vises som "Intet login registreret".
+
 ### Min profil
 
 **Sikkerhedsrettelse 2026-10-20 (implementeret):** Login- og antiforgery-cookies
