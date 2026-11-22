@@ -29,7 +29,7 @@
                     role="option"
                     :aria-selected="index === activeResult"
                 >
-                    <UAvatar :text="initials(user)" size="sm" />
+                    <UAvatar :src="user.profilePicture?.url" :text="initials(user)" size="sm" />
                     <span class="min-w-0 flex-1 text-sm">
                         <span class="block font-medium text-highlighted">{{ fullName(user) }}</span>
                         <span class="block truncate text-xs text-muted">{{ user.email }}</span>
@@ -66,7 +66,7 @@
                         ]"
                     />
                     <div v-else class="flex items-center gap-3 px-3 py-2">
-                        <UAvatar :text="initials(member)" size="sm" />
+                        <UAvatar :src="member.profilePicture?.url" :text="initials(member)" size="sm" />
                         <span class="min-w-0 flex-1 text-sm">
                             <span class="flex items-center gap-1.5 font-medium text-highlighted">
                                 <span class="truncate">{{ fullName(member) }}</span>

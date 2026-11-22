@@ -19,7 +19,7 @@
                             @click="membersOpen = true"
                         >
                             <UAvatarGroup size="sm" :max="3">
-                                <UAvatar v-for="member in members" :key="member.id" :text="initials(member)" :alt="`${member.firstName} ${member.lastName}`" />
+                                <UAvatar v-for="member in members" :key="member.id" :src="member.profilePicture?.url" :text="initials(member)" :alt="`${member.firstName} ${member.lastName}`" />
                             </UAvatarGroup>
                             <UIcon name="i-lucide-user-plus" class="ms-2 me-1 size-4 text-muted" />
                         </button>

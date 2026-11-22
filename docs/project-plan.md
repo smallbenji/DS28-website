@@ -1172,6 +1172,12 @@ oprettelse, DS-61 API til medlemmer og DS-62 medlemsdialog (venter på DS-61).
   igen, når dialogen lukkes. På mobil vises »Tavle« og »Tilføj kort« kun som
   ikoner, og mærket »Udviklertavle« skjules. Titel og filterlinje står stadig på
   hver sin linje, fordi beta bruger Nuxt UI's navbar og toolbar.
+  *Implementeret (DS-87):* Medlemsavatarerne i tavlehovedet og i
+  medlemsdialogen (medlemsliste og brugersøgning) viser brugerens
+  profilbillede og falder kun tilbage til initialer, når der ikke er et klar
+  billede. `BoardMemberDto` har fået `ProfilePicture` (`ImageReferenceDto`) med
+  samme regel som `UserSummaryDto`: kun filer med status `Ready`, der ikke er
+  slettet.
 - **Filterlinje:** Søgning og hurtigfiltre (Mine kort, Overskredet, Venter).
   Tags ligger i deres egen »Tags«-dropdown med afkrydsning og antal kort pr.
   tag, og de valgte vises som mærker, der kan fjernes. Flere tags kan

@@ -1,3 +1,4 @@
+import type { ImageReferenceDto } from './file.types';
 import type { UserSummaryDto } from './user.types';
 
 export interface BoardSummaryDto {
@@ -187,5 +188,6 @@ export interface BoardMemberDto {
     firstName: string;
     lastName: string;
     email: string;
+    profilePicture?: ImageReferenceDto | null;
     assignedCardCount?: number | null;
 }

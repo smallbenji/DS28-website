@@ -255,6 +255,7 @@ namespace DS.Application.Services.Boards
             var searchTerm = search.Trim();
             var users = await dataDb.Users
                 .AsNoTracking()
+                .Include(user => user.ProfilePicture)
                 .Where(user => EF.Functions.ILike(user.FirstName + " " + user.LastName, $"%{searchTerm}%")
                     || EF.Functions.ILike(user.Email, $"%{searchTerm}%"))
                 .OrderBy(user => user.FirstName)
@@ -262,7 +263,7 @@ namespace DS.Application.Services.Boards
                 .Take(10)
                 .ToListAsync();
 
-            return new ServiceResult<List<BoardMemberDto>>(ServiceOutcome.Success, users.Select(user => ToMemberDto(user)).ToList());
+            return new ServiceResult<List<BoardMemberDto>>(ServiceOutcome.Success, users.Select(user => ToMemberDto(user, user.ProfilePicture)).ToList());
         }
 
         public async Task<ServiceResult<List<BoardMemberDto>>> GetMembers(BoardActor actor, int id)
@@ -275,6 +276,7 @@ namespace DS.Application.Services.Boards
                 .Select(member => new
                 {
                     member.User,
+                    member.User.ProfilePicture,
                     AssignedCardCount = dataDb.BoardCards.Count(card => card.BoardId == id
                         && card.WorkItem.DeletedAt == null
                         && card.WorkItem.Assignees.Any(assignee => assignee.UserId == member.UserId)),
@@ -282,7 +284,7 @@ namespace DS.Application.Services.Boards
                 .OrderBy(member => member.User.FirstName).ThenBy(member => member.User.LastName)
                 .ToListAsync();
 
-            var result = members.Select(member => ToMemberDto(member.User, member.AssignedCardCount)).ToList();
+            var result = members.Select(member => ToMemberDto(member.User, member.ProfilePicture, member.AssignedCardCount)).ToList();
 
             return new ServiceResult<List<BoardMemberDto>>(ServiceOutcome.Success, result);
         }
@@ -1244,7 +1246,7 @@ namespace DS.Application.Services.Boards
             return boards.Where(board => board.Members.Any(member => member.UserId == userId));
         }
 
-        private static BoardMemberDto ToMemberDto(User user, int? assignedCardCount = null)
+        private static BoardMemberDto ToMemberDto(User user, StoredFile profilePicture, int? assignedCardCount = null)
         {
             return new BoardMemberDto
             {
@@ -1252,6 +1254,11 @@ namespace DS.Application.Services.Boards
                 FirstName = user.FirstName,
                 LastName = user.LastName,
                 Email = user.Email,
+                ProfilePicture = profilePicture != null
+                    && profilePicture.Status == StoredFileStatus.Ready
+                    && profilePicture.DeletedAt == null
+                    ? new ImageReferenceDto(profilePicture)
+                    : null,
                 AssignedCardCount = assignedCardCount,
             };
         }
