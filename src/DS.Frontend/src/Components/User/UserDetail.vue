@@ -20,22 +20,22 @@
                 </div>
             </div>
             <div class="flex flex-wrap gap-2">
+                <template v-if="hasRole('UsersEditProfilePicture')">
+                    <ProfilePictureUpload :has-picture="!!user.profilePicture" :disabled="updatingPicture" @confirm="updatePicture" />
+                    <UButton v-if="user.profilePicture" color="error" variant="ghost" label="Fjern billede" :disabled="updatingPicture" @click="removePicture" />
+                </template>
                 <UButton v-if="hasRole('UsersLock')" color="warning" variant="outline" :icon="isLocked ? 'i-lucide-lock-open' : 'i-lucide-lock'" :label="isLocked ? 'Lås op' : 'Lås'" @click="lockOpen = true" />
                 <UButton v-if="hasRole('UsersResetPassword')" color="neutral" variant="outline" icon="i-lucide-key-round" label="Nulstil adgangskode" :loading="generatingLink" @click="generateResetLink" />
                 <UButton v-if="hasRole('UsersDelete')" color="error" variant="outline" icon="i-lucide-trash-2" label="Slet" @click="deleteOpen = true" />
             </div>
         </div>
 
-        <div class="grid gap-6 xl:grid-cols-2">
+        <div class="grid items-start gap-6 xl:grid-cols-2">
             <UCard>
                 <template #header>
                     <h3 class="font-semibold text-highlighted">Stamdata</h3>
                 </template>
                 <form id="user-form" class="flex flex-col gap-4" @submit.prevent="save">
-                    <div v-if="hasRole('UsersEditProfilePicture')" class="flex flex-wrap items-center gap-2">
-                        <ProfilePictureUpload :has-picture="!!user.profilePicture" :disabled="updatingPicture" size="sm" @confirm="updatePicture" />
-                        <UButton v-if="user.profilePicture" color="error" variant="ghost" size="sm" label="Fjern billede" :disabled="updatingPicture" @click="removePicture" />
-                    </div>
                     <div class="grid gap-4 sm:grid-cols-2">
                         <UFormField label="Fornavn">
                             <UInput v-model="draft.firstName" class="w-full" />
