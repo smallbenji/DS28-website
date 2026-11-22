@@ -1,5 +1,6 @@
 using DS.Application.Services.AccessTokens;
 using DS.Backend.Extensions;
+using DS.Domain;
 using DS.Domain.DTOs;
 using DS.Domain.Models;
 using Microsoft.AspNetCore.Authorization;
@@ -13,6 +14,7 @@ namespace DS.Backend.Controllers.ApiControllers
     public class AccessTokenApiController(AccessTokenService service, UserManager<User> userManager) : Controller
     {
         [HttpGet]
+        [Authorize(Roles = nameof(AppGroups.McpUser))]
         public async Task<IActionResult> GetTokens()
         {
             var result = await service.GetTokens(userManager.GetUserId(User));
@@ -21,6 +23,7 @@ namespace DS.Backend.Controllers.ApiControllers
         }
 
         [HttpPost]
+        [Authorize(Roles = nameof(AppGroups.McpUser))]
         public async Task<IActionResult> CreateToken([FromBody] AccessTokenCreateDto data)
         {
             var result = await service.CreateToken(userManager.GetUserId(User), data);

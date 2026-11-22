@@ -1963,6 +1963,17 @@ droppet.
   udløb, tilbagekaldelse, låste brugere, Bearer-handleren og
   antiforgery-reglerne.
 
+**Beslutning 2026-11-22 (implementeret):** Adgangstokens vises kun for brugere
+med rollen `McpUser`. Profilen skjuler token-kortet og henter ikke tokens for
+andre brugere, og `GET` og `POST /api/v1/access-tokens` kræver rollen.
+Dette erstatter, at alle indloggede brugere kunne oprette tokens.
+
+- `DELETE /api/v1/access-tokens/{id}` kræver ikke rollen, så tilbagekaldelse
+  aldrig blokeres.
+- Allerede udstedte tokens godkendes fortsat mod den almindelige HTTP-API,
+  også hvis brugeren ikke har `McpUser`. Om Bearer-godkendelsen også skal
+  kræve rollen, er ubesluttet.
+
 Ubesluttede punkter:
 - Hvem må rydde døde links, og skal et kort blokere sletning af et
   domæneobjekt eller blot miste linket?
