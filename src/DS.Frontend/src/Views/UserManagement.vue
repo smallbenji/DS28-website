@@ -40,7 +40,7 @@
                                 <UBadge v-if="isLocked(user)" label="Låst" color="warning" variant="subtle" size="sm" />
                             </span>
                             <span class="block truncate text-xs text-muted">{{ user.group?.name || 'Ingen gruppe' }}</span>
-                            <span class="block truncate text-xs text-muted">{{ lastLoginLabel(user.lastLoginAt) }}</span>
+                            <span class="block truncate text-xs text-muted">{{ lastActiveLabel(user.lastActiveAt) }}</span>
                             <span v-if="user.roles.length" class="mt-1 flex flex-wrap gap-1">
                                 <UBadge v-for="role in user.roles" :key="role" :label="role" color="neutral" variant="outline" size="sm" />
                             </span>
@@ -89,7 +89,7 @@ import { storeToRefs } from "pinia";
 import { useUserStore } from "@/Stores/UserStore";
 import { useGroupsStore } from "@/Stores/GroupsStore";
 import { useIsMobile } from "@/lib/useIsMobile";
-import { lastLoginLabel } from "@/lib/lastLogin";
+import { lastActiveLabel } from "@/lib/userActivity";
 import UserAvatar from "@/Components/User/UserAvatar.vue";
 import UserDetail from "@/Components/User/UserDetail.vue";
 import UserCreateModal from "@/Components/User/UserCreateModal.vue";

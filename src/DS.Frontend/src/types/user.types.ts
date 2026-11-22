@@ -14,6 +14,7 @@ export interface UserDto {
     group: GroupDto | null;
     lockoutEnd: string | null;
     lastLoginAt: string | null;
+    lastActiveAt: string | null;
     profilePicture: ImageReferenceDto | null;
 }
 

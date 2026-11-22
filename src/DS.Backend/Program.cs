@@ -43,6 +43,7 @@ app.UseRateLimiter();
 
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseMiddleware<UserActivityMiddleware>();
 
 app.UseHangfireDashboard("/hangfire", new DashboardOptions
 {

@@ -10,6 +10,10 @@
                     </h2>
                     <p class="truncate text-sm text-muted">{{ user.userName || user.id }}</p>
                     <p class="flex items-center gap-1 truncate text-sm text-muted">
+                        <UIcon name="i-lucide-activity" class="size-4 shrink-0" />
+                        {{ lastActiveDetailLabel(user.lastActiveAt) }}
+                    </p>
+                    <p class="flex items-center gap-1 truncate text-sm text-muted">
                         <UIcon name="i-lucide-log-in" class="size-4 shrink-0" />
                         {{ lastLoginDetailLabel(user.lastLoginAt) }}
                     </p>
@@ -194,7 +198,7 @@ import ProfilePictureUpload from "@/Components/User/ProfilePictureUpload.vue";
 import FileService from "@/Services/FileService";
 import UserService from "@/Services/UserService";
 import { notificationLabels } from "@/lib/notifications";
-import { lastLoginDetailLabel } from "@/lib/lastLogin";
+import { lastActiveDetailLabel, lastLoginDetailLabel } from "@/lib/userActivity";
 import type { NotificationPreferenceDto, ResetPasswordLinkDto, UserDto } from "@/types";
 
 const props = defineProps<{ user: UserDto }>();
