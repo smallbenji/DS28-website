@@ -78,7 +78,7 @@
                     </UCard>
                 </div>
 
-                <UCard v-if="Me.roles.includes('McpUser')">
+                <UCard v-if="isMcpUser">
                     <template #header>
                         <h2 class="font-semibold text-highlighted">Forbind en AI-assistent</h2>
                         <p class="text-sm text-muted">Forbind din AI-assistent til DS28 via MCP. Assistenten får adgang til tavler på dine vegne med dine eksisterende rettigheder.</p>
@@ -141,7 +141,7 @@
                     </template>
                 </UCard>
 
-                <UCard>
+                <UCard v-if="isMcpUser">
                     <template #header>
                         <div class="flex flex-wrap items-center justify-between gap-2">
                             <div class="min-w-0">
@@ -337,7 +337,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import { storeToRefs } from "pinia";
 import { useAccountStore } from "@/Stores/AccountStore";
 import { useMeStore } from "@/Stores/MeStore";
@@ -375,6 +375,8 @@ async function copyText(value: string, success: string, failure: string) {
         notify.error(failure);
     }
 }
+
+const isMcpUser = computed(() => Me.value?.roles.includes("McpUser") ?? false);
 
 const mcpUrl = new URL("/mcp", window.location.origin).href;
 const mcpClient = ref<"Claude" | "ChatGPT" | null>(null);
@@ -428,7 +430,6 @@ onMounted(() => {
     void accountStore.GET_STATUS();
     passkeys.value = Me.value?.passkeys ?? [];
     void loadNotifications();
-    void loadTokens();
 });
 
 async function loadNotifications() {
@@ -675,6 +676,11 @@ const createdToken = ref("");
 const revokeTokenOpen = ref(false);
 const tokenToRevoke = ref<AccessTokenDto | null>(null);
 const revokingToken = ref(false);
+
+watch(isMcpUser, (mcpUser) => {
+    if (mcpUser) void loadTokens();
+    else tokens.value = [];
+}, { immediate: true });
 
 async function loadTokens() {
     tokens.value = await accessTokenService.getTokens();
