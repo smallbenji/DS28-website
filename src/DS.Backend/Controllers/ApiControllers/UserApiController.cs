@@ -1,3 +1,4 @@
+using DS.Application.Services.AccessTokens;
 using DS.Application.Services.Users;
 using DS.Domain;
 using DS.Domain.DTOs;
@@ -12,7 +13,7 @@ namespace DS.Backend.Controllers.ApiControllers
 {
     [Authorize(Roles = nameof(AppRoles.UsersView))]
     [Route("/api/v1/user")]
-    public class UserApiController(UserService userService, UserManager<User> userManager, IAntiforgery antiforgery) : Controller
+    public class UserApiController(UserService userService, AccessTokenService accessTokenService, UserManager<User> userManager, IAntiforgery antiforgery) : Controller
     {
         [HttpGet]
         public async Task<IActionResult> Index()
@@ -118,6 +119,33 @@ namespace DS.Backend.Controllers.ApiControllers
         public async Task<IActionResult> UnlockUser(string id)
         {
             var result = await userService.UnlockUser(id);
+
+            return this.ToActionResult(result);
+        }
+
+        [HttpGet("{id}/access-tokens")]
+        [Authorize(Roles = nameof(AppRoles.UsersLock))]
+        public async Task<IActionResult> GetAccessTokens(string id)
+        {
+            var result = await accessTokenService.GetActiveTokensForUser(id);
+
+            return this.ToActionResult(result);
+        }
+
+        [HttpDelete("{id}/access-tokens/{tokenId:int}")]
+        [Authorize(Roles = nameof(AppRoles.UsersLock))]
+        public async Task<IActionResult> RevokeAccessToken(string id, int tokenId)
+        {
+            var result = await accessTokenService.RevokeToken(id, tokenId);
+
+            return this.ToActionResult(result);
+        }
+
+        [HttpDelete("{id}/access-tokens")]
+        [Authorize(Roles = nameof(AppRoles.UsersLock))]
+        public async Task<IActionResult> RevokeAllAccessTokens(string id)
+        {
+            var result = await accessTokenService.RevokeAllTokens(id);
 
             return this.ToActionResult(result);
         }

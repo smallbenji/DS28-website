@@ -1,6 +1,7 @@
 using DS.Application.Services;
 using DS.Application.Services.AccessTokens;
 using DS.Backend.Authentication;
+using DS.Backend.Controllers.ApiControllers;
 using DS.Domain;
 using DS.Domain.DTOs;
 using DS.Domain.Models;
@@ -9,6 +10,7 @@ using DS.Infrastructure.Data;
 using DbUp;
 using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -97,6 +99,29 @@ var valid = await service.CreateToken("token-user", new AccessTokenCreateDto { N
 Check((await service.CreateToken("token-user", new AccessTokenCreateDto { Name = " " })).Outcome == ServiceOutcome.Invalid, "tomt navn afvises");
 Check((await service.CreateToken("token-user", new AccessTokenCreateDto { Name = new string('a', 65) })).Outcome == ServiceOutcome.Invalid, "for langt navn afvises");
 Check((await service.CreateToken("token-user", new AccessTokenCreateDto { Name = "x", ExpiresInDays = 0 })).Outcome == ServiceOutcome.Invalid, "ugyldigt udløb afvises");
+
+var adminList = await service.GetActiveTokensForUser("token-user");
+Check(adminList.Outcome == ServiceOutcome.Success && adminList.Value.Select(token => token.Name).SequenceEqual(["Aktiv"]), "admin-listen viser kun aktive tokens");
+Check((await service.GetActiveTokensForUser("missing-user")).Outcome == ServiceOutcome.NotFound, "admin-listen for ukendt bruger giver NotFound");
+Check(typeof(AccessTokenDto).GetProperties().All(property => property.Name != "Token" && !property.Name.Contains("Hash")), "token-DTO indeholder hverken token eller hash");
+Check((await service.RevokeToken("other-user", valid.Value.Id)).Outcome == ServiceOutcome.NotFound, "token kan ikke tilbagekaldes under en anden bruger");
+Check(await service.Authenticate(valid.Value.Token) != null, "token er fortsat gyldigt efter afvist tilbagekaldelse");
+
+var otherFirst = await service.CreateToken("other-user", new AccessTokenCreateDto { Name = "Første" });
+var otherSecond = await service.CreateToken("other-user", new AccessTokenCreateDto { Name = "Anden" });
+var revokedAll = await service.RevokeAllTokens("other-user");
+Check(revokedAll.Outcome == ServiceOutcome.Success && revokedAll.Value == 2, "alle brugerens tokens kan tilbagekaldes");
+Check(await service.Authenticate(otherFirst.Value.Token) == null && await service.Authenticate(otherSecond.Value.Token) == null, "tilbagekaldte tokens afvises efter tilbagekald alle");
+Check((await service.GetActiveTokensForUser("other-user")).Value.Count == 0, "admin-listen er tom efter tilbagekald alle");
+Check(await service.Authenticate(valid.Value.Token) != null, "tilbagekald alle rammer ikke andre brugeres tokens");
+Check((await service.RevokeAllTokens("other-user")).Value == 0, "tilbagekald alle uden aktive tokens giver 0");
+Check((await service.RevokeAllTokens("missing-user")).Outcome == ServiceOutcome.NotFound, "tilbagekald alle for ukendt bruger giver NotFound");
+
+foreach (var action in new[] { nameof(UserApiController.GetAccessTokens), nameof(UserApiController.RevokeAccessToken), nameof(UserApiController.RevokeAllAccessTokens) })
+{
+    var roles = typeof(UserApiController).GetMethod(action)!.GetCustomAttributes<AuthorizeAttribute>().Select(attribute => attribute.Roles);
+    Check(roles.Contains(nameof(AppRoles.UsersLock)), $"{action} kræver UsersLock");
+}
 
 var handler = CreateHandler(service, $"Bearer {valid.Value.Token}");
 var handled = await handler.AuthenticateAsync();

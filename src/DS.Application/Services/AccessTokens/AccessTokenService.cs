@@ -75,6 +75,50 @@ namespace DS.Application.Services.AccessTokens
             return new ServiceResult(ServiceOutcome.Success);
         }
 
+        public async Task<ServiceResult<List<AccessTokenDto>>> GetActiveTokensForUser(string userId)
+        {
+            var userExists = await dataDb.Users.AnyAsync(user => user.Id == userId);
+            if (!userExists) return new ServiceResult(ServiceOutcome.NotFound);
+
+            var now = DateTime.UtcNow;
+            var tokens = await dataDb.AccessTokens
+                .AsNoTracking()
+                .Where(token => token.UserId == userId
+                    && token.RevokedAt == null
+                    && (token.ExpiresAt == null || token.ExpiresAt > now))
+                .OrderByDescending(token => token.CreatedAt)
+                .Select(token => new AccessTokenDto
+                {
+                    Id = token.Id,
+                    Name = token.Name,
+                    CreatedAt = token.CreatedAt,
+                    ExpiresAt = token.ExpiresAt,
+                })
+                .ToListAsync();
+
+            return new ServiceResult<List<AccessTokenDto>>(ServiceOutcome.Success, tokens);
+        }
+
+        public async Task<ServiceResult<int>> RevokeAllTokens(string userId)
+        {
+            var userExists = await dataDb.Users.AnyAsync(user => user.Id == userId);
+            if (!userExists) return new ServiceResult(ServiceOutcome.NotFound);
+
+            var tokens = await dataDb.AccessTokens
+                .Where(token => token.UserId == userId && token.RevokedAt == null)
+                .ToListAsync();
+
+            var now = DateTime.UtcNow;
+            foreach (var token in tokens)
+            {
+                token.RevokedAt = now;
+            }
+
+            await dataDb.SaveChangesAsync();
+
+            return new ServiceResult<int>(ServiceOutcome.Success, tokens.Count);
+        }
+
         public async Task<AccessTokenIdentity> Authenticate(string token)
         {
             if (string.IsNullOrWhiteSpace(token)) return null;
