@@ -114,8 +114,54 @@
                         />
                     </div>
                 </UCard>
+
+                <UCard v-if="canManageAccessTokens" :ui="{ body: 'p-0 sm:p-0' }">
+                    <template #header>
+                        <div class="flex flex-wrap items-center justify-between gap-2">
+                            <div class="min-w-0">
+                                <h3 class="font-semibold text-highlighted">Adgangstokens</h3>
+                                <p class="text-sm text-muted">Aktive personlige adgangstokens. Tokenværdien kan ikke vises.</p>
+                            </div>
+                            <UButton v-if="accessTokens.length > 0" color="error" variant="outline" size="sm" icon="i-lucide-ban" label="Tilbagekald alle" @click="revokeAllTokensOpen = true" />
+                        </div>
+                    </template>
+                    <p v-if="accessTokens.length === 0" class="px-4 py-3 text-sm text-muted sm:px-6">Ingen aktive adgangstokens</p>
+                    <ul v-else class="divide-y divide-default">
+                        <li v-for="token in accessTokens" :key="token.id" class="flex items-center gap-3 px-4 py-2 sm:px-6">
+                            <UIcon name="i-lucide-key-round" class="size-4 shrink-0 text-muted" />
+                            <div class="min-w-0 flex-1">
+                                <p class="truncate text-sm font-medium">{{ token.name }}</p>
+                                <p class="text-xs text-muted">
+                                    Oprettet {{ formatTokenDate(token.createdAt) }}
+                                    · {{ token.expiresAt ? `udløber ${formatTokenDate(token.expiresAt)}` : "udløber ikke" }}
+                                </p>
+                            </div>
+                            <UButton color="error" variant="ghost" size="xs" label="Tilbagekald" @click="confirmRevokeToken(token)" />
+                        </li>
+                    </ul>
+                </UCard>
             </div>
         </div>
+
+        <ConfirmModal
+            v-model:open="revokeTokenOpen"
+            title="Tilbagekald adgangstoken"
+            :description="`Tilbagekald tokenet ${tokenToRevoke?.name ?? ''} for ${user.firstName} ${user.lastName}? Værktøjer, der bruger det, mister adgangen med det samme. Det kan ikke fortrydes.`"
+            confirm-label="Tilbagekald"
+            color="error"
+            :loading="revokingTokens"
+            @confirm="revokeToken"
+        />
+
+        <ConfirmModal
+            v-model:open="revokeAllTokensOpen"
+            title="Tilbagekald alle adgangstokens"
+            :description="`Tilbagekald alle ${accessTokens.length} adgangstokens for ${user.firstName} ${user.lastName}? Værktøjer, der bruger dem, mister adgangen med det samme. Det kan ikke fortrydes.`"
+            confirm-label="Tilbagekald alle"
+            color="error"
+            :loading="revokingTokens"
+            @confirm="revokeAllTokens"
+        />
 
         <UModal v-model:open="assignRoleOpen" title="Tildel rolle">
             <template #body>
@@ -199,7 +245,7 @@ import FileService from "@/Services/FileService";
 import UserService from "@/Services/UserService";
 import { notificationLabels } from "@/lib/notifications";
 import { lastActiveDetailLabel, lastLoginDetailLabel } from "@/lib/userActivity";
-import type { NotificationPreferenceDto, ResetPasswordLinkDto, UserDto } from "@/types";
+import type { AccessTokenDto, NotificationPreferenceDto, ResetPasswordLinkDto, UserDto } from "@/types";
 
 const props = defineProps<{ user: UserDto }>();
 const emit = defineEmits<{ (e: "deleted"): void }>();
@@ -316,6 +362,55 @@ async function toggleNotification(notification: NotificationPreferenceDto, subsc
         notify(ok, subscribed ? "Notifikationen er slået til." : "Notifikationen er slået fra.", "Notifikationen kunne ikke gemmes.");
     } finally {
         updatingNotifications.value = false;
+    }
+}
+
+const canManageAccessTokens = computed(() => hasRole("UsersLock"));
+const accessTokens = ref<AccessTokenDto[]>([]);
+const revokeTokenOpen = ref(false);
+const revokeAllTokensOpen = ref(false);
+const tokenToRevoke = ref<AccessTokenDto | null>(null);
+const revokingTokens = ref(false);
+
+async function loadAccessTokens() {
+    accessTokens.value = canManageAccessTokens.value ? await userService.getUserAccessTokens(props.user.id) : [];
+}
+
+watch(() => [props.user.id, canManageAccessTokens.value], loadAccessTokens, { immediate: true });
+
+function formatTokenDate(value: string) {
+    return new Date(value).toLocaleDateString("da-DK");
+}
+
+function confirmRevokeToken(token: AccessTokenDto) {
+    tokenToRevoke.value = token;
+    revokeTokenOpen.value = true;
+}
+
+async function revokeToken() {
+    if (!tokenToRevoke.value) return;
+
+    revokingTokens.value = true;
+    try {
+        const ok = await userService.revokeUserAccessToken(props.user.id, tokenToRevoke.value.id);
+        notify(ok, "Tokenet er tilbagekaldt.", "Tokenet kunne ikke tilbagekaldes.");
+        if (ok) revokeTokenOpen.value = false;
+        await loadAccessTokens();
+    } finally {
+        revokingTokens.value = false;
+    }
+}
+
+async function revokeAllTokens() {
+    revokingTokens.value = true;
+    try {
+        const revoked = await userService.revokeAllUserAccessTokens(props.user.id);
+        const ok = revoked !== null;
+        notify(ok, revoked === 1 ? "1 token er tilbagekaldt." : `${revoked} tokens er tilbagekaldt.`, "Tokens kunne ikke tilbagekaldes.");
+        if (ok) revokeAllTokensOpen.value = false;
+        await loadAccessTokens();
+    } finally {
+        revokingTokens.value = false;
     }
 }
 

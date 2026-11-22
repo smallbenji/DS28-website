@@ -1,5 +1,5 @@
-import type { NotificationPreferenceDto, RoleDto, UserDto } from "@/types";
-import { apiDelete, apiGet, apiPost, apiPut, safeApiCall, safeApiOk } from "@/lib/api";
+import type { AccessTokenDto, NotificationPreferenceDto, RoleDto, UserDto } from "@/types";
+import { apiDelete, apiGet, apiPost, apiPut, safeApiCall, safeApiOk, safeApiResult } from "@/lib/api";
 
 export default class UserService {
     public async getUsers(): Promise<UserDto[]> {
@@ -25,6 +25,21 @@ export default class UserService {
 
     public async updateUserNotifications(userId: string, types: string[]) {
         return safeApiOk(() => apiPut(`/api/v1/user/${userId}/notifications`, { types }));
+    }
+
+    public async getUserAccessTokens(userId: string): Promise<AccessTokenDto[]> {
+        return safeApiCall(async () => {
+            const data = await apiGet<AccessTokenDto[]>(`/api/v1/user/${userId}/access-tokens`);
+            return Array.isArray(data) ? data : [];
+        }, []);
+    }
+
+    public async revokeUserAccessToken(userId: string, tokenId: number) {
+        return safeApiOk(() => apiDelete(`/api/v1/user/${userId}/access-tokens/${tokenId}`));
+    }
+
+    public async revokeAllUserAccessTokens(userId: string): Promise<number | null> {
+        return safeApiResult(() => apiDelete<number>(`/api/v1/user/${userId}/access-tokens`));
     }
 
     public async createUser(user: UserDto) {

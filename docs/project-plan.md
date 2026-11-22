@@ -1974,6 +1974,29 @@ Dette erstatter, at alle indloggede brugere kunne oprette tokens.
   også hvis brugeren ikke har `McpUser`. Om Bearer-godkendelsen også skal
   kræve rollen, er ubesluttet.
 
+**DS-91 (implementeret, rollevalg afventer bekræftelse):** Under
+Brugerstyring (`/admin/user/:id`) kan en admin se en brugers aktive personlige
+adgangstokens og tilbagekalde ét eller alle på én gang, med bekræftelse.
+
+- Endpoints i `UserApiController`: `GET /api/v1/user/{id}/access-tokens`,
+  `DELETE /api/v1/user/{id}/access-tokens/{tokenId}` og `DELETE
+  /api/v1/user/{id}/access-tokens` (tilbagekald alle, svarer med antallet).
+  Ukendt bruger giver 404, og et token kan kun tilbagekaldes under den bruger,
+  det tilhører.
+- Rollevalg: endpointsene kræver `UsersLock` (i dag kun `SysAdmin`) ud over
+  controllerens `UsersView`. Det er den strammeste eksisterende rolle i
+  brugerstyringen og svarer til at låse en bruger ude. Der er ikke oprettet en
+  ny rolle. Sektionen vises kun med `UsersLock`. Valget afventer bekræftelse;
+  alternativet er `UsersView`, som også giver `CampAdmin` adgang.
+- Kun aktive tokens vises (ikke tilbagekaldt og ikke udløbet), med navn,
+  oprettelsesdato og udløb. Tokenværdi og hash returneres aldrig. Tilbagekald
+  alle rammer alle ikke-tilbagekaldte tokens, også udløbne.
+- "Sidst brugt" vises ikke, fordi `user_access_token` ikke registrerer brug.
+  Det kræver en ny kolonne og er ikke en del af DS-91.
+- Ikke med (mulige opfølgninger): OAuth-adgang via OpenIddict (autorisationer
+  og refresh-tokens), historik over tilbagekaldte og udløbne tokens, og
+  automatisk tilbagekaldelse, når en bruger mister `McpUser`.
+
 Ubesluttede punkter:
 - Hvem må rydde døde links, og skal et kort blokere sletning af et
   domæneobjekt eller blot miste linket?
