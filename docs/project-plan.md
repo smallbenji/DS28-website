@@ -698,20 +698,49 @@ Implementeringsnoter (2026-10-12):
   kræver SysAdmin. Også systemstillingen kan flyttes, men kun af en SysAdmin.
   Der er cirkelkontrol, så en stilling ikke kan sættes under sig selv eller
   under en af sine egne understillinger. Grupperne ændres ikke ved flytning, så
-  adgangen påvirkes ikke. Overstillingen vælges i en flyt-modal, hvor
-  understillinger af den aktuelle stilling er filtreret fra.
+  adgangen påvirkes ikke. Overstillingen vælges med træk og slip eller i
+  skuffens fane Struktur (se DS-89 nedenfor).
 - Autoritet følger hele undertræet rekursivt: at beklæde en overstilling giver
   håndteringsret til stillinger på alle niveauer under den. `CanManageParentAsync`
   og frontend-guardet i `orgAccess.ts` accepterer en indehaver af en hvilken som
   helst stilling i forældrekæden, ikke kun af den umiddelbare overstilling.
   SysAdmin kan håndtere hele træet; rodstillinger håndteres kun af SysAdmin.
 - Diagrammet tegnes af en rekursiv `OrgNode.vue`; der bruges ingen ekstern
-  org-chart-komponent. Hver node er et klikbart kort, og redigering, grupper,
-  indehavere, invitation, flytning, oprettelse af understillinger og sletning
-  sker i en fælles skuffe (`OrgDrawer.vue`) baseret på `BSidebar`, der glider
-  ind fra højre, i stedet for knapper på hver node. Siden ligger på `/org` med
-  en "Organisation"-flis på hjemmesiden for brugere med `OrgView` og er ikke
-  længere en del af adminområdet.
+  org-chart-komponent. Siden ligger på `/org` med en "Organisation"-flis på
+  hjemmesiden for brugere med `OrgView` og er ikke længere en del af
+  adminområdet.
+
+**Beslutning 2026-11-22 (DS-89, implementeret):** Organisationssiden er lavet
+om efter en mockup, som Benjamin har godkendt. Ændringen er kun i frontend og
+bruger de eksisterende API-kald. Rettighederne i `orgAccess.ts` er uændrede.
+Dette erstatter den tidligere beskrivelse af én samlet skuffe og en flyt-modal.
+
+- En understilling oprettes direkte fra noden: et plus under kortet åbner en
+  lille formular med titel, farve og grupper. Plusset vises kun, hvor brugeren
+  må oprette understillinger. Efter oprettelse markeres den nye stilling, og
+  beskeden har en genvej til at tilføje personer.
+- Skuffen (`OrgPositionDrawer.vue`) er delt i fanerne Stilling (titel, farve,
+  grupper), Personer (indehavere, invitation, personlig assistent) og Struktur
+  (overordnet stilling og understillinger). Sletning ligger i en menu i
+  skuffens top og er slået fra med en forklaring, når stillingen har
+  understillinger eller personer, så det matcher backendens regel. Toppen
+  viser stillingens placering i træet som links.
+- Flytning sker både med træk og slip i diagram og liste og med en søgbar
+  trævælger under Struktur. Begge tilbyder kun mål, brugeren har autoritet
+  over, og kan ikke flytte en stilling under sig selv eller sine
+  understillinger. En flytning kan fortrydes fra beskeden.
+- Til store diagrammer er der søgning på stilling eller person (inklusive
+  personlige assistenter), zoom og "tilpas til vinduet", sammenfoldning af
+  enkelte eller alle grene og en listevisning. Søgning folder automatisk de
+  grene ud, der indeholder et resultat.
+- På smalle skærme åbner siden i listevisning, skuffen glider op nedefra, og
+  træk og slip er slået fra. Flytning sker der via vælgeren.
+- Logikken er samlet i `lib/org/orgTree.ts` (træopbygning, forfædre,
+  efterkommere, søgning) og `lib/org/orgChartContext.ts` (fælles tilstand for
+  søgning, sammenfoldning, oprettelse og træk, delt via provide/inject).
+
+Ubesluttet efter DS-89: om brugerne finder listevisningen tilstrækkelig på
+mobil, og om valget mellem diagram og liste skal huskes.
 - Migration `011_org_positions.sql` seeder systemstillingen
   "Systemadministrator" med gruppen `SysAdmin`.
 
