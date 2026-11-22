@@ -13,6 +13,7 @@ export interface UserDto {
     positions: OrgPositionDto[];
     group: GroupDto | null;
     lockoutEnd: string | null;
+    lastLoginAt: string | null;
     profilePicture: ImageReferenceDto | null;
 }
 

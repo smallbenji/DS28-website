@@ -103,6 +103,7 @@ public static class ServiceExtensions
         services.AddIdentity<User, Role>()
         .AddEntityFrameworkStores<DataDbContext>()
         .AddUserManager<NotificationUserManager>()
+        .AddSignInManager<LoginTrackingSignInManager>()
         .AddDefaultTokenProviders();
 
         services.ConfigureDsIdentityOptions();
