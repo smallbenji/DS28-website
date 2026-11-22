@@ -56,6 +56,11 @@ const routes: RouteRecordRaw[] = [
                 meta: { pageTitle: "Dataudtræk", requiredRole: "ExportsView" }
             },
             {
+                path: "admin/jobs",
+                component: () => import("@/Views/BackgroundJobs.vue"),
+                meta: { pageTitle: "Baggrundsjob", requiredRole: "HangfireView" }
+            },
+            {
                 path: "admin/openiddict",
                 component: () => import("@/Views/OpenIddictClients.vue"),
                 meta: { pageTitle: "OpenIddict-klienter", requiredRole: "OpenIddictManage" }

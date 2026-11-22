@@ -304,7 +304,7 @@ recurring dispatcher-job der kører hvert 15. sekund og enqueuer ét
 sender og opdaterer `email_outbox` med samme backoff-, forsøgs- og
 dead-letter-semantik som før. `email_outbox` forbliver den transaktionelle
 outbox, og transaktionelle mails sendes fortsat synkront. Hangfire-dashboardet
-ligger på `/hangfire` og kræver `AdminAccess`. Hangfire-schemaet ejes udelukkende
+ligger på `/hangfire` og kræver `AdminAccess` (senere `HangfireView`, se DS-83 under Adminområde). Hangfire-schemaet ejes udelukkende
 af DbUp: `007_hangfire.sql` installerer Hangfires egne install-scripts med
 `PrepareSchemaIfNecessary = false`, så senere Hangfire-opgraderinger tilføjes
 som almindelige migrationer. Dette overskriver implementeringsdelen af
@@ -560,6 +560,33 @@ tilmeldingsstatistikken også antal brugere og antal grupper i systemet, hentet
 fra `GET /api/v1/admin/system-counts` (kræver `AdminAccess`). Det er rene
 optællinger uden persondata. Slettede grupper tælles ikke med, fordi grupper
 er soft-deleted og filtreres globalt.
+
+**Beslutning 2026-11-22 (DS-83, implementeret):** Baggrundsjob vises på en
+indbygget side i HQ på `/admin/jobs`, med en flise "Baggrundsjob" under
+Admin → System, der erstatter Hangfire-flisen. Siden bygger på Hangfires
+monitoring-API gennem `BackgroundJobService` og
+`GET /api/v1/background-jobs`, uden nye afhængigheder eller skemaændringer.
+Den viser nøgletal, fejlede jobs med detaljer, forsøg og stacktrace,
+tilbagevendende jobs, seneste aktivitet (polling hvert 5. sekund, på pause
+når fanen er skjult) og en jobhistorik over afsluttede jobs med filter på
+status og jobtype, søgning på job-id og sideinddeling.
+
+- Jobargumenter og fejltekster maskeres på serveren, før de sendes til
+  browseren: mailadresser og navne vises maskeret, og mailens indhold,
+  adgangskoder, tokens og hemmeligheder vises kun som skjulte med størrelse.
+  Hangfire gemmer fortsat payload og fejldetaljer i klartekst i
+  `hangfire`-schemaet.
+- Jobhistorikken går 24 timer tilbage, som er Hangfires standard for udløb af
+  afsluttede jobs. Udløbstiden hæves ikke, af hensyn til dataminimering.
+  Fejlede jobs udløber ikke og bliver liggende, til de genkøres eller slettes.
+- `HangfireView` giver læseadgang til siden og dashboardet. Handlinger
+  ("Prøv igen", "Prøv alle igen", "Slet" og "Kør nu") kræver den nye approlle
+  `HangfireManage`, som kun SysAdmin har. API'et håndhæver rollen, og
+  knapperne vises ikke uden den.
+- `/hangfire` bevares som nødudgang, men er read-only for brugere uden
+  `HangfireManage` (`IsReadOnlyFunc`). Dashboardet viser fortsat argumenter i
+  klartekst. Det overskriver den tidligere praksis, hvor `HangfireView` også
+  kunne slette, genkøre og trigge jobs i dashboardet.
 
 ### Rollevisning (SysAdmin-impersonation)
 
@@ -2571,7 +2598,7 @@ til projektet. Kontrollér altid koden igen ved fremtidige ændringer.
 - Frontend bruger Vue/Vite, Nuxt UI og Tailwind i `src/DS.Frontend`, serveret
   på `/`. Den gamle Buefy-frontend er arkiveret i `src/DS.Frontend.Archive` og
   bygges eller serveres ikke.
-- Globale roller og rettigheder ligger i `DS.Backend/Roles.cs`. Planens roller
+- Globale roller og rettigheder ligger i `DS.Domain/Roles.cs`. Planens roller
   er ikke nødvendigvis implementeret med de beskrevne rettigheder.
 - Spejdergrupper er adskilt fra globale roller. `User.Group` knytter en bruger
   til en gruppe. Der er ingen særskilt gruppeadministrator eller gruppeejer.

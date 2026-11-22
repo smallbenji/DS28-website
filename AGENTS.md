@@ -19,7 +19,7 @@ specification or a request to implement every listed feature**.
   and OpenIddict are the current authentication foundation
   (`DS.Backend/Extensions/ServiceExtensions.cs`). Do not reintroduce Keycloak based on old planning
   material.
-- Current global permissions are defined in `DS.Backend/Roles.cs`. `AppGroups`
+- Current global permissions are defined in `DS.Domain/Roles.cs`. `AppGroups`
   denotes global identity roles, not scout groups. The draft role descriptions
   are not evidence that those permissions are already implemented.
 - Scout group membership currently uses `User.Group`, with no group owner or
