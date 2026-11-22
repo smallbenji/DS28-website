@@ -23,9 +23,14 @@ namespace DS.Backend.Controllers.ApiControllers
         [HttpPut]
         public async Task<IActionResult> UpdateSettings([FromBody] RegistrationSettingsDto data)
         {
-            if (data == null || !ModelState.IsValid || (data.IsPreSignupOpen == null && data.IsSignupOpen == null))
+            var hasChange = data != null
+                && (data.IsPreSignupOpen != null
+                    || data.IsSignupOpen != null
+                    || data.IsActivityWishRoundOpen != null
+                    || data.IsActivitySignupOpen != null);
+            if (!hasChange || !ModelState.IsValid)
             {
-                return BadRequest("Angiv, om forhåndstilmeldingen eller den endelige tilmelding skal være åben eller lukket.");
+                return BadRequest("Angiv, om forhåndstilmeldingen, den endelige tilmelding, aktivitetsønskerunden eller den endelige aktivitetstilmelding skal være åben eller lukket.");
             }
 
             var settings = await settingsService.UpdateSettings(data);

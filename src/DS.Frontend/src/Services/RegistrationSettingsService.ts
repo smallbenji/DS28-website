@@ -3,6 +3,8 @@ import { apiGet, apiPut } from '@/lib/api';
 export interface RegistrationSettings {
     isPreSignupOpen: boolean;
     isSignupOpen: boolean;
+    isActivityWishRoundOpen: boolean;
+    isActivitySignupOpen: boolean;
 }
 
 export default class RegistrationSettingsService {

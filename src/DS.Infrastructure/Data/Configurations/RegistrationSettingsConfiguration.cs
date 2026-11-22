@@ -33,5 +33,15 @@ public class RegistrationSettingsConfiguration : IEntityTypeConfiguration<Regist
             .IsRequired()
             .HasDefaultValueSql("FALSE")
             .HasSentinel(false);
+
+        builder.Property(x => x.IsActivityWishRoundOpen)
+            .IsRequired()
+            .HasDefaultValueSql("FALSE")
+            .HasSentinel(false);
+
+        builder.Property(x => x.IsActivitySignupOpen)
+            .IsRequired()
+            .HasDefaultValueSql("FALSE")
+            .HasSentinel(false);
     }
 }
