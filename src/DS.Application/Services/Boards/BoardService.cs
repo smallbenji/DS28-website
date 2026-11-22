@@ -1,4 +1,5 @@
 using DS.Application.Data;
+using DS.Application.Services.Email;
 using DS.Domain;
 using DS.Domain.DTOs;
 using DS.Domain.Models;
@@ -10,7 +11,7 @@ using System.Text.RegularExpressions;
 
 namespace DS.Application.Services.Boards
 {
-    public class BoardService(IDataDbContext dataDb, UserManager<User> userManager, IBoardEventPublisher boardEvents)
+    public class BoardService(IDataDbContext dataDb, UserManager<User> userManager, IBoardEventPublisher boardEvents, EmailService emailService)
     {
         public async Task<ServiceResult<List<BoardSummaryDto>>> GetBoards(BoardActor actor)
         {
@@ -353,6 +354,9 @@ namespace DS.Application.Services.Boards
 
             dataDb.Boards.Add(board);
             await dataDb.SaveChangesAsync();
+
+            var creator = await dataDb.Users.AsNoTracking().FirstOrDefaultAsync(user => user.Id == actor.UserId);
+            emailService.QueueBoardCreatedNotificationMail(board, creator);
 
             return new ServiceResult<int>(ServiceOutcome.Success, board.Id);
         }
