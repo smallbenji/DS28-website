@@ -342,7 +342,7 @@ skemaændring.
 (`user_id` + `notification_type`). Hvilke typer en bruger må tilvælge er
 rollegated: mappingen ligger i `NotificationPermissions`, og `GET`/`PUT`
 `/api/v1/me/notifications` markerer kun tilladte typer med
-`canSubscribe = true`. Den første og eneste type er `NewUser`, som kræver
+`canSubscribe = true`. Den første type er `NewUser`, som kræver
 app-rollen `UsersView` (SysAdmin og CampAdmin). Afsendelsen sker centralt i
 `NotificationUserManager`, en `UserManager<User>`-subklasse der overskriver
 `CreateAsync(User)`, så alle oprettelsesveje fanges — selvbetjening,
@@ -360,11 +360,33 @@ Hvilke typer der kan vælges, afgøres af målbrugerens egne roller, ikke af
 administratorens. Logikken deles med `/api/v1/me/notifications` gennem
 `NotificationPreferenceService`. Panelet ligger i `UserDetail.vue`.
 
+**Beslutning 2026-11-22 (implementeret, DS-65):** Lejrchefer kan tilvælge en
+mail, når der oprettes en ny tavle. Typen `BoardCreated` følger `NewUser`: den
+gemmes i `user_notification_preference`, er ikke slået til fra starten,
+vælges i profilen eller brugerstyringen ("Ny tavle oprettet") og sendes
+gennem `EmailService` og Hangfire-køen, gated af `NotificationsEnabled`.
+Afsendelsen sker centralt i `BoardService.CreateBoard`, så både
+hjemmesiden, MCP-værktøjerne og andre veje gennem servicen fanges. Mailen
+indeholder tavlens navn, opretterens navn og et link til `/board/{id}`.
+Rollegatingen i `NotificationPermissions` bruger den nye app-rolle
+`BoardViewAll`, som matricen giver SysAdmin og CampAdmin. Rollen beskriver
+den eksisterende globale tavleadgang; selve tavleadgangen afgøres fortsat af
+gruppetjekket i `BoardActor`, ikke af rollen.
+
+Implementeret standardvalg, der afventer bekræftelse:
+- Modtagere er abonnenter, som har adgang til den nye tavle. Da SysAdmin og
+  CampAdmin altid ser alle tavler, er det abonnenter med en af de grupper.
+  Gruppen tjekkes igen ved afsendelse, så en bruger, der har mistet rollen,
+  men stadig har præferencen gemt, ikke får tavlens navn. Andre tavlemedlemmer
+  kan ikke tilvælge notifikationen.
+- SysAdmin kan også tilvælge den, ligesom ved `NewUser`.
+- Opretteren får ikke mail om sin egen tavle.
+
 Ubesluttede punkter:
-- Præferencevalget er kun implementeret for `NewUser`. Flere hændelsestyper og
-  tilhørende rollegating er ikke fastlagt. Afmelding sker ved at fjerne krydset
-  i profilen eller i brugerstyringen; der findes ingen separat
-  afmeldingsmulighed.
+- Præferencevalget er implementeret for `NewUser` og `BoardCreated`. Flere
+  hændelsestyper og tilhørende rollegating er ikke fastlagt. Afmelding sker ved
+  at fjerne krydset i profilen eller i brugerstyringen; der findes ingen
+  separat afmeldingsmulighed.
 
 ### Seneste login
 

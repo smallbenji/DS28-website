@@ -33,6 +33,7 @@ namespace DS.Domain
         OrgManage,
 
         BoardView,
+        BoardViewAll,
 
         ActivityView,
         ActivityAdmin,
@@ -91,6 +92,7 @@ namespace DS.Domain
                     nameof(AppRoles.MaterialDelete),
 
                     nameof(AppRoles.BoardView),
+                    nameof(AppRoles.BoardViewAll),
                 ]
             },
             {
@@ -126,6 +128,7 @@ namespace DS.Domain
                     nameof(AppRoles.AdminAccess),
 
                     nameof(AppRoles.BoardView),
+                    nameof(AppRoles.BoardViewAll),
                 ]
             },
             {

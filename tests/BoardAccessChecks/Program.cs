@@ -6,6 +6,8 @@ using DbUp;
 using DS.Infrastructure;
 using DS.Infrastructure.Data;
 using DS.Application.Services.Boards;
+using DS.Application.Services.Email;
+using DS.Application.Services.Notifications;
 using DS.Domain.DTOs;
 using DS.Domain.Models;
 using DS.Backend;
@@ -123,10 +125,20 @@ services.AddLogging();
 services.AddDsDataLayer(connectionString);
 services.AddDsIdentityCore();
 services.AddSingleton<IAuthenticationService, TestMcpAuthentication>();
+services.Configure<DSSettings>(options =>
+{
+    options.NotificationsEnabled = true;
+    options.PublicBaseUrl = "https://ds28.example.test";
+});
+services.AddSingleton<RecordingMailQueue>();
+services.AddSingleton<IMailQueue>(provider => provider.GetRequiredService<RecordingMailQueue>());
+services.AddScoped<EmailService>();
 using var provider = services.BuildServiceProvider();
 using var scope = provider.CreateScope();
 var db = scope.ServiceProvider.GetRequiredService<DataDbContext>();
 var manager = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
+var emailService = scope.ServiceProvider.GetRequiredService<EmailService>();
+var mail = provider.GetRequiredService<RecordingMailQueue>();
 Check((await db.WorkItems.SingleAsync(item => item.Title == "Existing uncolored card")).Color == null, "existing cards migrate without a color");
 Check((await db.WorkItems.Include(item => item.Assignees).SingleAsync(item => item.Title == "Existing uncolored card")).Assignees.Single().UserId == "owner", "assignee migration preserves existing assignment without index name collision");
 Check((await db.WorkItems.SingleAsync(item => item.Title == "Existing colored card")).Color == "#dbeafe", "board palette migration preserves existing card colors");
@@ -137,11 +149,11 @@ foreach (var id in new[] { "member", "friend", "outsider", "admin" })
 }
 
 var boardEvents = new RecordingBoardEvents();
-var controller = new BoardApiController(new BoardService(db, manager, boardEvents), manager)
+var controller = new BoardApiController(new BoardService(db, manager, boardEvents, emailService), manager)
 {
     ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext { RequestServices = scope.ServiceProvider } }
 };
-var mcp = new BoardTools(new BoardService(db, manager, boardEvents), new HttpContextAccessor { HttpContext = controller.HttpContext }, manager);
+var mcp = new BoardTools(new BoardService(db, manager, boardEvents, emailService), new HttpContextAccessor { HttpContext = controller.HttpContext }, manager);
 async Task RejectMcp(Func<Task<string>> action, string message)
 {
     try
@@ -646,6 +658,26 @@ Check(await controller.AddMember(new BoardMemberCreateDto { UserId = "outsider" 
 Check(await controller.CreateColor(new BoardColorUpdateDto { Name = "Denied", Color = "#123456" }, boardId) is ForbidResult, "deleted board rejects palette changes");
 ActAs("admin", nameof(AppGroups.SysAdmin));
 Check(!(await Boards()).Any(board => board.Id == boardId), "deleted board is hidden even from administrators");
+Check(NotificationPermissions.AllowedGroups(NotificationType.BoardCreated).SequenceEqual([nameof(AppGroups.SysAdmin), nameof(AppGroups.CampAdmin)]), "board notifications are limited to groups that see all boards");
+Check(!NotificationPermissions.CanSubscribe(AppAccess.ResolveAppRoles([nameof(AppGroups.EventAdmin)]), NotificationType.BoardCreated), "event admin cannot subscribe to board notifications");
+var campAdminRole = new Role { Name = nameof(AppGroups.CampAdmin) };
+Check((await roles.CreateAsync(campAdminRole)).Succeeded, "create camp admin role");
+foreach (var id in new[] { "chief", "former" })
+{
+    Check((await manager.CreateAsync(new User { Id = id, UserName = id, FirstName = id, LastName = "Test", Email = $"{id}@example.test" })).Succeeded, $"create {id}");
+}
+db.UserRoles.Add(new IdentityUserRole<string> { UserId = "chief", RoleId = campAdminRole.Id });
+db.NotificationPreferences.Add(new UserNotificationPreference { UserId = "chief", NotificationType = NotificationType.BoardCreated });
+db.NotificationPreferences.Add(new UserNotificationPreference { UserId = "former", NotificationType = NotificationType.BoardCreated });
+await db.SaveChangesAsync();
+mail.Messages.Clear();
+ActAs("friend");
+var notifiedBoardId = (int)((OkObjectResult)await controller.CreateBoard(new BoardCreateDto { Title = "Notifikationstavle" })).Value;
+Check(mail.Messages.Count == 1 && mail.Messages[0].Email == "chief@example.test", "new board notifies subscribed camp admins only");
+Check(mail.Messages[0].Body.Contains("Notifikationstavle") && mail.Messages[0].Body.Contains("friend Test") && mail.Messages[0].Body.Contains($"https://ds28.example.test/board/{notifiedBoardId}"), "board notification contains title, creator and link");
+mail.Messages.Clear();
+ActAs("chief", nameof(AppGroups.CampAdmin));
+Check(await controller.CreateBoard(new BoardCreateDto { Title = "Egen tavle" }) is OkObjectResult && mail.Messages.Count == 0, "board creator is not notified about own board");
 Console.WriteLine("ALL BOARD ACCESS CHECKS PASSED");
 
 sealed class RecordingBoardEvents : IBoardEventPublisher
@@ -659,6 +691,16 @@ sealed class RecordingBoardEvents : IBoardEventPublisher
     }
 }
 
+
+sealed class RecordingMailQueue : IMailQueue
+{
+    public List<(string Email, string Subject, string Body)> Messages { get; } = [];
+
+    public void Enqueue(string toEmail, string toName, string subject, string body)
+    {
+        Messages.Add((toEmail, subject, body));
+    }
+}
 
 sealed class TestMcpAuthentication : IAuthenticationService
 {

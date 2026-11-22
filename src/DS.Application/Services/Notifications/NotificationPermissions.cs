@@ -10,6 +10,10 @@ namespace DS.Application.Services.Notifications
             {
                 NotificationType.NewUser,
                 [nameof(AppRoles.UsersView)]
+            },
+            {
+                NotificationType.BoardCreated,
+                [nameof(AppRoles.BoardViewAll)]
             }
         };
 
@@ -17,6 +21,14 @@ namespace DS.Application.Services.Notifications
         {
             return AllowedAppRoles.TryGetValue(type, out var allowed)
                 && allowed.Any(appRoles.Contains);
+        }
+
+        public static List<string> AllowedGroups(NotificationType type)
+        {
+            return Enum.GetValues<AppGroups>()
+                .Select(group => group.ToString())
+                .Where(group => CanSubscribe(AppAccess.ResolveAppRoles([group]), type))
+                .ToList();
         }
     }
 }

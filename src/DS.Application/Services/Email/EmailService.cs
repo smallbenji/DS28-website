@@ -1,4 +1,5 @@
 using DS.Application.Data;
+using DS.Application.Services.Notifications;
 using DS.Domain;
 using DS.Domain.Models;
 using Microsoft.Extensions.Logging;
@@ -43,6 +44,41 @@ Mvh. DS28 teamet";
 
             var recipients = dataDb.NotificationPreferences
                 .Where(p => p.NotificationType == NotificationType.NewUser)
+                .Select(p => p.User.Email)
+                .Where(email => email != null)
+                .Distinct()
+                .ToList();
+
+            foreach (var recipient in recipients)
+            {
+                Enqueue(new MailboxAddress("", recipient), subject, body);
+            }
+        }
+
+        public void QueueBoardCreatedNotificationMail(Board board, User creator)
+        {
+            var subject = $"Ny tavle oprettet i DS28: {board.Title}";
+
+            var baseUri = new Uri(options.Value.PublicBaseUrl, UriKind.Absolute);
+            var link = new Uri(baseUri, $"/board/{board.Id}").AbsoluteUri;
+            var creatorName = creator?.GetFullName();
+            if (string.IsNullOrWhiteSpace(creatorName)) creatorName = "Ukendt bruger";
+
+            var body =
+@$"Der er oprettet en ny tavle i DS28.
+
+Tavle: {board.Title}
+Oprettet af: {creatorName}
+Link: {link}
+
+Mvh. DS28 teamet";
+
+            var allowedGroups = NotificationPermissions.AllowedGroups(NotificationType.BoardCreated);
+            var recipients = dataDb.NotificationPreferences
+                .Where(p => p.NotificationType == NotificationType.BoardCreated)
+                .Where(p => p.UserId != board.CreatedByUserId)
+                .Where(p => dataDb.UserRoles.Any(userRole => userRole.UserId == p.UserId
+                    && dataDb.Roles.Any(role => role.Id == userRole.RoleId && allowedGroups.Contains(role.Name))))
                 .Select(p => p.User.Email)
                 .Where(email => email != null)
                 .Distinct()
