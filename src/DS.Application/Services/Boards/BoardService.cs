@@ -766,8 +766,8 @@ namespace DS.Application.Services.Boards
             if (card == null) return new ServiceResult(ServiceOutcome.NotFound);
 
             if (!TryNormalizeCardColor(data.Color, out var color)) return new ServiceResult(ServiceOutcome.Invalid, "Ugyldig kortfarve.");
-            var assigneeUserIds = NormalizeUserIds(data.AssigneeUserIds);
-            if (!await AreValidAssigneesAsync(assigneeUserIds)) return new ServiceResult(ServiceOutcome.Invalid, "En eller flere ansvarlige brugere findes ikke.");
+            var assigneeUserIds = data.AssigneeUserIds == null ? null : NormalizeUserIds(data.AssigneeUserIds);
+            if (assigneeUserIds != null && !await AreValidAssigneesAsync(assigneeUserIds)) return new ServiceResult(ServiceOutcome.Invalid, "En eller flere ansvarlige brugere findes ikke.");
             if (!await IsValidOwnerPositionAsync(data.OwnerPositionId)) return new ServiceResult(ServiceOutcome.Invalid, "Stillingen findes ikke.");
 
             if (!TryNormalizeTagNames(data.NewTagNames, out var newTagNames)) return new ServiceResult(ServiceOutcome.Invalid, "Tagget skal have et navn på højst 64 tegn.");
@@ -794,10 +794,14 @@ namespace DS.Application.Services.Boards
             item.Title = data.Title.Trim();
             item.Description = data.Description;
             item.Color = color;
-            item.Assignees.RemoveAll(assignee => !assigneeUserIds.Contains(assignee.UserId));
-            var existingUserIds = item.Assignees.Select(assignee => assignee.UserId).ToHashSet();
-            item.Assignees.AddRange(assigneeUserIds.Where(userId => !existingUserIds.Contains(userId))
-                .Select(userId => new WorkItemAssignee { UserId = userId }));
+            if (assigneeUserIds != null)
+            {
+                item.Assignees.RemoveAll(assignee => !assigneeUserIds.Contains(assignee.UserId));
+                var existingUserIds = item.Assignees.Select(assignee => assignee.UserId).ToHashSet();
+                item.Assignees.AddRange(assigneeUserIds.Where(userId => !existingUserIds.Contains(userId))
+                    .Select(userId => new WorkItemAssignee { UserId = userId }));
+            }
+
             item.OwnerPositionId = data.OwnerPositionId;
             item.DueDate = data.DueDate;
             item.Priority = data.Priority;
@@ -807,6 +811,81 @@ namespace DS.Application.Services.Boards
             await NotifyBoardsWithCardAsync(workItemId);
 
             return new ServiceResult(ServiceOutcome.Success);
+        }
+
+        public async Task<ServiceResult> AddAssignee(BoardActor actor, WorkItemAssigneeCreateDto data, int id, int workItemId)
+        {
+            if (string.IsNullOrWhiteSpace(data?.UserId)) return new ServiceResult(ServiceOutcome.Invalid, "Vælg en bruger.");
+
+            var board = await GetBoardAsync(id);
+            if (board == null) return new ServiceResult(ServiceOutcome.NotFound);
+            if (!await CanSeeBoardAsync(actor, board)) return new ServiceResult(ServiceOutcome.Forbidden);
+            if (!await CardExistsAsync(id, workItemId)) return new ServiceResult(ServiceOutcome.NotFound);
+
+            var userId = data.UserId.Trim();
+            if (!await AreValidAssigneesAsync([userId])) return new ServiceResult(ServiceOutcome.Invalid, "Brugeren findes ikke.");
+            var inserted = await dataDb.Database.ExecuteSqlInterpolatedAsync($"INSERT INTO ds28.work_item_assignee (work_item_id, user_id) VALUES ({workItemId}, {userId}) ON CONFLICT DO NOTHING");
+            if (inserted > 0) await NotifyBoardsWithCardAsync(workItemId);
+
+            return new ServiceResult(ServiceOutcome.Success);
+        }
+
+        public async Task<ServiceResult> RemoveAssignee(BoardActor actor, int id, int workItemId, string userId)
+        {
+            var board = await GetBoardAsync(id);
+            if (board == null) return new ServiceResult(ServiceOutcome.NotFound);
+            if (!await CanSeeBoardAsync(actor, board)) return new ServiceResult(ServiceOutcome.Forbidden);
+            if (!await CardExistsAsync(id, workItemId)) return new ServiceResult(ServiceOutcome.NotFound);
+
+            var assignment = await dataDb.WorkItemAssignees.FirstOrDefaultAsync(assignee => assignee.WorkItemId == workItemId && assignee.UserId == userId);
+            if (assignment == null) return new ServiceResult(ServiceOutcome.Success);
+
+            dataDb.WorkItemAssignees.Remove(assignment);
+            try
+            {
+                await dataDb.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                dataDb.Entry(assignment).State = EntityState.Detached;
+                return new ServiceResult(ServiceOutcome.Success);
+            }
+
+            await NotifyBoardsWithCardAsync(workItemId);
+
+            return new ServiceResult(ServiceOutcome.Success);
+        }
+
+        public async Task<ServiceResult> SetCompletion(BoardActor actor, int id, int workItemId, bool completed)
+        {
+            var board = await GetBoardAsync(id);
+            if (board == null) return new ServiceResult(ServiceOutcome.NotFound);
+            if (!await CanSeeBoardAsync(actor, board)) return new ServiceResult(ServiceOutcome.Forbidden);
+            if (!await CardExistsAsync(id, workItemId)) return new ServiceResult(ServiceOutcome.NotFound);
+
+            var assignment = await dataDb.WorkItemAssignees.FirstOrDefaultAsync(assignee => assignee.WorkItemId == workItemId && assignee.UserId == actor.UserId);
+            if (assignment == null) return new ServiceResult(ServiceOutcome.Invalid, "Du er ikke ansvarlig på kortet.");
+            if (assignment.CompletedAt.HasValue == completed) return new ServiceResult(ServiceOutcome.Success);
+
+            assignment.CompletedAt = completed ? DateTime.UtcNow : null;
+            try
+            {
+                await dataDb.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                dataDb.Entry(assignment).State = EntityState.Detached;
+                return new ServiceResult(ServiceOutcome.Invalid, "Du er ikke ansvarlig på kortet.");
+            }
+
+            await NotifyBoardsWithCardAsync(workItemId);
+
+            return new ServiceResult(ServiceOutcome.Success);
+        }
+
+        private async Task<bool> CardExistsAsync(int boardId, int workItemId)
+        {
+            return await dataDb.BoardCards.AnyAsync(card => card.BoardId == boardId && card.WorkItemId == workItemId && card.WorkItem.DeletedAt == null);
         }
 
         public async Task<ServiceResult> MoveCard(BoardActor actor, WorkItemMoveDto data, int id, int workItemId)
@@ -1297,7 +1376,7 @@ namespace DS.Application.Services.Boards
                 Position = card.Position,
                 Assignees = item.Assignees.OrderBy(assignee => assignee.User.FirstName)
                     .ThenBy(assignee => assignee.User.LastName).ThenBy(assignee => assignee.UserId)
-                    .Select(assignee => new UserSummaryDto(assignee.User)).ToList(),
+                    .Select(assignee => new WorkItemAssigneeDto(assignee)).ToList(),
                 OwnerPositionId = item.OwnerPositionId,
                 OwnerPositionTitle = item.OwnerPosition?.Title,
                 DueDate = item.DueDate,

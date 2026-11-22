@@ -26,6 +26,23 @@ export default class BoardService {
         await apiDelete(`/api/v1/boards/${boardId}/cards/${cardId}/pull-requests`, { params: { url } });
     }
 
+    public async addAssignee(boardId: number, cardId: number, userId: string): Promise<void> {
+        await apiPost(`/api/v1/boards/${boardId}/cards/${cardId}/assignees`, { userId });
+    }
+
+    public async removeAssignee(boardId: number, cardId: number, userId: string): Promise<void> {
+        await apiDelete(`/api/v1/boards/${boardId}/cards/${cardId}/assignees/${encodeURIComponent(userId)}`);
+    }
+
+    public async setCompletion(boardId: number, cardId: number, completed: boolean): Promise<void> {
+        const path = `/api/v1/boards/${boardId}/cards/${cardId}/completion`;
+        if (completed) {
+            await apiPut(path);
+        } else {
+            await apiDelete(path);
+        }
+    }
+
     public async getBoards(): Promise<BoardSummaryDto[]> {
         return safeApiCall(async () => {
             const data = await apiGet<BoardSummaryDto[]>("/api/v1/boards");

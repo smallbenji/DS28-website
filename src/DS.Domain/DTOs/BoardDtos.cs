@@ -1,3 +1,5 @@
+using DS.Domain.Models;
+
 namespace DS.Domain.DTOs
 {
     public class BoardSummaryDto
@@ -73,7 +75,7 @@ namespace DS.Domain.DTOs
         public string Color { get; set; }
         public int ColumnId { get; set; }
         public int Position { get; set; }
-        public List<UserSummaryDto> Assignees { get; set; } = [];
+        public List<WorkItemAssigneeDto> Assignees { get; set; } = [];
         public int? OwnerPositionId { get; set; }
         public string OwnerPositionTitle { get; set; }
         public DateOnly? DueDate { get; set; }
@@ -82,6 +84,23 @@ namespace DS.Domain.DTOs
         public List<WorkItemPlacementDto> Placements { get; set; } = [];
         public List<WorkItemDependencyDto> WaitingOn { get; set; } = [];
         public List<WorkItemDependencyDto> Blocking { get; set; } = [];
+    }
+
+    public class WorkItemAssigneeDto : UserSummaryDto
+    {
+        public WorkItemAssigneeDto() { }
+
+        public WorkItemAssigneeDto(WorkItemAssignee assignee) : base(assignee.User)
+        {
+            CompletedAt = assignee.CompletedAt;
+        }
+
+        public DateTime? CompletedAt { get; set; }
+    }
+
+    public class WorkItemAssigneeCreateDto
+    {
+        public string UserId { get; set; }
     }
 
     public class PullRequestLinkDto
@@ -195,7 +214,7 @@ namespace DS.Domain.DTOs
         public string Title { get; set; }
         public string Description { get; set; }
         public string Color { get; set; }
-        public List<string> AssigneeUserIds { get; set; } = [];
+        public List<string> AssigneeUserIds { get; set; }
         public int? OwnerPositionId { get; set; }
         public DateOnly? DueDate { get; set; }
         public int Priority { get; set; }

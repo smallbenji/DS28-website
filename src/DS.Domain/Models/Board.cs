@@ -103,6 +103,7 @@ public class WorkItemAssignee
     public WorkItem WorkItem { get; set; }
     public string UserId { get; set; }
     public User User { get; set; }
+    public DateTime? CompletedAt { get; set; }
 }
 
 public class WorkItemDependency

@@ -70,6 +70,26 @@ test("formatBoard viser farvepalette og kortets farve", () => {
     assert.match(text, /DS-42 Fejl \| kolonne Backlog \(id 10\) \| farve #3366ff/);
 });
 
+test("formatBoard markerer klarmeldte ansvarlige", () => {
+    const text = formatBoard({
+        id: 1,
+        title: "Vejfest",
+        columns: [{ id: 10, title: "Backlog" }],
+        cards: [{
+            id: 42,
+            title: "Fejl",
+            columnId: 10,
+            priority: 0,
+            assignees: [
+                { id: "u-1", firstName: "Ada", lastName: "Lovelace", completedAt: "2026-11-21T10:00:00Z" },
+                { id: "u-2", firstName: "Alan", lastName: "Turing", completedAt: null },
+            ],
+        }],
+    });
+
+    assert.match(text, /ansvarlige: Ada Lovelace \(klarmeldt\), Alan Turing$/m);
+});
+
 
 test("tags valideres mod tavlen, dubletter fjernes og tom liste bevares", () => {
     const tags = [{ id: "1", name: "v0.2.13" }, { id: 2, name: "Fix" }];
@@ -107,6 +127,8 @@ test("parseCliArguments omsætter navn=værdi efter værktøjets skema", () => {
         assignees: ["Ada Lovelace"],
     });
     assert.deepEqual(parseCliArguments(schema, ["assignees="]), { assignees: [] });
+    assert.deepEqual(parseCliArguments({ properties: { completed: { type: "boolean" } } }, ["completed=false"]), { completed: false });
+    assert.throws(() => parseCliArguments({ properties: { completed: { type: "boolean" } } }, ["completed=ja"]), /true eller false/);
     assert.throws(() => parseCliArguments(schema, ["boardId=en"]), /helt tal/);
     assert.throws(() => parseCliArguments(schema, ["ukendt=1"]), /Ukendt argument "ukendt"/);
     assert.throws(() => parseCliArguments(schema, ["boardId"]), /navn=værdi/);

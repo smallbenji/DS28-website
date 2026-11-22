@@ -489,6 +489,7 @@ erDiagram
     work_item_assignee {
         int work_item_id PK,FK "required, CASCADE"
         text user_id PK,FK "required, CASCADE"
+        timestamptz completed_at "nullable"
     }
 
     board_card {
@@ -842,6 +843,9 @@ mindst syv dage gamle. Det er ren dataoprydning uden skemaændring.
   Den sammensatte primærnøgle `(work_item_id, user_id)` forhindrer dubletter;
   et ikke-unikt indeks på `user_id` understøtter opslag af brugerens opgaver.
   Tildelinger er fælles for kortets tavleplaceringer og giver ikke tavleadgang.
+  `completed_at` (nullable) er tidspunktet, hvor den ansvarlige klarmeldte sin
+  del af kortet; `NULL` betyder ikke klarmeldt. Klarmeldingen hører til
+  tildelingen, så den forsvinder, når den ansvarlige fjernes fra kortet.
   `work_item` har ikke længere en enkelt `assignee_user_id`-kolonne.
 - `work_item.color` er en nullable `varchar(7)` uden standardværdi. `NULL`
   betyder ingen farve. En CHECK-constraint kræver lowercase sekscifret hex

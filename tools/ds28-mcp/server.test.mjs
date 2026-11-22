@@ -17,6 +17,7 @@ const tagsUpdated = [];
 const tagsDeleted = [];
 const dependenciesAdded = [];
 const dependenciesRemoved = [];
+const completions = [];
 
 function startStubServer() {
     const pullRequests = new Set();
@@ -119,6 +120,10 @@ function startStubServer() {
             dependenciesRemoved.push(7);
             return send(200, undefined);
         }
+        if (request.url === "/api/v1/boards/1/cards/42/completion" && ["PUT", "DELETE"].includes(request.method)) {
+            completions.push(request.method);
+            return send(200, undefined);
+        }
         const url = new URL(request.url, "http://localhost");
         if (url.pathname === "/api/v1/boards/1/cards/42/pull-requests") {
             if (request.method === "POST") {
@@ -204,7 +209,7 @@ test("MCP-serveren læser tavler og opretter kort gennem DS28-API'et", async () 
         assert.equal(init.result.protocolVersion, "2025-06-18");
 
         const tools = await client.call("tools/list", {});
-        assert.deepEqual(tools.result.tools.map(tool => tool.name), ["list_boards", "get_board", "create_card", "move_card", "update_card", "delete_card", "create_tag", "update_tag", "delete_tag", "search_cards", "add_dependency", "remove_dependency", "add_pull_request", "remove_pull_request"]);
+        assert.deepEqual(tools.result.tools.map(tool => tool.name), ["list_boards", "get_board", "create_card", "move_card", "update_card", "delete_card", "create_tag", "update_tag", "delete_tag", "search_cards", "add_dependency", "remove_dependency", "set_completion", "add_pull_request", "remove_pull_request"]);
 
         const boards = await client.call("tools/call", { name: "list_boards", arguments: {} });
         assert.match(boards.result.content[0].text, /id 1: Vejfest/);
@@ -295,7 +300,7 @@ test("MCP-serveren læser tavler og opretter kort gennem DS28-API'et", async () 
         assert.match(cleared.result.content[0].text, /beskrivelse, frist/);
         assert.equal(updated[1].dueDate, null);
         assert.equal(updated[1].description, null);
-        assert.equal(updated[1].assigneeUserIds.length, 1);
+        assert.equal(updated[1].assigneeUserIds, undefined);
 
         const removedCard = await client.call("tools/call", { name: "delete_card", arguments: { boardId: 1, cardId: 42 } });
         assert.match(removedCard.result.content[0].text, /Slettede DS-42 fra tavle 1\./);
@@ -421,6 +426,22 @@ test("MCP viser flere PR-links og fjerner dem enkeltvis", async () => {
         assert.deepEqual(await listedPullRequests(), [firstUrl, secondUrl]);
         assert.equal((await call("remove_pull_request", { cardId: 42, url: firstUrl })).isError, undefined);
         assert.deepEqual(await listedPullRequests(), [secondUrl]);
+    } finally {
+        client.child.kill();
+        server.close();
+    }
+});
+
+test("set_completion klarmelder og trækker klarmelding tilbage", async () => {
+    const server = await startStubServer();
+    const client = startClient(`http://127.0.0.1:${server.address().port}`);
+    const call = async args => (await client.call("tools/call", { name: "set_completion", arguments: { boardId: 1, cardId: 42, ...args } })).result;
+
+    try {
+        assert.match((await call({ completed: true })).content[0].text, /Klarmeldte din del af DS-42/);
+        assert.match((await call({ completed: false })).content[0].text, /Trak klarmeldingen af DS-42 tilbage/);
+        assert.deepEqual(completions, ["PUT", "DELETE"]);
+        assert.equal((await call({ completed: "ja" })).isError, true);
     } finally {
         client.child.kill();
         server.close();

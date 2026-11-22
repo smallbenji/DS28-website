@@ -65,7 +65,7 @@ export interface WorkItemDto {
     color: string | null;
     columnId: number;
     position: number;
-    assignees: UserSummaryDto[];
+    assignees: WorkItemAssigneeDto[];
     ownerPositionId: number | null;
     ownerPositionTitle: string | null;
     dueDate: string | null;
@@ -147,13 +147,17 @@ export interface WorkItemCreateDto {
     links: WorkItemLinkDto[];
 }
 
+export interface WorkItemAssigneeDto extends UserSummaryDto {
+    completedAt: string | null;
+}
+
 export interface WorkItemUpdateDto {
     newTagNames?: string[];
     tagIds?: number[];
     title: string;
     description: string | null;
     color: string | null;
-    assigneeUserIds: string[];
+    assigneeUserIds?: string[];
     ownerPositionId: number | null;
     dueDate: string | null;
     priority: number;

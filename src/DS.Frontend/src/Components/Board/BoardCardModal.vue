@@ -75,36 +75,7 @@
                 </div>
 
                 <aside class="flex flex-col gap-5 border-t border-default bg-elevated/40 p-4 sm:p-6 lg:border-s lg:border-t-0" aria-label="Detaljer">
-                    <UFormField label="Ansvarlige">
-                        <ul v-if="form.assignees.length" class="mb-2 flex flex-col gap-1">
-                            <li v-for="user in form.assignees" :key="user.id" class="flex items-center gap-2 text-sm">
-                                <UAvatar :src="user.profilePicture?.url" :text="initials(user)" size="2xs" />
-                                <span class="min-w-0 flex-1 truncate">{{ user.firstName }} {{ user.lastName }}</span>
-                                <UButton v-if="canManage" color="neutral" variant="ghost" size="xs" icon="i-lucide-x" :aria-label="`Fjern ${user.firstName} ${user.lastName} som ansvarlig`" :disabled="saving" @click="removeAssignee(user.id)" />
-                            </li>
-                        </ul>
-                        <p v-else class="mb-2 text-sm text-muted">Ingen</p>
-                        <template v-if="canManage">
-                            <UInput v-model="assigneeSearch" icon="i-lucide-search" placeholder="Tilføj: navn eller email…" :loading="assigneeSearching" size="sm" class="w-full" aria-label="Søg efter ansvarlig" />
-                            <ul v-if="assigneeResults.length" class="mt-1 flex flex-col rounded-md border border-default bg-default">
-                                <li v-for="user in assigneeResults" :key="user.id">
-                                    <button
-                                        type="button"
-                                        class="flex w-full items-center justify-between gap-2 px-2 py-1.5 text-left text-sm hover:bg-elevated disabled:opacity-50"
-                                        :disabled="form.assignees.some((assignee) => assignee.id === user.id)"
-                                        @click="selectAssignee(user)"
-                                    >
-                                        <span class="min-w-0">
-                                            <span class="block truncate">{{ user.firstName }} {{ user.lastName }}</span>
-                                            <span class="block truncate text-xs text-muted">{{ user.email }}</span>
-                                        </span>
-                                        <UIcon :name="form.assignees.some((assignee) => assignee.id === user.id) ? 'i-lucide-check' : 'i-lucide-plus'" class="size-4 shrink-0 text-muted" />
-                                    </button>
-                                </li>
-                            </ul>
-                            <p v-else-if="assigneeSearch && !assigneeSearching" class="mt-1 text-xs text-muted">Ingen brugere fundet.</p>
-                        </template>
-                    </UFormField>
+                    <BoardCardAssignees :key="liveCard?.id ?? 'new'" v-model:pending="form.assignees" :board-id="boardId" :card="liveCard" :can-manage="canManage" />
 
                     <UFormField label="Stilling">
                         <USelectMenu v-if="canManage" v-model="positionValue" :items="positionItems" value-key="value" size="sm" class="w-full" :disabled="saving" />
@@ -209,7 +180,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, reactive, ref, watch } from "vue";
+import { computed, reactive, ref, watch } from "vue";
 import type { DropdownMenuItem } from "@nuxt/ui";
 import BoardService from "@/Services/BoardService";
 import OrgService from "@/Services/OrgService";
@@ -224,11 +195,11 @@ import BoardTagInput from "@/Components/Board/BoardTagInput.vue";
 import BoardTagBadge from "@/Components/Board/BoardTagBadge.vue";
 import BoardCardDependencies from "@/Components/Board/BoardCardDependencies.vue";
 import BoardCardPullRequests from "@/Components/Board/BoardCardPullRequests.vue";
+import BoardCardAssignees from "@/Components/Board/BoardCardAssignees.vue";
 import {
     boardPriorityLabel,
     boardPriorityOptions,
     type BoardColumnDto,
-    type BoardMemberDto,
     type BoardTagDto,
     type OrgPositionDto,
     type UserSummaryDto,
@@ -247,9 +218,6 @@ const notify = useNotify();
 const saving = ref(false);
 const selectedTags = ref<BoardTagDto[]>([]);
 const tagInput = ref<InstanceType<typeof BoardTagInput>>();
-const assigneeSearch = ref("");
-const assigneeSearching = ref(false);
-const assigneeResults = ref<BoardMemberDto[]>([]);
 const orgPositions = ref<OrgPositionDto[]>([]);
 const placementPickerOpen = ref(false);
 const placementBoardId = ref<string | undefined>();
@@ -261,7 +229,6 @@ const savedSnapshot = ref("");
 const deleteOpen = ref(false);
 const removePlacementOpen = ref(false);
 const placementToRemove = ref<WorkItemPlacementDto | null>(null);
-let searchTimeout: ReturnType<typeof setTimeout> | null = null;
 
 const form = reactive({
     title: "",
@@ -275,6 +242,14 @@ const form = reactive({
 
 const isNew = computed(() => props.card === null);
 const availableTags = computed(() => String(store.SelectedBoard?.id) === String(props.boardId) ? store.SelectedBoard?.tags ?? [] : []);
+
+const liveCard = computed(() => {
+    if (!props.card) return null;
+
+    const board = store.SelectedBoard;
+    const live = board && Number(board.id) === props.boardId ? board.cards.find((card) => card.id === props.card?.id) : undefined;
+    return live ?? props.card;
+});
 
 const pullRequestCard = computed(() => {
     const board = store.SelectedBoard;
@@ -376,9 +351,6 @@ watch(() => [open.value, props.card, props.boardId] as const, () => {
     form.ownerPositionId = props.card?.ownerPositionId ?? null;
     savedSnapshot.value = snapshot();
 
-    assigneeSearch.value = "";
-    assigneeResults.value = [];
-    assigneeSearching.value = false;
     closePlacementPicker();
     statusColumns.value = {};
 
@@ -390,25 +362,6 @@ watch(placementBoardId, () => {
     void loadPlacementColumns();
 });
 
-watch(assigneeSearch, (value) => {
-    if (searchTimeout) clearTimeout(searchTimeout);
-
-    if (!value.trim()) {
-        assigneeResults.value = [];
-        assigneeSearching.value = false;
-        return;
-    }
-
-    assigneeSearching.value = true;
-    searchTimeout = setTimeout(async () => {
-        assigneeResults.value = await boardService.searchAssignees(value.trim(), props.boardId);
-        assigneeSearching.value = false;
-    }, 300);
-});
-
-onBeforeUnmount(() => {
-    if (searchTimeout) clearTimeout(searchTimeout);
-});
 
 function snapshot() {
     return JSON.stringify({
@@ -421,10 +374,6 @@ function snapshot() {
         ownerPositionId: form.ownerPositionId,
         tags: selectedTags.value.map((tag) => `${tag.id}:${tag.name}`)
     });
-}
-
-function initials(user: UserSummaryDto) {
-    return `${user.firstName?.[0] ?? ""}${user.lastName?.[0] ?? ""}`.toLocaleUpperCase("da-DK");
 }
 
 function isCurrentBoard(placement: WorkItemPlacementDto) {
@@ -550,18 +499,6 @@ async function doRemovePlacement() {
     }
 }
 
-function selectAssignee(user: BoardMemberDto) {
-    if (form.assignees.some((assignee) => assignee.id === user.id)) return;
-
-    form.assignees.push({ id: user.id, firstName: user.firstName, lastName: user.lastName, profilePicture: null });
-    assigneeSearch.value = "";
-    assigneeResults.value = [];
-}
-
-function removeAssignee(userId: string) {
-    form.assignees = form.assignees.filter((user) => user.id !== userId);
-}
-
 async function save() {
     if (saving.value) return;
     if (tagInput.value && !tagInput.value.commitPending()) return;
@@ -579,14 +516,13 @@ async function save() {
             title: form.title.trim(),
             description: htmlToPlainText(form.description) ? form.description : null,
             color: form.color,
-            assigneeUserIds: form.assignees.map((user) => user.id),
             ownerPositionId: form.ownerPositionId,
             dueDate: form.dueDate ? form.dueDate : null,
             priority: Number(form.priority)
         };
 
         const ok = isNew.value
-            ? (await store.ADD_CARD(props.boardId, { ...base, columnId: props.columnId, links: [] })) !== null
+            ? (await store.ADD_CARD(props.boardId, { ...base, assigneeUserIds: form.assignees.map((user) => user.id), columnId: props.columnId, links: [] })) !== null
             : await store.UPDATE_CARD(props.boardId, Number(props.card!.id), base);
 
         notify.result(ok, "Kortet er gemt.", "Kortet kunne ikke gemmes.");

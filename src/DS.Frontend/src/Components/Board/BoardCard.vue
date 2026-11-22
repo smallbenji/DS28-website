@@ -40,11 +40,17 @@
                 <span class="sr-only">Pull requests:</span>
                 {{ pullRequestCount }}
             </span>
+            <span v-if="completedCount" class="flex items-center gap-1" :class="completedCount === card.assignees.length ? 'text-success' : 'text-muted'" :title="completionLabel">
+                <UIcon name="i-lucide-circle-check" class="size-3.5" />
+                <span class="sr-only">Klarmeldt:</span>
+                {{ completedCount }}/{{ card.assignees.length }}
+            </span>
             <UAvatarGroup v-if="card.assignees.length" size="2xs" :max="3" class="ms-auto">
-                <UTooltip v-for="user in card.assignees" :key="user.id" :text="`${user.firstName} ${user.lastName}`">
+                <UTooltip v-for="user in card.assignees" :key="user.id" :text="`${user.firstName} ${user.lastName}${user.completedAt ? ' (klarmeldt)' : ''}`">
                     <UAvatar
                         :src="user.profilePicture?.url"
-                        :alt="`Ansvarlig: ${user.firstName} ${user.lastName}`"
+                        :alt="`Ansvarlig: ${user.firstName} ${user.lastName}${user.completedAt ? ', klarmeldt' : ''}`"
+                        :chip="user.completedAt ? { color: 'success', position: 'bottom-right' } : undefined"
                         :text="`${user.firstName?.[0] ?? ''}${user.lastName?.[0] ?? ''}`.toLocaleUpperCase('da-DK')"
                         draggable="false"
                     />
@@ -114,6 +120,8 @@ const dueClass = computed(() => {
 });
 const pullRequestCount = computed(() => props.card.pullRequests?.length ?? 0);
 const pullRequestLabel = computed(() => pullRequestCount.value === 1 ? "1 pull request" : `${pullRequestCount.value} pull requests`);
+const completedCount = computed(() => props.card.assignees.filter((user) => user.completedAt).length);
+const completionLabel = computed(() => `${completedCount.value} af ${props.card.assignees.length} ansvarlige har klarmeldt`);
 
 function currentDate() {
     return new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Copenhagen" }).format(new Date());
