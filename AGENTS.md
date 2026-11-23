@@ -6,10 +6,12 @@ DS28 supports the digital operation of Distriktssommerlejr 2028: group
 registration, activities, materials, finances, and a shared HQ dashboard.
 
 Read [the project plan](docs/project-plan.md) when working on domain
-behavior, permissions, registration dates, or architecture. It records the
-user's starting point, subsequent decisions, and open questions; it is **a
-draft, not an adopted specification or a request to implement every listed
-feature**.
+behavior, permissions, registration dates, or architecture. It is a short
+index: the user's original draft, one list of open questions, and a table that
+points to the file for each area (`docs/architecture.md`, `docs/security.md`
+and `docs/features/*.md`). Read the index first, then only the files for the
+areas the task touches. The plan is **a draft, not an adopted specification or
+a request to implement every listed feature**.
 
 - Use the current user request and explicit subsequent decisions to determine
   scope. Use the draft to understand intent, not to silently expand a task.
@@ -49,17 +51,32 @@ feature**.
 
 | Document | Use it for |
 |---|---|
-| [`docs/project-plan.md`](docs/project-plan.md) | Decisions, implemented behavior and open questions |
+| [`docs/project-plan.md`](docs/project-plan.md) | Plan index: original draft, open questions, decision table |
+| [`docs/architecture.md`](docs/architecture.md) | Projects, layers, DI, Worker, migration rules, frontend build |
+| [`docs/security.md`](docs/security.md) | Identity, OpenIddict, antiforgery, access tokens, hardening |
+| [`docs/features/`](docs/features/) | One file per feature area: behavior, decisions, open questions |
 | [`docs/database.md`](docs/database.md) | Current database schema |
 | [`docs/design-guide.md`](docs/design-guide.md) | Archived frontend only |
 | [`README.md`](README.md) | Running locally, Worker, code graph |
 
 ## Keep the project plan current
 
-Updating `docs/project-plan.md` is part of completing work that establishes or
-changes a project decision. Do this in the same task, without waiting for a
-separate documentation request.
+Updating the plan is part of completing work that establishes or changes a
+project decision. Do this in the same task, without waiting for a separate
+documentation request.
 
+- Record a decision in the file for its area: `docs/architecture.md` for
+  projects, layers, jobs, migrations rules and build, `docs/security.md` for
+  authentication and hardening, and `docs/features/<area>.md` for features.
+  Create a new feature file when no existing area fits.
+- Feature files use the same sections: `Status`, `Nuværende adfærd` (present
+  tense, no change log), `Beslutninger` (one bullet each with date, DS card,
+  decision and what it supersedes), `Åbne spørgsmål` and `Kodehenvisninger`
+  (paths that exist).
+- Keep the index in `docs/project-plan.md` current: add new files and DS cards
+  to the decision table, and add or remove open questions in its list.
+- Describe current behavior in place and remove what no longer applies. Git
+  history keeps the old text.
 - Record decisions about architecture, technologies, permissions, workflows,
   scope, and deadlines, including features or technologies that are dropped.
 - Update affected sections and note what an explicit new decision supersedes,
@@ -92,8 +109,9 @@ Do not add code comments unless explicitly asked. This covers `//`, `/* */`,
 `<!-- -->`, and XML documentation comments.
 
 - Prefer self-documenting code: descriptive names over explanatory comments.
-- Record the reasoning in `docs/project-plan.md` instead, which is where
-  decisions belong.
+- Record the reasoning in the plan file for the area instead (see
+  [Keep the project plan current](#keep-the-project-plan-current)), which is
+  where decisions belong.
 - An exception is a short note on a non-obvious security invariant, where a
   future change would otherwise silently introduce a bug. Keep it to one line.
 
