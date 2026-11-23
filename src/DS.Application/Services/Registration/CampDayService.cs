@@ -81,8 +81,24 @@ namespace DS.Application.Services.Registration
             var day = await dataDb.CampDays.SingleOrDefaultAsync(candidate => candidate.Id == id);
             if (day == null) return new ServiceResult(ServiceOutcome.NotFound, "Lejrdagen findes ikke.");
 
+            var registeredScouts = await dataDb.ScoutCampDays.CountAsync(registration => registration.CampDayId == id && registration.Scout.DeletedAt == null);
+            if (registeredScouts > 0) return new ServiceResult(ServiceOutcome.Conflict, $"{registeredScouts} {(registeredScouts == 1 ? "spejder er" : "spejdere er")} tilmeldt dagen, så den kan ikke slettes. Datoen kan stadig rettes.");
+
+            var leftoverRegistrations = await dataDb.ScoutCampDays
+                .IgnoreQueryFilters()
+                .Where(registration => registration.CampDayId == id)
+                .ToListAsync();
+            dataDb.ScoutCampDays.RemoveRange(leftoverRegistrations);
             dataDb.CampDays.Remove(day);
-            await dataDb.SaveChangesAsync();
+            try
+            {
+                await dataDb.SaveChangesAsync();
+            }
+            catch (DbUpdateException exception) when (exception.InnerException is DbException { SqlState: "23503" })
+            {
+                dataDb.ChangeTracker.Clear();
+                return new ServiceResult(ServiceOutcome.Conflict, "Der blev tilmeldt spejdere til dagen samtidig, så den kan ikke slettes.");
+            }
 
             return new ServiceResult(ServiceOutcome.Success);
         }

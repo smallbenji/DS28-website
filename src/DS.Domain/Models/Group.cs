@@ -113,10 +113,36 @@ public class Scout : IAuditableEntity, ISoftDeleteable
     public Group Group { get; set; }
     public int GroupId { get; set; }
     public ICollection<PatrolMembership> Memberships { get; set; }
+    public ICollection<ScoutCampDay> CampDays { get; set; } = [];
 
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
     public DateTime? DeletedAt { get; set; }
+
+    public void SetCampDays(IEnumerable<int> campDayIds)
+    {
+        var wanted = campDayIds.ToHashSet();
+        var removed = CampDays.Where(day => !wanted.Contains(day.CampDayId)).ToList();
+        foreach (var day in removed) CampDays.Remove(day);
+
+        var existing = CampDays.Select(day => day.CampDayId).ToHashSet();
+        foreach (var campDayId in wanted.Where(id => !existing.Contains(id)))
+        {
+            CampDays.Add(new ScoutCampDay
+            {
+                Scout = this,
+                CampDayId = campDayId
+            });
+        }
+    }
+}
+
+public class ScoutCampDay
+{
+    public int ScoutId { get; set; }
+    public Scout Scout { get; set; }
+    public int CampDayId { get; set; }
+    public CampDay CampDay { get; set; }
 }
 
 public class ScoutSignup

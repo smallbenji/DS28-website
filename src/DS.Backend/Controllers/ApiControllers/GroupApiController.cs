@@ -56,6 +56,16 @@ namespace DS.Backend.Controllers.ApiControllers
             return this.ToActionResult(result, noContent: true);
         }
 
+        [HttpPut("scouts/days")]
+        public async Task<IActionResult> SetScoutCampDays([FromBody] SetScoutCampDaysDto data)
+        {
+            if (data == null) return BadRequest("Ugyldig anmodning.");
+
+            var result = await service.SetScoutCampDays(userManager.GetUserId(User), data);
+
+            return this.ToActionResult(result);
+        }
+
         [HttpPost("patrols")]
         public async Task<IActionResult> CreatePatrol([FromBody] CreatePatrolDto data)
         {

@@ -65,6 +65,17 @@ erDiagram
         int scout_id FK "CASCADE, UNIQUE(scout_id, day)"
     }
 
+    camp_day {
+        int id PK
+        date date "UNIQUE"
+        varchar half "First | Second | Both"
+    }
+
+    scout_camp_day {
+        int scout_id PK, FK "CASCADE"
+        int camp_day_id PK, FK "RESTRICT"
+    }
+
     activity_team {
         int id PK
         text name
@@ -199,6 +210,8 @@ erDiagram
     scout ||--o{ patrol_membership : "er med i"
     patrol ||--o{ patrol_membership : "har medlemmer"
     scout ||--o{ scout_signup : "tilmelder sig"
+    scout ||--o{ scout_camp_day : "deltager"
+    camp_day ||--o{ scout_camp_day : "har deltagere"
     scout ||--o{ scout_activity_timeslot : "tilmelder sig"
     activity_team ||--o{ activity : "arrangerer"
     activity_team ||--o{ activity_team_membership : "har medlemmer"
@@ -395,12 +408,6 @@ erDiagram
         bool is_signup_open
         bool is_activity_wish_round_open
         bool is_activity_signup_open
-    }
-
-    camp_day {
-        int id PK
-        date date "UNIQUE"
-        varchar half "First | Second | Both"
     }
 
     google_connection {
@@ -830,8 +837,16 @@ mindst syv dage gamle. Det er ren dataoprydning uden skemaændring.
   `date` er `DATE NOT NULL` og unik (`uq_camp_day_date`), så en dato kun kan
   være én lejrdag. `half` er `VARCHAR(16) NOT NULL` med `ck_camp_day_half`
   (`First`, `Second` eller `Both`), hvor `Both` markerer en skiftedag, der
-  hører til begge halvdele. Tabellen har endnu ingen foreign keys peget på
-  sig; deltagelsesdage pr. spejder kommer med DS-72.
+  hører til begge halvdele.
+- `scout_camp_day` er de lejrdage, en spejder deltager. Primærnøglen er
+  `(scout_id, camp_day_id)`, så en dag kun kan registreres én gang pr.
+  spejder, og `ix_scout_camp_day_camp_day_id` understøtter opslag pr. dag.
+  `scout_id` har `ON DELETE CASCADE`, men da `scout` soft-slettes, fjerner
+  koden spejderens rækker ved sletning. `camp_day_id` har `ON DELETE RESTRICT`,
+  så en lejrdag med tilmeldte spejdere ikke kan slettes. En spejder uden rækker
+  mangler at få udfyldt dage; der findes ingen tilstand for "0 dage".
+- `scout_signup` med fri dato er ubrugt og afløst af `scout_camp_day`. Den
+  fjernes i en senere release (expand/contract).
 - `user_access_token` gemmer personlige adgangstokens til værktøjer og
   scripts. Kun SHA-256-hashen i `token_hash` gemmes (unik), så den rå token
   ikke kan gendannes fra databasen og kun vises én gang ved oprettelse.
