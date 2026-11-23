@@ -8,10 +8,23 @@
             <li v-for="user in assignees" :key="user.id" class="flex items-center gap-2 text-sm">
                 <UAvatar :src="user.profilePicture?.url" :text="initials(user)" size="2xs" />
                 <span class="min-w-0 flex-1 truncate">{{ user.firstName }} {{ user.lastName }}</span>
-                <UTooltip v-if="card" :text="user.completedAt ? `Klarmeldt ${formatDate(user.completedAt)}` : 'Ikke klarmeldt'">
+                <UTooltip v-if="card" :text="completionTooltip(user)">
+                    <UButton
+                        v-if="user.id === myAssignment?.id"
+                        :color="user.completedAt ? 'success' : 'neutral'"
+                        variant="ghost"
+                        size="xs"
+                        :icon="user.completedAt ? 'i-lucide-circle-check' : 'i-lucide-circle-dashed'"
+                        :class="user.completedAt ? '' : 'text-muted hover:text-success'"
+                        :aria-label="user.completedAt ? 'Fortryd klarmelding' : 'Klarmeld min del'"
+                        :aria-pressed="!!user.completedAt"
+                        :loading="saving"
+                        @click="toggleCompletion"
+                    />
                     <UIcon
+                        v-else
                         :name="user.completedAt ? 'i-lucide-circle-check' : 'i-lucide-circle-dashed'"
-                        class="size-4 shrink-0"
+                        class="mx-1.5 size-4 shrink-0"
                         :class="user.completedAt ? 'text-success' : 'text-muted'"
                         :aria-label="user.completedAt ? 'Klarmeldt' : 'Ikke klarmeldt'"
                     />
@@ -20,19 +33,6 @@
             </li>
         </ul>
         <p v-else class="mb-2 text-sm text-muted">Ingen</p>
-
-        <UButton
-            v-if="card && myAssignment"
-            class="mb-2"
-            size="sm"
-            block
-            :color="myAssignment.completedAt ? 'neutral' : 'success'"
-            :variant="myAssignment.completedAt ? 'outline' : 'soft'"
-            :icon="myAssignment.completedAt ? 'i-lucide-undo-2' : 'i-lucide-check'"
-            :label="myAssignment.completedAt ? 'Fortryd klarmelding' : 'Klarmeld min del'"
-            :loading="saving"
-            @click="toggleCompletion"
-        />
 
         <template v-if="canManage">
             <UInput v-model="search" icon="i-lucide-search" placeholder="Tilføj: navn eller email…" :loading="searching" size="sm" class="w-full" aria-label="Søg efter ansvarlig" />
@@ -110,6 +110,13 @@ function initials(user: UserSummaryDto) {
 
 function formatDate(value: string) {
     return new Intl.DateTimeFormat("da-DK", { dateStyle: "medium", timeStyle: "short", timeZone: "Europe/Copenhagen" }).format(new Date(value));
+}
+
+function completionTooltip(user: WorkItemAssigneeDto) {
+    const isMe = user.id === myAssignment.value?.id;
+    if (user.completedAt) return isMe ? `Klarmeldt ${formatDate(user.completedAt)} - klik for at fortryde` : `Klarmeldt ${formatDate(user.completedAt)}`;
+
+    return isMe ? "Klik for at klarmelde din del" : "Ikke klarmeldt";
 }
 
 function isAssigned(userId: string) {
