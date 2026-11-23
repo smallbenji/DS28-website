@@ -908,9 +908,47 @@ DS-82 med afhængigheder på tavlen. DS-17 er samlekort.
 - Ude af scope: bogføring, bilag, moms, bankafstemning, betalinger, udlæg og
   refusion samt selve faktureringen.
 
-Stadig åbent: reglen fra deltagelsesdage til pris, om ledere og hjælpere
-registreres og betaler, om der er særlige priser for ledere eller
-aldersgrupper, og kassererens øvrige behov (DS-4).
+Stadig åbent: reglen fra deltagelsesdage til pris (DS-79/DS-80), om ledere og
+hjælpere registreres og betaler (DS-97), om der er særlige priser for ledere
+eller aldersgrupper, og kassererens øvrige behov (DS-4).
+
+**Beslutning 2026-11-23 (DS-72 og DS-96, ikke implementeret):** Deltagelsesdage
+registreres i den endelige tilmelding. Beslutningen præciserer punktet om
+deltagelsesdage ovenfor.
+
+- Kun spejdere registreres med dage i første version. Ledere og hjælpere er
+  skubbet til DS-97. Modellen skal kunne udvides med en deltagertype uden at
+  ændre tabellerne for dage.
+- Enheden er hele dage. Der registreres ingen ankomst- eller
+  afrejsetidspunkter.
+- Lejrens dage er data i en ny tabel `camp_day`, som lejrchefen redigerer på
+  `/camp-settings` med `PreSignupManage` (DS-96). Hver dag hører til 1.
+  halvdel, 2. halvdel eller begge, så en skiftedag kan være med i begge
+  halvdele. En dag med tilmeldinger kan ikke slettes, men datoen kan rettes.
+  Datoerne hardkodes ikke.
+- Spejderens dage gemmes i en ny tabel `scout_camp_day` med fremmednøgle til
+  `camp_day`. Den ubrugte `scout_signup` med fri dato fjernes i en senere
+  release (expand/contract).
+- En ny spejder har ingen dage. En spejder uden dage betyder altid "mangler at
+  blive udfyldt"; der findes ingen tilstand for "0 dage", og en spejder, der
+  ikke deltager, slettes. Det følger princippet om, at tomt ikke er 0.
+- På `/group/final-signup` vælges Hel uge, 1. halvdel, 2. halvdel eller
+  enkelte dage pr. spejder, også ved oprettelse og for flere spejdere eller en
+  hel patrulje ad gangen. Manglende dage vises som advarsel øverst på siden,
+  som mærkat pr. spejder og som status på `/group`, med en knap, der giver alle
+  uden dage samme periode.
+- Spejdere uden dage tæller ikke med i deltagerbetaling og
+  faktureringsoversigt, men vises som "N spejdere mangler dage" pr. gruppe
+  (DS-80, DS-81).
+- Lukket endelig tilmelding låser ikke dagene. Hvad lukket tilmelding betyder,
+  afklares på DS-98.
+- Hensyn, ikke beslutning: aktivitetstilmeldingen skal senere kunne tjekke, om
+  spejdere er på lejren. DS-72 garanterer kun, at data kan besvare, hvem der er
+  tilmeldt en given dato, og hvem der mangler dage, med datoer regnet i
+  Europe/Copenhagen. Om aktivitetstilmeldingen blokerer, advarer eller kun
+  tilmelder de tilstedeværende, og hvordan spejdere uden dage håndteres der,
+  er ikke besluttet. Reglen om, at en patrulje ikke må tilmeldes på dage, hvor
+  den ikke er på lejren, står derfor uændret som hensigt.
 
 ### Materialer
 
