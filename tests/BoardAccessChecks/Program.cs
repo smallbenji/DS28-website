@@ -618,6 +618,36 @@ Check(await controller.RemoveCard(depsHiddenId, secondEpicId) is OkResult, "epic
 Check(!await db.BoardCards.AnyAsync(card => card.EpicBoardCardId == secondEpicPlacementId), "deleting an epic releases its cards");
 Check(EpicCard(await Board(depsHiddenId), epicChildB).EpicCardId == null, "card of a deleted epic no longer shows an epic");
 
+int CreatedCardNumber(string text)
+{
+    return int.Parse(text.Split(' ')[1].Replace("DS-", ""));
+}
+
+string CardLine(string boardText, int cardId)
+{
+    return boardText.Split('\n').Single(line => line.StartsWith($"- DS-{cardId} "));
+}
+
+var mcpEpicText = await mcp.CreateCard(depsHiddenId, "MCP epic", columnId: epicBacklog, isEpic: true);
+var mcpEpicId = CreatedCardNumber(mcpEpicText);
+Check(mcpEpicText.EndsWith(" Markeret som epic.") && EpicCard(await Board(depsHiddenId), mcpEpicId).IsEpic, "remote MCP creates a card as epic");
+var mcpEpicChildText = await mcp.CreateCard(depsHiddenId, "MCP del", columnId: epicDone, epicCardId: mcpEpicId);
+var mcpEpicChildId = CreatedCardNumber(mcpEpicChildText);
+Check(mcpEpicChildText.EndsWith($" Lagt under epic DS-{mcpEpicId}.") && EpicCard(await Board(depsHiddenId), mcpEpicChildId).EpicCardId == mcpEpicId, "remote MCP creates a card under an epic");
+var mcpEpicBoardText = await mcp.GetBoard(depsHiddenId);
+Check(CardLine(mcpEpicBoardText, mcpEpicId).EndsWith(" | epic: 1 af 1 færdige"), "remote get_board shows epic progress");
+Check(CardLine(mcpEpicBoardText, mcpEpicChildId).EndsWith($" | epic: DS-{mcpEpicId} MCP epic"), "remote get_board shows the epic of a card");
+Check(await mcp.UpdateCard(depsHiddenId, epicChildA, epicCardId: mcpEpicId) == $"Opdaterede DS-{epicChildA} på tavle {depsHiddenId}: epic.", "remote MCP puts an existing card under an epic");
+Check(await mcp.UpdateCard(depsHiddenId, epicChildA, epicCardId: mcpEpicId) == $"DS-{epicChildA} er uændret på tavle {depsHiddenId}.", "remote MCP leaves an unchanged epic alone");
+Check(await mcp.UpdateCard(depsHiddenId, epicChildA, isEpic: true, epicCardId: 0) == $"Opdaterede DS-{epicChildA} på tavle {depsHiddenId}: epic-markering, epic.", "remote MCP removes a card from its epic before marking it");
+Check(EpicCard(await Board(depsHiddenId), epicChildA) is { IsEpic: true, EpicCardId: null }, "remote MCP update stores the epic changes");
+Check(await mcp.UpdateCard(depsHiddenId, epicChildA, isEpic: false) == $"Opdaterede DS-{epicChildA} på tavle {depsHiddenId}: epic-markering.", "remote MCP unmarks an epic");
+await RejectMcp(() => mcp.UpdateCard(depsHiddenId, epicChildB, epicCardId: epicChildA), "remote MCP rejects a target that is not an epic");
+await RejectMcp(() => mcp.UpdateCard(depsHiddenId, mcpEpicChildId, isEpic: true), "remote MCP surfaces the one-level rule");
+var plainBoard = await Board(plainBoardId);
+await RejectMcp(() => mcp.CreateCard(plainBoardId, "MCP almindelig", columnId: plainBoard.Columns.First().Id, isEpic: true), "remote MCP rejects epics without developer features");
+Check((await Board(plainBoardId)).Cards.Count == plainBoard.Cards.Count, "remote MCP does not create a card when the epic is rejected");
+
 Check(await mcp.AddDependency(depsHiddenId, mcpCardId, hiddenCardId) == $"DS-{mcpCardId} venter nu på DS-{hiddenCardId}.", "remote MCP adds a dependency");
 var mcpBoardText = await mcp.GetBoard(depsHiddenId);
 Check(mcpBoardText.Contains($"venter på: DS-{hiddenCardId} Dep hidden (ikke færdig)") && mcpBoardText.Contains($"blokerer: DS-{mcpCardId} Dep MCP (ikke færdig)"), "remote MCP board text shows waiting and blocking cards");

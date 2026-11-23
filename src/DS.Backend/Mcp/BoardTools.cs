@@ -26,7 +26,7 @@ namespace DS.Backend.Mcp
         }
 
         [McpServerTool(Name = "get_board", ReadOnly = true)]
-        [Description("Read one DS28 Kanban board: columns with ids, colour palette, board tags with ids/names/colours, and all cards with DS-number, column, priority, due date, colour, assignees, assigned tags, the cards each card waits on or blocks, PR links on developer boards, and description.")]
+        [Description("Read one DS28 Kanban board: columns with ids, colour palette, board tags with ids/names/colours, and all cards with DS-number, column, priority, due date, colour, assignees, assigned tags, the cards each card waits on or blocks, PR links and epics on developer boards (epic progress, or the epic a card belongs to), and description.")]
         public async Task<string> GetBoard([Description("Board id from list_boards.")] int boardId)
         {
             var result = await boards.GetBoard(await ActorAsync(), boardId);
@@ -35,7 +35,7 @@ namespace DS.Backend.Mcp
         }
 
         [McpServerTool(Name = "create_card")]
-        [Description("Create a card on a DS28 Kanban board in a given column. Returns the new card number DS-<id>.")]
+        [Description("Create a card on a DS28 Kanban board in a given column. Returns the new card number DS-<id>. On developer boards the card can be marked as an epic or put under an existing epic.")]
         public async Task<string> CreateCard(
             [Description("Board id from list_boards.")] int boardId,
             [Description("Card title.")] string title,
@@ -44,16 +44,23 @@ namespace DS.Backend.Mcp
             [Description("Plain text or HTML. Plain text becomes paragraphs.")] string description = null,
             [Description("-1 low, 0 normal, 1 high. Defaults to 0.")] int priority = 0,
             [Description("Due date as YYYY-MM-DD.")] string dueDate = null,
-            [Description("Tag ids from this board in get_board. Replaces the selection; omitted or null means no tags on a new card.")] int[] tagIds = null)
+            [Description("Tag ids from this board in get_board. Replaces the selection; omitted or null means no tags on a new card.")] int[] tagIds = null,
+            [Description("Developer boards only: true marks the new card as an epic. Defaults to false.")] bool isEpic = false,
+            [Description("Developer boards only: card number of an epic on this board, for example 17 for DS-17, to put the new card under. Omitted, null or 0 means no epic.")] int? epicCardId = null)
         {
             if (!new[] { -1, 0, 1 }.Contains(priority)) throw new McpException("priority skal være -1, 0 eller 1.");
             if (string.IsNullOrWhiteSpace(title)) throw new McpException("title må ikke være tom.");
+            if (epicCardId < 0) throw new McpException("epicCardId skal være et DS-nummer eller 0.");
 
             var actor = await ActorAsync();
             var columns = Unwrap(await boards.GetColumns(actor, boardId));
             var columnIdValue = BoardInputs.ResolveColumn(columns, columnId, column);
 
-            var selectedTagIds = tagIds == null ? [] : BoardInputs.ResolveTagIds(Unwrap(await boards.GetBoard(actor, boardId)).Tags, tagIds);
+            var epicWorkItemId = epicCardId > 0 ? epicCardId : null;
+            var board = tagIds == null && !isEpic && epicWorkItemId == null ? null : Unwrap(await boards.GetBoard(actor, boardId));
+            if (isEpic || epicWorkItemId != null) BoardInputs.ValidateEpic(board, null, isEpic ? true : null, epicWorkItemId);
+
+            var selectedTagIds = tagIds == null ? [] : BoardInputs.ResolveTagIds(board.Tags, tagIds);
 
             var data = new WorkItemCreateDto
             {
@@ -69,11 +76,21 @@ namespace DS.Backend.Mcp
             if (created.Outcome != ServiceOutcome.Success) throw new McpException(Describe(created.Outcome, created.Error));
 
             var columnTitle = columns.First(candidate => candidate.Id == columnIdValue).Title;
-            return $"Oprettet DS-{created.Value} \"{title.Trim()}\" i kolonnen \"{columnTitle}\" på tavle {boardId}.";
+            var result = $"Oprettet DS-{created.Value} \"{title.Trim()}\" i kolonnen \"{columnTitle}\" på tavle {boardId}.";
+
+            var epicResult = new ServiceResult(ServiceOutcome.Success);
+            if (isEpic) epicResult = await boards.SetEpicMarking(actor, boardId, created.Value, true);
+            if (epicWorkItemId != null) epicResult = await boards.SetCardEpic(actor, new WorkItemEpicLinkDto { EpicWorkItemId = epicWorkItemId.Value }, boardId, created.Value);
+            if (epicResult.Outcome != ServiceOutcome.Success) throw new McpException($"{result} Epic blev ikke sat: {Describe(epicResult.Outcome, epicResult.Error)}");
+
+            if (isEpic) return $"{result} Markeret som epic.";
+            if (epicWorkItemId != null) return $"{result} Lagt under epic DS-{epicWorkItemId}.";
+
+            return result;
         }
 
         [McpServerTool(Name = "update_card")]
-        [Description("Update an existing DS28 card. Fields that are omitted keep their current value. Empty values clear description, due date, colour or assignees. Omitted/null tagIds preserve tags; [] clears tags on this board.")]
+        [Description("Update an existing DS28 card. Fields that are omitted keep their current value. Empty values clear description, due date, colour or assignees. Omitted/null tagIds preserve tags; [] clears tags on this board. On developer boards isEpic marks or unmarks an epic, and epicCardId puts the card under an epic or removes it with 0.")]
         public async Task<string> UpdateCard(
             [Description("Board id from list_boards.")] int boardId,
             [Description("Card number from DS-<id>, for example 42 for DS-42.")] int cardId,
@@ -83,7 +100,9 @@ namespace DS.Backend.Mcp
             [Description("Due date as YYYY-MM-DD. Empty string clears it.")] string dueDate = null,
             [Description("Hex colour from the board palette, for example \"#3366ff\". Empty string clears it.")] string color = null,
             [Description("Full names or emails of the responsible users. Replaces the current assignees; an empty list clears them.")] string[] assignees = null,
-            [Description("Tag ids from this board in get_board. Omitted or null preserves the selection; [] removes all tags on this board only.")] int[] tagIds = null)
+            [Description("Tag ids from this board in get_board. Omitted or null preserves the selection; [] removes all tags on this board only.")] int[] tagIds = null,
+            [Description("Developer boards only: true marks the card as an epic, false unmarks it and releases its cards. Omitted/null preserves it.")] bool? isEpic = null,
+            [Description("Developer boards only: card number of an epic on this board, for example 17 for DS-17. 0 removes the card from its epic; omitted/null preserves it.")] int? epicCardId = null)
         {
             if (priority.HasValue && !new[] { -1, 0, 1 }.Contains(priority.Value)) throw new McpException("priority skal være -1, 0 eller 1.");
 
@@ -127,22 +146,41 @@ namespace DS.Backend.Mcp
             var selectedTagIds = tagIds == null ? null : BoardInputs.ResolveTagIds(board.Tags, tagIds);
             if (selectedTagIds != null && !selectedTagIds.Order().SequenceEqual(card.Tags.Select(tag => tag.Id).Order())) changes.Add("tags");
 
+            BoardInputs.ValidateEpic(board, cardId, isEpic, epicCardId);
+
+            var removeEpicLink = epicCardId == 0 && card.EpicCardId != null;
+            var unmarkEpic = isEpic == false && card.IsEpic;
+            var setEpicLink = epicCardId > 0 && epicCardId != card.EpicCardId;
+            var markEpic = isEpic == true && !card.IsEpic;
+            var fieldChanges = changes.Count;
+
+            if (unmarkEpic || markEpic) changes.Add("epic-markering");
+            if (removeEpicLink || setEpicLink) changes.Add("epic");
+
             if (changes.Count == 0) return $"DS-{cardId} er uændret på tavle {boardId}.";
 
-            var data = new WorkItemUpdateDto
+            if (fieldChanges > 0)
             {
-                TagIds = selectedTagIds,
-                Title = newTitle,
-                Description = newDescription,
-                Color = newColor,
-                AssigneeUserIds = assignees == null ? null : assigneeIds,
-                OwnerPositionId = card.OwnerPositionId,
-                DueDate = newDueDate,
-                Priority = newPriority,
-            };
+                var data = new WorkItemUpdateDto
+                {
+                    TagIds = selectedTagIds,
+                    Title = newTitle,
+                    Description = newDescription,
+                    Color = newColor,
+                    AssigneeUserIds = assignees == null ? null : assigneeIds,
+                    OwnerPositionId = card.OwnerPositionId,
+                    DueDate = newDueDate,
+                    Priority = newPriority,
+                };
 
-            var updated = await boards.UpdateCard(actor, data, boardId, cardId);
-            if (updated.Outcome != ServiceOutcome.Success) throw new McpException(Describe(updated.Outcome, updated.Error));
+                var updated = await boards.UpdateCard(actor, data, boardId, cardId);
+                if (updated.Outcome != ServiceOutcome.Success) throw new McpException(Describe(updated.Outcome, updated.Error));
+            }
+
+            if (removeEpicLink) EnsureSuccess(await boards.RemoveCardEpic(actor, boardId, cardId));
+            if (unmarkEpic) EnsureSuccess(await boards.SetEpicMarking(actor, boardId, cardId, false));
+            if (setEpicLink) EnsureSuccess(await boards.SetCardEpic(actor, new WorkItemEpicLinkDto { EpicWorkItemId = epicCardId.Value }, boardId, cardId));
+            if (markEpic) EnsureSuccess(await boards.SetEpicMarking(actor, boardId, cardId, true));
 
             return $"Opdaterede DS-{cardId} på tavle {boardId}: {string.Join(", ", changes)}.";
         }
@@ -328,6 +366,11 @@ namespace DS.Backend.Mcp
             return new BoardActor(userManager.GetUserId(user), canSeeAllBoards);
         }
 
+        private static void EnsureSuccess(ServiceResult result)
+        {
+            if (result.Outcome != ServiceOutcome.Success) throw new McpException(Describe(result.Outcome, result.Error));
+        }
+
         private static T Unwrap<T>(ServiceResult<T> result)
         {
             if (result.Outcome == ServiceOutcome.Success) return result.Value;
@@ -401,6 +444,8 @@ namespace DS.Backend.Mcp
                 if (!string.IsNullOrEmpty(card.Color)) meta.Add($"farve {card.Color}");
                 if (card.Tags.Count > 0) meta.Add($"tags: {string.Join(", ", card.Tags.Select(tag => $"{tag.Name} (id {tag.Id})"))}");
                 if (card.Assignees.Count > 0) meta.Add($"ansvarlige: {string.Join(", ", card.Assignees.Select(Assignee))}");
+                if (card.IsEpic) meta.Add($"epic: {card.EpicProgress?.Done ?? 0} af {card.EpicProgress?.Total ?? 0} færdige");
+                if (card.EpicCardId.HasValue) meta.Add($"epic: {Epic(board.Cards, card.EpicCardId.Value)}");
                 if (card.PullRequests.Count > 0) meta.Add($"PR-links: {string.Join(", ", card.PullRequests)}");
                 if (card.WaitingOn.Count > 0) meta.Add($"venter på: {string.Join(", ", card.WaitingOn.Select(Dependency))}");
                 if (card.Blocking.Count > 0) meta.Add($"blokerer: {string.Join(", ", card.Blocking.Select(Dependency))}");
@@ -425,6 +470,12 @@ namespace DS.Backend.Mcp
             return lines.Count == 0 ? "Ingen kort fundet." : string.Join("\n", lines);
         }
 
+        private static string Epic(IEnumerable<WorkItemDto> cards, int epicCardId)
+        {
+            var epic = cards.FirstOrDefault(candidate => candidate.Id == epicCardId);
+            return epic == null ? $"DS-{epicCardId}" : $"DS-{epicCardId} {epic.Title}";
+        }
+
         private static string Dependency(WorkItemDependencyDto dependency)
         {
             var name = dependency.IsVisible ? $"DS-{dependency.Id} {dependency.Title}" : $"DS-{dependency.Id} (skjult kort)";
@@ -447,6 +498,20 @@ namespace DS.Backend.Mcp
             if (result.Any(id => id <= 0 || !knownIds.Contains(id))) throw new McpException("Et eller flere tags findes ikke på tavlen. Brug tag-id'er fra get_board.");
 
             return result;
+        }
+
+        public static void ValidateEpic(BoardDetailDto board, int? cardId, bool? isEpic, int? epicCardId)
+        {
+            if (isEpic == null && epicCardId == null) return;
+            if (epicCardId < 0) throw new McpException("epicCardId skal være et DS-nummer eller 0.");
+            if (!board.IsDeveloperBoard) throw new McpException("Tavlen har ikke udviklerfunktioner slået til.");
+            if (isEpic == true && epicCardId > 0) throw new McpException("Et kort kan ikke både være epic og høre til en epic.");
+            if (epicCardId is null or 0) return;
+            if (epicCardId == cardId) throw new McpException("Et kort kan ikke være sin egen epic.");
+
+            var epic = board.Cards.FirstOrDefault(candidate => candidate.Id == epicCardId);
+            if (epic == null) throw new McpException($"DS-{epicCardId} findes ikke på tavlen.");
+            if (!epic.IsEpic) throw new McpException($"DS-{epicCardId} er ikke markeret som epic.");
         }
 
         public static string ToHtml(string text)

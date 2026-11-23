@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 import { createInterface } from "node:readline";
 import http from "node:http";
 import https from "node:https";
-import { formatBoard, formatBoards, formatCardSearch, matchUser, parseEnvFile, resolveColumn, resolveTagIds, toHtml } from "./lib.mjs";
+import { formatBoard, formatBoards, formatCardSearch, matchUser, parseEnvFile, resolveColumn, resolveTagIds, toHtml, validateEpicArguments } from "./lib.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const envPath = join(here, ".env");
@@ -90,7 +90,7 @@ const tools = [
     },
     {
         name: "get_board",
-        description: "Read one DS28 Kanban board: columns with ids, colour palette, board tags with ids/names/colours and all cards with DS-number, column, priority, due date, colour, assignees, assigned tags, the cards each card waits on or blocks, PR links on developer boards, and description.",
+        description: "Read one DS28 Kanban board: columns with ids, colour palette, board tags with ids/names/colours and all cards with DS-number, column, priority, due date, colour, assignees, assigned tags, the cards each card waits on or blocks, PR links and epics on developer boards (epic progress, or the epic a card belongs to), and description.",
         inputSchema: {
             type: "object",
             properties: { boardId: { type: "integer", description: "Board id from list_boards." } },
@@ -106,7 +106,7 @@ const tools = [
     },
     {
         name: "create_card",
-        description: "Create a card on a DS28 Kanban board in a given column. Returns the new card number DS-<id>.",
+        description: "Create a card on a DS28 Kanban board in a given column. Returns the new card number DS-<id>. On developer boards the card can be marked as an epic or put under an existing epic.",
         inputSchema: {
             type: "object",
             properties: {
@@ -118,6 +118,8 @@ const tools = [
                 priority: { type: "integer", enum: [-1, 0, 1], description: "-1 low, 0 normal, 1 high. Defaults to 0." },
                 dueDate: { type: "string", description: "Due date as YYYY-MM-DD." },
                 tagIds: { type: ["array", "null"], items: { type: "integer", minimum: 1 }, description: "Tag ids from this board in get_board. Omitted/null means no tags on a new card." },
+                isEpic: { type: "boolean", description: "Developer boards only: true marks the new card as an epic. Defaults to false." },
+                epicCardId: { type: ["integer", "null"], minimum: 0, description: "Developer boards only: card number of an epic on this board, for example 17 for DS-17, to put the new card under. Omitted, null or 0 means no epic." },
             },
             required: ["boardId", "title"],
             additionalProperties: false,
@@ -137,7 +139,12 @@ const tools = [
             const columnId = resolveColumn(columns, args.columnId, args.column);
             const columnTitle = columns.find(column => Number(column.id) === columnId).title;
 
-            const tagIds = args.tagIds == null ? undefined : resolveTagIds((await api("GET", `/api/v1/boards/${boardId}`)).tags, args.tagIds);
+            const isEpic = args.isEpic ?? false;
+            const epicCardId = args.epicCardId || null;
+            const board = args.tagIds == null && !isEpic && epicCardId == null ? null : await api("GET", `/api/v1/boards/${boardId}`);
+            if (board) validateEpicArguments(board, undefined, isEpic || null, epicCardId);
+
+            const tagIds = args.tagIds == null ? undefined : resolveTagIds(board.tags, args.tagIds);
             const id = await api("POST", `/api/v1/boards/${boardId}/cards`, {
                 ...(tagIds === undefined ? {} : { tagIds }),
                 columnId,
@@ -147,7 +154,17 @@ const tools = [
                 dueDate: args.dueDate ?? null,
             });
 
-            return `Oprettet DS-${id} "${args.title}" i kolonnen "${columnTitle}" på tavle ${boardId}.`;
+            const result = `Oprettet DS-${id} "${args.title}" i kolonnen "${columnTitle}" på tavle ${boardId}.`;
+            try {
+                if (isEpic) await api("PUT", `/api/v1/boards/${boardId}/cards/${id}/epic`);
+                if (epicCardId != null) await api("PUT", `/api/v1/boards/${boardId}/cards/${id}/epic-link`, { epicWorkItemId: epicCardId });
+            } catch (error) {
+                throw new Error(`${result} Epic blev ikke sat: ${error.message}`);
+            }
+
+            if (isEpic) return `${result} Markeret som epic.`;
+            if (epicCardId != null) return `${result} Lagt under epic DS-${epicCardId}.`;
+            return result;
         },
     },
     {
@@ -190,7 +207,7 @@ const tools = [
     },
     {
         name: "update_card",
-        description: "Update an existing DS28 card. Fields that are omitted keep their current value. Empty values clear description, due date, color or assignees. Omitted/null tagIds preserve tags; [] clears tags on this board.",
+        description: "Update an existing DS28 card. Fields that are omitted keep their current value. Empty values clear description, due date, color or assignees. Omitted/null tagIds preserve tags; [] clears tags on this board. On developer boards isEpic marks or unmarks an epic, and epicCardId puts the card under an epic or removes it with 0.",
         inputSchema: {
             type: "object",
             properties: {
@@ -207,6 +224,8 @@ const tools = [
                     items: { type: "string" },
                     description: "Full names or emails of the responsible users. Replaces the current assignees; an empty list clears them.",
                 },
+                isEpic: { type: ["boolean", "null"], description: "Developer boards only: true marks the card as an epic, false unmarks it and releases its cards. Omitted/null preserves it." },
+                epicCardId: { type: ["integer", "null"], minimum: 0, description: "Developer boards only: card number of an epic on this board, for example 17 for DS-17. 0 removes the card from its epic; omitted/null preserves it." },
             },
             required: ["boardId", "cardId"],
             additionalProperties: false,
@@ -266,18 +285,40 @@ const tools = [
             const tagIds = args.tagIds == null ? undefined : resolveTagIds(board.tags, args.tagIds);
             if (tagIds !== undefined && [...tagIds].sort((a, b) => a - b).join(",") !== (card.tags ?? []).map(tag => Number(tag.id)).sort((a, b) => a - b).join(",")) changes.push("tags");
 
+            const isEpic = args.isEpic ?? null;
+            const epicCardId = args.epicCardId ?? null;
+            validateEpicArguments(board, cardId, isEpic, epicCardId);
+
+            const currentEpicCardId = card.epicCardId == null ? null : Number(card.epicCardId);
+            const removeEpicLink = epicCardId === 0 && currentEpicCardId !== null;
+            const unmarkEpic = isEpic === false && Boolean(card.isEpic);
+            const setEpicLink = epicCardId > 0 && epicCardId !== currentEpicCardId;
+            const markEpic = isEpic === true && !card.isEpic;
+            const fieldChanges = changes.length;
+
+            if (unmarkEpic || markEpic) changes.push("epic-markering");
+            if (removeEpicLink || setEpicLink) changes.push("epic");
+
             if (!changes.length) return `DS-${cardId} er uændret på tavle ${boardId}.`;
 
-            await api("PUT", `/api/v1/boards/${boardId}/cards/${cardId}`, {
-                ...(tagIds === undefined ? {} : { tagIds }),
-                title,
-                description,
-                color,
-                ...(args.assignees === undefined ? {} : { assigneeUserIds }),
-                ownerPositionId: card.ownerPositionId ?? null,
-                dueDate,
-                priority,
-            });
+            if (fieldChanges) {
+                await api("PUT", `/api/v1/boards/${boardId}/cards/${cardId}`, {
+                    ...(tagIds === undefined ? {} : { tagIds }),
+                    title,
+                    description,
+                    color,
+                    ...(args.assignees === undefined ? {} : { assigneeUserIds }),
+                    ownerPositionId: card.ownerPositionId ?? null,
+                    dueDate,
+                    priority,
+                });
+            }
+
+            const cardPath = `/api/v1/boards/${boardId}/cards/${cardId}`;
+            if (removeEpicLink) await api("DELETE", `${cardPath}/epic-link`);
+            if (unmarkEpic) await api("DELETE", `${cardPath}/epic`);
+            if (setEpicLink) await api("PUT", `${cardPath}/epic-link`, { epicWorkItemId: epicCardId });
+            if (markEpic) await api("PUT", `${cardPath}/epic`);
 
             return `Opdaterede DS-${cardId} på tavle ${boardId}: ${changes.join(", ")}.`;
         },
@@ -517,7 +558,7 @@ async function handleLine(line) {
                 protocolVersion: message.params?.protocolVersion ?? "2025-06-18",
                 capabilities: { tools: {} },
                 serverInfo: { name: "ds28-boards", version: "1.0.0" },
-                instructions: "Værktøjer til at læse og ændre kort på DS28 Kanban-tavler. Brug list_boards, derefter get_board for kolonne-id'er, kortnumre, farver og tag-id'er. Brug create_card, update_card, move_card eller delete_card til kort og create_tag, update_tag eller delete_tag til tavlens tags. Udeladte/null tagIds bevares ved opdatering; [] fjerner tags på denne tavle. Brug search_cards til at finde kort på tværs af tavler og add_dependency eller remove_dependency til at styre, hvilke kort et kort venter på.",
+                instructions: "Værktøjer til at læse og ændre kort på DS28 Kanban-tavler. Brug list_boards, derefter get_board for kolonne-id'er, kortnumre, farver og tag-id'er. Brug create_card, update_card, move_card eller delete_card til kort og create_tag, update_tag eller delete_tag til tavlens tags. Udeladte/null tagIds bevares ved opdatering; [] fjerner tags på denne tavle. Brug search_cards til at finde kort på tværs af tavler og add_dependency eller remove_dependency til at styre, hvilke kort et kort venter på. På udviklertavler styrer isEpic og epicCardId i create_card og update_card epics, og add_pull_request eller remove_pull_request styrer PR-links.",
             });
         case "ping":
             return respond(message.id, {});

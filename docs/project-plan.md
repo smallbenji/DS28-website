@@ -1247,8 +1247,8 @@ Nye og eksisterende tavler har funktionen slået fra som standard.
 **Beslutning 2026-11-23 (DS-99, database, service og API implementeret):** En
 epic er et almindeligt kort, der er markeret som epic på en udviklertavle.
 Andre kort på samme tavle kan høre til én epic. Epics afløser »samlekort«, der
-samler kort med afhængigheder. UI (DS-100), filter (DS-101) og MCP (DS-102) er
-separate kort og ikke implementeret.
+samler kort med afhængigheder. UI (DS-100) og filter (DS-101) er separate kort
+og ikke implementeret; MCP (DS-102) er implementeret, se nedenfor.
 
 - **Model:** Markeringen og relationen hører til tavleplaceringen
   (`board_card.is_epic` og `board_card.epic_board_card_id`), ligesom PR-links,
@@ -1282,6 +1282,18 @@ kort har `isEpic`, `epicCardId` (epic'ens DS-nummer) og for epics
 udviklertavler. Ændringer opdaterer den berørte tavle via SignalR. Frontenden
 har kun typer og metoder i `BoardService.ts` (`setEpicMarking`, `setCardEpic`,
 `removeCardEpic`), ingen UI.
+
+*Implementeret (DS-102, `src/DS.Backend/Mcp/BoardTools.cs`,
+`tools/ds28-mcp/server.mjs`, `tools/ds28-mcp/lib.mjs`):* Remote- og stdio-MCP
+har samme parametre og tekst. `get_board` viser »epic: 3 af 7 færdige« på en
+epic og »epic: DS-17 <titel>« på et kort under en epic. `create_card` har
+`isEpic` og `epicCardId`, som sættes efter oprettelsen; `update_card` har
+`isEpic` (true/false, udeladt bevarer) og `epicCardId` (DS-nummer, `0` fjerner
+kortet fra sin epic, udeladt/null bevarer). Værktøjerne afviser epic-parametre
+på tavler uden udviklerfunktioner og kontrollerer på forhånd, at målet er en
+epic på samme tavle, så et kort ikke oprettes halvt; serverens øvrige regler og
+fejltekster gælder uændret. Agenter lægger nye kort under en eksisterende epic
+efter kortforløbet i `AGENTS.md`.
 
 **Beslutning 2026-11-21 (godkendt, ikke implementeret, redesign af kanban-visningen):**
 Tavlevisningen skal redesignes ud fra et klikbart mockup, som brugeren har
