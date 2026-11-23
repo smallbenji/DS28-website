@@ -1,7 +1,7 @@
 <template>
     <section aria-labelledby="card-dependencies-heading">
-        <div class="mb-2 flex items-center justify-between gap-2">
-            <h3 id="card-dependencies-heading" class="text-sm font-semibold text-highlighted">Afhængigheder</h3>
+        <div class="mb-2 flex items-center justify-end gap-2">
+            <h3 id="card-dependencies-heading" class="sr-only">Afhængigheder</h3>
             <UButton v-if="canManage" color="neutral" variant="ghost" size="xs" :icon="pickerOpen ? 'i-lucide-x' : 'i-lucide-plus'" :label="pickerOpen ? 'Luk søgning' : 'Tilføj'" :aria-expanded="pickerOpen" :disabled="saving" @click="togglePicker" />
         </div>
 

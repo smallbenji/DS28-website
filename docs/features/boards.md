@@ -14,8 +14,9 @@ arbejdsgangen for kort i udviklingen står i [AGENTS.md](../../AGENTS.md).
   `board`, `board_column`, `work_item` og `board_card`. Skemaet står i
   [database.md](../database.md).
 - Et arbejdskort (`work_item`) ejes ét sted: titel, beskrivelse (HTML),
-  ansvarlige brugere, ansvarlig stilling, deadline, prioritet og farve. Kortet
-  kan placeres på flere tavler med én `board_card` pr. tavle. Titel,
+  ansvarlige brugere, deadline, prioritet og farve. Kolonnen for ansvarlig
+  stilling findes stadig i API og database, men vises og redigeres ikke i
+  kortdialogen (se beslutningen 2026-11-24). Kortet kan placeres på flere tavler med én `board_card` pr. tavle. Titel,
   beskrivelse, farve og ansvarlige er fælles på tværs af placeringer.
 - Status hører til placeringen: kortets kolonne på den tavle. En placering er
   færdig, når kolonnen er markeret som færdig-kolonne (`is_done_column`).
@@ -73,14 +74,23 @@ arbejdsgangen for kort i udviklingen står i [AGENTS.md](../../AGENTS.md).
 
 ### Kortdialogen
 
-- Headeren viser status på den åbne tavle som en knap, der flytter kortet til
-  en anden kolonne. Tags står over titlen. Beskrivelsen redigeres med Nuxt
-  UI's `UEditor` (H1 til H3, fed, kursiv, lister, citat) og vises gennem
+- Headeren viser tavle og kortnummer, status på den åbne tavle som en knap,
+  der flytter kortet til en anden kolonne, kortmenuen og luk.
+- Hovedkolonnen har titlen øverst og derefter beskrivelsen, som redigeres med
+  Nuxt UI's `UEditor` (H1 til H3, fed, kursiv, lister, citat) og vises gennem
   `RichTextViewer`. En tom beskrivelse gemmes som `NULL`.
-- Sidepanelet har ansvarlige, stilling, deadline, prioritet og farve som
-  formularfelter, placeringer på andre tavler med status og sektionerne for
-  afhængigheder, PR-links og epic.
-- Kortets felter gemmes med »Gem ændringer«. Placeringer, status,
+- Afhængigheder, PR-links, epic og domænekoblinger ligger i faner under
+  beskrivelsen med et tal for antallet. PR-links og epic vises kun på
+  udviklertavler, og koblinger kun når der er nogen.
+- Sidepanelet viser egenskaberne som rækker med etiket og værdi: ansvarlige,
+  prioritet, deadline, tags og farve. Ansvarlige, tags og farve redigeres i en
+  popover. Prioritet vises med samme ikoner som på tavlekortene (pil op, streg,
+  pil ned). Under egenskaberne står alle kortets tavler i én liste med status
+  pr. tavle; fjernelse ligger i hver rækkes menu. På smalle skærme står
+  sidepanelet over hovedkolonnen.
+- Uden redigeringsadgang vises egenskaberne som tekst, og der er ingen footer.
+  Ansvarlige kan stadig åbnes for at klarmelde.
+- Kortets felter gemmes med »Gem ændringer« eller Cmd/Ctrl+Enter. Placeringer, status,
   afhængigheder, PR-links, ansvarlige på eksisterende kort og klarmelding
   gemmes straks.
 - Tags vælges eller oprettes direkte i feltet (`BoardTagInput.vue`). Nye
@@ -183,6 +193,15 @@ tavleindstillingerne. Deaktivering skjuler data uden at slette dem og afviser
   overblik. Afløser samlekort. DS28 IT-tavlen inddeles i epics.
 - 2026-11-23, DS-109: Alle med redigeringsadgang kan klarmelde for andre.
   Afløser DS-40's regel om, at kun den ansvarlige selv kan.
+- 2026-11-24, DS-119: Nyt layout af kortdialogen efter godkendt mockup: titel
+  først, relationer i faner, egenskaber som rækker med popovers og én liste
+  over tavler. Afløser layoutet fra 2026-11-19.
+- 2026-11-24, DS-119 og DS-121: Kort har ikke længere en ansvarlig stilling.
+  Afløser "ansvarlig bruger eller stilling" fra 2026-10-14. Feltet blev ikke
+  brugt til filtre, overblik eller adgang, og den oprindelige begrundelse er
+  ikke dokumenteret. DS-119 fjerner feltet fra kortdialogen og bevarer en
+  eksisterende værdi ved gem. DS-121 fjerner det fra API, MCP og database med
+  expand/contract.
 
 ## Åbne spørgsmål
 
@@ -194,6 +213,8 @@ tavleindstillingerne. Deaktivering skjuler data uden at slette dem og afviser
   domæneobjekt?
 - Skal en tavle kunne generere kort automatisk fra en forespørgsel ("smart
   board")?
+- DS-120 (fuldskærmsside for kort med delbart link): skal adressen også
+  ændres, når kortdialogen åbnes på tavlen, eller er fuldskærmssiden nok?
 - Automatisk kobling af release-tags til merges eller deploys er ikke afklaret.
 - Ikke med i første version af afhængigheder: notifikationer, andre
   relationstyper og gendannelse af slettede kort. Kommentarer, checklister og
