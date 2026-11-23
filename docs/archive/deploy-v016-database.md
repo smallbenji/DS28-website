@@ -1,5 +1,9 @@
 # Overgang fra v0.1.6 til ds28-skemaet
 
+> **Arkiveret.** Overgangen blev gennemført med v0.2.0 (2026-10). Vejledningen
+> bevares som historik og gælder ikke længere for deploys. Det nuværende skema
+> er beskrevet i [databasedokumentationen](../database.md).
+
 `ds28` er det permanente skema for den nye version: domænetabeller, Identity,
 OpenIddict og DbUps `schemaversions`-tabel ligger her. EF har `ds28` som
 standardskema. SQL bruger eksplicitte skemanavne og afhænger ikke af
