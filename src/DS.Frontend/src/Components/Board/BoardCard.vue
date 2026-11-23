@@ -113,7 +113,7 @@ const epicLabel = computed(() => {
 
     return store.SelectedBoard?.cards.find((card) => String(card.id) === String(epicCardId))?.title ?? `DS-${epicCardId}`;
 });
-const epicProgress = computed(() => props.card.epicProgress ?? { done: 0, total: 0 });
+const epicProgress = computed(() => ({ done: Number(props.card.epicProgress?.done ?? 0), total: Number(props.card.epicProgress?.total ?? 0) }));
 const isEpicComplete = computed(() => epicProgress.value.total > 0 && epicProgress.value.done === epicProgress.value.total);
 
 const descriptionPreview = computed(() => htmlToPlainText(props.card.description));

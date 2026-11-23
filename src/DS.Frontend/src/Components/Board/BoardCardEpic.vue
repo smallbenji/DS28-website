@@ -125,7 +125,7 @@ const children = computed(() => boardCards.value
         return { card, columnTitle: column?.title ?? "Ukendt kolonne", isDone: column?.isDoneColumn ?? false };
     }));
 
-const progress = computed(() => props.card.epicProgress ?? { done: 0, total: 0 });
+const progress = computed(() => ({ done: Number(props.card.epicProgress?.done ?? 0), total: Number(props.card.epicProgress?.total ?? 0) }));
 const isComplete = computed(() => progress.value.total > 0 && progress.value.done === progress.value.total);
 
 function onToggle(value: boolean) {
