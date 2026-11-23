@@ -940,15 +940,16 @@ namespace DS.Application.Services.Boards
             return new ServiceResult(ServiceOutcome.Success);
         }
 
-        public async Task<ServiceResult> SetCompletion(BoardActor actor, int id, int workItemId, bool completed)
+        public async Task<ServiceResult> SetCompletion(BoardActor actor, int id, int workItemId, string userId, bool completed)
         {
             var board = await GetBoardAsync(id);
             if (board == null) return new ServiceResult(ServiceOutcome.NotFound);
             if (!await CanSeeBoardAsync(actor, board)) return new ServiceResult(ServiceOutcome.Forbidden);
             if (!await CardExistsAsync(id, workItemId)) return new ServiceResult(ServiceOutcome.NotFound);
 
-            var assignment = await dataDb.WorkItemAssignees.FirstOrDefaultAsync(assignee => assignee.WorkItemId == workItemId && assignee.UserId == actor.UserId);
-            if (assignment == null) return new ServiceResult(ServiceOutcome.Invalid, "Du er ikke ansvarlig på kortet.");
+            var notAssignedError = userId == actor.UserId ? "Du er ikke ansvarlig på kortet." : "Brugeren er ikke ansvarlig på kortet.";
+            var assignment = await dataDb.WorkItemAssignees.FirstOrDefaultAsync(assignee => assignee.WorkItemId == workItemId && assignee.UserId == userId);
+            if (assignment == null) return new ServiceResult(ServiceOutcome.Invalid, notAssignedError);
             if (assignment.CompletedAt.HasValue == completed) return new ServiceResult(ServiceOutcome.Success);
 
             assignment.CompletedAt = completed ? DateTime.UtcNow : null;
@@ -959,7 +960,7 @@ namespace DS.Application.Services.Boards
             catch (DbUpdateConcurrencyException)
             {
                 dataDb.Entry(assignment).State = EntityState.Detached;
-                return new ServiceResult(ServiceOutcome.Invalid, "Du er ikke ansvarlig på kortet.");
+                return new ServiceResult(ServiceOutcome.Invalid, notAssignedError);
             }
 
             await NotifyBoardsWithCardAsync(workItemId);

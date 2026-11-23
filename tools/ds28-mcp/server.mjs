@@ -479,7 +479,7 @@ const tools = [
     },
     {
         name: "set_completion",
-        description: "Mark your own part of a DS28 card as done, or withdraw it. Only an assignee can change their own completion; other assignees are unaffected and the card does not move.",
+        description: "Mark your own part of a DS28 card as done, or withdraw it. Other assignees are unaffected and the card does not move.",
         inputSchema: {
             type: "object",
             properties: {

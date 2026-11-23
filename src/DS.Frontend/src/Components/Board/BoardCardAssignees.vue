@@ -10,16 +10,17 @@
                 <span class="min-w-0 flex-1 truncate">{{ user.firstName }} {{ user.lastName }}</span>
                 <UTooltip v-if="card" :text="completionTooltip(user)">
                     <UButton
-                        v-if="user.id === myAssignment?.id"
+                        v-if="canToggle(user)"
                         :color="user.completedAt ? 'success' : 'neutral'"
                         variant="ghost"
                         size="xs"
                         :icon="user.completedAt ? 'i-lucide-circle-check' : 'i-lucide-circle-dashed'"
                         :class="user.completedAt ? '' : 'text-muted hover:text-success'"
-                        :aria-label="user.completedAt ? 'Fortryd klarmelding' : 'Klarmeld min del'"
+                        :aria-label="completionLabel(user)"
                         :aria-pressed="!!user.completedAt"
-                        :loading="saving"
-                        @click="toggleCompletion"
+                        :loading="togglingUserId === user.id"
+                        :disabled="saving"
+                        @click="toggleCompletion(user)"
                     />
                     <UIcon
                         v-else
@@ -74,6 +75,7 @@ const meStore = useMeStore();
 const notify = useNotify();
 
 const saving = ref(false);
+const togglingUserId = ref<string | null>(null);
 const search = ref("");
 const searching = ref(false);
 const results = ref<BoardMemberDto[]>([]);
@@ -112,11 +114,25 @@ function formatDate(value: string) {
     return new Intl.DateTimeFormat("da-DK", { dateStyle: "medium", timeStyle: "short", timeZone: "Europe/Copenhagen" }).format(new Date(value));
 }
 
+function canToggle(user: WorkItemAssigneeDto) {
+    return props.canManage || user.id === myAssignment.value?.id;
+}
+
 function completionTooltip(user: WorkItemAssigneeDto) {
     const isMe = user.id === myAssignment.value?.id;
-    if (user.completedAt) return isMe ? `Klarmeldt ${formatDate(user.completedAt)} - klik for at fortryde` : `Klarmeldt ${formatDate(user.completedAt)}`;
+    const status = user.completedAt ? `Klarmeldt ${formatDate(user.completedAt)}` : "Ikke klarmeldt";
+    if (!canToggle(user)) return status;
+    if (user.completedAt) return `${status} - klik for at fortryde`;
 
-    return isMe ? "Klik for at klarmelde din del" : "Ikke klarmeldt";
+    return isMe ? "Klik for at klarmelde din del" : `Klik for at klarmelde for ${user.firstName}`;
+}
+
+function completionLabel(user: WorkItemAssigneeDto) {
+    const isMe = user.id === myAssignment.value?.id;
+    if (isMe) return user.completedAt ? "Fortryd klarmelding" : "Klarmeld min del";
+
+    const name = `${user.firstName} ${user.lastName}`;
+    return user.completedAt ? `Fortryd klarmelding for ${name}` : `Klarmeld for ${name}`;
 }
 
 function isAssigned(userId: string) {
@@ -145,11 +161,15 @@ async function remove(userId: string) {
     await run(() => service.removeAssignee(props.boardId, props.card!.id, userId), "Den ansvarlige kunne ikke fjernes.");
 }
 
-async function toggleCompletion() {
-    if (!props.card || !myAssignment.value) return;
+async function toggleCompletion(user: WorkItemAssigneeDto) {
+    if (!props.card || !canToggle(user)) return;
 
-    const completed = !myAssignment.value.completedAt;
-    await run(() => service.setCompletion(props.boardId, props.card!.id, completed), "Klarmeldingen kunne ikke gemmes.");
+    togglingUserId.value = user.id;
+    try {
+        await run(() => service.setCompletion(props.boardId, props.card!.id, user.id, !user.completedAt), "Klarmeldingen kunne ikke gemmes.");
+    } finally {
+        togglingUserId.value = null;
+    }
 }
 
 async function run(action: () => Promise<void>, errorMessage: string) {

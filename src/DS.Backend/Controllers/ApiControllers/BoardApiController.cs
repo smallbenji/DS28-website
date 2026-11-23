@@ -240,7 +240,8 @@ namespace DS.Backend.Controllers.ApiControllers
         [HttpPut("{id:int}/cards/{workItemId:int}/completion")]
         public async Task<IActionResult> CompleteCard(int id, int workItemId)
         {
-            var result = await service.SetCompletion(GetActor(), id, workItemId, completed: true);
+            var actor = GetActor();
+            var result = await service.SetCompletion(actor, id, workItemId, actor.UserId, completed: true);
 
             return this.ToActionResult(result);
         }
@@ -248,7 +249,24 @@ namespace DS.Backend.Controllers.ApiControllers
         [HttpDelete("{id:int}/cards/{workItemId:int}/completion")]
         public async Task<IActionResult> ReopenCard(int id, int workItemId)
         {
-            var result = await service.SetCompletion(GetActor(), id, workItemId, completed: false);
+            var actor = GetActor();
+            var result = await service.SetCompletion(actor, id, workItemId, actor.UserId, completed: false);
+
+            return this.ToActionResult(result);
+        }
+
+        [HttpPut("{id:int}/cards/{workItemId:int}/assignees/{userId}/completion")]
+        public async Task<IActionResult> CompleteAssignee(int id, int workItemId, string userId)
+        {
+            var result = await service.SetCompletion(GetActor(), id, workItemId, userId, completed: true);
+
+            return this.ToActionResult(result);
+        }
+
+        [HttpDelete("{id:int}/cards/{workItemId:int}/assignees/{userId}/completion")]
+        public async Task<IActionResult> ReopenAssignee(int id, int workItemId, string userId)
+        {
+            var result = await service.SetCompletion(GetActor(), id, workItemId, userId, completed: false);
 
             return this.ToActionResult(result);
         }
