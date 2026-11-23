@@ -1,71 +1,77 @@
-# Project DS28
+# DS28 HQ
 
-## Overview
-This is the primary project repo for DS28 (Distriktssommerlejr 2028). Here we will create many projects which together will ensure that we can get the right data from every place delivered the right places. This project will start August 2026 and go on until the summer 2028. Hence the name ;)
+HQ til Distriktssommerlejr 2028: gruppetilmelding, aktiviteter, materialer,
+økonomi, tavler og et fælles dashboard. Produktion kører på
+`hq.distriktssommerlejr.dk`.
 
-## How to run
-1. Open workspace in vscode
-2. Launch selected project
-3. Go to JS folder of project
-4. Run `npm install` & `npm run dev´
+Projektets opbygning, konventioner og arbejdsgang for kort og pull requests står
+i [AGENTS.md](AGENTS.md). Beslutninger og åbne spørgsmål står i
+[projektplanen](docs/project-plan.md), og databaseskemaet i
+[docs/database.md](docs/database.md).
 
-## Template project
-When starting development on a new application. You need to copy the Template project, then you have everything you need to get started. Remember to change the name of the namespaces.
+## Kør lokalt
 
-## Hangfire worker
+Kræver .NET 10 (`mise.toml`), Node 24 (`volta` i `src/DS.Frontend/package.json`)
+og en PostgreSQL-database.
 
-Start `DS.Worker` alongside Website to execute background jobs:
+1. Kopiér `.env.example` til `.env` og udfyld mindst `ASPNETCORE_URLS`,
+   `DS__ConnectionString` og `DS__FileStoragePath`. Frontendens dev-server
+   forventer backenden på `https://localhost:44310`.
+2. Start Website. Databasen migreres med DbUp ved opstart:
+
+   ```sh
+   dotnet run --project src/DS.Backend/DS.Backend.csproj
+   ```
+
+   I VS Code kan du i stedet bruge launch-konfigurationen "Launch Website", som
+   læser `.env`.
+3. Start frontenden, som proxyer `/api` til backenden:
+
+   ```sh
+   cd src/DS.Frontend
+   npm install
+   npm run dev
+   ```
+
+`npm run build` typetjekker og bygger frontenden til
+`src/DS.Backend/wwwroot/dist`, hvor Website serverer den på `/`.
+
+## Hangfire-worker
+
+`DS.Worker` udfører baggrundsjob. Website sætter kun job i kø og viser
+Hangfire-dashboardet.
 
 ```sh
-dotnet run --project DS.Worker/DS.Worker.csproj
+dotnet run --project src/DS.Worker/DS.Worker.csproj
 ```
 
-Configure `DS__ConnectionString` with the same database as Website and
-`DS__FileStoragePath` with access to the same uploaded files. SMTP settings are
-read from the same `DS` configuration section. The worker waits for Website's
-database migrations before registering recurring jobs and starting Hangfire.
-Its Hangfire server name is the host's hostname (`Dns.GetHostName()`).
+Workeren skal bruge samme `DS__ConnectionString` og `DS__FileStoragePath` som
+Website og læser SMTP-indstillinger fra samme `DS`-sektion. Den venter på
+Websites databasemigreringer, før den registrerer tilbagevendende job og starter
+Hangfire, og bruger maskinens hostname som servernavn.
 
-`docker compose up --build hq worker` builds both services. Compose loads their
-configuration from `.env` and shares the `files` volume. The worker has no HTTP
-port; Website retains the Hangfire dashboard and enqueues jobs. The current
-GHCR workflow publishes both `ghcr.io/smallbenji/ds28-website` and
-`ghcr.io/smallbenji/ds28-website-worker` with the same version tags. Compose
-builds Worker using `Containerfile.Worker`.
+`docker compose up --build hq worker` bygger begge services. Compose læser
+konfiguration fra `.env` og deler volumen `files` mellem dem. Workeren har
+ingen HTTP-port.
 
-## Code graph for agents
+## Kodegraf til agenter
 
-[Graphify](https://graphify.com) builds a local knowledge graph of the code so an
-agent can query structure instead of reading files. The output in
-`graphify-out/` is generated and ignored by git.
+[Graphify](https://graphify.com) bygger en lokal kodegraf, så en agent kan
+spørge til strukturen i stedet for at læse filer. Outputtet i `graphify-out/`
+er genereret og ignoreres af git.
 
 ```sh
-uv tool install graphifyy     # or: pipx install graphifyy
+uv tool install graphifyy     # eller: pipx install graphifyy
 graphify install --platform opencode
 graphify extract . --code-only
 graphify cluster-only .
 ```
 
-`--code-only` skips the semantic pass over documents and therefore needs no LLM
-API key. Rebuild after code changes with `graphify update .`; run
-`graphify extract . --code-only --force` when files have been deleted. Ask the
-graph with `graphify query "<question>"` using English symbol names, or open
-`graphify-out/graph.html`.
+`--code-only` springer den semantiske gennemgang af dokumenter over og kræver
+derfor ingen API-nøgle til en sprogmodel. Opdatér grafen efter kodeændringer
+med `graphify update .`, og kør `graphify extract . --code-only --force`, når
+filer er slettet. Spørg grafen med `graphify query "<spørgsmål>"` med engelske
+symbolnavne, eller åbn `graphify-out/graph.html`.
 
-Install `graphify hook install` to rebuild the graph in the background after
-commit, checkout, merge and rebase. The hooks live in `.git/hooks` and are
-therefore local to the machine, not part of the repository.
-
-## Services
-
-- Wordpress (The main site)
-- HQ
-    - The login portal where you can find the services you have permissions to access.
-- Material Module
-    - The place where you can see which materials the different activities requests and have ordered
-- Activity System
-    - The place to type in the metadata for every activity
-- Economy Module
-    - The place to get the correct prices and what to send invoices on and what to pay people
-- Group Management
-    - The place for the groups to enter how many scouts the're will be
+`graphify hook install` genopbygger grafen i baggrunden efter commit, checkout,
+merge og rebase. Hooks ligger i `.git/hooks` og gælder kun den lokale maskine.

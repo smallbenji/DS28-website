@@ -7,8 +7,9 @@ registration, activities, materials, finances, and a shared HQ dashboard.
 
 Read [the project plan](docs/project-plan.md) when working on domain
 behavior, permissions, registration dates, or architecture. It records the
-user's starting point, subsequent decisions, and open questions; it is **a draft, not an adopted
-specification or a request to implement every listed feature**.
+user's starting point, subsequent decisions, and open questions; it is **a
+draft, not an adopted specification or a request to implement every listed
+feature**.
 
 - Use the current user request and explicit subsequent decisions to determine
   scope. Use the draft to understand intent, not to silently expand a task.
@@ -17,9 +18,9 @@ specification or a request to implement every listed feature**.
   behavior and surface discrepancies relevant to the task.
 - Keycloak has been explicitly dropped from the plan. ASP.NET Core Identity
   and OpenIddict are the current authentication foundation
-  (`DS.Backend/Extensions/ServiceExtensions.cs`). Do not reintroduce Keycloak based on old planning
-  material.
-- Current global permissions are defined in `DS.Domain/Roles.cs`. `AppGroups`
+  (`src/DS.Backend/Extensions/ServiceExtensions.cs`). Do not reintroduce
+  Keycloak based on old planning material.
+- Current global permissions are defined in `src/DS.Domain/Roles.cs`. `AppGroups`
   denotes global identity roles, not scout groups. The draft role descriptions
   are not evidence that those permissions are already implemented.
 - Scout group membership currently uses `User.Group`, with no group owner or
@@ -30,6 +31,28 @@ specification or a request to implement every listed feature**.
   they appear in the plan.
 - Notifications and audit logs are nice-to-have features; invoicing and several
   role details remain open questions. Keep that uncertainty visible.
+
+## Repository map
+
+| Path | Contents |
+|---|---|
+| `src/DS.Backend` | Website host: controllers, auth, MCP endpoint, `Program.cs` |
+| `src/DS.Application` | Services, form templates, seeders |
+| `src/DS.Infrastructure` | EF `DataDbContext`, entity configuration, Identity, OpenIddict, Google, exports, Hangfire jobs |
+| `src/DS.Domain` | Models, DTOs, `Roles.cs`, `DSVersion.cs`, DbUp scripts in `Migrations/*.sql` |
+| `src/DS.Worker` | Hangfire worker host |
+| `src/DS.RegistrationImporter` | One-off import of historic registrations |
+| `src/DS.Frontend` | Live Vue, Nuxt UI and Tailwind frontend |
+| `src/DS.Frontend.Archive` | Archived Buefy frontend, not built or served |
+| `tools/ds28-mcp` | MCP server and CLI for DS28 cards |
+| `tools/historic_registration` | Scripts for the 2024 registration import |
+
+| Document | Use it for |
+|---|---|
+| [`docs/project-plan.md`](docs/project-plan.md) | Decisions, implemented behavior and open questions |
+| [`docs/database.md`](docs/database.md) | Current database schema |
+| [`docs/design-guide.md`](docs/design-guide.md) | Archived frontend only |
+| [`README.md`](README.md) | Running locally, Worker, code graph |
 
 ## Keep the project plan current
 
@@ -76,7 +99,7 @@ Do not add code comments unless explicitly asked. This covers `//`, `/* */`,
 
 ## C# controller style
 
-Use `DS.Backend/Controllers/ApiControllers/ActivityApiController.cs` as the
+Use `src/DS.Backend/Controllers/ApiControllers/ActivityApiController.cs` as the
 general reference for controller formatting. Read it before creating or
 substantially editing a controller. The guard style below is authoritative and
 supersedes single-return examples in the reference. Use Microsoft C# conventions
@@ -142,7 +165,7 @@ port changes to it. [The design guide](docs/design-guide.md) describes that
 archived frontend and does not apply to `src/DS.Frontend`.
 
 Old `/beta/*` links redirect to the same path without the prefix
-(`DS.Backend/Program.cs`).
+(`src/DS.Backend/Program.cs`).
 
 ## DS28 cards
 
@@ -274,8 +297,10 @@ To deploy a new version: bump the version in `src/DS.Domain/DSVersion.cs`, creat
   style.
 - Run `git diff --check` after edits.
 - For C# changes, build with
-  `dotnet build DS.Backend/DS.Backend.csproj --no-restore --disable-build-servers -m:1`.
+  `dotnet build src/DS.Backend/DS.Backend.csproj --no-restore --disable-build-servers -m:1`.
 - For frontend changes, run `npm run build` in `src/DS.Frontend`. If both builds
   are needed, finish the frontend build first: it replaces assets consumed by
   the backend build.
-- Do not add tests solely for formatting changes.
+- Do not create test projects or test folders such as `tests/` to verify a
+  change. Verify with the builds above and by running the app, and ask the user
+  before adding automated tests.
