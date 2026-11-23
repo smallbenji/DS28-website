@@ -1244,6 +1244,45 @@ Nye og eksisterende tavler har funktionen slået fra som standard.
   `github.com`, normaliserer dem og afviser dubletter. Ændringer opdaterer
   den berørte tavle via SignalR.
 
+**Beslutning 2026-11-23 (DS-99, database, service og API implementeret):** En
+epic er et almindeligt kort, der er markeret som epic på en udviklertavle.
+Andre kort på samme tavle kan høre til én epic. Epics afløser »samlekort«, der
+samler kort med afhængigheder. UI (DS-100), filter (DS-101) og MCP (DS-102) er
+separate kort og ikke implementeret.
+
+- **Model:** Markeringen og relationen hører til tavleplaceringen
+  (`board_card.is_epic` og `board_card.epic_board_card_id`), ligesom PR-links,
+  og findes derfor kun på udviklertavler. Et delt kort kan være epic på én
+  tavle og ikke på en anden.
+- **Regler i `BoardService`** (så de også gælder for MCP): et kort hører til
+  højst én epic; kun ét niveau, så en epic ikke kan høre til en epic, og et
+  kort, der hører til en epic, ikke kan markeres som epic; epic og kort skal
+  ligge på samme tavle; målet skal være markeret som epic; et kort kan ikke være
+  sin egen epic. Fjernes markeringen, slippes kortene i samme transaktion. Når
+  en epic fjernes fra tavlen eller soft-slettes, slipper databasens `ON DELETE
+  SET NULL` kortene i samme sætning. Kontrollerne er ikke beskyttet mod to
+  samtidige ændringer, ligesom ringkontrollen for afhængigheder.
+- **Udviklerfunktion og adgang:** Ændringer kræver redigeringsadgang til tavlen
+  og en udviklertavle; ellers afvises de som PR-links. Under deaktivering
+  bevares data, men skjules i API'et.
+- **Kolonner og færdig:** Epics står i tavlens normale kolonner som en start
+  (besluttet 2026-11-23). En epic flyttes manuelt til Færdig; serveren flytter
+  eller spærrer ikke. Afhængigheder betyder fortsat rækkefølge og er uændrede.
+- **Fremdrift:** Serveren beregner for hver epic antal kort på tavlen, der
+  hører til det, og hvor mange af dem der står i en færdig-kolonne på samme
+  tavle.
+
+*Implementeret:* Migration `039_board_card_epics.sql`. API'et har `PUT` og
+`DELETE /api/v1/boards/{id}/cards/{workItemId}/epic` til at markere og
+afmarkere en epic, `PUT /api/v1/boards/{id}/cards/{workItemId}/epic-link` med
+`epicWorkItemId` (DS-nummer) til at lægge kortet under en epic og `DELETE
+.../epic-link` til at fjerne det igen. Gentagne kald er idempotente. Tavlens
+kort har `isEpic`, `epicCardId` (epic'ens DS-nummer) og for epics
+`epicProgress` med `done` og `total`; felterne er kun udfyldt på
+udviklertavler. Ændringer opdaterer den berørte tavle via SignalR. Frontenden
+har kun typer og metoder i `BoardService.ts` (`setEpicMarking`, `setCardEpic`,
+`removeCardEpic`), ingen UI.
+
 **Beslutning 2026-11-21 (godkendt, ikke implementeret, redesign af kanban-visningen):**
 Tavlevisningen skal redesignes ud fra et klikbart mockup, som brugeren har
 godkendt 2026-11-21, inklusive mobilvisningen. Mockuppet blev først lavet som en

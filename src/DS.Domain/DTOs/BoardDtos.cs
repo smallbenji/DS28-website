@@ -84,6 +84,20 @@ namespace DS.Domain.DTOs
         public List<WorkItemPlacementDto> Placements { get; set; } = [];
         public List<WorkItemDependencyDto> WaitingOn { get; set; } = [];
         public List<WorkItemDependencyDto> Blocking { get; set; } = [];
+        public bool IsEpic { get; set; }
+        public int? EpicCardId { get; set; }
+        public EpicProgressDto EpicProgress { get; set; }
+    }
+
+    public class EpicProgressDto
+    {
+        public int Done { get; set; }
+        public int Total { get; set; }
+    }
+
+    public class WorkItemEpicLinkDto
+    {
+        public int EpicWorkItemId { get; set; }
     }
 
     public class WorkItemAssigneeDto : UserSummaryDto

@@ -285,6 +285,38 @@ namespace DS.Backend.Controllers.ApiControllers
             return this.ToActionResult(result);
         }
 
+        [HttpPut("{id:int}/cards/{workItemId:int}/epic")]
+        public async Task<IActionResult> MarkAsEpic(int id, int workItemId)
+        {
+            var result = await service.SetEpicMarking(GetActor(), id, workItemId, isEpic: true);
+
+            return this.ToActionResult(result);
+        }
+
+        [HttpDelete("{id:int}/cards/{workItemId:int}/epic")]
+        public async Task<IActionResult> UnmarkAsEpic(int id, int workItemId)
+        {
+            var result = await service.SetEpicMarking(GetActor(), id, workItemId, isEpic: false);
+
+            return this.ToActionResult(result);
+        }
+
+        [HttpPut("{id:int}/cards/{workItemId:int}/epic-link")]
+        public async Task<IActionResult> SetCardEpic([FromBody] WorkItemEpicLinkDto data, int id, int workItemId)
+        {
+            var result = await service.SetCardEpic(GetActor(), data, id, workItemId);
+
+            return this.ToActionResult(result);
+        }
+
+        [HttpDelete("{id:int}/cards/{workItemId:int}/epic-link")]
+        public async Task<IActionResult> RemoveCardEpic(int id, int workItemId)
+        {
+            var result = await service.RemoveCardEpic(GetActor(), id, workItemId);
+
+            return this.ToActionResult(result);
+        }
+
         private BoardActor GetActor()
         {
             var isSysAdmin = User.IsInRole(nameof(AppGroups.SysAdmin));

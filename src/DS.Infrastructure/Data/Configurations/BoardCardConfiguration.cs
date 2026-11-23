@@ -18,6 +18,10 @@ public class BoardCardConfiguration : IEntityTypeConfiguration<BoardCard>
 
         builder.HasIndex(x => x.ColumnId);
 
+        builder.HasIndex(x => x.EpicBoardCardId);
+
+        builder.Property(x => x.IsEpic).HasDefaultValue(false);
+
         builder.Property(x => x.Id)
             .UseIdentityAlwaysColumn();
 
@@ -35,5 +39,10 @@ public class BoardCardConfiguration : IEntityTypeConfiguration<BoardCard>
             .WithMany()
             .HasForeignKey(x => x.WorkItemId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasOne(x => x.EpicBoardCard)
+            .WithMany()
+            .HasForeignKey(x => x.EpicBoardCardId)
+            .OnDelete(DeleteBehavior.SetNull);
     }
 }
