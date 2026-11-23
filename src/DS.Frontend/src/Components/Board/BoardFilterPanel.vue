@@ -53,6 +53,21 @@
             </div>
         </div>
 
+        <div v-if="epicOptions.length">
+            <p class="mb-2 text-sm font-semibold text-highlighted">Epic</p>
+            <div class="flex max-h-64 flex-col divide-y divide-default overflow-y-auto rounded-md border border-default">
+                <label v-for="epic in epicOptions" :key="epic.id" class="flex cursor-pointer items-center gap-3 px-3 py-2">
+                    <UCheckbox :model-value="filters.epicIds.includes(epic.id)" @update:model-value="filters.toggleEpic(epic.id)" />
+                    <UIcon :name="epic.icon" class="size-4 shrink-0 text-muted" />
+                    <span class="min-w-0 truncate text-sm">
+                        <span v-if="epic.number" class="text-muted">{{ epic.number }}</span>
+                        {{ epic.label }}
+                    </span>
+                    <span class="ms-auto shrink-0 text-xs text-muted">{{ epic.count }} kort</span>
+                </label>
+            </div>
+        </div>
+
         <div v-if="tags.length">
             <p class="mb-2 text-sm font-semibold text-highlighted">Tags</p>
             <div class="flex max-h-64 flex-col divide-y divide-default overflow-y-auto rounded-md border border-default">
@@ -69,7 +84,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import type { BoardTagDto, UserSummaryDto, WorkItemDto } from "@/types";
-import { boardPriorityFilters, boardQuickFilters, boardUnassignedFilterId, type BoardFilters } from "@/lib/board/boardFilters";
+import { boardNoEpicFilterId, boardPriorityFilters, boardQuickFilters, boardUnassignedFilterId, type BoardFilters } from "@/lib/board/boardFilters";
 import BoardTagBadge from "@/Components/Board/BoardTagBadge.vue";
 
 const props = withDefaults(defineProps<{
@@ -118,5 +133,27 @@ const assigneeOptions = computed(() => {
     };
 
     return [...people, unassigned];
+});
+
+const epicOptions = computed(() => {
+    if (!props.filters.epics.length) return [];
+
+    const epics = props.filters.epics.map((epic) => ({
+        id: String(epic.id),
+        number: `DS-${epic.id}`,
+        label: epic.title,
+        icon: "i-lucide-layers",
+        count: props.cards.filter((card) => card.id === epic.id || card.epicCardId === epic.id).length
+    }));
+
+    const withoutEpic = {
+        id: boardNoEpicFilterId,
+        number: "",
+        label: "Ingen epic",
+        icon: "i-lucide-circle-dashed",
+        count: props.cards.filter((card) => !card.isEpic && card.epicCardId == null).length
+    };
+
+    return [...epics, withoutEpic];
 });
 </script>
