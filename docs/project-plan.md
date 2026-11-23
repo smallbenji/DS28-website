@@ -1247,8 +1247,8 @@ Nye og eksisterende tavler har funktionen slået fra som standard.
 **Beslutning 2026-11-23 (DS-99, database, service og API implementeret):** En
 epic er et almindeligt kort, der er markeret som epic på en udviklertavle.
 Andre kort på samme tavle kan høre til én epic. Epics afløser »samlekort«, der
-samler kort med afhængigheder. UI (DS-100), filter (DS-101) og MCP (DS-102) er
-implementeret, se nedenfor.
+samler kort med afhængigheder. UI (DS-100), filter (DS-101), MCP (DS-102) og
+overblikket over epics (DS-104) er implementeret, se nedenfor.
 
 - **Model:** Markeringen og relationen hører til tavleplaceringen
   (`board_card.is_epic` og `board_card.epic_board_card_id`), ligesom PR-links,
@@ -1280,8 +1280,8 @@ afmarkere en epic, `PUT /api/v1/boards/{id}/cards/{workItemId}/epic-link` med
 kort har `isEpic`, `epicCardId` (epic'ens DS-nummer) og for epics
 `epicProgress` med `done` og `total`; felterne er kun udfyldt på
 udviklertavler. Ændringer opdaterer den berørte tavle via SignalR. Frontenden
-har kun typer og metoder i `BoardService.ts` (`setEpicMarking`, `setCardEpic`,
-`removeCardEpic`), ingen UI.
+kalder dem via `BoardService.ts` (`setEpicMarking`, `setCardEpic`,
+`removeCardEpic`).
 
 *Implementeret (DS-102, `src/DS.Backend/Mcp/BoardTools.cs`,
 `tools/ds28-mcp/server.mjs`, `tools/ds28-mcp/lib.mjs`):* Remote- og stdio-MCP
@@ -1322,6 +1322,26 @@ filtre« og »Fjern alle« og findes også i mobilskuffen. Filteret huskes ikke
 mellem besøg, og kort kan ikke flyttes, mens der filtreres. Afmarkeres eller
 fjernes en valgt epic, fjernes den fra valget; forsvinder tavlens sidste epic,
 ryddes hele epic-filteret.
+
+*Implementeret (DS-104, `BoardEpicsModal.vue`, `BoardDetail.vue`):* På
+udviklertavler har Tavle-menuen punktet »Epics …«, der åbner en dialog med
+tavlens epics. Hver epic vises med DS-nummer, titel, kolonne, fremdrift (»X af Y
+færdige« med fremdriftslinje) og ansvarlige. Epics i ikke-færdige kolonner står
+under »I arbejde«, epics i færdig-kolonner under »Færdige«, hver sorteret efter
+kolonnernes rækkefølge og kortets position. Er alle kort under en epic færdige,
+men epic'en ikke selv flyttet til færdig, siger teksten, at den kan flyttes.
+Klik på en epic lukker overblikket og åbner kortet. Dialogen bruger tavlens
+allerede hentede kort, så den følger SignalR-opdateringerne uden ekstra kald.
+
+**Beslutning 2026-11-23 (DS-104, epics på DS28 IT-tavlen):** Kortene på DS28
+IT-tavlen er samlet i epics efter område, så overblikket giver mening: DS-17
+Økonomi, DS-107 Nuxt UI og kanban-redesign, DS-108 MCP, DS-110 Epics på
+udviklertavler, DS-111 Kanbantavler, DS-112 Tilmelding og deltagere, DS-113
+Brugerstyring og administration, DS-114 Drift og arbejdsgang og DS-115
+Behovsafklaring med udvalgene. Enkeltstående kort uden et tydeligt område (fx
+DS-8, DS-9, DS-42 og DS-94) har ingen epic. Nye kort lægges under den relevante
+epic efter kortforløbet i `AGENTS.md`; inddelingen er et udgangspunkt og kan
+ændres på tavlen uden en ny beslutning her.
 
 **Beslutning 2026-11-21 (godkendt og implementeret i DS-56 til DS-62, redesign af kanban-visningen):**
 Tavlevisningen skal redesignes ud fra et klikbart mockup, som brugeren har

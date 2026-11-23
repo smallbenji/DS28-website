@@ -81,6 +81,7 @@
             <BoardMembersModal v-model:open="membersOpen" :board-id="boardId" @update:open="(open) => { if (!open) void loadMembers(); }" />
             <BoardPaletteModal v-model:open="colorsOpen" :board-id="boardId" mode="colors" />
             <BoardPaletteModal v-model:open="tagsOpen" :board-id="boardId" mode="tags" />
+            <BoardEpicsModal v-if="board?.isDeveloperBoard" v-model:open="epicsOpen" @open="openEpic" />
 
             <ConfirmModal
                 v-model:open="deleteColumnOpen"
@@ -134,6 +135,7 @@ import BoardCardModal from "@/Components/Board/BoardCardModal.vue";
 import BoardColumnModal from "@/Components/Board/BoardColumnModal.vue";
 import BoardMembersModal from "@/Components/Board/BoardMembersModal.vue";
 import BoardPaletteModal from "@/Components/Board/BoardPaletteModal.vue";
+import BoardEpicsModal from "@/Components/Board/BoardEpicsModal.vue";
 import BoardService from "@/Services/BoardService";
 import type { BoardColumnDto, BoardColumnUpdateDto, BoardMemberDto, WorkItemDto } from "@/types";
 
@@ -168,6 +170,7 @@ const editingColumn = ref<BoardColumnDto | null>(null);
 const membersOpen = ref(false);
 const colorsOpen = ref(false);
 const tagsOpen = ref(false);
+const epicsOpen = ref(false);
 const settingsOpen = ref(false);
 const savingSettings = ref(false);
 const settings = ref({ title: "", description: "", isArchived: false, isDeveloperBoard: false });
@@ -177,7 +180,8 @@ const boardMenu = computed<DropdownMenuItem[][]>(() => [
         { label: "Indstillinger …", icon: "i-lucide-settings", onSelect: openSettings },
         { label: "Medlemmer og invitation …", icon: "i-lucide-users", onSelect: () => { membersOpen.value = true; } },
         { label: "Tags …", icon: "i-lucide-tags", onSelect: () => { tagsOpen.value = true; } },
-        { label: "Farver …", icon: "i-lucide-palette", onSelect: () => { colorsOpen.value = true; } }
+        { label: "Farver …", icon: "i-lucide-palette", onSelect: () => { colorsOpen.value = true; } },
+        ...(board.value?.isDeveloperBoard ? [{ label: "Epics …", icon: "i-lucide-layers", onSelect: () => { epicsOpen.value = true; } }] : [])
     ],
     [
         { label: "Ny kolonne …", icon: "i-lucide-columns-3", onSelect: openColumnCreate }
@@ -217,6 +221,11 @@ function openCard(card: WorkItemDto) {
     editingCard.value = card;
     targetColumnId.value = Number(card.columnId);
     cardOpen.value = true;
+}
+
+function openEpic(card: WorkItemDto) {
+    epicsOpen.value = false;
+    openCard(card);
 }
 
 function openNewCard(columnId: number) {
