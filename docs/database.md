@@ -524,6 +524,8 @@ erDiagram
         int column_id FK "RESTRICT"
         int work_item_id FK "CASCADE"
         int position
+        bool is_epic "required, default false"
+        int epic_board_card_id FK "nullable, SET NULL"
     }
 
     board_card_pull_request {
@@ -551,6 +553,7 @@ erDiagram
     board_column ||--o{ board_card : "indeholder"
     work_item ||--o{ board_card : "placeres på"
     board_card ||--o{ board_card_pull_request : "har PR-links"
+    board_card |o--o{ board_card : "er epic for"
     work_item ||--o{ work_item_assignee : "har ansvarlige"
     asp_net_users ||--o{ work_item_assignee : "er ansvarlig"
     work_item ||--o{ work_item_link : "linker til"
@@ -927,6 +930,16 @@ mindst syv dage gamle. Det er ren dataoprydning uden skemaændring.
   `board_card.id` og `ON DELETE CASCADE`. `url` er påkrævet `varchar(512)`.
   Primærnøglen `(board_card_id, url)` gør linket entydigt inden for
   placeringen. Deaktivering af udviklerfunktionen bevarer rækkerne.
+- `board_card.is_epic` er en påkrævet boolean med standard `false`, der markerer
+  placeringen som epic. `board_card.epic_board_card_id` er et nullable heltal
+  med fremmednøgle til `board_card.id` og `ON DELETE SET NULL`, så kortene
+  slippes, når epic'ens placering slettes. Et ikke-unikt indeks
+  `ix_board_card_epic_board_card_id` understøtter opslag af en epics kort, og
+  CHECK-constrainten `ck_board_card_epic_not_self` forhindrer, at en placering
+  er sin egen epic. At epic og kort ligger på samme tavle, at målet er markeret
+  som epic, og at der kun er ét niveau, håndhæves i koden. Begge kolonner
+  hører til placeringen og bruges kun på udviklertavler; deaktivering af
+  udviklerfunktionen bevarer værdierne.
 - `board_member` giver medlemsadgang til en tavle. Begge kolonner er påkrævede;
   den sammensatte primærnøgle `(board_id, user_id)` forhindrer dobbelt medlemskab.
   `board_id` refererer til `board.id`, og `user_id` refererer til

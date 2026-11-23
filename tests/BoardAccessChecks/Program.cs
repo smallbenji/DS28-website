@@ -536,6 +536,88 @@ Check((await Board(depsHiddenId)).Cards.Single(card => card.Id == mcpCardId).Pul
 await mcp.RemovePullRequest(depsHiddenId, mcpCardId, firstPullRequest);
 Check((await Board(depsHiddenId)).Cards.Single(card => card.Id == mcpCardId).PullRequests.SequenceEqual([secondPullRequest]), "MCP removes only the specified PR link");
 
+var epicColumns = (await Board(depsHiddenId)).Columns;
+var epicBacklog = epicColumns.First().Id;
+var epicDone = epicColumns.Single(column => column.IsDoneColumn).Id;
+async Task<int> CreateEpicTestCard(int targetBoardId, int targetColumnId, string title)
+{
+    return (int)((OkObjectResult)await controller.CreateCard(new WorkItemCreateDto { Title = title, ColumnId = targetColumnId }, targetBoardId)).Value;
+}
+WorkItemDto EpicCard(BoardDetailDto board, int id)
+{
+    return board.Cards.Single(card => card.Id == id);
+}
+var epicId = await CreateEpicTestCard(depsHiddenId, epicBacklog, "Epic samling");
+var epicChildA = await CreateEpicTestCard(depsHiddenId, epicBacklog, "Epic del A");
+var epicChildB = await CreateEpicTestCard(depsHiddenId, epicBacklog, "Epic del B");
+var secondEpicId = await CreateEpicTestCard(depsHiddenId, epicBacklog, "Epic anden");
+Check(await controller.SetCardEpic(new WorkItemEpicLinkDto { EpicWorkItemId = epicId }, depsHiddenId, epicChildA) is BadRequestObjectResult, "card cannot belong to a card that is not marked as epic");
+boardEvents.Changes.Clear();
+Check(await controller.MarkAsEpic(depsHiddenId, epicId) is OkResult, "member can mark a card as epic");
+Check(boardEvents.Changes.SequenceEqual([depsHiddenId]), "marking an epic updates only the current board");
+Check(await controller.MarkAsEpic(depsHiddenId, epicId) is OkResult, "marking an epic again is idempotent");
+Check(await controller.SetCardEpic(new WorkItemEpicLinkDto { EpicWorkItemId = epicId }, depsHiddenId, epicChildA) is OkResult, "card can belong to an epic");
+Check(await controller.SetCardEpic(new WorkItemEpicLinkDto { EpicWorkItemId = epicId }, depsHiddenId, epicChildB) is OkResult, "epic can have several cards");
+var epicBoard = await Board(depsHiddenId);
+Check(EpicCard(epicBoard, epicChildA).EpicCardId == epicId && !EpicCard(epicBoard, epicChildA).IsEpic && EpicCard(epicBoard, epicChildA).EpicProgress == null, "child card returns the DS number of its epic");
+Check(EpicCard(epicBoard, epicId).IsEpic && EpicCard(epicBoard, epicId).EpicCardId == null && EpicCard(epicBoard, epicId).EpicProgress is { Done: 0, Total: 2 }, "epic progress counts its cards on the board");
+Check(EpicCard(epicBoard, secondEpicId).EpicProgress == null && !EpicCard(epicBoard, secondEpicId).IsEpic, "ordinary cards have no epic data");
+Check(await controller.MoveCard(new WorkItemMoveDto { ColumnId = epicDone }, depsHiddenId, epicChildA) is OkResult, "epic child can be moved to a done column");
+Check(EpicCard(await Board(depsHiddenId), epicId).EpicProgress is { Done: 1, Total: 2 }, "children in a done column count as done");
+Check(EpicCard(await Board(depsHiddenId), epicId).ColumnId == epicBacklog, "epic is not moved automatically");
+Check(await controller.SetCardEpic(new WorkItemEpicLinkDto { EpicWorkItemId = epicId }, depsHiddenId, epicId) is BadRequestObjectResult, "card cannot be its own epic");
+Check(await controller.MarkAsEpic(depsHiddenId, epicChildA) is BadRequestObjectResult, "card belonging to an epic cannot become an epic");
+Check(await controller.MarkAsEpic(depsHiddenId, secondEpicId) is OkResult, "board can have several epics");
+Check(await controller.SetCardEpic(new WorkItemEpicLinkDto { EpicWorkItemId = epicId }, depsHiddenId, secondEpicId) is BadRequestObjectResult, "epic cannot belong to another epic");
+Check(await controller.SetCardEpic(new WorkItemEpicLinkDto { EpicWorkItemId = 999999 }, depsHiddenId, epicChildB) is BadRequestObjectResult, "unknown epic is rejected");
+Check(await controller.SetCardEpic(new WorkItemEpicLinkDto { EpicWorkItemId = secondEpicId }, depsHiddenId, epicChildB) is OkResult, "card can move to another epic");
+epicBoard = await Board(depsHiddenId);
+Check(EpicCard(epicBoard, epicChildB).EpicCardId == secondEpicId && EpicCard(epicBoard, epicId).EpicProgress.Total == 1 && EpicCard(epicBoard, secondEpicId).EpicProgress.Total == 1, "card belongs to at most one epic");
+
+var foreignEpicId = await CreateEpicTestCard(otherBoardId, otherColumn, "Epic fremmed");
+Check(await controller.MarkAsEpic(otherBoardId, foreignEpicId) is OkResult, "epic can be marked on another developer board");
+Check(await controller.SetCardEpic(new WorkItemEpicLinkDto { EpicWorkItemId = foreignEpicId }, depsHiddenId, epicChildB) is BadRequestObjectResult, "epic on another board is rejected");
+Check(await controller.MarkAsEpic(depsHiddenId, mcpCardId) is OkResult, "shared card can be marked as epic on one board");
+Check(!EpicCard(await Board(otherBoardId), mcpCardId).IsEpic, "epic marking does not follow the card to another board");
+Check(await controller.UnmarkAsEpic(depsHiddenId, mcpCardId) is OkResult, "shared card epic marking can be removed");
+
+ActAs("outsider");
+Check(await controller.MarkAsEpic(depsHiddenId, epicChildB) is ForbidResult, "outsider cannot mark epics");
+Check(await controller.SetCardEpic(new WorkItemEpicLinkDto { EpicWorkItemId = epicId }, depsHiddenId, epicChildB) is ForbidResult, "outsider cannot change a card's epic");
+Check(await controller.RemoveCardEpic(depsHiddenId, epicChildB) is ForbidResult, "outsider cannot remove a card's epic");
+ActAs("owner");
+var plainBoardId = (int)((OkObjectResult)await controller.CreateBoard(new BoardCreateDto { Title = "Almindelig tavle" })).Value;
+var plainCardId = await CreateEpicTestCard(plainBoardId, (await Board(plainBoardId)).Columns.First().Id, "Epic almindelig");
+Check(await controller.MarkAsEpic(plainBoardId, plainCardId) is ForbidResult, "epics require developer features");
+
+ActAs("admin", nameof(AppGroups.SysAdmin));
+developerSettings.IsDeveloperBoard = false;
+Check(await controller.UpdateBoard(developerSettings, depsHiddenId) is OkResult, "sysadmin disables developer mode with epics");
+ActAs("owner");
+epicBoard = await Board(depsHiddenId);
+Check(epicBoard.Cards.All(card => !card.IsEpic && card.EpicCardId == null && card.EpicProgress == null), "disabled board hides stored epic data");
+Check(await controller.RemoveCardEpic(depsHiddenId, epicChildB) is ForbidResult, "disabled board rejects epic changes");
+ActAs("admin", nameof(AppGroups.SysAdmin));
+developerSettings.IsDeveloperBoard = true;
+Check(await controller.UpdateBoard(developerSettings, depsHiddenId) is OkResult, "sysadmin reactivates developer mode with epics");
+ActAs("owner");
+Check(EpicCard(await Board(depsHiddenId), epicChildB).EpicCardId == secondEpicId, "reactivation restores epic data");
+
+var epicPlacementId = await db.BoardCards.Where(card => card.BoardId == depsHiddenId && card.WorkItemId == epicId).Select(card => card.Id).SingleAsync();
+boardEvents.Changes.Clear();
+Check(await controller.UnmarkAsEpic(depsHiddenId, epicId) is OkResult, "epic marking can be removed");
+Check(boardEvents.Changes.SequenceEqual([depsHiddenId]), "removing an epic marking updates the board");
+Check(!await db.BoardCards.AnyAsync(card => card.EpicBoardCardId == epicPlacementId), "removing an epic marking releases its cards");
+Check(EpicCard(await Board(depsHiddenId), epicChildA).EpicCardId == null, "released card no longer shows an epic");
+Check(await controller.RemoveCardEpic(depsHiddenId, epicChildB) is OkResult, "card can leave its epic");
+Check(EpicCard(await Board(depsHiddenId), secondEpicId).EpicProgress is { Done: 0, Total: 0 }, "epic without cards has empty progress");
+Check(await controller.SetCardEpic(new WorkItemEpicLinkDto { EpicWorkItemId = secondEpicId }, depsHiddenId, epicChildB) is OkResult, "card can join the epic again");
+var secondEpicPlacementId = await db.BoardCards.Where(card => card.BoardId == depsHiddenId && card.WorkItemId == secondEpicId).Select(card => card.Id).SingleAsync();
+db.ChangeTracker.Clear();
+Check(await controller.RemoveCard(depsHiddenId, secondEpicId) is OkResult, "epic card can be deleted");
+Check(!await db.BoardCards.AnyAsync(card => card.EpicBoardCardId == secondEpicPlacementId), "deleting an epic releases its cards");
+Check(EpicCard(await Board(depsHiddenId), epicChildB).EpicCardId == null, "card of a deleted epic no longer shows an epic");
+
 Check(await mcp.AddDependency(depsHiddenId, mcpCardId, hiddenCardId) == $"DS-{mcpCardId} venter nu på DS-{hiddenCardId}.", "remote MCP adds a dependency");
 var mcpBoardText = await mcp.GetBoard(depsHiddenId);
 Check(mcpBoardText.Contains($"venter på: DS-{hiddenCardId} Dep hidden (ikke færdig)") && mcpBoardText.Contains($"blokerer: DS-{mcpCardId} Dep MCP (ikke færdig)"), "remote MCP board text shows waiting and blocking cards");
