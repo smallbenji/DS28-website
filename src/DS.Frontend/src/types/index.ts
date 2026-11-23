@@ -1,6 +1,7 @@
 export * from './account.types';
 export * from './accessToken.types';
 export * from './activity.types';
+export * from './backgroundJob.types';
 export * from './board.types';
 export * from './admin.types';
 export * from './auth.types';

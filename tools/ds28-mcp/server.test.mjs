@@ -18,6 +18,7 @@ const tagsDeleted = [];
 const dependenciesAdded = [];
 const dependenciesRemoved = [];
 const completions = [];
+const epicCalls = [];
 
 function startStubServer() {
     const pullRequests = new Set();
@@ -77,7 +78,12 @@ function startStubServer() {
                         ],
                         blocking: [],
                         pullRequests: [...pullRequests],
+                        isEpic: false,
+                        epicCardId: null,
+                        epicProgress: null,
                     },
+                    { id: "17", title: "Epics", columnId: "10", priority: "0", isEpic: true, epicCardId: null, epicProgress: { done: "1", total: "2" } },
+                    { id: "43", title: "Underkort", columnId: "10", priority: "0", isEpic: false, epicCardId: "17", epicProgress: null },
                 ],
                 colors: [{ id: "3", name: "Blå", color: "#3366ff" }],
                 tags: [{ id: "1", name: "v0.2.13", color: "#dbeafe" }, { id: "2", name: "Fix", color: null }],
@@ -125,6 +131,13 @@ function startStubServer() {
             return send(200, undefined);
         }
         const url = new URL(request.url, "http://localhost");
+        if (/^\/api\/v1\/boards\/1\/cards\/\d+\/epic(-link)?$/.test(url.pathname) && ["PUT", "DELETE"].includes(request.method)) {
+            return readBody(body => {
+                if (body?.epicWorkItemId === 43) return send(400, "DS-43 er ikke markeret som epic.");
+                epicCalls.push(`${request.method} ${url.pathname.split("/").slice(-2).join("/")}${body ? ` ${body.epicWorkItemId}` : ""}`);
+                send(200);
+            });
+        }
         if (url.pathname === "/api/v1/boards/1/cards/42/pull-requests") {
             if (request.method === "POST") {
                 return readBody(body => {
@@ -432,6 +445,49 @@ test("MCP viser flere PR-links og fjerner dem enkeltvis", async () => {
     }
 });
 
+test("MCP viser epics og sætter dem på nye og eksisterende kort", async () => {
+    const server = await startStubServer();
+    const client = startClient(`http://127.0.0.1:${server.address().port}`);
+    const call = async (name, args = {}) => (await client.call("tools/call", { name, arguments: { boardId: 1, ...args } })).result;
+
+    try {
+        const boardText = (await call("get_board")).content[0].text;
+        assert.match(boardText, /^- DS-17 Epics \| kolonne Backlog \(id 10\) \| epic: 1 af 2 færdige$/m);
+        assert.match(boardText, /^- DS-43 Underkort \| kolonne Backlog \(id 10\) \| epic: DS-17 Epics$/m);
+        assert.doesNotMatch(boardText.split("\n").find(line => line.startsWith("- DS-42 ")), /epic/);
+
+        const createdEpic = await call("create_card", { title: "Ny epic", column: "Backlog", isEpic: true });
+        assert.match(createdEpic.content[0].text, /Oprettet DS-42 .* Markeret som epic\./);
+        const createdChild = await call("create_card", { title: "Under epic", column: "Backlog", epicCardId: 17 });
+        assert.match(createdChild.content[0].text, /Lagt under epic DS-17\./);
+        assert.deepEqual(epicCalls.splice(0), ["PUT 42/epic", "PUT 42/epic-link 17"]);
+
+        const createCount = created.length;
+        for (const args of [{ epicCardId: 43 }, { epicCardId: 99 }, { isEpic: true, epicCardId: 17 }, { epicCardId: -1 }]) {
+            assert.equal((await call("create_card", { title: "Ugyldig", column: "Backlog", ...args })).isError, true);
+        }
+        assert.equal(created.length, createCount);
+        assert.match((await call("create_card", { title: "Ugyldig", column: "Backlog", epicCardId: 43 })).content[0].text, /DS-43 er ikke markeret som epic/);
+
+        const updateCount = updated.length;
+        assert.match((await call("update_card", { cardId: 42, epicCardId: 17 })).content[0].text, /Opdaterede DS-42 på tavle 1: epic\./);
+        assert.match((await call("update_card", { cardId: 42, isEpic: true })).content[0].text, /epic-markering/);
+        assert.match((await call("update_card", { cardId: 43, epicCardId: 0, isEpic: true })).content[0].text, /epic-markering, epic/);
+        assert.match((await call("update_card", { cardId: 17, isEpic: false })).content[0].text, /epic-markering/);
+        assert.match((await call("update_card", { cardId: 43, epicCardId: 17, isEpic: null })).content[0].text, /uændret/);
+        assert.match((await call("update_card", { cardId: 42, epicCardId: 0, isEpic: false })).content[0].text, /uændret/);
+        assert.deepEqual(epicCalls.splice(0), ["PUT 42/epic-link 17", "PUT 42/epic", "DELETE 43/epic-link", "PUT 43/epic", "DELETE 17/epic"]);
+        assert.equal(updated.length, updateCount);
+
+        assert.match((await call("update_card", { cardId: 42, title: "Ny titel", epicCardId: 17 })).content[0].text, /titel, epic/);
+        assert.equal(updated.length, updateCount + 1);
+        assert.match((await call("update_card", { cardId: 42, epicCardId: 42 })).content[0].text, /sin egen epic/);
+    } finally {
+        client.child.kill();
+        server.close();
+    }
+});
+
 test("set_completion klarmelder og trækker klarmelding tilbage", async () => {
     const server = await startStubServer();
     const client = startClient(`http://127.0.0.1:${server.address().port}`);
@@ -472,6 +528,12 @@ test("CLI'en kalder samme værktøjer og giver fejlkode ved fejl", async () => {
 
         const board = await runCli("get_board", "boardId=1");
         assert.match(board.stdout, new RegExp(`- DS-42 .*PR-links: ${url}`));
+
+        const epic = await runCli("update_card", "boardId=1", "cardId=DS-42", "epicCardId=DS-17");
+        assert.equal(epic.code, 0, epic.stderr);
+        assert.match(epic.stdout, /epic/);
+        const unchanged = await runCli("update_card", "boardId=1", "cardId=DS-42", "epicCardId=null");
+        assert.match(unchanged.stdout, /uændret/);
 
         const help = await runCli();
         assert.equal(help.code, 0);

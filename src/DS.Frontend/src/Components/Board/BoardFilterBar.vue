@@ -55,7 +55,7 @@
                 <BoardTagBadge v-if="chip.tag" :tag="chip.tag" />
                 <template v-else>
                     <UIcon :name="chip.icon" class="size-3.5 text-muted" />
-                    <span>{{ chip.label }}</span>
+                    <span class="max-w-48 truncate">{{ chip.label }}</span>
                 </template>
                 <UIcon name="i-lucide-x" class="size-3.5 text-muted" />
             </button>
@@ -101,7 +101,7 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 import type { BoardTagDto, WorkItemDto } from "@/types";
-import { boardPriorityFilters, boardQuickFilters, boardUnassignedFilterId, type BoardFilters } from "@/lib/board/boardFilters";
+import { boardNoEpicFilterId, boardPriorityFilters, boardQuickFilters, boardUnassignedFilterId, type BoardFilters } from "@/lib/board/boardFilters";
 import BoardTagBadge from "@/Components/Board/BoardTagBadge.vue";
 import BoardFilterPanel from "@/Components/Board/BoardFilterPanel.vue";
 
@@ -150,10 +150,18 @@ const activeChips = computed<ActiveFilterChip[]>(() => {
         .filter((priority) => filters.priorities.includes(priority.value))
         .map((priority) => ({ key: `priority-${priority.value}`, label: `${priority.label} prioritet`, icon: priority.icon, remove: () => filters.togglePriority(priority.value) }));
 
+    const epicTitles = new Map(filters.epics.map((epic) => [String(epic.id), `DS-${epic.id} ${epic.title}`]));
+    const epics = filters.epicIds.map((id) => ({
+        key: `epic-${id}`,
+        label: id === boardNoEpicFilterId ? "Ingen epic" : epicTitles.get(id) ?? "Ukendt epic",
+        icon: id === boardNoEpicFilterId ? "i-lucide-circle-dashed" : "i-lucide-layers",
+        remove: () => filters.toggleEpic(id)
+    }));
+
     const tags = props.tags
         .filter((tag) => filters.tagIds.includes(Number(tag.id)))
         .map((tag) => ({ key: `tag-${tag.id}`, label: tag.name, tag, remove: () => filters.toggleTag(Number(tag.id)) }));
 
-    return [...quick, ...assignees, ...priorities, ...tags];
+    return [...quick, ...assignees, ...priorities, ...epics, ...tags];
 });
 </script>

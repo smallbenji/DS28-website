@@ -27,12 +27,14 @@ public class DataDbContext : IdentityDbContext<User, Role, string>, IDataDbConte
     public DbSet<UserNotificationPreference> NotificationPreferences { get; set; }
     public DbSet<UserAccessToken> AccessTokens { get; set; }
     public DbSet<RegistrationSettings> RegistrationSettings { get; set; }
+    public DbSet<CampDay> CampDays { get; set; }
     public DbSet<Group> Groups { get; set; }
     public DbSet<Patrol> Patrols { get; set; }
     public DbSet<Scout> Scouts { get; set; }
     public DbSet<PatrolMembership> PatrolMemberships { get; set; }
     public DbSet<GroupPreSignup> GroupPreSignups { get; set; }
     public DbSet<ScoutSignup> ScoutSignups { get; set; }
+    public DbSet<ScoutCampDay> ScoutCampDays { get; set; }
     public DbSet<HistoricPresignup> HistoricPresignups { get; set; }
     public DbSet<HistoricSignup> HistoricSignups { get; set; }
 

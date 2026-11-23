@@ -26,6 +26,23 @@ export default class BoardService {
         await apiDelete(`/api/v1/boards/${boardId}/cards/${cardId}/pull-requests`, { params: { url } });
     }
 
+    public async setEpicMarking(boardId: number, cardId: number, isEpic: boolean): Promise<void> {
+        const path = `/api/v1/boards/${boardId}/cards/${cardId}/epic`;
+        if (isEpic) {
+            await apiPut(path);
+        } else {
+            await apiDelete(path);
+        }
+    }
+
+    public async setCardEpic(boardId: number, cardId: number, epicWorkItemId: number): Promise<void> {
+        await apiPut(`/api/v1/boards/${boardId}/cards/${cardId}/epic-link`, { epicWorkItemId });
+    }
+
+    public async removeCardEpic(boardId: number, cardId: number): Promise<void> {
+        await apiDelete(`/api/v1/boards/${boardId}/cards/${cardId}/epic-link`);
+    }
+
     public async addAssignee(boardId: number, cardId: number, userId: string): Promise<void> {
         await apiPost(`/api/v1/boards/${boardId}/cards/${cardId}/assignees`, { userId });
     }

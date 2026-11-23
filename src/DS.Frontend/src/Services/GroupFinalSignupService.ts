@@ -1,9 +1,13 @@
 import type { PatrolDto, ScoutDto } from '@/types';
-import { apiDelete, apiPost } from '@/lib/api';
+import { apiDelete, apiPost, apiPut } from '@/lib/api';
 
 export default class GroupFinalSignupService {
-    async createScout(name: string, birthday: string, gender: 'Male' | 'Female'): Promise<ScoutDto> {
-        return await apiPost<ScoutDto>('/api/v1/group/scouts', { name, birthday, gender });
+    async createScout(name: string, birthday: string, gender: 'Male' | 'Female', campDayIds: number[]): Promise<ScoutDto> {
+        return await apiPost<ScoutDto>('/api/v1/group/scouts', { name, birthday, gender, campDayIds });
+    }
+
+    async setScoutDays(scoutIds: number[], campDayIds: number[], onlyScoutsWithoutDays = false): Promise<{ updated: number }> {
+        return await apiPut<{ updated: number }>('/api/v1/group/scouts/days', { scoutIds, campDayIds, onlyScoutsWithoutDays });
     }
 
     async deleteScout(scoutId: number): Promise<void> {

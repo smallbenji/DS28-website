@@ -13,10 +13,11 @@ const lucideIcons: Record<string, string> = {
     sliders: "i-lucide-sliders-horizontal",
     "file-arrow-down": "i-lucide-file-down",
     "chart-simple": "i-lucide-chart-column",
-    h: "i-lucide-list-checks"
+    h: "i-lucide-list-checks",
+    "list-check": "i-lucide-list-checks"
 };
 
-const appPaths = ["/activity", "/admin", "/admin/user", "/admin/groups", "/admin/camp-settings", "/admin/exports", "/admin/google", "/admin/openiddict", "/org", "/board", "/group"];
+const appPaths = ["/activity", "/admin", "/admin/user", "/admin/groups", "/admin/camp-settings", "/admin/exports", "/admin/jobs", "/admin/google", "/admin/openiddict", "/org", "/board", "/group"];
 
 export interface HqShortcut {
     title: string;

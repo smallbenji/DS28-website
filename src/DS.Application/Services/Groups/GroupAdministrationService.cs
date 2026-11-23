@@ -173,9 +173,12 @@ namespace DS.Application.Services.Groups
 
         public async Task<ServiceResult> DeleteScout(int id)
         {
-            var scout = await dataDb.Scouts.FindAsync(id);
+            var scout = await dataDb.Scouts
+                .Include(s => s.CampDays)
+                .SingleOrDefaultAsync(s => s.Id == id);
             if (scout == null) return new ServiceResult(ServiceOutcome.NotFound, $"Scout with ID {id} not found.");
 
+            dataDb.ScoutCampDays.RemoveRange(scout.CampDays);
             dataDb.Scouts.Remove(scout);
             await dataDb.SaveChangesAsync();
 

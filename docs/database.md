@@ -65,6 +65,17 @@ erDiagram
         int scout_id FK "CASCADE, UNIQUE(scout_id, day)"
     }
 
+    camp_day {
+        int id PK
+        date date "UNIQUE"
+        varchar half "First | Second | Both"
+    }
+
+    scout_camp_day {
+        int scout_id PK, FK "CASCADE"
+        int camp_day_id PK, FK "RESTRICT"
+    }
+
     activity_team {
         int id PK
         text name
@@ -199,6 +210,8 @@ erDiagram
     scout ||--o{ patrol_membership : "er med i"
     patrol ||--o{ patrol_membership : "har medlemmer"
     scout ||--o{ scout_signup : "tilmelder sig"
+    scout ||--o{ scout_camp_day : "deltager"
+    camp_day ||--o{ scout_camp_day : "har deltagere"
     scout ||--o{ scout_activity_timeslot : "tilmelder sig"
     activity_team ||--o{ activity : "arrangerer"
     activity_team ||--o{ activity_team_membership : "har medlemmer"
@@ -511,6 +524,8 @@ erDiagram
         int column_id FK "RESTRICT"
         int work_item_id FK "CASCADE"
         int position
+        bool is_epic "required, default false"
+        int epic_board_card_id FK "nullable, SET NULL"
     }
 
     board_card_pull_request {
@@ -538,6 +553,7 @@ erDiagram
     board_column ||--o{ board_card : "indeholder"
     work_item ||--o{ board_card : "placeres på"
     board_card ||--o{ board_card_pull_request : "har PR-links"
+    board_card |o--o{ board_card : "er epic for"
     work_item ||--o{ work_item_assignee : "har ansvarlige"
     asp_net_users ||--o{ work_item_assignee : "er ansvarlig"
     work_item ||--o{ work_item_link : "linker til"
@@ -820,6 +836,20 @@ mindst syv dage gamle. Det er ren dataoprydning uden skemaændring.
   `BOOLEAN NOT NULL DEFAULT FALSE` og ændres manuelt i lejrindstillingerne.
   De to aktivitetsflag styrer endnu ingen adgang, fordi ønske- og
   tilmeldingsflowet ikke er bygget.
+- `camp_day` er lejrens dage, som lejrchefen redigerer i lejrindstillingerne.
+  `date` er `DATE NOT NULL` og unik (`uq_camp_day_date`), så en dato kun kan
+  være én lejrdag. `half` er `VARCHAR(16) NOT NULL` med `ck_camp_day_half`
+  (`First`, `Second` eller `Both`), hvor `Both` markerer en skiftedag, der
+  hører til begge halvdele.
+- `scout_camp_day` er de lejrdage, en spejder deltager. Primærnøglen er
+  `(scout_id, camp_day_id)`, så en dag kun kan registreres én gang pr.
+  spejder, og `ix_scout_camp_day_camp_day_id` understøtter opslag pr. dag.
+  `scout_id` har `ON DELETE CASCADE`, men da `scout` soft-slettes, fjerner
+  koden spejderens rækker ved sletning. `camp_day_id` har `ON DELETE RESTRICT`,
+  så en lejrdag med tilmeldte spejdere ikke kan slettes. En spejder uden rækker
+  mangler at få udfyldt dage; der findes ingen tilstand for "0 dage".
+- `scout_signup` med fri dato er ubrugt og afløst af `scout_camp_day`. Den
+  fjernes i en senere release (expand/contract).
 - `user_access_token` gemmer personlige adgangstokens til værktøjer og
   scripts. Kun SHA-256-hashen i `token_hash` gemmes (unik), så den rå token
   ikke kan gendannes fra databasen og kun vises én gang ved oprettelse.
@@ -900,6 +930,16 @@ mindst syv dage gamle. Det er ren dataoprydning uden skemaændring.
   `board_card.id` og `ON DELETE CASCADE`. `url` er påkrævet `varchar(512)`.
   Primærnøglen `(board_card_id, url)` gør linket entydigt inden for
   placeringen. Deaktivering af udviklerfunktionen bevarer rækkerne.
+- `board_card.is_epic` er en påkrævet boolean med standard `false`, der markerer
+  placeringen som epic. `board_card.epic_board_card_id` er et nullable heltal
+  med fremmednøgle til `board_card.id` og `ON DELETE SET NULL`, så kortene
+  slippes, når epic'ens placering slettes. Et ikke-unikt indeks
+  `ix_board_card_epic_board_card_id` understøtter opslag af en epics kort, og
+  CHECK-constrainten `ck_board_card_epic_not_self` forhindrer, at en placering
+  er sin egen epic. At epic og kort ligger på samme tavle, at målet er markeret
+  som epic, og at der kun er ét niveau, håndhæves i koden. Begge kolonner
+  hører til placeringen og bruges kun på udviklertavler; deaktivering af
+  udviklerfunktionen bevarer værdierne.
 - `board_member` giver medlemsadgang til en tavle. Begge kolonner er påkrævede;
   den sammensatte primærnøgle `(board_id, user_id)` forhindrer dobbelt medlemskab.
   `board_id` refererer til `board.id`, og `user_id` refererer til

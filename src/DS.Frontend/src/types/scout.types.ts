@@ -12,4 +12,5 @@ export interface ScoutDto {
     gender: Gender;
     groupId: number;
     memberships: PatrolMembershipDto[];
+    campDayIds: number[];
 }

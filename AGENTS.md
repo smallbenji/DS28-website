@@ -19,7 +19,7 @@ specification or a request to implement every listed feature**.
   and OpenIddict are the current authentication foundation
   (`DS.Backend/Extensions/ServiceExtensions.cs`). Do not reintroduce Keycloak based on old planning
   material.
-- Current global permissions are defined in `DS.Backend/Roles.cs`. `AppGroups`
+- Current global permissions are defined in `DS.Domain/Roles.cs`. `AppGroups`
   denotes global identity roles, not scout groups. The draft role descriptions
   are not evidence that those permissions are already implemented.
 - Scout group membership currently uses `User.Group`, with no group owner or
@@ -187,6 +187,10 @@ profile in HQ. Never print, commit, or paste the token.
 - **Create** a new card in `Backlog`, with a short Danish title and a
   description of what and why. Create a card for work that has none, even if
   the work is already done.
+- **Epics**: an epic is a card marked as epic (`isEpic`) on the developer
+  board. When a new card belongs to an existing epic, put it under that epic
+  with `epicCardId`. Move an epic to `Færdig` manually once its cards are
+  released.
 - **Start**: when you begin working on a card, first move it to `I gang` and
   assign the person doing the work.
 - **Pull request**: title it `[DS-<number>]: <short description>` and link it

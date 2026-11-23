@@ -76,7 +76,7 @@
                 </div>
             </div>
 
-            <BoardCardModal v-model:open="cardOpen" :board-id="boardId" :column-id="targetColumnId" :card="editingCard" :can-manage="canManage" />
+            <BoardCardModal v-model:open="cardOpen" :board-id="boardId" :column-id="targetColumnId" :card="editingCard" :can-manage="canManage" @open-card="openCard" />
             <BoardColumnModal v-model:open="columnOpen" :board-id="boardId" :column="editingColumn" />
             <BoardMembersModal v-model:open="membersOpen" :board-id="boardId" @update:open="(open) => { if (!open) void loadMembers(); }" />
             <BoardPaletteModal v-model:open="colorsOpen" :board-id="boardId" mode="colors" />

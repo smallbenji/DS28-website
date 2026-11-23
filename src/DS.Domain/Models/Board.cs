@@ -126,6 +126,9 @@ public class BoardCard
     public int WorkItemId { get; set; }
     public WorkItem WorkItem { get; set; }
     public int Position { get; set; }
+    public bool IsEpic { get; set; }
+    public int? EpicBoardCardId { get; set; }
+    public BoardCard EpicBoardCard { get; set; }
 }
 
 public class BoardCardPullRequest

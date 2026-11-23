@@ -304,7 +304,7 @@ recurring dispatcher-job der kører hvert 15. sekund og enqueuer ét
 sender og opdaterer `email_outbox` med samme backoff-, forsøgs- og
 dead-letter-semantik som før. `email_outbox` forbliver den transaktionelle
 outbox, og transaktionelle mails sendes fortsat synkront. Hangfire-dashboardet
-ligger på `/hangfire` og kræver `AdminAccess`. Hangfire-schemaet ejes udelukkende
+ligger på `/hangfire` og kræver `AdminAccess` (senere `HangfireView`, se DS-83 under Adminområde). Hangfire-schemaet ejes udelukkende
 af DbUp: `007_hangfire.sql` installerer Hangfires egne install-scripts med
 `PrepareSchemaIfNecessary = false`, så senere Hangfire-opgraderinger tilføjes
 som almindelige migrationer. Dette overskriver implementeringsdelen af
@@ -561,6 +561,33 @@ fra `GET /api/v1/admin/system-counts` (kræver `AdminAccess`). Det er rene
 optællinger uden persondata. Slettede grupper tælles ikke med, fordi grupper
 er soft-deleted og filtreres globalt.
 
+**Beslutning 2026-11-22 (DS-83, implementeret):** Baggrundsjob vises på en
+indbygget side i HQ på `/admin/jobs`, med en flise "Baggrundsjob" under
+Admin → System, der erstatter Hangfire-flisen. Siden bygger på Hangfires
+monitoring-API gennem `BackgroundJobService` og
+`GET /api/v1/background-jobs`, uden nye afhængigheder eller skemaændringer.
+Den viser nøgletal, fejlede jobs med detaljer, forsøg og stacktrace,
+tilbagevendende jobs, seneste aktivitet (polling hvert 5. sekund, på pause
+når fanen er skjult) og en jobhistorik over afsluttede jobs med filter på
+status og jobtype, søgning på job-id og sideinddeling.
+
+- Jobargumenter og fejltekster maskeres på serveren, før de sendes til
+  browseren: mailadresser og navne vises maskeret, og mailens indhold,
+  adgangskoder, tokens og hemmeligheder vises kun som skjulte med størrelse.
+  Hangfire gemmer fortsat payload og fejldetaljer i klartekst i
+  `hangfire`-schemaet.
+- Jobhistorikken går 24 timer tilbage, som er Hangfires standard for udløb af
+  afsluttede jobs. Udløbstiden hæves ikke, af hensyn til dataminimering.
+  Fejlede jobs udløber ikke og bliver liggende, til de genkøres eller slettes.
+- `HangfireView` giver læseadgang til siden og dashboardet. Handlinger
+  ("Prøv igen", "Prøv alle igen", "Slet" og "Kør nu") kræver den nye approlle
+  `HangfireManage`, som kun SysAdmin har. API'et håndhæver rollen, og
+  knapperne vises ikke uden den.
+- `/hangfire` bevares som nødudgang, men er read-only for brugere uden
+  `HangfireManage` (`IsReadOnlyFunc`). Dashboardet viser fortsat argumenter i
+  klartekst. Det overskriver den tidligere praksis, hvor `HangfireView` også
+  kunne slette, genkøre og trigge jobs i dashboardet.
+
 ### Rollevisning (SysAdmin-impersonation)
 
 **Beslutning 2026-10-12:** En systemadministrator kan skifte til en anden
@@ -698,20 +725,49 @@ Implementeringsnoter (2026-10-12):
   kræver SysAdmin. Også systemstillingen kan flyttes, men kun af en SysAdmin.
   Der er cirkelkontrol, så en stilling ikke kan sættes under sig selv eller
   under en af sine egne understillinger. Grupperne ændres ikke ved flytning, så
-  adgangen påvirkes ikke. Overstillingen vælges i en flyt-modal, hvor
-  understillinger af den aktuelle stilling er filtreret fra.
+  adgangen påvirkes ikke. Overstillingen vælges med træk og slip eller i
+  skuffens fane Struktur (se DS-89 nedenfor).
 - Autoritet følger hele undertræet rekursivt: at beklæde en overstilling giver
   håndteringsret til stillinger på alle niveauer under den. `CanManageParentAsync`
   og frontend-guardet i `orgAccess.ts` accepterer en indehaver af en hvilken som
   helst stilling i forældrekæden, ikke kun af den umiddelbare overstilling.
   SysAdmin kan håndtere hele træet; rodstillinger håndteres kun af SysAdmin.
 - Diagrammet tegnes af en rekursiv `OrgNode.vue`; der bruges ingen ekstern
-  org-chart-komponent. Hver node er et klikbart kort, og redigering, grupper,
-  indehavere, invitation, flytning, oprettelse af understillinger og sletning
-  sker i en fælles skuffe (`OrgDrawer.vue`) baseret på `BSidebar`, der glider
-  ind fra højre, i stedet for knapper på hver node. Siden ligger på `/org` med
-  en "Organisation"-flis på hjemmesiden for brugere med `OrgView` og er ikke
-  længere en del af adminområdet.
+  org-chart-komponent. Siden ligger på `/org` med en "Organisation"-flis på
+  hjemmesiden for brugere med `OrgView` og er ikke længere en del af
+  adminområdet.
+
+**Beslutning 2026-11-22 (DS-89, implementeret):** Organisationssiden er lavet
+om efter en mockup, som Benjamin har godkendt. Ændringen er kun i frontend og
+bruger de eksisterende API-kald. Rettighederne i `orgAccess.ts` er uændrede.
+Dette erstatter den tidligere beskrivelse af én samlet skuffe og en flyt-modal.
+
+- En understilling oprettes direkte fra noden: et plus under kortet åbner en
+  lille formular med titel, farve og grupper. Plusset vises kun, hvor brugeren
+  må oprette understillinger. Efter oprettelse markeres den nye stilling, og
+  beskeden har en genvej til at tilføje personer.
+- Skuffen (`OrgPositionDrawer.vue`) er delt i fanerne Stilling (titel, farve,
+  grupper), Personer (indehavere, invitation, personlig assistent) og Struktur
+  (overordnet stilling og understillinger). Sletning ligger i en menu i
+  skuffens top og er slået fra med en forklaring, når stillingen har
+  understillinger eller personer, så det matcher backendens regel. Toppen
+  viser stillingens placering i træet som links.
+- Flytning sker både med træk og slip i diagram og liste og med en søgbar
+  trævælger under Struktur. Begge tilbyder kun mål, brugeren har autoritet
+  over, og kan ikke flytte en stilling under sig selv eller sine
+  understillinger. En flytning kan fortrydes fra beskeden.
+- Til store diagrammer er der søgning på stilling eller person (inklusive
+  personlige assistenter), zoom og "tilpas til vinduet", sammenfoldning af
+  enkelte eller alle grene og en listevisning. Søgning folder automatisk de
+  grene ud, der indeholder et resultat.
+- På smalle skærme åbner siden i listevisning, skuffen glider op nedefra, og
+  træk og slip er slået fra. Flytning sker der via vælgeren.
+- Logikken er samlet i `lib/org/orgTree.ts` (træopbygning, forfædre,
+  efterkommere, søgning) og `lib/org/orgChartContext.ts` (fælles tilstand for
+  søgning, sammenfoldning, oprettelse og træk, delt via provide/inject).
+
+Ubesluttet efter DS-89: om brugerne finder listevisningen tilstrækkelig på
+mobil, og om valget mellem diagram og liste skal huskes.
 - Migration `011_org_positions.sql` seeder systemstillingen
   "Systemadministrator" med gruppen `SysAdmin`.
 
@@ -852,9 +908,47 @@ DS-82 med afhængigheder på tavlen. DS-17 er samlekort.
 - Ude af scope: bogføring, bilag, moms, bankafstemning, betalinger, udlæg og
   refusion samt selve faktureringen.
 
-Stadig åbent: reglen fra deltagelsesdage til pris, om ledere og hjælpere
-registreres og betaler, om der er særlige priser for ledere eller
-aldersgrupper, og kassererens øvrige behov (DS-4).
+Stadig åbent: reglen fra deltagelsesdage til pris (DS-79/DS-80), om ledere og
+hjælpere registreres og betaler (DS-97), om der er særlige priser for ledere
+eller aldersgrupper, og kassererens øvrige behov (DS-4).
+
+**Beslutning 2026-11-23 (DS-72 og DS-96, implementeret, se implementeringsnoterne):** Deltagelsesdage
+registreres i den endelige tilmelding. Beslutningen præciserer punktet om
+deltagelsesdage ovenfor.
+
+- Kun spejdere registreres med dage i første version. Ledere og hjælpere er
+  skubbet til DS-97. Modellen skal kunne udvides med en deltagertype uden at
+  ændre tabellerne for dage.
+- Enheden er hele dage. Der registreres ingen ankomst- eller
+  afrejsetidspunkter.
+- Lejrens dage er data i en ny tabel `camp_day`, som lejrchefen redigerer på
+  `/camp-settings` med `PreSignupManage` (DS-96). Hver dag hører til 1.
+  halvdel, 2. halvdel eller begge, så en skiftedag kan være med i begge
+  halvdele. En dag med tilmeldinger kan ikke slettes, men datoen kan rettes.
+  Datoerne hardkodes ikke.
+- Spejderens dage gemmes i en ny tabel `scout_camp_day` med fremmednøgle til
+  `camp_day`. Den ubrugte `scout_signup` med fri dato fjernes i en senere
+  release (expand/contract).
+- En ny spejder har ingen dage. En spejder uden dage betyder altid "mangler at
+  blive udfyldt"; der findes ingen tilstand for "0 dage", og en spejder, der
+  ikke deltager, slettes. Det følger princippet om, at tomt ikke er 0.
+- På `/group/final-signup` vælges Hel uge, 1. halvdel, 2. halvdel eller
+  enkelte dage pr. spejder, også ved oprettelse og for flere spejdere eller en
+  hel patrulje ad gangen. Manglende dage vises som advarsel øverst på siden,
+  som mærkat pr. spejder og som status på `/group`, med en knap, der giver alle
+  uden dage samme periode.
+- Spejdere uden dage tæller ikke med i deltagerbetaling og
+  faktureringsoversigt, men vises som "N spejdere mangler dage" pr. gruppe
+  (DS-80, DS-81).
+- Lukket endelig tilmelding låser ikke dagene. Hvad lukket tilmelding betyder,
+  afklares på DS-98.
+- Hensyn, ikke beslutning: aktivitetstilmeldingen skal senere kunne tjekke, om
+  spejdere er på lejren. DS-72 garanterer kun, at data kan besvare, hvem der er
+  tilmeldt en given dato, og hvem der mangler dage, med datoer regnet i
+  Europe/Copenhagen. Om aktivitetstilmeldingen blokerer, advarer eller kun
+  tilmelder de tilstedeværende, og hvordan spejdere uden dage håndteres der,
+  er ikke besluttet. Reglen om, at en patrulje ikke må tilmeldes på dage, hvor
+  den ikke er på lejren, står derfor uændret som hensigt.
 
 ### Materialer
 
@@ -1149,6 +1243,85 @@ Nye og eksisterende tavler har funktionen slået fra som standard.
 - Serveren accepterer eksplicitte HTTPS-links til konkrete PR'er på
   `github.com`, normaliserer dem og afviser dubletter. Ændringer opdaterer
   den berørte tavle via SignalR.
+
+**Beslutning 2026-11-23 (DS-99, database, service og API implementeret):** En
+epic er et almindeligt kort, der er markeret som epic på en udviklertavle.
+Andre kort på samme tavle kan høre til én epic. Epics afløser »samlekort«, der
+samler kort med afhængigheder. UI (DS-100), filter (DS-101) og MCP (DS-102) er
+implementeret, se nedenfor.
+
+- **Model:** Markeringen og relationen hører til tavleplaceringen
+  (`board_card.is_epic` og `board_card.epic_board_card_id`), ligesom PR-links,
+  og findes derfor kun på udviklertavler. Et delt kort kan være epic på én
+  tavle og ikke på en anden.
+- **Regler i `BoardService`** (så de også gælder for MCP): et kort hører til
+  højst én epic; kun ét niveau, så en epic ikke kan høre til en epic, og et
+  kort, der hører til en epic, ikke kan markeres som epic; epic og kort skal
+  ligge på samme tavle; målet skal være markeret som epic; et kort kan ikke være
+  sin egen epic. Fjernes markeringen, slippes kortene i samme transaktion. Når
+  en epic fjernes fra tavlen eller soft-slettes, slipper databasens `ON DELETE
+  SET NULL` kortene i samme sætning. Kontrollerne er ikke beskyttet mod to
+  samtidige ændringer, ligesom ringkontrollen for afhængigheder.
+- **Udviklerfunktion og adgang:** Ændringer kræver redigeringsadgang til tavlen
+  og en udviklertavle; ellers afvises de som PR-links. Under deaktivering
+  bevares data, men skjules i API'et.
+- **Kolonner og færdig:** Epics står i tavlens normale kolonner som en start
+  (besluttet 2026-11-23). En epic flyttes manuelt til Færdig; serveren flytter
+  eller spærrer ikke. Afhængigheder betyder fortsat rækkefølge og er uændrede.
+- **Fremdrift:** Serveren beregner for hver epic antal kort på tavlen, der
+  hører til det, og hvor mange af dem der står i en færdig-kolonne på samme
+  tavle.
+
+*Implementeret:* Migration `039_board_card_epics.sql`. API'et har `PUT` og
+`DELETE /api/v1/boards/{id}/cards/{workItemId}/epic` til at markere og
+afmarkere en epic, `PUT /api/v1/boards/{id}/cards/{workItemId}/epic-link` med
+`epicWorkItemId` (DS-nummer) til at lægge kortet under en epic og `DELETE
+.../epic-link` til at fjerne det igen. Gentagne kald er idempotente. Tavlens
+kort har `isEpic`, `epicCardId` (epic'ens DS-nummer) og for epics
+`epicProgress` med `done` og `total`; felterne er kun udfyldt på
+udviklertavler. Ændringer opdaterer den berørte tavle via SignalR. Frontenden
+har kun typer og metoder i `BoardService.ts` (`setEpicMarking`, `setCardEpic`,
+`removeCardEpic`), ingen UI.
+
+*Implementeret (DS-102, `src/DS.Backend/Mcp/BoardTools.cs`,
+`tools/ds28-mcp/server.mjs`, `tools/ds28-mcp/lib.mjs`):* Remote- og stdio-MCP
+har samme parametre og tekst. `get_board` viser »epic: 3 af 7 færdige« på en
+epic og »epic: DS-17 <titel>« på et kort under en epic. `create_card` har
+`isEpic` og `epicCardId`, som sættes efter oprettelsen; `update_card` har
+`isEpic` (true/false, udeladt bevarer) og `epicCardId` (DS-nummer, `0` fjerner
+kortet fra sin epic, udeladt/null bevarer). Værktøjerne afviser epic-parametre
+på tavler uden udviklerfunktioner og kontrollerer på forhånd, at målet er en
+epic på samme tavle, så et kort ikke oprettes halvt; serverens øvrige regler og
+fejltekster gælder uændret. Agenter lægger nye kort under en eksisterende epic
+efter kortforløbet i `AGENTS.md`.
+
+*Implementeret (DS-100, `BoardCard.vue`, `BoardCardEpic.vue`,
+`BoardCardModal.vue`, `BoardDetail.vue`):* På udviklertavler viser et kort, der
+hører til en epic, et lille mærke med epic'ens titel (opslag blandt tavlens kort
+via `epicCardId`, ellers DS-nummeret). En epic har mærket »Epic« og viser »X af Y
+færdige« med en lille fremdriftslinje, i kompakt visning kun teksten. Når alle
+kort er færdige (`done === total > 0`), bliver teksten grøn med flueben. I
+kortdialogen har eksisterende kort på udviklertavler en sektion »Epic«: en
+kontakt markerer eller afmarkerer kortet som epic og skjules, når kortet selv
+hører til en epic. Afmarkering af en epic med kort kræver bekræftelse. Et
+almindeligt kort kan vælge en af tavlens andre epics eller fjernes fra sin epic.
+En epic viser sine kort med DS-nummer, titel, kolonne og færdig-status. De kort
+og epic'en på et kort kan klikkes for at åbne det kort i samme dialog; har
+dialogen ugemte ændringer, afvises skiftet med en besked. Serverens fejlbeskeder
+vises som toast. Uden redigeringsadgang vises oplysningerne uden kontrolelementer.
+
+*Implementeret (DS-101, `lib/board/boardFilters.ts`, `BoardFilterPanel.vue`,
+`BoardFilterBar.vue`):* Filterpanelet har et »Epic«-filter, der kun vises på
+udviklertavler med mindst én epic. Valgmulighederne er tavlens epics (DS-nummer
+og titel, sorteret efter titel) samt »Ingen epic«, med antal kort pr. valg.
+Vælges en epic, vises både epic'en selv og de kort, der hører til den. »Ingen
+epic« viser kort, der hverken er epic eller hører til en. Flere valg kombineres
+med »eller« og med andre filtre med »og«, som i DS-88. Aktive valg vises som
+mærker, der kan fjernes, tæller med i antallet af filtre, ryddes af »Ryd
+filtre« og »Fjern alle« og findes også i mobilskuffen. Filteret huskes ikke
+mellem besøg, og kort kan ikke flyttes, mens der filtreres. Afmarkeres eller
+fjernes en valgt epic, fjernes den fra valget; forsvinder tavlens sidste epic,
+ryddes hele epic-filteret.
 
 **Beslutning 2026-11-21 (godkendt og implementeret i DS-56 til DS-62, redesign af kanban-visningen):**
 Tavlevisningen skal redesignes ud fra et klikbart mockup, som brugeren har
@@ -2544,7 +2717,7 @@ til projektet. Kontrollér altid koden igen ved fremtidige ændringer.
 - Frontend bruger Vue/Vite, Nuxt UI og Tailwind i `src/DS.Frontend`, serveret
   på `/`. Den gamle Buefy-frontend er arkiveret i `src/DS.Frontend.Archive` og
   bygges eller serveres ikke.
-- Globale roller og rettigheder ligger i `DS.Backend/Roles.cs`. Planens roller
+- Globale roller og rettigheder ligger i `DS.Domain/Roles.cs`. Planens roller
   er ikke nødvendigvis implementeret med de beskrevne rettigheder.
 - Spejdergrupper er adskilt fra globale roller. `User.Group` knytter en bruger
   til en gruppe. Der er ingen særskilt gruppeadministrator eller gruppeejer.
@@ -2603,6 +2776,39 @@ til projektet. Kontrollér altid koden igen ved fremtidige ændringer.
   - Det er ikke besluttet, hvad lukket endelig aktivitetstilmelding betyder,
     fx om tilmeldingerne bliver skrivebeskyttede eller skjules. Det afklares,
     når flowet bygges.
+- **DS-96 (implementeret, afventer review):** Lejrens dage er data i
+  `camp_day` og redigeres i kortet "Lejrdage" på `/camp-settings`, som kræver
+  `PreSignupManage`. Hver dag har en unik dato og en halvdel: 1. halvdel, 2.
+  halvdel eller begge (skiftedag). Ved tilføjelse foreslås dagen efter den
+  sidste lejrdag. `GET /api/v1/camp-days` kræver kun login, fordi grupperne
+  skal bruge dagene i DS-72; `POST`, `PUT /{id}` og `DELETE /{id}` kræver
+  `PreSignupManage`, og en dublet af en dato giver HTTP 409. En dag med
+  tilmeldte spejdere kan ikke slettes (HTTP 409 med antallet), men datoen kan
+  rettes (DS-72). Ingen datoer er hardkodet eller seedet.
+- **DS-72 (implementeret, afventer review):** Spejderens deltagelsesdage
+  gemmes i `scout_camp_day` og vises som `campDayIds` på spejderen i
+  `GET /api/v1/group`. `PUT /api/v1/group/scouts/days` sætter dagene for en
+  eller flere spejdere i brugerens egen gruppe og erstatter deres tidligere
+  dage; med `onlyScoutsWithoutDays` røres spejdere, der allerede har dage,
+  ikke. En tom liste af dage afvises, fordi der ikke findes en tilstand for "0
+  dage". `POST /api/v1/group/scouts` tager valgfrit `campDayIds`. Når en
+  spejder slettes (soft delete), fjernes spejderens dage, så de ikke blokerer
+  sletning af en lejrdag. På `/group/final-signup` vælges Hel uge, 1. halvdel,
+  2. halvdel eller Enkelte dage pr. spejder, og valget gemmes med det samme.
+  Hel uge er alle lejrdage, og en halvdel er dagene med den halvdel eller
+  `Both`. Spejdere kan vælges enkeltvis, alle eller pr. patrulje og sættes til
+  en periode samlet. Siden viser deltagere pr. dag, en advarsel med navnene på
+  spejdere uden dage, et filter, der kun viser dem, og en knap, der giver alle
+  uden dage samme periode. Gruppens forside `/group` viser status for
+  manglende dage med et link til filteret. Spejder- og patruljekortet står nu
+  under hinanden i fuld bredde. Når lejrdagene ikke er oprettet, vises en
+  besked i stedet for dagvalget. Følgende valg blev truffet under
+  implementeringen og er bekræftet af Benjamin 2026-11-23:
+  - Fjernelse af den sidste dag under Enkelte dage afvises med en besked om at
+    slette spejderen i stedet.
+  - Den administrative sletning af en hel gruppe soft-sletter kun gruppen; dens
+    spejderes dage bliver liggende og tæller med i sletteblokeringen af en
+    lejrdag.
 - Glemt adgangskode er et selvbetjent flow på `/forgot-password`. Brugeren
   indtaster sin email, og backend sender et nulstillingslink på
   `/reset-password/{brugerId}?token=...`. Det er en mail, der sendes
@@ -2928,6 +3134,23 @@ helt, og om der skal skrives en ny designguide for Nuxt UI-frontenden.
 med lejrlogoets blå og brune farver som favicon. Ikonet leveres som ICO med
 16, 32 og 48 pixels til både Vue-appen og serverrenderede sider. Det erstatter
 Vue-appens reference til en manglende SVG-fil og backendens standardikon.
+
+### Installerbar app (PWA)
+
+**Beslutning 2026-11-22 (implementeret, DS-94):** HQ kan installeres som app
+på hjemmeskærmen og skrivebordet via et web app manifest
+(`src/DS.Frontend/public/manifest.webmanifest`, serveret fra
+`/dist/manifest.webmanifest`). Appen hedder »DS28 HQ«, starter på `/` med
+scope `/` og åbner i eget vindue (`standalone`) med temafarven `#4caee7`.
+Ikonerne er cowboyhatten fra faviconet, tegnet op i 192 og 512 pixels, en
+maskable variant på blå baggrund til Android og et 180 pixels
+`apple-touch-icon` til iOS. Manifestet og ikonerne er statiske filer og kræver
+ikke login.
+
+Der er bevidst ingen service worker endnu, så appen virker ikke offline og har
+ingen push-notifikationer. Chromium-browsere kan stadig tilbyde installation
+uden service worker. Offline-understøttelse og push er åbne forslag, ikke
+vedtagne krav.
 
 ### Navigation og tilgængelighed
 

@@ -13,6 +13,8 @@ namespace DS.Application.Services.Boards
 {
     public class BoardService(IDataDbContext dataDb, UserManager<User> userManager, IBoardEventPublisher boardEvents, EmailService emailService)
     {
+        private const string DeveloperFeaturesDisabled = "Tavlen har ikke udviklerfunktioner slået til.";
+
         public async Task<ServiceResult<List<BoardSummaryDto>>> GetBoards(BoardActor actor)
         {
             var boards = await VisibleBoards(actor)
@@ -91,7 +93,7 @@ namespace DS.Application.Services.Boards
             var board = await GetBoardAsync(id);
             if (board == null) return new ServiceResult(ServiceOutcome.NotFound);
             if (!await CanSeeBoardAsync(actor, board)) return new ServiceResult(ServiceOutcome.Forbidden);
-            if (!board.IsDeveloperBoard) return new ServiceResult(ServiceOutcome.Forbidden, "Tavlen har ikke udviklerfunktioner slået til.");
+            if (!board.IsDeveloperBoard) return new ServiceResult(ServiceOutcome.Forbidden, DeveloperFeaturesDisabled);
 
             var cardId = await dataDb.BoardCards
                 .Where(card => card.BoardId == id && card.WorkItemId == workItemId && card.WorkItem.DeletedAt == null)
@@ -136,6 +138,82 @@ namespace DS.Application.Services.Boards
             await boardEvents.BoardChanged(id);
 
             return new ServiceResult(ServiceOutcome.Success);
+        }
+
+        public async Task<ServiceResult> SetEpicMarking(BoardActor actor, int id, int workItemId, bool isEpic)
+        {
+            var (outcome, card) = await GetDeveloperBoardCardAsync(actor, id, workItemId);
+            if (card == null) return outcome;
+            if (card.IsEpic == isEpic) return new ServiceResult(ServiceOutcome.Success);
+            if (isEpic && card.EpicBoardCardId != null) return new ServiceResult(ServiceOutcome.Invalid, "Et kort, der hører til en epic, kan ikke selv være en epic.");
+
+            card.IsEpic = isEpic;
+            if (!isEpic)
+            {
+                var children = await dataDb.BoardCards
+                    .Where(child => child.EpicBoardCardId == card.Id)
+                    .ToListAsync();
+                foreach (var child in children) child.EpicBoardCardId = null;
+            }
+
+            await dataDb.SaveChangesAsync();
+            await boardEvents.BoardChanged(id);
+
+            return new ServiceResult(ServiceOutcome.Success);
+        }
+
+        public async Task<ServiceResult> SetCardEpic(BoardActor actor, WorkItemEpicLinkDto data, int id, int workItemId)
+        {
+            if (data == null) return new ServiceResult(ServiceOutcome.Invalid);
+
+            var (outcome, card) = await GetDeveloperBoardCardAsync(actor, id, workItemId);
+            if (card == null) return outcome;
+
+            var epicWorkItemId = data.EpicWorkItemId;
+            if (epicWorkItemId == workItemId) return new ServiceResult(ServiceOutcome.Invalid, "Et kort kan ikke være sin egen epic.");
+            if (card.IsEpic) return new ServiceResult(ServiceOutcome.Invalid, "En epic kan ikke høre til en anden epic.");
+
+            var epic = await dataDb.BoardCards
+                .AsNoTracking()
+                .Where(candidate => candidate.BoardId == id && candidate.WorkItemId == epicWorkItemId && candidate.WorkItem.DeletedAt == null)
+                .Select(candidate => new { candidate.Id, candidate.IsEpic })
+                .SingleOrDefaultAsync();
+            if (epic == null) return new ServiceResult(ServiceOutcome.Invalid, $"DS-{epicWorkItemId} findes ikke på tavlen.");
+            if (!epic.IsEpic) return new ServiceResult(ServiceOutcome.Invalid, $"DS-{epicWorkItemId} er ikke markeret som epic.");
+            if (card.EpicBoardCardId == epic.Id) return new ServiceResult(ServiceOutcome.Success);
+
+            card.EpicBoardCardId = epic.Id;
+            await dataDb.SaveChangesAsync();
+            await boardEvents.BoardChanged(id);
+
+            return new ServiceResult(ServiceOutcome.Success);
+        }
+
+        public async Task<ServiceResult> RemoveCardEpic(BoardActor actor, int id, int workItemId)
+        {
+            var (outcome, card) = await GetDeveloperBoardCardAsync(actor, id, workItemId);
+            if (card == null) return outcome;
+            if (card.EpicBoardCardId == null) return new ServiceResult(ServiceOutcome.Success);
+
+            card.EpicBoardCardId = null;
+            await dataDb.SaveChangesAsync();
+            await boardEvents.BoardChanged(id);
+
+            return new ServiceResult(ServiceOutcome.Success);
+        }
+
+        private async Task<(ServiceResult Outcome, BoardCard Card)> GetDeveloperBoardCardAsync(BoardActor actor, int id, int workItemId)
+        {
+            var board = await GetBoardAsync(id);
+            if (board == null) return (new ServiceResult(ServiceOutcome.NotFound), null);
+            if (!await CanSeeBoardAsync(actor, board)) return (new ServiceResult(ServiceOutcome.Forbidden), null);
+            if (!board.IsDeveloperBoard) return (new ServiceResult(ServiceOutcome.Forbidden, DeveloperFeaturesDisabled), null);
+
+            var card = await dataDb.BoardCards
+                .FirstOrDefaultAsync(card => card.BoardId == id && card.WorkItemId == workItemId && card.WorkItem.DeletedAt == null);
+            if (card == null) return (new ServiceResult(ServiceOutcome.NotFound), null);
+
+            return (null, card);
         }
 
         public async Task<ServiceResult> AddDependency(BoardActor actor, WorkItemDependencyCreateDto data, int id, int workItemId)
@@ -1339,6 +1417,8 @@ namespace DS.Application.Services.Boards
 
         private static BoardDetailDto ToDetailDto(Board board, List<BoardCard> cards, Dictionary<int, List<WorkItemPlacementDto>> placements, Dictionary<int, CardDependencies> dependencies)
         {
+            var epics = board.IsDeveloperBoard ? ToBoardEpics(board, cards) : null;
+
             return new BoardDetailDto
             {
                 Id = board.Id,
@@ -1360,7 +1440,7 @@ namespace DS.Application.Services.Boards
                         IsDoneColumn = column.IsDoneColumn,
                     })
                     .ToList(),
-                Cards = cards.Select(card => ToCardDto(card, placements, dependencies)).ToList(),
+                Cards = cards.Select(card => ToCardDto(card, placements, dependencies, epics)).ToList(),
                 Tags = board.Tags.OrderBy(tag => tag.Name).ThenBy(tag => tag.Id)
                     .Select(tag => new BoardTagDto { Id = tag.Id, Name = tag.Name, Color = tag.Color }).ToList(),
                 Colors = board.Colors.OrderBy(color => color.Id)
@@ -1369,10 +1449,34 @@ namespace DS.Application.Services.Boards
             };
         }
 
-        private static WorkItemDto ToCardDto(BoardCard card, Dictionary<int, List<WorkItemPlacementDto>> placements, Dictionary<int, CardDependencies> dependencies)
+        private static BoardEpics ToBoardEpics(Board board, List<BoardCard> cards)
+        {
+            var doneColumnIds = board.Columns.Where(column => column.IsDoneColumn).Select(column => column.Id).ToHashSet();
+            var workItemIdsByCardId = cards.ToDictionary(card => card.Id, card => card.WorkItemId);
+            var progressByCardId = cards
+                .Where(card => card.IsEpic)
+                .ToDictionary(card => card.Id, _ => new EpicProgressDto());
+
+            foreach (var child in cards.Where(card => card.EpicBoardCardId != null))
+            {
+                if (!progressByCardId.TryGetValue(child.EpicBoardCardId.Value, out var progress)) continue;
+
+                progress.Total++;
+                if (doneColumnIds.Contains(child.ColumnId)) progress.Done++;
+            }
+
+            return new BoardEpics(workItemIdsByCardId, progressByCardId);
+        }
+
+        private sealed record BoardEpics(Dictionary<int, int> WorkItemIdsByCardId, Dictionary<int, EpicProgressDto> ProgressByCardId);
+
+        private static WorkItemDto ToCardDto(BoardCard card, Dictionary<int, List<WorkItemPlacementDto>> placements, Dictionary<int, CardDependencies> dependencies, BoardEpics epics)
         {
             var item = card.WorkItem;
             dependencies.TryGetValue(item.Id, out var itemDependencies);
+            int? epicCardId = epics != null && card.EpicBoardCardId != null && epics.WorkItemIdsByCardId.TryGetValue(card.EpicBoardCardId.Value, out var epicWorkItemId)
+                ? epicWorkItemId
+                : null;
 
             return new WorkItemDto
             {
@@ -1398,6 +1502,9 @@ namespace DS.Application.Services.Boards
                 Placements = placements.TryGetValue(item.Id, out var itemPlacements) ? itemPlacements : [],
                 WaitingOn = itemDependencies?.WaitingOn ?? [],
                 Blocking = itemDependencies?.Blocking ?? [],
+                IsEpic = epics != null && card.IsEpic,
+                EpicCardId = epicCardId,
+                EpicProgress = epics != null && card.IsEpic ? epics.ProgressByCardId[card.Id] : null,
             };
         }
     }

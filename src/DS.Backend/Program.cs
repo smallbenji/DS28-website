@@ -6,6 +6,7 @@ using DS.Backend.Services;
 using Microsoft.AspNetCore.HttpOverrides;
 using DbUp;
 using Hangfire;
+using Hangfire.Dashboard;
 using DS.Backend.Extensions;
 using DS.Backend.Mcp;
 using DS.Domain;
@@ -47,7 +48,8 @@ app.UseMiddleware<UserActivityMiddleware>();
 
 app.UseHangfireDashboard("/hangfire", new DashboardOptions
 {
-    Authorization = [new HangfireDashboardAuthorizationFilter()]
+    Authorization = [new HangfireDashboardAuthorizationFilter()],
+    IsReadOnlyFunc = context => !context.GetHttpContext().User.IsInRole(nameof(AppRoles.HangfireManage))
 });
 
 app.MapStaticAssets();

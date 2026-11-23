@@ -31,3 +31,12 @@ card tag selection, omitted/null/empty semantics, conflicts, invalid input,
 shared-board isolation and denied access. They do not exercise the HTTP MCP
 transport or OAuth login. Local stdio protocol tests are run separately with
 `node --test tools/ds28-mcp/*.test.mjs`.
+
+Epic checks cover marking and unmarking, one epic per card, one level only,
+same-board targets, self-reference, placement scope on shared cards, progress
+from done columns, live events, denied access, rejection on boards without
+developer features, hidden but preserved data while the feature is off, and
+release of child cards when an epic is unmarked or deleted. Remote MCP epic checks cover
+`isEpic` and `epicCardId` on `create_card` and `update_card`, the epic lines in
+`get_board`, and rejection before card creation on boards without developer
+features.

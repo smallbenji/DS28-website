@@ -11,6 +11,8 @@ export const boardQuickFilters: { key: BoardQuickFilter; label: string; icon: st
 
 export const boardUnassignedFilterId = "none";
 
+export const boardNoEpicFilterId = "none";
+
 export const boardPriorityFilters: { value: number; label: string; icon: string }[] = [
     { value: 1, label: "Høj", icon: "i-lucide-arrow-up" },
     { value: 0, label: "Normal", icon: "i-lucide-minus" },
@@ -32,10 +34,18 @@ export function useBoardFilters(board: Ref<BoardDetailDto | null>, currentUserId
     const tagIds = ref<number[]>([]);
     const assigneeIds = ref<string[]>([]);
     const priorities = ref<number[]>([]);
+    const epicIds = ref<string[]>([]);
     const quick = reactive<Record<BoardQuickFilter, boolean>>({ mine: false, overdue: false, waiting: false });
 
     const doneColumnIds = computed(() => new Set((board.value?.columns ?? []).filter((column) => column.isDoneColumn).map((column) => Number(column.id))));
-    const activeCount = computed(() => tagIds.value.length + assigneeIds.value.length + priorities.value.length + Object.values(quick).filter(Boolean).length);
+    const epics = computed(() => {
+        if (!board.value?.isDeveloperBoard) return [];
+
+        return board.value.cards
+            .filter((card) => card.isEpic)
+            .sort((a, b) => a.title.localeCompare(b.title, "da"));
+    });
+    const activeCount = computed(() => tagIds.value.length + assigneeIds.value.length + priorities.value.length + epicIds.value.length + Object.values(quick).filter(Boolean).length);
     const isFiltering = computed(() => activeCount.value > 0 || search.value.trim() !== "");
 
     function matchesSearch(card: WorkItemDto, query: string) {
@@ -53,11 +63,19 @@ export function useBoardFilters(board: Ref<BoardDetailDto | null>, currentUserId
         return card.assignees.some((user) => assigneeIds.value.includes(user.id));
     }
 
+    function matchesEpics(card: WorkItemDto) {
+        if (card.isEpic) return epicIds.value.includes(String(card.id));
+        if (card.epicCardId == null) return epicIds.value.includes(boardNoEpicFilterId);
+
+        return epicIds.value.includes(String(card.epicCardId));
+    }
+
     function matches(card: WorkItemDto, today: string) {
         if (!matchesSearch(card, search.value.trim().toLowerCase())) return false;
         if (tagIds.value.length && !card.tags?.some((tag) => tagIds.value.includes(Number(tag.id)))) return false;
         if (assigneeIds.value.length && !matchesAssignees(card)) return false;
         if (priorities.value.length && !priorities.value.includes(Number(card.priority))) return false;
+        if (epicIds.value.length && !matchesEpics(card)) return false;
         if (quick.mine && !card.assignees.some((user) => user.id === currentUserId.value)) return false;
 
         const isDone = doneColumnIds.value.has(Number(card.columnId));
@@ -88,10 +106,15 @@ export function useBoardFilters(board: Ref<BoardDetailDto | null>, currentUserId
         priorities.value = priorities.value.includes(priority) ? priorities.value.filter((value) => value !== priority) : [...priorities.value, priority];
     }
 
+    function toggleEpic(epicId: string) {
+        epicIds.value = epicIds.value.includes(epicId) ? epicIds.value.filter((id) => id !== epicId) : [...epicIds.value, epicId];
+    }
+
     function clearFilters() {
         tagIds.value = [];
         assigneeIds.value = [];
         priorities.value = [];
+        epicIds.value = [];
         quick.mine = false;
         quick.overdue = false;
         quick.waiting = false;
@@ -115,11 +138,19 @@ export function useBoardFilters(board: Ref<BoardDetailDto | null>, currentUserId
         if (assigneeIds.value.some((id) => !existing.has(id))) assigneeIds.value = assigneeIds.value.filter((id) => existing.has(id));
     });
 
+    watch(epics, (current) => {
+        const existing = new Set(current.map((card) => String(card.id)));
+        if (existing.size) existing.add(boardNoEpicFilterId);
+        if (epicIds.value.some((id) => !existing.has(id))) epicIds.value = epicIds.value.filter((id) => existing.has(id));
+    });
+
     return reactive({
         search,
         tagIds,
         assigneeIds,
         priorities,
+        epicIds,
+        epics,
         quick,
         currentUserId,
         activeCount,
@@ -128,6 +159,7 @@ export function useBoardFilters(board: Ref<BoardDetailDto | null>, currentUserId
         toggleTag,
         toggleAssignee,
         togglePriority,
+        toggleEpic,
         clearFilters,
         clearAll
     });

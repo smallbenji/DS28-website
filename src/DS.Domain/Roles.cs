@@ -47,6 +47,7 @@ namespace DS.Domain
         WordPressAdmin,
 
         HangfireView,
+        HangfireManage,
 
         MaterialView,
         MaterialCreate,
@@ -86,6 +87,7 @@ namespace DS.Domain
                     nameof(AppRoles.OpenIddictManage),
 
                     nameof(AppRoles.HangfireView),
+                    nameof(AppRoles.HangfireManage),
 
                     nameof(AppRoles.MaterialView),
                     nameof(AppRoles.MaterialDelete),

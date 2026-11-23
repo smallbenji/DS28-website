@@ -75,6 +75,14 @@ export interface WorkItemDto {
     placements: WorkItemPlacementDto[];
     waitingOn: WorkItemDependencyDto[];
     blocking: WorkItemDependencyDto[];
+    isEpic: boolean;
+    epicCardId: number | null;
+    epicProgress: EpicProgressDto | null;
+}
+
+export interface EpicProgressDto {
+    done: number;
+    total: number;
 }
 
 export interface WorkItemDependencyDto {
