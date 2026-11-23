@@ -43,6 +43,8 @@
                     </ul>
                 </UCard>
 
+                <CampDays v-if="canManageSignup" />
+
                 <GoogleDriveConnection v-if="hasRole('AdminAccess')" />
 
                 <HistoricRegistrationSync v-if="hasRole('AdminAccess')" />
@@ -56,6 +58,7 @@ import { onMounted, ref } from "vue";
 import RegistrationSettingsService, { type RegistrationSettings } from "@/Services/RegistrationSettingsService";
 import { useNotify } from "@/lib/notify";
 import { useHasRole } from "@/lib/permissions";
+import CampDays from "@/Components/CampDays.vue";
 import GoogleDriveConnection from "@/Components/GoogleDriveConnection.vue";
 import HistoricRegistrationSync from "@/Components/HistoricRegistrationSync.vue";
 

@@ -2695,6 +2695,16 @@ til projektet. Kontrollér altid koden igen ved fremtidige ændringer.
   - Det er ikke besluttet, hvad lukket endelig aktivitetstilmelding betyder,
     fx om tilmeldingerne bliver skrivebeskyttede eller skjules. Det afklares,
     når flowet bygges.
+- **DS-96 (implementeret, afventer review):** Lejrens dage er data i
+  `camp_day` og redigeres i kortet "Lejrdage" på `/camp-settings`, som kræver
+  `PreSignupManage`. Hver dag har en unik dato og en halvdel: 1. halvdel, 2.
+  halvdel eller begge (skiftedag). Ved tilføjelse foreslås dagen efter den
+  sidste lejrdag. `GET /api/v1/camp-days` kræver kun login, fordi grupperne
+  skal bruge dagene i DS-72; `POST`, `PUT /{id}` og `DELETE /{id}` kræver
+  `PreSignupManage`, og en dublet af en dato giver HTTP 409. Der er endnu
+  ingen tilmeldinger på dagene, så sletning er altid tilladt. Reglen om, at en
+  dag med tilmeldinger ikke kan slettes, indføres i DS-72 sammen med
+  fremmednøglen fra `scout_camp_day`. Ingen datoer er hardkodet eller seedet.
 - Glemt adgangskode er et selvbetjent flow på `/forgot-password`. Brugeren
   indtaster sin email, og backend sender et nulstillingslink på
   `/reset-password/{brugerId}?token=...`. Det er en mail, der sendes
