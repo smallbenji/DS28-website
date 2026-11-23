@@ -2608,9 +2608,10 @@ migreringstidspunktet, ikke opdigtede historiske datoer. Fremtidige ændringer
 skal fortsat tilføjes som nye scripts.
 
 Overgangen er integrationstestet med PostgreSQL og syntetiske data fra det
-originale v0.1.6-skema. Den er ikke kørt mod produktionsdata. Deploy kræver
-backup, prøvekørsel på en kopi og stop af gamle appinstanser; se
-[deployvejledningen](deploy-v016-database.md). Databaser med tidligere
+originale v0.1.6-skema og blev gennemført i produktion med v0.2.0 (2026-10).
+Den krævede backup, prøvekørsel på en kopi og stop af gamle appinstanser; se
+den arkiverede [deployvejledning](archive/deploy-v016-database.md), som ikke
+gælder for nye deploys. Databaser med tidligere
 manuelle eller delvise skemaomlægninger kræver særskilt afstemning.
 
 **Beslutning 2026-10-01:** `ds28` er nu standardskemaet for hele den nye
