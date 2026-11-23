@@ -1247,8 +1247,8 @@ Nye og eksisterende tavler har funktionen slået fra som standard.
 **Beslutning 2026-11-23 (DS-99, database, service og API implementeret):** En
 epic er et almindeligt kort, der er markeret som epic på en udviklertavle.
 Andre kort på samme tavle kan høre til én epic. Epics afløser »samlekort«, der
-samler kort med afhængigheder. Filteret (DS-101) er et separat kort og ikke
-implementeret; MCP (DS-102) og UI (DS-100) er implementeret, se nedenfor.
+samler kort med afhængigheder. UI (DS-100), filter (DS-101) og MCP (DS-102) er
+implementeret, se nedenfor.
 
 - **Model:** Markeringen og relationen hører til tavleplaceringen
   (`board_card.is_epic` og `board_card.epic_board_card_id`), ligesom PR-links,
@@ -1309,6 +1309,19 @@ En epic viser sine kort med DS-nummer, titel, kolonne og færdig-status. De kort
 og epic'en på et kort kan klikkes for at åbne det kort i samme dialog; har
 dialogen ugemte ændringer, afvises skiftet med en besked. Serverens fejlbeskeder
 vises som toast. Uden redigeringsadgang vises oplysningerne uden kontrolelementer.
+
+*Implementeret (DS-101, `lib/board/boardFilters.ts`, `BoardFilterPanel.vue`,
+`BoardFilterBar.vue`):* Filterpanelet har et »Epic«-filter, der kun vises på
+udviklertavler med mindst én epic. Valgmulighederne er tavlens epics (DS-nummer
+og titel, sorteret efter titel) samt »Ingen epic«, med antal kort pr. valg.
+Vælges en epic, vises både epic'en selv og de kort, der hører til den. »Ingen
+epic« viser kort, der hverken er epic eller hører til en. Flere valg kombineres
+med »eller« og med andre filtre med »og«, som i DS-88. Aktive valg vises som
+mærker, der kan fjernes, tæller med i antallet af filtre, ryddes af »Ryd
+filtre« og »Fjern alle« og findes også i mobilskuffen. Filteret huskes ikke
+mellem besøg, og kort kan ikke flyttes, mens der filtreres. Afmarkeres eller
+fjernes en valgt epic, fjernes den fra valget; forsvinder tavlens sidste epic,
+ryddes hele epic-filteret.
 
 **Beslutning 2026-11-21 (godkendt, ikke implementeret, redesign af kanban-visningen):**
 Tavlevisningen skal redesignes ud fra et klikbart mockup, som brugeren har
