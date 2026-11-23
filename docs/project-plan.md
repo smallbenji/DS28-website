@@ -2721,8 +2721,8 @@ til projektet. Kontrollér altid koden igen ved fremtidige ændringer.
   uden dage samme periode. Gruppens forside `/group` viser status for
   manglende dage med et link til filteret. Spejder- og patruljekortet står nu
   under hinanden i fuld bredde. Når lejrdagene ikke er oprettet, vises en
-  besked i stedet for dagvalget. Følgende er valg truffet under
-  implementeringen, som ikke er bekræftet:
+  besked i stedet for dagvalget. Følgende valg blev truffet under
+  implementeringen og er bekræftet af Benjamin 2026-11-23:
   - Fjernelse af den sidste dag under Enkelte dage afvises med en besked om at
     slette spejderen i stedet.
   - Den administrative sletning af en hel gruppe soft-sletter kun gruppen; dens
