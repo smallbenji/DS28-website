@@ -13,11 +13,32 @@
 
         <div class="flex flex-wrap items-center gap-1.5">
             <span class="font-mono text-xs text-muted">DS-{{ card.id }}</span>
+            <UBadge v-if="isEpic" label="Epic" icon="i-lucide-layers" color="primary" variant="subtle" size="sm" />
+            <UBadge
+                v-else-if="epicLabel"
+                :label="epicLabel"
+                icon="i-lucide-layers"
+                color="neutral"
+                variant="outline"
+                size="sm"
+                class="max-w-40"
+                :ui="{ label: 'truncate' }"
+                :title="`Hører til epic: ${epicLabel}`"
+            />
             <BoardTagBadge v-for="tag in card.tags" :key="tag.id" :tag="tag" />
         </div>
 
         <p class="mt-1 font-medium" :class="isDoneColumn ? 'text-muted line-through' : 'text-highlighted'">{{ card.title }}</p>
         <p v-if="descriptionPreview && !compact" class="mt-1 line-clamp-2 text-xs text-muted">{{ descriptionPreview }}</p>
+
+        <div v-if="isEpic && epicProgress.total > 0" :class="compact ? 'mt-1.5' : 'mt-2'">
+            <p class="flex items-center gap-1 text-xs" :class="isEpicComplete ? 'font-medium text-success' : 'text-muted'">
+                <UIcon :name="isEpicComplete ? 'i-lucide-circle-check' : 'i-lucide-list-checks'" class="size-3.5" />
+                {{ isEpicComplete ? `Alle ${epicProgress.total} færdige` : `${epicProgress.done} af ${epicProgress.total} færdige` }}
+            </p>
+            <UProgress v-if="!compact" class="mt-1" :model-value="epicProgress.done" :max="epicProgress.total" size="2xs" :color="isEpicComplete ? 'success' : 'primary'" />
+        </div>
+        <p v-else-if="isEpic && !compact" class="mt-2 text-xs text-muted">Ingen kort i epic'en endnu</p>
 
         <UBadge v-if="waitingLabel && !compact" class="mt-2" :label="waitingLabel" icon="i-lucide-link" color="warning" variant="subtle" size="sm" />
 
@@ -66,6 +87,7 @@ import type { WorkItemDto } from "@/types";
 import { htmlToPlainText } from "@/lib/util";
 import { useBoardDrag } from "@/lib/board/boardDrag";
 import { useBoardCompact } from "@/lib/board/boardFilters";
+import { useBoardStore } from "@/Stores/BoardStore";
 import BoardTagBadge from "@/Components/Board/BoardTagBadge.vue";
 
 const props = defineProps<{
@@ -78,9 +100,21 @@ const props = defineProps<{
 const emit = defineEmits<{ open: [card: WorkItemDto] }>();
 
 const drag = useBoardDrag();
+const store = useBoardStore();
 const compact = useBoardCompact();
 const dragImageCaptured = ref(false);
 const isDragging = computed(() => dragImageCaptured.value && drag.value?.kind === "card" && drag.value.id === Number(props.card.id));
+
+const isDeveloperBoard = computed(() => store.SelectedBoard?.isDeveloperBoard ?? false);
+const isEpic = computed(() => isDeveloperBoard.value && props.card.isEpic);
+const epicLabel = computed(() => {
+    const epicCardId = props.card.epicCardId;
+    if (!isDeveloperBoard.value || !epicCardId) return "";
+
+    return store.SelectedBoard?.cards.find((card) => String(card.id) === String(epicCardId))?.title ?? `DS-${epicCardId}`;
+});
+const epicProgress = computed(() => props.card.epicProgress ?? { done: 0, total: 0 });
+const isEpicComplete = computed(() => epicProgress.value.total > 0 && epicProgress.value.done === epicProgress.value.total);
 
 const descriptionPreview = computed(() => htmlToPlainText(props.card.description));
 

@@ -59,6 +59,8 @@
                         <p v-else class="text-xs text-muted">Ingen beskrivelse.</p>
                     </section>
 
+                    <BoardCardEpic v-if="pullRequestCard" :key="`epic-${pullRequestCard.id}`" :board-id="boardId" :card="pullRequestCard" :can-manage="canManage" @open="openOtherCard" />
+
                     <BoardCardDependencies v-if="!isNew && card" :board-id="boardId" :card="card" :can-manage="canManage" />
 
                     <BoardCardPullRequests v-if="pullRequestCard" :key="pullRequestCard.id" :board-id="boardId" :card="pullRequestCard" :can-manage="canManage" />
@@ -194,6 +196,7 @@ import RichTextViewer from "@/Components/RichText/RichTextViewer.vue";
 import BoardTagInput from "@/Components/Board/BoardTagInput.vue";
 import BoardTagBadge from "@/Components/Board/BoardTagBadge.vue";
 import BoardCardDependencies from "@/Components/Board/BoardCardDependencies.vue";
+import BoardCardEpic from "@/Components/Board/BoardCardEpic.vue";
 import BoardCardPullRequests from "@/Components/Board/BoardCardPullRequests.vue";
 import BoardCardAssignees from "@/Components/Board/BoardCardAssignees.vue";
 import {
@@ -209,6 +212,7 @@ import {
 
 const props = defineProps<{ boardId: number; columnId: number; card: WorkItemDto | null; canManage: boolean }>();
 const open = defineModel<boolean>("open", { required: true });
+const emit = defineEmits<{ openCard: [card: WorkItemDto] }>();
 
 const store = useBoardStore();
 const boardService = new BoardService();
@@ -374,6 +378,16 @@ function snapshot() {
         ownerPositionId: form.ownerPositionId,
         tags: selectedTags.value.map((tag) => `${tag.id}:${tag.name}`)
     });
+}
+
+function openOtherCard(card: WorkItemDto) {
+    if (saving.value) return;
+    if (isDirty.value) {
+        notify.error("Gem eller annuller dine ændringer, før du åbner et andet kort.");
+        return;
+    }
+
+    emit("openCard", card);
 }
 
 function isCurrentBoard(placement: WorkItemPlacementDto) {

@@ -1247,8 +1247,8 @@ Nye og eksisterende tavler har funktionen slået fra som standard.
 **Beslutning 2026-11-23 (DS-99, database, service og API implementeret):** En
 epic er et almindeligt kort, der er markeret som epic på en udviklertavle.
 Andre kort på samme tavle kan høre til én epic. Epics afløser »samlekort«, der
-samler kort med afhængigheder. UI (DS-100) og filter (DS-101) er separate kort
-og ikke implementeret; MCP (DS-102) er implementeret, se nedenfor.
+samler kort med afhængigheder. Filteret (DS-101) er et separat kort og ikke
+implementeret; MCP (DS-102) og UI (DS-100) er implementeret, se nedenfor.
 
 - **Model:** Markeringen og relationen hører til tavleplaceringen
   (`board_card.is_epic` og `board_card.epic_board_card_id`), ligesom PR-links,
@@ -1294,6 +1294,21 @@ på tavler uden udviklerfunktioner og kontrollerer på forhånd, at målet er en
 epic på samme tavle, så et kort ikke oprettes halvt; serverens øvrige regler og
 fejltekster gælder uændret. Agenter lægger nye kort under en eksisterende epic
 efter kortforløbet i `AGENTS.md`.
+
+*Implementeret (DS-100, `BoardCard.vue`, `BoardCardEpic.vue`,
+`BoardCardModal.vue`, `BoardDetail.vue`):* På udviklertavler viser et kort, der
+hører til en epic, et lille mærke med epic'ens titel (opslag blandt tavlens kort
+via `epicCardId`, ellers DS-nummeret). En epic har mærket »Epic« og viser »X af Y
+færdige« med en lille fremdriftslinje, i kompakt visning kun teksten. Når alle
+kort er færdige (`done === total > 0`), bliver teksten grøn med flueben. I
+kortdialogen har eksisterende kort på udviklertavler en sektion »Epic«: en
+kontakt markerer eller afmarkerer kortet som epic og skjules, når kortet selv
+hører til en epic. Afmarkering af en epic med kort kræver bekræftelse. Et
+almindeligt kort kan vælge en af tavlens andre epics eller fjernes fra sin epic.
+En epic viser sine kort med DS-nummer, titel, kolonne og færdig-status. De kort
+og epic'en på et kort kan klikkes for at åbne det kort i samme dialog; har
+dialogen ugemte ændringer, afvises skiftet med en besked. Serverens fejlbeskeder
+vises som toast. Uden redigeringsadgang vises oplysningerne uden kontrolelementer.
 
 **Beslutning 2026-11-21 (godkendt, ikke implementeret, redesign af kanban-visningen):**
 Tavlevisningen skal redesignes ud fra et klikbart mockup, som brugeren har
