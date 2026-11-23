@@ -3,7 +3,7 @@
 **Arkiveret 2026-11-21:** Guiden beskriver den gamle Buefy-frontend, som nu
 ligger i `src/DS.Frontend.Archive` og ikke længere bygges eller serveres. Den
 gælder ikke den nuværende `src/DS.Frontend`, som bruger Nuxt UI og Tailwind. Se
-[Beta-frontend med Nuxt UI](project-plan.md#beta-frontend-med-nuxt-ui).
+[Frontend med Nuxt UI](project-plan.md#frontend-med-nuxt-ui).
 
 Guiden beskriver, hvordan brugerfladen i `src/DS.Frontend.Archive` blev bygget, så nye
 skærme ligner de eksisterende. Den bygger på de mønstre, som allerede er mest
