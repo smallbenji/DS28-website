@@ -1600,9 +1600,10 @@ Hver ansvarlig på et kort kan klarmelde sin egen del. Klarmelding er en status
 pr. ansvarlig og er adskilt fra kortets kolonne og udgivelsesstatus: `Ikke
 udgivet` betyder stadig merget og `Færdig` deployet.
 
-- Kun den ansvarlige selv kan klarmelde eller trække sin klarmelding tilbage
-  (`PUT`/`DELETE /api/v1/boards/{id}/cards/{workItemId}/completion`). Der er
-  ingen administratoradgang til at klarmelde for andre i første version.
+- Den ansvarlige kan klarmelde eller trække sin klarmelding tilbage
+  (`PUT`/`DELETE /api/v1/boards/{id}/cards/{workItemId}/completion`).
+  Reglen om, at kun den ansvarlige selv kan klarmelde, er erstattet af
+  DS-109 nedenfor.
 - Klarmelding blokerer ikke flytning af kortet; alle behøver ikke at have
   klarmeldt, før kortet flyttes videre.
 - Fjernes en ansvarlig, slettes klarmeldingen med tildelingen. Tilføjes
@@ -1616,10 +1617,27 @@ udgivet` betyder stadig merget og `Færdig` deployet.
   bruger enkelt-endpoints for eksisterende kort og sender kun listen ved
   oprettelse.
 - Svar bruger `WorkItemAssigneeDto` med `completedAt` ud over brugerfelterne.
-  Kortdialogen viser status pr. ansvarlig og knappen »Klarmeld min del«;
-  tavlekortet viser »k/n« og markerer klarmeldte avatarer.
+  Kortdialogen viser status pr. ansvarlig som en cirkel; knappen »Klarmeld
+  min del« er erstattet af klikbare cirkler (DS-109). Tavlekortet viser »k/n«
+  og markerer klarmeldte avatarer.
 - MCP viser »(klarmeldt)« ved ansvarlige i `get_board` og har værktøjet
   `set_completion`. `update_card` sender kun ansvarlige, når de angives.
+
+**Beslutning 2026-11-23 (DS-109, implementeret i denne ændring, ikke udgivet):**
+Man klarmelder ved at klikke på statuscirklen ud for en ansvarlig i
+kortdialogen, og man kan også klarmelde eller fortryde for andre ansvarlige.
+Det erstatter DS-40's regel om, at kun den ansvarlige selv kan klarmelde.
+
+- Adgangen følger tilføj og fjern af ansvarlige: alle, der kan se tavlen, kan
+  klarmelde for enhver ansvarlig på kortet
+  (`PUT`/`DELETE /api/v1/boards/{id}/cards/{workItemId}/assignees/{userId}/completion`).
+  Det tidligere endpoint uden `userId` består og gælder den indloggede bruger.
+- Kortdialogen gør alle cirkler klikbare for brugere, der kan redigere kortet,
+  og ens egen cirkel klikbar for alle ansvarlige. Knappen »Klarmeld min del«
+  er fjernet.
+- Det registreres ikke, hvem der klarmeldte på vegne af en anden; kun
+  tidspunktet gemmes. Om det skal kunne ses, er et åbent spørgsmål.
+- MCP-værktøjet `set_completion` klarmelder fortsat kun ens egen del.
 
 **Beslutning 2026-10-19 (implementeret, træk og slip):** Tavlen viser en blå
 indsættelseslinje før eller efter det kort, musen peger på. Den øverste og

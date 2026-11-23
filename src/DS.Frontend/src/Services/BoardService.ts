@@ -51,8 +51,8 @@ export default class BoardService {
         await apiDelete(`/api/v1/boards/${boardId}/cards/${cardId}/assignees/${encodeURIComponent(userId)}`);
     }
 
-    public async setCompletion(boardId: number, cardId: number, completed: boolean): Promise<void> {
-        const path = `/api/v1/boards/${boardId}/cards/${cardId}/completion`;
+    public async setCompletion(boardId: number, cardId: number, userId: string, completed: boolean): Promise<void> {
+        const path = `/api/v1/boards/${boardId}/cards/${cardId}/assignees/${encodeURIComponent(userId)}/completion`;
         if (completed) {
             await apiPut(path);
         } else {

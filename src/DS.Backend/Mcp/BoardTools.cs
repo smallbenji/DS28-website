@@ -339,13 +339,14 @@ namespace DS.Backend.Mcp
         }
 
         [McpServerTool(Name = "set_completion")]
-        [Description("Mark your own part of a DS28 card as done, or withdraw it. Only an assignee can change their own completion; other assignees are unaffected and the card does not move.")]
+        [Description("Mark your own part of a DS28 card as done, or withdraw it. Other assignees are unaffected and the card does not move.")]
         public async Task<string> SetCompletion(
             [Description("Board id from list_boards.")] int boardId,
             [Description("Card number from DS-<id>, for example 42 for DS-42.")] int cardId,
             [Description("true marks your part as done, false withdraws it.")] bool completed)
         {
-            var result = await boards.SetCompletion(await ActorAsync(), boardId, cardId, completed);
+            var actor = await ActorAsync();
+            var result = await boards.SetCompletion(actor, boardId, cardId, actor.UserId, completed);
             if (result.Outcome != ServiceOutcome.Success) throw new McpException(Describe(result.Outcome, result.Error));
 
             return completed ? $"Klarmeldte din del af DS-{cardId}." : $"Trak klarmeldingen af DS-{cardId} tilbage.";
