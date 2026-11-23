@@ -397,6 +397,12 @@ erDiagram
         bool is_activity_signup_open
     }
 
+    camp_day {
+        int id PK
+        date date "UNIQUE"
+        varchar half "First | Second | Both"
+    }
+
     google_connection {
         int id PK
         text account_email
@@ -820,6 +826,12 @@ mindst syv dage gamle. Det er ren dataoprydning uden skemaændring.
   `BOOLEAN NOT NULL DEFAULT FALSE` og ændres manuelt i lejrindstillingerne.
   De to aktivitetsflag styrer endnu ingen adgang, fordi ønske- og
   tilmeldingsflowet ikke er bygget.
+- `camp_day` er lejrens dage, som lejrchefen redigerer i lejrindstillingerne.
+  `date` er `DATE NOT NULL` og unik (`uq_camp_day_date`), så en dato kun kan
+  være én lejrdag. `half` er `VARCHAR(16) NOT NULL` med `ck_camp_day_half`
+  (`First`, `Second` eller `Both`), hvor `Both` markerer en skiftedag, der
+  hører til begge halvdele. Tabellen har endnu ingen foreign keys peget på
+  sig; deltagelsesdage pr. spejder kommer med DS-72.
 - `user_access_token` gemmer personlige adgangstokens til værktøjer og
   scripts. Kun SHA-256-hashen i `token_hash` gemmes (unik), så den rå token
   ikke kan gendannes fra databasen og kun vises én gang ved oprettelse.

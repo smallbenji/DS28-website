@@ -36,6 +36,7 @@ public static class ConfigureApplication
         services.AddScoped<FileService>();
         services.AddScoped<OrgService>();
         services.AddScoped<RegistrationSettingsService>();
+        services.AddScoped<CampDayService>();
         services.AddScoped<UserService>();
         services.AddScoped<BoardService>();
         services.AddScoped<SearchService>();

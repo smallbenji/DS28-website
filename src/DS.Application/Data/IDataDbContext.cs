@@ -19,6 +19,7 @@ namespace DS.Application.Data
         DbSet<HistoricPresignup> HistoricPresignups { get; }
         DbSet<HistoricSignup> HistoricSignups { get; }
         DbSet<RegistrationSettings> RegistrationSettings { get; }
+        DbSet<CampDay> CampDays { get; }
         DbSet<Activity> Activities { get; }
         DbSet<ActivityTeam> ActivityTeams { get; }
         DbSet<ActivityTeamMembership> ActivityTeamMemberships { get; }

@@ -27,6 +27,7 @@ public class DataDbContext : IdentityDbContext<User, Role, string>, IDataDbConte
     public DbSet<UserNotificationPreference> NotificationPreferences { get; set; }
     public DbSet<UserAccessToken> AccessTokens { get; set; }
     public DbSet<RegistrationSettings> RegistrationSettings { get; set; }
+    public DbSet<CampDay> CampDays { get; set; }
     public DbSet<Group> Groups { get; set; }
     public DbSet<Patrol> Patrols { get; set; }
     public DbSet<Scout> Scouts { get; set; }
