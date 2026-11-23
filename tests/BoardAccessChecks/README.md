@@ -36,4 +36,7 @@ Epic checks cover marking and unmarking, one epic per card, one level only,
 same-board targets, self-reference, placement scope on shared cards, progress
 from done columns, live events, denied access, rejection on boards without
 developer features, hidden but preserved data while the feature is off, and
-release of child cards when an epic is unmarked or deleted.
+release of child cards when an epic is unmarked or deleted. Remote MCP epic checks cover
+`isEpic` and `epicCardId` on `create_card` and `update_card`, the epic lines in
+`get_board`, and rejection before card creation on boards without developer
+features.

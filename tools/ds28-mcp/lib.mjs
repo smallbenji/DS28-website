@@ -124,6 +124,8 @@ export function formatBoard(board) {
         if (card.color) meta.push(`farve ${card.color}`);
         if (card.tags?.length) meta.push(`tags: ${card.tags.map(tag => `${tag.name} (id ${tag.id})`).join(", ")}`);
         if (assignees.length) meta.push(`ansvarlige: ${assignees.join(", ")}`);
+        if (card.isEpic) meta.push(`epic: ${Number(card.epicProgress?.done ?? 0)} af ${Number(card.epicProgress?.total ?? 0)} færdige`);
+        if (card.epicCardId != null) meta.push(`epic: ${formatEpic(board.cards, card.epicCardId)}`);
         if (card.pullRequests?.length) meta.push(`PR-links: ${card.pullRequests.join(", ")}`);
         if (card.waitingOn?.length) meta.push(`venter på: ${card.waitingOn.map(formatDependency).join(", ")}`);
         if (card.blocking?.length) meta.push(`blokerer: ${card.blocking.map(formatDependency).join(", ")}`);
@@ -134,6 +136,25 @@ export function formatBoard(board) {
     }
 
     return lines.join("\n");
+}
+
+function formatEpic(cards, epicCardId) {
+    const epic = cards.find(candidate => String(candidate.id) === String(epicCardId));
+    return epic ? `DS-${epicCardId} ${epic.title}` : `DS-${epicCardId}`;
+}
+
+export function validateEpicArguments(board, cardId, isEpic, epicCardId) {
+    if (isEpic == null && epicCardId == null) return;
+    if (isEpic != null && typeof isEpic !== "boolean") throw new Error("isEpic skal være true eller false.");
+    if (epicCardId != null && (!Number.isInteger(epicCardId) || epicCardId < 0)) throw new Error("epicCardId skal være et DS-nummer eller 0.");
+    if (!board.isDeveloperBoard) throw new Error("Tavlen har ikke udviklerfunktioner slået til.");
+    if (isEpic === true && epicCardId > 0) throw new Error("Et kort kan ikke både være epic og høre til en epic.");
+    if (!epicCardId) return;
+    if (epicCardId === cardId) throw new Error("Et kort kan ikke være sin egen epic.");
+
+    const epic = (board.cards ?? []).find(candidate => Number(candidate.id) === epicCardId);
+    if (!epic) throw new Error(`DS-${epicCardId} findes ikke på tavlen.`);
+    if (!epic.isEpic) throw new Error(`DS-${epicCardId} er ikke markeret som epic.`);
 }
 
 export function formatDependency(dependency) {

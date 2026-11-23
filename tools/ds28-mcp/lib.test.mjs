@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { formatBoard, formatBoards, matchUser, parseCliArguments, parseEnvFile, resolveColumn, resolveTagIds, toHtml } from "./lib.mjs";
+import { formatBoard, formatBoards, matchUser, parseCliArguments, parseEnvFile, resolveColumn, resolveTagIds, toHtml, validateEpicArguments } from "./lib.mjs";
 
 test("parseEnvFile læser nøgler, ignorerer kommentarer og fjerner citationstegn", () => {
     const values = parseEnvFile(`
@@ -104,6 +104,38 @@ test("formatBoard viser tagdefinitioner, valgfri farve og kortets tag-id'er", ()
     const text = formatBoard({ id: 1, title: "IT", columns: [], tags, cards: [{ id: 42, title: "Fejl", tags }] });
     assert.match(text, /Tags:\n- id 1: v0.2.13 \| farve #dbeafe\n- id 2: Fix \| farve ingen/);
     assert.match(text, /tags: v0.2.13 \(id 1\), Fix \(id 2\)/);
+});
+
+test("formatBoard viser epic-fremdrift og kortets epic", () => {
+    const text = formatBoard({
+        id: 1,
+        title: "IT",
+        columns: [{ id: 10, title: "Backlog" }],
+        cards: [
+            { id: 17, title: "Epics", columnId: 10, isEpic: true, epicProgress: { done: 3, total: 7 } },
+            { id: 42, title: "Fejl", columnId: 10, epicCardId: 17 },
+            { id: 43, title: "Skjult", columnId: 10, epicCardId: 99 },
+        ],
+    });
+
+    assert.match(text, /DS-17 Epics \| kolonne Backlog \(id 10\) \| epic: 3 af 7 færdige$/m);
+    assert.match(text, /DS-42 Fejl \| kolonne Backlog \(id 10\) \| epic: DS-17 Epics$/m);
+    assert.match(text, /DS-43 Skjult \| kolonne Backlog \(id 10\) \| epic: DS-99$/m);
+});
+
+test("validateEpicArguments kræver udviklertavle og en epic på samme tavle", () => {
+    const board = { isDeveloperBoard: true, cards: [{ id: "17", isEpic: true }, { id: "42", isEpic: false }] };
+
+    assert.doesNotThrow(() => validateEpicArguments({ isDeveloperBoard: false }, 42, null, null));
+    assert.doesNotThrow(() => validateEpicArguments(board, 42, false, 17));
+    assert.doesNotThrow(() => validateEpicArguments(board, 42, true, 0));
+    assert.throws(() => validateEpicArguments({ ...board, isDeveloperBoard: false }, 42, true, null), /udviklerfunktioner/);
+    assert.throws(() => validateEpicArguments(board, 42, true, 17), /både være epic/);
+    assert.throws(() => validateEpicArguments(board, 17, null, 17), /sin egen epic/);
+    assert.throws(() => validateEpicArguments(board, 43, null, 42), /DS-42 er ikke markeret som epic/);
+    assert.throws(() => validateEpicArguments(board, 43, null, 99), /DS-99 findes ikke på tavlen/);
+    assert.throws(() => validateEpicArguments(board, 43, null, -1), /DS-nummer eller 0/);
+    assert.throws(() => validateEpicArguments(board, 43, "ja", null), /true eller false/);
 });
 
 test("parseCliArguments omsætter navn=værdi efter værktøjets skema", () => {
