@@ -154,21 +154,5 @@ Et ukendt gruppenummer afvises. Udeladte grupper kræver ikke match i DS28.
 
 ## Verifikation
 
-Kør source- og normaliseringskontroller med syntetiske data, uden Firebase- eller
-databaseadgang:
-
-```sh
-dotnet run --project tests/HistoricRegistrationChecks/HistoricRegistrationChecks.csproj --disable-build-servers
-```
-
-Kør også databasekontrollerne i en automatisk oprettet, isoleret PostgreSQL-container.
-Scriptet kræver Docker og OpenSSL og genererer et tilfældigt testpassword ved hver kørsel:
-
-```sh
-bash tests/HistoricRegistrationChecks/run.sh
-```
-
-Kontrollerne dækker credentials-formater, paginering, bearer-token, ugyldige data,
-ukendt lederfremmøde, kildefejl uden credential-læk, migrationen, dubletblokering,
-prøvekørsel, genimport, gruppeudeladelse og transaktionel tilbagerulning.
-Ingen rigtige historiske data eller credentials er inkluderet i testprojektet.
+Kør en prøvekørsel uden `--apply` med kommandoen ovenfor, og kontrollér
+optællingerne, før importen køres med `--apply`.

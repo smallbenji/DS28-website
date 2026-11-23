@@ -2375,6 +2375,13 @@ output og ignoreres af git; grafen skal derfor bygges lokalt og opdateres med
 installerede OpenCode-skill og den globale plugin-hook. Opsætningen er
 beskrevet i `README.md`.
 
+**Beslutning 2026-11-23 (implementeret, DS-116):** Repositoryet har ingen
+`tests/`-mappe. De agent-oprettede check-projekter i `tests/` lå uden for
+solution-filen og blev ikke kørt i CI, så de er fjernet. Verifikation sker med
+builds og ved at køre appen; automatiske tests tilføjes kun efter aftale.
+Henvisninger til `tests/...` længere nede i planen beskriver, hvad der blev
+verificeret dengang, og findes ikke længere i repositoryet.
+
 ### Delt resultattype fra services til controllers
 
 **Beslutning 2026-10-20:** Services returnerer én fælles resultattype i

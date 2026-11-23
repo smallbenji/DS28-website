@@ -11,7 +11,6 @@ docker-compose*.yaml
 Containerfile.*
 
 *.md
-TODO.md
 
 # Build artifacts (dotnet restore/publish rebuilds these)
 **/bin

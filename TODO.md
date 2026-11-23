@@ -1,2 +1,0 @@
-- Gruppe opretter
-- Template til andre apps
