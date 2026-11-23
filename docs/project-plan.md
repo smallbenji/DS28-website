@@ -1150,15 +1150,17 @@ Nye og eksisterende tavler har funktionen slået fra som standard.
   `github.com`, normaliserer dem og afviser dubletter. Ændringer opdaterer
   den berørte tavle via SignalR.
 
-**Beslutning 2026-11-21 (godkendt, ikke implementeret, redesign af kanban-visningen):**
+**Beslutning 2026-11-21 (godkendt og implementeret i DS-56 til DS-62, redesign af kanban-visningen):**
 Tavlevisningen skal redesignes ud fra et klikbart mockup, som brugeren har
 godkendt 2026-11-21, inklusive mobilvisningen. Mockuppet blev først lavet som en
-statisk HTML-side og derefter i beta-frontenden med Nuxt UI og testdata. Det er
-kun til lokal visning og skal ikke merges.
+statisk HTML-side og derefter i den daværende beta-frontend med Nuxt UI og
+testdata. Det er kun til lokal visning og skal ikke merges.
 
-**Beslutning 2026-11-21:** Redesignet bygges kun i beta-frontenden
-(`src/DS.Frontend.Beta`). Tavlevisningen i `src/DS.Frontend` ændres ikke, og
-kolonnedesignet fra 2026-11-20 indføres ikke dér.
+**Beslutning 2026-11-21:** Redesignet blev bygget i beta-frontenden, som samme
+dag blev den officielle frontend i `src/DS.Frontend` (se
+[Frontend med Nuxt UI](#frontend-med-nuxt-ui)). Redesignet er derfor
+tavlevisningen i den nuværende frontend. Den tidligere regel om, at
+`src/DS.Frontend` ikke måtte ændres, er afløst og gælder ikke længere.
 Arbejdet er delt i kort på DS28 IT-tavlen: DS-56 kort, DS-57 filterlinje,
 DS-58 tavlehoved, DS-59 kolonnemenu, WIP og sammenklapning, DS-60 hurtig
 oprettelse, DS-61 API til medlemmer og DS-62 medlemsdialog (venter på DS-61).
@@ -1167,13 +1169,13 @@ oprettelse, DS-61 API til medlemmer og DS-62 medlemsdialog (venter på DS-61).
   på en grå tavlebaggrund, med en 4 px farvet kant i toppen og en skillelinje
   under kolonneoverskriften. Kantens farve er fast: grå for almindelige
   kolonner og grøn for færdig-kolonnen. Den er ikke valgfri pr. kolonne, så
-  kolonner får ingen ny farve i databasen. Beta har allerede dette udseende.
+  kolonner får ingen ny farve i databasen. Frontenden har dette udseende.
 - **Kolonnemenu:** Én »…«-menu erstatter rediger- og sletknapperne: omdøb,
   WIP-grænse, færdig-kolonne, klap sammen og slet. WIP-grænsen vises som en
   bjælke og med tekst, når den overskrides. Kolonner kan klappes sammen til
   en smal lodret strimmel. **Beslutning 2026-11-21:** Sammenklapningen huskes
   kun i browseren (localStorage), ikke pr. bruger på serveren.
-  *Implementeret i beta (DS-59, `BoardColumn.vue`):* »…«-menuen har »Rediger
+  *Implementeret (DS-59, `BoardColumn.vue`):* »…«-menuen har »Rediger
   kolonne …«, en WIP-undermenu (ingen, 2, 3, 4, 5, 6, 8, 10 eller »Anden …«,
   som åbner kolonnedialogen), »Færdig-kolonne« som afkrydsning, »Klap sammen«
   og »Slet kolonne …«. WIP-grænse og færdig-markering gemmes straks gennem den
@@ -1186,14 +1188,14 @@ oprettelse, DS-61 API til medlemmer og DS-62 medlemsdialog (venter på DS-61).
   kort« som eneste primære knap. Medlemsavatarerne åbner medlemmer og
   invitation. Titel, filterlinje og handlinger står på én linje på brede
   skærme.
-  *Implementeret i beta (DS-58, `BoardDetail.vue`):* Knappen »Kolonne« er
+  *Implementeret (DS-58, `BoardDetail.vue`):* Knappen »Kolonne« er
   fjernet fra topbaren; »Ny kolonne …« ligger i »Tavle«-menuen sammen med
   Indstillinger, Medlemmer og invitation, Tags og Farver. »Tilføj kort« åbner
   kortdialogen i den første kolonne, der ikke er en færdig-kolonne. Højst tre
   medlemsavatarer vises fra 768 px og åbner medlemsdialogen, og listen hentes
   igen, når dialogen lukkes. På mobil vises »Tavle« og »Tilføj kort« kun som
   ikoner, og mærket »Udviklertavle« skjules. Titel og filterlinje står stadig på
-  hver sin linje, fordi beta bruger Nuxt UI's navbar og toolbar.
+  hver sin linje, fordi frontenden bruger Nuxt UI's navbar og toolbar.
   *Implementeret (DS-87):* Medlemsavatarerne i tavlehovedet og i
   medlemsdialogen (medlemsliste og brugersøgning) viser brugerens
   profilbillede og falder kun tilbage til initialer, når der ikke er et klar
@@ -1205,7 +1207,7 @@ oprettelse, DS-61 API til medlemmer og DS-62 medlemsdialog (venter på DS-61).
   tag, og de valgte vises som mærker, der kan fjernes. Flere tags kan
   kombineres. Det erstatter dagens filter, hvor man kun kan vælge ét tag.
   Desuden kan man vælge mellem detaljeret og kompakt visning.
-  *Implementeret i beta (DS-57, `BoardFilterBar.vue`, `lib/board/boardFilters.ts`):*
+  *Implementeret (DS-57, `BoardFilterBar.vue`, `lib/board/boardFilters.ts`):*
   Søgning matcher titel og DS-nummer (»DS-12«, »ds12« eller »12«). »Mine kort«
   bruger den aktuelle brugers id. »Overskredet« og »Venter« medtager ikke kort i
   en færdig-kolonne. Flere tags kombineres med »eller«, og alle filtre
@@ -1226,14 +1228,14 @@ oprettelse, DS-61 API til medlemmer og DS-62 medlemsdialog (venter på DS-61).
 - **Kort:** Kortets farve vises som en stribe i venstre side i stedet for at
   tone hele kortet. Deadline vises relativt (»I dag«, »3 dage over«), og
   prioritet får tekst. Antal PR-links vises som et tal.
-  *Implementeret i beta (DS-56, `BoardCard.vue`):* Farvestriben erstatter den tonede
+  *Implementeret (DS-56, `BoardCard.vue`):* Farvestriben erstatter den tonede
   baggrund, og tags står ved siden af DS-nummeret. Deadline vises som »N dage
   over« (rød), »I dag« eller »I morgen« (gul) og ellers som kort dato; i en
   færdig-kolonne altid som dato. Den fulde dato står i tooltip. Prioritet vises
   som »Høj« eller »Lav«, og antal PR-links vises med et PR-ikon.
 - **Hurtig oprettelse:** Et kort kan oprettes direkte i kolonnen med Enter.
   **Beslutning 2026-11-21:** Et kort må oprettes med kun en titel.
-  *Implementeret i beta (DS-60, `BoardColumn.vue`):* »Tilføj kort« nederst i
+  *Implementeret (DS-60, `BoardColumn.vue`):* »Tilføj kort« nederst i
   kolonnen åbner et felt i stedet for kortdialogen. Enter eller »Opret kort«
   opretter kortet med kun titel i den kolonne, og feltet bliver stående med
   fokus, så flere kort kan oprettes i træk. Esc eller »Annuller« lukker feltet.
@@ -1261,7 +1263,7 @@ oprettelse, DS-61 API til medlemmer og DS-62 medlemsdialog (venter på DS-61).
   `assignedCardCount`: antal ikke-slettede kort på tavlen, som medlemmet er
   ansvarlig for. Brugersøgningen returnerer ikke antallet. Begge frontends har
   fået `removeMember` og feltet i typerne; ingen skemaændring.
-  *Dialog implementeret i beta (DS-62, `BoardMembersModal.vue`):* Søgningen
+  *Dialog implementeret (DS-62, `BoardMembersModal.vue`):* Søgningen
   starter fra 2 tegn med en kort forsinkelse, og kun det seneste svar vises.
   Pil op/ned og Enter tilføjer den markerede bruger. Medlemslisten viser
   »Ansvarlig for N kort« eller »Ingen kort«, og der vises et filterfelt, når
@@ -2144,7 +2146,7 @@ Ubesluttede punkter:
 - ASP.NET Core og Vue/Vite.
 - ASP.NET Core Identity og OpenIddict til identitet og login.
 - Nuxt UI 4 og Tailwind CSS 4 til frontend-komponenter (siden 2026-11-21,
-  tidligere Buefy), se [Beta-frontend med Nuxt UI](#beta-frontend-med-nuxt-ui).
+  tidligere Buefy), se [Frontend med Nuxt UI](#frontend-med-nuxt-ui).
 - Hosting: Smallhosting.
 - Services: Grafana og Prometheus.
 - CMS-valget var eksempelvis WordPress.
@@ -2706,7 +2708,7 @@ Eksisterende kode er ikke omskrevet; afvigelser er listet i guiden og rettes,
 når filerne alligevel ændres. En fælles SCSS-fil med farvevariabler er foreslået,
 men ikke besluttet.
 
-### Beta-frontend med Nuxt UI
+### Frontend med Nuxt UI
 
 **Beslutning 2026-11-21 (implementeret):** Beta er nu den officielle
 frontend. Den ligger i `src/DS.Frontend`, bygges til `DS.Backend/wwwroot/dist/`
@@ -2718,7 +2720,9 @@ Gamle links til `/beta/*` sendes permanent videre til samme sti uden præfiks
 Det nedenstående, herunder at kopierede filer skal ændres begge steder og at
 designguiden kun gælder Buefy-frontenden, gælder ikke længere. Afsnittet
 beskriver ellers fortsat de sider, der nu er den officielle frontend; stierne
-er opdateret til at være uden `/beta`.
+er opdateret til at være uden `/beta`. I afsnittet betyder »beta« den frontend,
+der nu er `src/DS.Frontend`, og »den nuværende frontend« den arkiverede
+Buefy-frontend. `src/DS.Frontend.Beta` findes ikke længere i repositoriet.
 
 **Beslutning 2026-11-20 (implementeret som første skridt):** En ny frontend,
 `src/DS.Frontend.Beta`, bygges med Vue, Nuxt UI 4 og Tailwind CSS 4 ved siden
@@ -2727,10 +2731,9 @@ har færdige dashboard-komponenter, som gør det nemmere at give hvert modul sit
 eget dashboard. Beta er et separat projekt, så Bulma og Tailwind aldrig
 indlæses på samme side.
 
-- Services, stores, `lib` og `types` er kopieret fra `DS.Frontend`, ikke delt.
-  Ændringer i de kopierede filer skal derfor laves begge steder, så længe
-  begge frontends findes.
-- Beta bygges til `DS.Backend/wwwroot/dist-beta/` og serveres på `/*`
+- Services, stores, `lib` og `types` blev kopieret fra den gamle frontend. Da
+  den nu er arkiveret, ændres de kun i `src/DS.Frontend`.
+- Frontenden bygges til `DS.Backend/wwwroot/dist/` og serveres på `/*`
   (`Program.cs`), som udgangspunkt kun for indloggede brugere. Login,
   registrering, glemt og nulstil adgangskode, invitationer og den offentlige
   forhåndstilmelding serveres også uden login under `/`
@@ -2834,7 +2837,7 @@ indlæses på samme side.
   Kolonnerne følger den besluttede del af kanban-redesignet (hvide flader med
   skygge, fast grå eller grøn topkant og skillelinje under overskriften; kort
   med let grå baggrund, der bliver lys ved hover). Redesignets uafklarede
-  forslag er ikke lavet, med én undtagelse: tavlens handlinger ligger i beta i
+  forslag er ikke lavet, med én undtagelse: tavlens handlinger ligger i
   én »Tavle«-menu, fordi de fem knapper ikke er plads til i dashboard-headeren.
   Det er ikke en beslutning om den nuværende frontend. Beskrivelseseditoren er
   Nuxt UI's `UEditor` (TipTap) med samme formateringsmuligheder som før.
@@ -2881,7 +2884,7 @@ indlæses på samme side.
   lejrbaggrund (`components/Auth/PrairieBackground.vue`, oprindeligt fra
   `ds-design/login`). Baggrunden er lys i begge temaer, så DS28 HQ-teksten
   over kortet har fast mørk farve.
-  *Implementeret i beta (DS-53):* Baggrunden er inline SVG i en komponent i
+  *Implementeret (DS-53):* Baggrunden er inline SVG i en komponent i
   stedet for et CSS-baggrundsbillede, så dele af den senere kan gøres
   klikbare (DS-54). »Rullende prærie« betyder en vissen prærie-busk
   (tumbleweed), der ruller hen over sletten som i westernfilm. Det er
@@ -2889,13 +2892,13 @@ indlæses på samme side.
   fra venstre mod højre med hop, cirka hvert 22. sekund, på alle
   gæstesider. Bålets tre flammelag blafrer hver i sit tempo. Med
   `prefers-reduced-motion` vises busken ikke, og bålet står stille.
-  *Implementeret i beta (DS-54):* Et klik på cowboyen på mesaen viser en
+  *Implementeret (DS-54):* Et klik på cowboyen på mesaen viser en
   tilfældig western-replik i en taleboble i 4,5 sekunder, aldrig den samme
   to gange i træk. Replikkerne ligger i komponenten. Cowboyen er kun synlig
   på brede skærme, fordi baggrunden beskæres fra siderne på smalle skærme.
   Han er et påskeæg og hverken fokuserbar eller læst op af skærmlæsere,
   fordi hele baggrunden er dekorativ.
-  *Implementeret i beta (DS-55):* »Større bjerge« gælder den nære mesa til
+  *Implementeret (DS-55):* »Større bjerge« gælder den nære mesa til
   venstre. Ifølge Benjamin (2026-11-21) skulle den være en lille smule
   større. Den er nu skaleret 25 % op fra sin fod i venstre side og har fået
   en klippespids på plateauet, der hælder 7 grader mod højre. Validering af
