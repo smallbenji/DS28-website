@@ -20,6 +20,7 @@ namespace DS.Application.Data
         DbSet<HistoricSignup> HistoricSignups { get; }
         DbSet<RegistrationSettings> RegistrationSettings { get; }
         DbSet<CampDay> CampDays { get; }
+        DbSet<ScoutCampDay> ScoutCampDays { get; }
         DbSet<Activity> Activities { get; }
         DbSet<ActivityTeam> ActivityTeams { get; }
         DbSet<ActivityTeamMembership> ActivityTeamMemberships { get; }

@@ -49,6 +49,16 @@
 
                     <section aria-labelledby="group-signup-heading">
                         <h2 id="group-signup-heading" class="mb-3 text-sm font-semibold text-highlighted">Tilmelding</h2>
+                        <UAlert
+                            v-if="campDayStatus"
+                            class="mb-4"
+                            :color="campDayStatus.missing ? 'warning' : 'success'"
+                            variant="subtle"
+                            :icon="campDayStatus.missing ? 'i-lucide-calendar-x' : 'i-lucide-calendar-check'"
+                            :title="campDayStatus.title"
+                            :description="campDayStatus.description"
+                            :actions="campDayStatus.missing ? [{ label: 'Udfyld dage', color: 'warning', variant: 'outline', to: '/group/final-signup?filter=missing-days' }] : undefined"
+                        />
                         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                             <UPageCard
                                 v-for="link in links"
@@ -100,6 +110,7 @@ import { storeToRefs } from "pinia";
 import { useGroupStore } from "@/Stores/GroupStore";
 import UserAvatar from "@/Components/User/UserAvatar.vue";
 import { districtLabel } from "@/types";
+import CampDayService from "@/Services/CampDayService";
 
 const groupStore = useGroupStore();
 const { Group } = storeToRefs(groupStore);
@@ -107,11 +118,22 @@ const { Group } = storeToRefs(groupStore);
 const loading = ref(true);
 const loadFailed = ref(false);
 
+const campDayService = new CampDayService();
+const hasCampDays = ref(false);
+
+async function loadCampDays() {
+    try {
+        hasCampDays.value = (await campDayService.list()).length > 0;
+    } catch {
+        hasCampDays.value = false;
+    }
+}
+
 async function load() {
     loading.value = true;
     loadFailed.value = false;
     try {
-        await groupStore.LOAD_GROUP();
+        await Promise.all([groupStore.LOAD_GROUP(), loadCampDays()]);
     } catch {
         loadFailed.value = true;
     } finally {
@@ -128,6 +150,20 @@ const stats = computed(() => [
     { label: "Patruljer", value: Group.value.patrols.length },
     { label: "Brugere", value: Group.value.users.length }
 ]);
+
+const campDayStatus = computed(() => {
+    const scouts = Group.value.scouts;
+    if (!hasCampDays.value || scouts.length === 0) return null;
+
+    const missing = scouts.filter((scout) => scout.campDayIds.length === 0).length;
+    if (missing === 0) return { missing, title: "Alle spejdere har dage", description: undefined };
+
+    return {
+        missing,
+        title: `${missing} ${missing === 1 ? "spejder mangler" : "spejdere mangler"} dage`,
+        description: "Spejdere uden dage tæller ikke med i deltagerantallet pr. dag."
+    };
+});
 
 const membersUrl = "/group/members";
 

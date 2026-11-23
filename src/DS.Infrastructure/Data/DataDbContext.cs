@@ -34,6 +34,7 @@ public class DataDbContext : IdentityDbContext<User, Role, string>, IDataDbConte
     public DbSet<PatrolMembership> PatrolMemberships { get; set; }
     public DbSet<GroupPreSignup> GroupPreSignups { get; set; }
     public DbSet<ScoutSignup> ScoutSignups { get; set; }
+    public DbSet<ScoutCampDay> ScoutCampDays { get; set; }
     public DbSet<HistoricPresignup> HistoricPresignups { get; set; }
     public DbSet<HistoricSignup> HistoricSignups { get; set; }
 

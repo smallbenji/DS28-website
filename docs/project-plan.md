@@ -912,7 +912,7 @@ Stadig åbent: reglen fra deltagelsesdage til pris (DS-79/DS-80), om ledere og
 hjælpere registreres og betaler (DS-97), om der er særlige priser for ledere
 eller aldersgrupper, og kassererens øvrige behov (DS-4).
 
-**Beslutning 2026-11-23 (DS-72 og DS-96, ikke implementeret):** Deltagelsesdage
+**Beslutning 2026-11-23 (DS-72 og DS-96, implementeret, se implementeringsnoterne):** Deltagelsesdage
 registreres i den endelige tilmelding. Beslutningen præciserer punktet om
 deltagelsesdage ovenfor.
 
@@ -2701,10 +2701,33 @@ til projektet. Kontrollér altid koden igen ved fremtidige ændringer.
   halvdel eller begge (skiftedag). Ved tilføjelse foreslås dagen efter den
   sidste lejrdag. `GET /api/v1/camp-days` kræver kun login, fordi grupperne
   skal bruge dagene i DS-72; `POST`, `PUT /{id}` og `DELETE /{id}` kræver
-  `PreSignupManage`, og en dublet af en dato giver HTTP 409. Der er endnu
-  ingen tilmeldinger på dagene, så sletning er altid tilladt. Reglen om, at en
-  dag med tilmeldinger ikke kan slettes, indføres i DS-72 sammen med
-  fremmednøglen fra `scout_camp_day`. Ingen datoer er hardkodet eller seedet.
+  `PreSignupManage`, og en dublet af en dato giver HTTP 409. En dag med
+  tilmeldte spejdere kan ikke slettes (HTTP 409 med antallet), men datoen kan
+  rettes (DS-72). Ingen datoer er hardkodet eller seedet.
+- **DS-72 (implementeret, afventer review):** Spejderens deltagelsesdage
+  gemmes i `scout_camp_day` og vises som `campDayIds` på spejderen i
+  `GET /api/v1/group`. `PUT /api/v1/group/scouts/days` sætter dagene for en
+  eller flere spejdere i brugerens egen gruppe og erstatter deres tidligere
+  dage; med `onlyScoutsWithoutDays` røres spejdere, der allerede har dage,
+  ikke. En tom liste af dage afvises, fordi der ikke findes en tilstand for "0
+  dage". `POST /api/v1/group/scouts` tager valgfrit `campDayIds`. Når en
+  spejder slettes (soft delete), fjernes spejderens dage, så de ikke blokerer
+  sletning af en lejrdag. På `/group/final-signup` vælges Hel uge, 1. halvdel,
+  2. halvdel eller Enkelte dage pr. spejder, og valget gemmes med det samme.
+  Hel uge er alle lejrdage, og en halvdel er dagene med den halvdel eller
+  `Both`. Spejdere kan vælges enkeltvis, alle eller pr. patrulje og sættes til
+  en periode samlet. Siden viser deltagere pr. dag, en advarsel med navnene på
+  spejdere uden dage, et filter, der kun viser dem, og en knap, der giver alle
+  uden dage samme periode. Gruppens forside `/group` viser status for
+  manglende dage med et link til filteret. Spejder- og patruljekortet står nu
+  under hinanden i fuld bredde. Når lejrdagene ikke er oprettet, vises en
+  besked i stedet for dagvalget. Følgende valg blev truffet under
+  implementeringen og er bekræftet af Benjamin 2026-11-23:
+  - Fjernelse af den sidste dag under Enkelte dage afvises med en besked om at
+    slette spejderen i stedet.
+  - Den administrative sletning af en hel gruppe soft-sletter kun gruppen; dens
+    spejderes dage bliver liggende og tæller med i sletteblokeringen af en
+    lejrdag.
 - Glemt adgangskode er et selvbetjent flow på `/forgot-password`. Brugeren
   indtaster sin email, og backend sender et nulstillingslink på
   `/reset-password/{brugerId}?token=...`. Det er en mail, der sendes
