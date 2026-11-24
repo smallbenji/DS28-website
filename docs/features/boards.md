@@ -72,14 +72,25 @@ arbejdsgangen for kort i udviklingen står i [AGENTS.md](../../AGENTS.md).
   kolonner. Mens der søges eller filtreres, kan intet flyttes. Der er ingen
   touch- eller tastaturflytning.
 
-### Kortdialogen
+### Kortdialogen og kortsiden
 
-- Headeren viser tavle og kortnummer, status på den åbne tavle som en knap,
-  der flytter kortet til en anden kolonne, kortmenuen og luk.
+- Et kort kan åbnes som dialog på tavlen eller som fuldskærmsside på
+  `/board/:id/card/:cardId`. Begge viser `BoardCardDetail.vue` og har samme
+  felter og rettigheder. Siden kræver `BoardView` som tavlen, henter tavlen og
+  følger dens live opdateringer. Fanetitlen er kortnummer og titel. Findes
+  kortet ikke på tavlen, vises en tom side med link til tavlen.
+- Dialogens header viser tavle og kortnummer, en knap der kopierer kortets
+  adresse, status på den åbne tavle som en knap, der flytter kortet til en
+  anden kolonne, »Åbn i fuld skærm«, kortmenuen og luk. Fuld skærm kræver, at
+  ændringer er gemt eller annulleret.
+- Sidens header viser brødkrummerne Tavler › tavle › kortnummer, »Kopiér link«,
+  status og kortmenuen. Relationerne står side om side uden faner. Gem bliver
+  på siden, »Fortryd« nulstiller ugemte ændringer, og sletning eller fjernelse
+  fra tavlen sender brugeren tilbage til tavlen.
 - Hovedkolonnen har titlen øverst og derefter beskrivelsen, som redigeres med
   Nuxt UI's `UEditor` (H1 til H3, fed, kursiv, lister, citat) og vises gennem
   `RichTextViewer`. En tom beskrivelse gemmes som `NULL`.
-- Afhængigheder, PR-links, epic og domænekoblinger ligger i faner under
+- I dialogen ligger afhængigheder, PR-links, epic og domænekoblinger i faner under
   beskrivelsen med et tal for antallet. PR-links og epic vises kun på
   udviklertavler, og koblinger kun når der er nogen.
 - Sidepanelet viser egenskaberne som rækker med etiket og værdi: ansvarlige,
@@ -196,6 +207,9 @@ tavleindstillingerne. Deaktivering skjuler data uden at slette dem og afviser
 - 2026-11-24, DS-119: Nyt layout af kortdialogen efter godkendt mockup: titel
   først, relationer i faner, egenskaber som rækker med popovers og én liste
   over tavler. Afløser layoutet fra 2026-11-19.
+- 2026-11-24, DS-120: Hvert kort får en fuldskærmsside på
+  `/board/:id/card/:cardId`, som kan deles som link. Dialogen kopierer samme
+  adresse, men ændrer ikke selv adressen, når den åbnes.
 - 2026-11-24, DS-119 og DS-121: Kort har ikke længere en ansvarlig stilling.
   Afløser "ansvarlig bruger eller stilling" fra 2026-10-14. Feltet blev ikke
   brugt til filtre, overblik eller adgang, og den oprindelige begrundelse er
@@ -213,8 +227,8 @@ tavleindstillingerne. Deaktivering skjuler data uden at slette dem og afviser
   domæneobjekt?
 - Skal en tavle kunne generere kort automatisk fra en forespørgsel ("smart
   board")?
-- DS-120 (fuldskærmsside for kort med delbart link): skal adressen også
-  ændres, når kortdialogen åbnes på tavlen, eller er fuldskærmssiden nok?
+- Skal adressen også ændres, når kortdialogen åbnes på tavlen (fx
+  `?card=142`), eller er fuldskærmssiden nok? DS-120 byggede kun siden.
 - Automatisk kobling af release-tags til merges eller deploys er ikke afklaret.
 - Ikke med i første version af afhængigheder: notifikationer, andre
   relationstyper og gendannelse af slettede kort. Kommentarer, checklister og
@@ -234,7 +248,9 @@ tavleindstillingerne. Deaktivering skjuler data uden at slette dem og afviser
 - `src/DS.Domain/Migrations/039_board_card_epics.sql`
 - `src/DS.Frontend/src/Views/Boards.vue`
 - `src/DS.Frontend/src/Views/BoardDetail.vue`
+- `src/DS.Frontend/src/Views/BoardCardPage.vue`
 - `src/DS.Frontend/src/Components/Board/BoardCard.vue`
+- `src/DS.Frontend/src/Components/Board/BoardCardDetail.vue`
 - `src/DS.Frontend/src/Components/Board/BoardCardModal.vue`
 - `src/DS.Frontend/src/Components/Board/BoardColumn.vue`
 - `src/DS.Frontend/src/Components/Board/BoardFilterPanel.vue`
@@ -243,3 +259,4 @@ tavleindstillingerne. Deaktivering skjuler data uden at slette dem og afviser
 - `src/DS.Frontend/src/Components/Board/BoardTagInput.vue`
 - `src/DS.Frontend/src/lib/board/boardFilters.ts`
 - `src/DS.Frontend/src/lib/board/boardDrag.ts`
+- `src/DS.Frontend/src/lib/board/boardLiveUpdates.ts`

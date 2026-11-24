@@ -104,6 +104,11 @@ const routes: RouteRecordRaw[] = [
                 path: "board/:id",
                 component: () => import("@/Views/BoardDetail.vue"),
                 meta: { pageTitle: "Tavle", requiredRole: "BoardView" }
+            },
+            {
+                path: "board/:id/card/:cardId",
+                component: () => import("@/Views/BoardCardPage.vue"),
+                meta: { pageTitle: "Kort", requiredRole: "BoardView" }
             }
         ]
     },

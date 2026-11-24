@@ -121,13 +121,13 @@
 import { computed, onBeforeUnmount, onMounted, provide, ref } from "vue";
 import { useRoute } from "vue-router";
 import { useLocalStorage } from "@vueuse/core";
-import type { HubConnection } from "@microsoft/signalr";
 import type { DropdownMenuItem } from "@nuxt/ui";
 import { useBoardStore } from "@/Stores/BoardStore";
 import { useMeStore } from "@/Stores/MeStore";
 import { useNotify } from "@/lib/notify";
 import { boardDragKey, type BoardDragState } from "@/lib/board/boardDrag";
 import { boardCompactKey, useBoardFilters } from "@/lib/board/boardFilters";
+import { useBoardLiveUpdates } from "@/lib/board/boardLiveUpdates";
 import BoardFilterBar from "@/Components/Board/BoardFilterBar.vue";
 import ConfirmModal from "@/Components/ConfirmModal.vue";
 import BoardColumn from "@/Components/Board/BoardColumn.vue";
@@ -326,7 +326,6 @@ async function reorderColumn(payload: { targetColumnId: number; draggedColumnId:
     if (!ok) notify.error("Kolonnerne kunne ikke ombyttes.");
 }
 
-let liveConnection: HubConnection | null = null;
 let liveReloadTimer: ReturnType<typeof setTimeout> | null = null;
 
 function scheduleLiveReload() {
@@ -343,30 +342,7 @@ function scheduleLiveReload() {
     }, 250);
 }
 
-async function connectLiveUpdates() {
-    const { HubConnectionBuilder } = await import("@microsoft/signalr");
-
-    const connection = new HubConnectionBuilder()
-        .withUrl("/api/v1/boards/hub")
-        .withAutomaticReconnect()
-        .build();
-
-    connection.on("boardChanged", (changedBoardId: number) => {
-        if (Number(changedBoardId) === boardId) scheduleLiveReload();
-    });
-    connection.onreconnected(() => {
-        void connection.invoke("JoinBoard", boardId);
-    });
-
-    liveConnection = connection;
-
-    try {
-        await connection.start();
-        await connection.invoke("JoinBoard", boardId);
-    } catch {
-        liveConnection = null;
-    }
-}
+const liveUpdates = useBoardLiveUpdates(boardId, scheduleLiveReload);
 
 onMounted(async () => {
     window.addEventListener("dragend", clearDrag);
@@ -381,7 +357,7 @@ onMounted(async () => {
     }
 
     void loadMembers();
-    void connectLiveUpdates();
+    void liveUpdates.connect();
 });
 
 onBeforeUnmount(() => {
@@ -389,6 +365,5 @@ onBeforeUnmount(() => {
     window.removeEventListener("drop", clearDrag);
     window.removeEventListener("blur", clearDrag);
     if (liveReloadTimer) clearTimeout(liveReloadTimer);
-    void liveConnection?.stop();
 });
 </script>
