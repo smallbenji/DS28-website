@@ -791,7 +791,6 @@ namespace DS.Application.Services.Boards
             if (!TryNormalizeCardColor(data.Color, out var color)) return new ServiceResult(ServiceOutcome.Invalid, "Ugyldig kortfarve.");
             var assigneeUserIds = NormalizeUserIds(data.AssigneeUserIds);
             if (!await AreValidAssigneesAsync(assigneeUserIds)) return new ServiceResult(ServiceOutcome.Invalid, "En eller flere ansvarlige brugere findes ikke.");
-            if (!await IsValidOwnerPositionAsync(data.OwnerPositionId)) return new ServiceResult(ServiceOutcome.Invalid, "Stillingen findes ikke.");
 
             if (!TryNormalizeTagNames(data.NewTagNames, out var newTagNames)) return new ServiceResult(ServiceOutcome.Invalid, "Tagget skal have et navn på højst 64 tegn.");
 
@@ -806,7 +805,6 @@ namespace DS.Application.Services.Boards
                 Description = data.Description,
                 Color = color,
                 Assignees = assigneeUserIds.Select(userId => new WorkItemAssignee { UserId = userId }).ToList(),
-                OwnerPositionId = data.OwnerPositionId,
                 DueDate = data.DueDate,
                 Priority = data.Priority,
                 CreatedByUserId = actor.UserId,
@@ -852,7 +850,6 @@ namespace DS.Application.Services.Boards
             if (!TryNormalizeCardColor(data.Color, out var color)) return new ServiceResult(ServiceOutcome.Invalid, "Ugyldig kortfarve.");
             var assigneeUserIds = data.AssigneeUserIds == null ? null : NormalizeUserIds(data.AssigneeUserIds);
             if (assigneeUserIds != null && !await AreValidAssigneesAsync(assigneeUserIds)) return new ServiceResult(ServiceOutcome.Invalid, "En eller flere ansvarlige brugere findes ikke.");
-            if (!await IsValidOwnerPositionAsync(data.OwnerPositionId)) return new ServiceResult(ServiceOutcome.Invalid, "Stillingen findes ikke.");
 
             if (!TryNormalizeTagNames(data.NewTagNames, out var newTagNames)) return new ServiceResult(ServiceOutcome.Invalid, "Tagget skal have et navn på højst 64 tegn.");
 
@@ -886,7 +883,6 @@ namespace DS.Application.Services.Boards
                     .Select(userId => new WorkItemAssignee { UserId = userId }));
             }
 
-            item.OwnerPositionId = data.OwnerPositionId;
             item.DueDate = data.DueDate;
             item.Priority = data.Priority;
             item.UpdatedAt = DateTime.UtcNow;
@@ -1205,7 +1201,6 @@ namespace DS.Application.Services.Boards
                 .AsNoTracking()
                 .Where(card => card.BoardId == boardId && card.WorkItem.DeletedAt == null)
                 .Include(card => card.WorkItem).ThenInclude(item => item.Assignees).ThenInclude(assignee => assignee.User).ThenInclude(user => user.ProfilePicture)
-                .Include(card => card.WorkItem).ThenInclude(item => item.OwnerPosition)
                 .Include(card => card.WorkItem).ThenInclude(item => item.Links)
                 .Include(card => card.Tags).ThenInclude(link => link.BoardTag)
                 .AsQueryable();
@@ -1306,13 +1301,6 @@ namespace DS.Application.Services.Boards
             if (userIds.Count == 0) return true;
 
             return await dataDb.Users.CountAsync(user => userIds.Contains(user.Id)) == userIds.Count;
-        }
-
-        private async Task<bool> IsValidOwnerPositionAsync(int? positionId)
-        {
-            if (positionId == null) return true;
-
-            return await dataDb.OrgPositions.AnyAsync(position => position.Id == positionId && position.DeletedAt == null);
         }
 
         private async Task<bool> CanSeeBoardAsync(BoardActor actor, Board board)
@@ -1493,8 +1481,6 @@ namespace DS.Application.Services.Boards
                 Assignees = item.Assignees.OrderBy(assignee => assignee.User.FirstName)
                     .ThenBy(assignee => assignee.User.LastName).ThenBy(assignee => assignee.UserId)
                     .Select(assignee => new WorkItemAssigneeDto(assignee)).ToList(),
-                OwnerPositionId = item.OwnerPositionId,
-                OwnerPositionTitle = item.OwnerPosition?.Title,
                 DueDate = item.DueDate,
                 Priority = item.Priority,
                 Links = item.Links

@@ -81,9 +81,6 @@ public class WorkItem : IAuditableEntity, ISoftDeleteable
 
     public List<WorkItemAssignee> Assignees { get; set; } = [];
 
-    public int? OwnerPositionId { get; set; }
-    public OrgPosition OwnerPosition { get; set; }
-
     public DateOnly? DueDate { get; set; }
     public int Priority { get; set; }
 

@@ -308,7 +308,6 @@ const tools = [
                     description,
                     color,
                     ...(args.assignees === undefined ? {} : { assigneeUserIds }),
-                    ownerPositionId: card.ownerPositionId ?? null,
                     dueDate,
                     priority,
                 });

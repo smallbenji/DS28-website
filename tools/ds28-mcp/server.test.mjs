@@ -294,7 +294,6 @@ test("MCP-serveren læser tavler og opretter kort gennem DS28-API'et", async () 
             description: "<p>Ret <strong>fejlen</strong></p>",
             color: "#ffcc00",
             assigneeUserIds: ["u-1"],
-            ownerPositionId: null,
             dueDate: "2026-11-20",
             priority: 1,
         });

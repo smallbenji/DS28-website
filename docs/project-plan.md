@@ -168,7 +168,7 @@ Spørgsmålene er samlet her i kort form. Detaljerne står i den linkede fil.
 | Login, OpenIddict, antiforgery, adgangstokens, hærdning | [security.md](security.md) | DS-36, DS-91 |
 | Roller, brugere, impersonation, profil, login, notifikationer | [features/access-and-users.md](features/access-and-users.md) | DS-64, DS-65, DS-84, DS-85 |
 | Stillinger og organisationsdiagram | [features/organization.md](features/organization.md) | DS-89 |
-| Tavler og kort | [features/boards.md](features/boards.md) | DS-27, DS-35, DS-40, DS-50, DS-56 til DS-62, DS-87, DS-88, DS-99 til DS-104, DS-109, DS-119, DS-120, DS-121 |
+| Tavler og kort | [features/boards.md](features/boards.md) | DS-27, DS-35, DS-40, DS-50, DS-56 til DS-62, DS-87, DS-88, DS-99 til DS-104, DS-109, DS-119, DS-120, DS-121, DS-122 |
 | MCP og CLI til tavler | [features/mcp.md](features/mcp.md) | DS-33, DS-43, DS-67, DS-102 |
 | Aktiviteter og godkendelse | [features/activities.md](features/activities.md) | |
 | Grupper, forhåndstilmelding, endelig tilmelding, lejrdage | [features/groups-registration.md](features/groups-registration.md) | DS-72, DS-92, DS-96 |
