@@ -32,13 +32,8 @@
         </template>
 
         <template #body>
-            <div class="grid lg:grid-cols-[minmax(0,1fr)_18rem]">
+            <div class="grid lg:grid-cols-[minmax(0,1fr)_20rem]" @keydown.capture="onShortcut">
                 <div class="flex min-w-0 flex-col gap-6 p-4 sm:p-6">
-                    <BoardTagInput v-if="canManage" ref="tagInput" v-model="selectedTags" :tags="availableTags" :disabled="saving" />
-                    <div v-else-if="card?.tags.length" class="flex flex-wrap gap-1">
-                        <BoardTagBadge v-for="tag in card.tags" :key="tag.id" :tag="tag" />
-                    </div>
-
                     <UInput
                         v-if="canManage"
                         v-model="form.title"
@@ -47,27 +42,23 @@
                         placeholder="Hvad skal gøres?"
                         aria-label="Kortets titel"
                         class="w-full"
-                        :ui="{ base: 'px-0 text-xl font-semibold' }"
+                        :ui="{ base: 'px-0 text-2xl font-semibold' }"
                         @keydown.enter.prevent="save"
                     />
-                    <h2 v-else class="text-xl font-semibold text-highlighted">{{ card?.title }}</h2>
+                    <h2 v-else class="text-2xl font-semibold text-highlighted">{{ card?.title }}</h2>
 
-                    <section aria-labelledby="card-description-heading">
-                        <h3 id="card-description-heading" class="mb-2 text-sm font-semibold text-highlighted">Beskrivelse</h3>
+                    <section aria-label="Beskrivelse">
                         <RichTextEditor v-if="canManage" v-model="form.description" placeholder="Tilføj en beskrivelse…" />
                         <RichTextViewer v-else-if="card?.description" :html="card.description" />
-                        <p v-else class="text-xs text-muted">Ingen beskrivelse.</p>
+                        <p v-else class="text-sm text-muted">Ingen beskrivelse.</p>
                     </section>
 
-                    <BoardCardEpic v-if="pullRequestCard" :key="`epic-${pullRequestCard.id}`" :board-id="boardId" :card="pullRequestCard" :can-manage="canManage" @open="openOtherCard" />
-
-                    <BoardCardDependencies v-if="!isNew && card" :board-id="boardId" :card="card" :can-manage="canManage" />
-
-                    <BoardCardPullRequests v-if="pullRequestCard" :key="pullRequestCard.id" :board-id="boardId" :card="pullRequestCard" :can-manage="canManage" />
-
-                    <section v-if="!isNew && card && card.links.length" aria-labelledby="card-links-heading">
-                        <h3 id="card-links-heading" class="mb-2 text-sm font-semibold text-highlighted">Koblinger</h3>
-                        <ul class="flex flex-col gap-1 text-sm">
+                    <section v-if="relationTabs.length" aria-label="Relationer">
+                        <UTabs v-model="relationTab" :items="relationTabs" :content="false" variant="link" size="sm" class="mb-3 w-full" />
+                        <BoardCardDependencies v-if="relationTab === 'dependencies' && card" :board-id="boardId" :card="card" :can-manage="canManage" />
+                        <BoardCardPullRequests v-else-if="relationTab === 'pull-requests' && pullRequestCard" :key="pullRequestCard.id" :board-id="boardId" :card="pullRequestCard" :can-manage="canManage" />
+                        <BoardCardEpic v-else-if="relationTab === 'epic' && pullRequestCard" :key="`epic-${pullRequestCard.id}`" :board-id="boardId" :card="pullRequestCard" :can-manage="canManage" @open="openOtherCard" />
+                        <ul v-else-if="relationTab === 'links' && card" class="flex flex-col gap-1 text-sm">
                             <li v-for="link in card.links" :key="`${link.entityType}-${link.entityId}`" class="flex items-center gap-2">
                                 <UIcon name="i-lucide-link" class="size-4 text-muted" />
                                 {{ link.entityType }} #{{ link.entityId }}
@@ -76,60 +67,128 @@
                     </section>
                 </div>
 
-                <aside class="flex flex-col gap-5 border-t border-default bg-elevated/40 p-4 sm:p-6 lg:border-s lg:border-t-0" aria-label="Detaljer">
-                    <BoardCardAssignees :key="liveCard?.id ?? 'new'" v-model:pending="form.assignees" :board-id="boardId" :card="liveCard" :can-manage="canManage" />
+                <aside class="order-first flex flex-col gap-6 border-b border-default bg-elevated/40 p-4 sm:p-5 lg:order-none lg:border-s lg:border-b-0" aria-label="Egenskaber">
+                    <section aria-labelledby="card-properties-heading">
+                        <h3 id="card-properties-heading" class="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">Egenskaber</h3>
+                        <dl class="grid grid-cols-[5.5rem_minmax(0,1fr)] items-center gap-x-2 gap-y-0.5">
+                            <dt class="text-xs text-muted">Ansvarlige</dt>
+                            <dd class="min-w-0">
+                                <UPopover :content="{ align: 'start', side: 'bottom' }" :ui="{ content: 'w-80 p-3' }">
+                                    <button type="button" :class="propertyButton" aria-label="Ansvarlige. Vis og ret">
+                                        <template v-if="assigneeList.length">
+                                            <UAvatarGroup size="2xs" :max="4">
+                                                <UAvatar v-for="user in assigneeList" :key="user.id" :src="user.profilePicture?.url" :text="initials(user)" :alt="`${user.firstName} ${user.lastName}`" />
+                                            </UAvatarGroup>
+                                            <span v-if="assigneeList.length === 1" class="min-w-0 truncate">{{ assigneeList[0]!.firstName }} {{ assigneeList[0]!.lastName }}</span>
+                                            <span v-if="liveCard" class="text-xs text-muted">{{ completedAssigneeCount }}/{{ assigneeList.length }} klarmeldt</span>
+                                        </template>
+                                        <span v-else class="text-muted">{{ canManage ? 'Tilføj ansvarlig' : 'Ingen' }}</span>
+                                    </button>
+                                    <template #content>
+                                        <BoardCardAssignees :key="liveCard?.id ?? 'new'" v-model:pending="form.assignees" :board-id="boardId" :card="liveCard" :can-manage="canManage" />
+                                    </template>
+                                </UPopover>
+                            </dd>
 
-                    <UFormField label="Stilling">
-                        <USelectMenu v-if="canManage" v-model="positionValue" :items="positionItems" value-key="value" size="sm" class="w-full" :disabled="saving" />
-                        <p v-else class="text-sm" :class="{ 'text-muted': !positionTitle }">{{ positionTitle ?? 'Ingen stilling' }}</p>
-                    </UFormField>
+                            <dt class="text-xs text-muted">Prioritet</dt>
+                            <dd class="min-w-0">
+                                <USelect
+                                    v-if="canManage"
+                                    v-model="form.priority"
+                                    :items="priorityItems"
+                                    :icon="priorityIcon.icon"
+                                    variant="ghost"
+                                    size="sm"
+                                    class="w-full"
+                                    :ui="{ leadingIcon: priorityIcon.class, trailingIcon: 'hidden' }"
+                                    :disabled="saving"
+                                    aria-label="Prioritet"
+                                />
+                                <p v-else :class="propertyText"><UIcon :name="priorityIcon.icon" class="size-4" :class="priorityIcon.class" />{{ boardPriorityLabel(form.priority) }}</p>
+                            </dd>
 
-                    <UFormField label="Deadline" :help="dueDateHint || undefined">
-                        <UInput v-if="canManage" v-model="form.dueDate" type="date" size="sm" class="w-full" :disabled="saving" />
-                        <p v-else class="text-sm" :class="{ 'text-muted': !dueDateLabel }">{{ dueDateLabel || 'Ingen' }}</p>
-                    </UFormField>
+                            <dt class="text-xs text-muted">Deadline</dt>
+                            <dd class="min-w-0">
+                                <div v-if="canManage" class="flex flex-wrap items-center gap-x-1">
+                                    <UInput v-model="form.dueDate" type="date" variant="ghost" size="sm" class="w-36 shrink-0" :disabled="saving" aria-label="Deadline" />
+                                    <span v-if="dueDateHint" class="px-2.5 text-xs text-muted">{{ dueDateHint }}</span>
+                                </div>
+                                <p v-else :class="propertyText">
+                                    <span :class="{ 'text-muted': !dueDateLabel }">{{ dueDateLabel || 'Ingen' }}</span>
+                                    <span v-if="dueDateHint" class="text-xs text-muted">{{ dueDateHint }}</span>
+                                </p>
+                            </dd>
 
-                    <UFormField label="Prioritet">
-                        <USelect v-if="canManage" v-model="form.priority" :items="priorityItems" size="sm" class="w-full" :disabled="saving" />
-                        <p v-else class="text-sm">{{ boardPriorityLabel(form.priority) }}</p>
-                    </UFormField>
+                            <dt class="text-xs text-muted">Tags</dt>
+                            <dd class="min-w-0">
+                                <UPopover v-if="canManage" :content="{ align: 'start', side: 'bottom' }" :ui="{ content: 'w-80 p-3' }">
+                                    <button type="button" :class="propertyButton" aria-label="Tags. Ret tags">
+                                        <BoardTagBadge v-for="tag in selectedTags" :key="tag.id" :tag="tag" />
+                                        <span v-if="!selectedTags.length" class="text-muted">Tilføj tags</span>
+                                    </button>
+                                    <template #content>
+                                        <BoardTagInput ref="tagInput" v-model="selectedTags" :tags="availableTags" :disabled="saving" />
+                                    </template>
+                                </UPopover>
+                                <div v-else :class="propertyText">
+                                    <BoardTagBadge v-for="tag in card?.tags ?? []" :key="tag.id" :tag="tag" />
+                                    <span v-if="!card?.tags.length" class="text-muted">Ingen</span>
+                                </div>
+                            </dd>
 
-                    <UFormField label="Farve" :help="selectedColorLabel">
-                        <div class="flex flex-wrap gap-1.5" role="group" aria-label="Kortets farve">
-                            <button
-                                v-for="color in cardColorOptions"
-                                :key="color.key"
-                                type="button"
-                                class="flex size-7 items-center justify-center rounded-md border text-xs focus-visible:outline-2 focus-visible:outline-primary disabled:cursor-not-allowed"
-                                :class="form.color === color.value ? 'border-inverted ring-2 ring-primary' : 'border-default'"
-                                :style="{ backgroundColor: color.value ?? 'var(--ui-bg)', color: color.value ? readableTextColor(color.value) : undefined }"
-                                :aria-label="color.label"
-                                :title="color.label"
-                                :aria-pressed="form.color === color.value"
-                                :disabled="!canManage || saving"
-                                @click="form.color = color.value"
-                            >
-                                <UIcon v-if="form.color === color.value" name="i-lucide-check" class="size-3.5" />
-                                <UIcon v-else-if="color.value === null" name="i-lucide-ban" class="size-3.5 text-muted" />
-                            </button>
-                        </div>
-                    </UFormField>
+                            <dt class="text-xs text-muted">Farve</dt>
+                            <dd class="min-w-0">
+                                <UPopover v-if="canManage" :content="{ align: 'start', side: 'bottom' }" :ui="{ content: 'p-3' }">
+                                    <button type="button" :class="propertyButton" :disabled="saving" aria-label="Farve. Skift farve">
+                                        <span class="size-4 shrink-0 rounded border border-default" :style="{ backgroundColor: form.color ?? 'transparent' }" aria-hidden="true" />
+                                        <span class="min-w-0 truncate" :class="{ 'text-muted': !form.color }">{{ selectedColorLabel }}</span>
+                                    </button>
+                                    <template #content>
+                                        <div class="flex max-w-60 flex-wrap gap-1.5" role="group" aria-label="Kortets farve">
+                                            <button
+                                                v-for="color in cardColorOptions"
+                                                :key="color.key"
+                                                type="button"
+                                                class="flex size-7 items-center justify-center rounded-md border text-xs focus-visible:outline-2 focus-visible:outline-primary"
+                                                :class="form.color === color.value ? 'border-inverted ring-2 ring-primary' : 'border-default'"
+                                                :style="{ backgroundColor: color.value ?? 'var(--ui-bg)', color: color.value ? readableTextColor(color.value) : undefined }"
+                                                :aria-label="color.label"
+                                                :title="color.label"
+                                                :aria-pressed="form.color === color.value"
+                                                @click="form.color = color.value"
+                                            >
+                                                <UIcon v-if="form.color === color.value" name="i-lucide-check" class="size-3.5" />
+                                                <UIcon v-else-if="color.value === null" name="i-lucide-ban" class="size-3.5 text-muted" />
+                                            </button>
+                                        </div>
+                                    </template>
+                                </UPopover>
+                                <p v-else :class="propertyText">
+                                    <span class="size-4 shrink-0 rounded border border-default" :style="{ backgroundColor: form.color ?? 'transparent' }" aria-hidden="true" />
+                                    <span :class="{ 'text-muted': !form.color }">{{ selectedColorLabel }}</span>
+                                </p>
+                            </dd>
+                        </dl>
+                    </section>
 
-                    <section v-if="!isNew && (otherPlacements.length > 0 || (canManage && availableBoards.length > 0))" aria-labelledby="card-placements-heading">
-                        <h3 id="card-placements-heading" class="mb-2 text-sm font-medium text-highlighted">Også på andre tavler</h3>
-                        <ul class="flex flex-col gap-2">
-                            <li v-for="placement in otherPlacements" :key="placement.boardId" class="flex items-center gap-2 text-sm">
-                                <span class="min-w-0 flex-1 truncate">{{ placement.boardTitle }}</span>
-                                <UDropdownMenu v-if="canManage" :items="statusItems(placement)" :content="{ align: 'end' }" @update:open="(value: boolean) => loadStatusColumns(placement, value)">
+                    <section v-if="!isNew && (placements.length > 0 || (canManage && availableBoards.length > 0))" aria-labelledby="card-placements-heading">
+                        <h3 id="card-placements-heading" class="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">Tavler</h3>
+                        <ul class="flex flex-col gap-0.5">
+                            <li v-for="placement in sortedPlacements" :key="placement.boardId" class="flex min-h-8 items-center gap-2 rounded-md px-2 text-sm">
+                                <UIcon name="i-lucide-square-kanban" class="size-4 shrink-0 text-muted" />
+                                <span class="min-w-0 flex-1 truncate" :class="{ 'font-medium text-highlighted': isCurrentBoard(placement) }">{{ placement.boardTitle }}</span>
+                                <UDropdownMenu v-if="canManage && !isCurrentBoard(placement)" :items="statusItems(placement)" :content="{ align: 'end' }" @update:open="(value: boolean) => loadStatusColumns(placement, value)">
                                     <UButton :color="placement.isDoneColumn ? 'success' : 'neutral'" variant="subtle" size="xs" :label="placement.columnTitle" trailing-icon="i-lucide-chevron-down" :disabled="saving" :aria-label="`Status på ${placement.boardTitle}: ${placement.columnTitle}. Skift status`" />
                                 </UDropdownMenu>
                                 <UBadge v-else :color="placement.isDoneColumn ? 'success' : 'neutral'" variant="subtle" size="sm" :label="placement.columnTitle" />
-                                <UButton v-if="canManage" color="neutral" variant="ghost" size="xs" icon="i-lucide-x" :aria-label="`Fjern fra ${placement.boardTitle}`" :disabled="saving" @click="confirmRemovePlacement(placement)" />
+                                <UDropdownMenu v-if="canManage && placements.length > 1" :items="placementMenu(placement)" :content="{ align: 'end' }">
+                                    <UButton color="neutral" variant="ghost" size="xs" icon="i-lucide-ellipsis" :aria-label="`Handlinger for ${placement.boardTitle}`" :disabled="saving" />
+                                </UDropdownMenu>
                             </li>
                         </ul>
 
                         <template v-if="canManage && availableBoards.length > 0">
-                            <UButton v-if="!placementPickerOpen" class="mt-2" color="neutral" variant="ghost" size="xs" icon="i-lucide-plus" label="Tilføj til tavle" @click="placementPickerOpen = true" />
+                            <UButton v-if="!placementPickerOpen" class="mt-1" color="neutral" variant="ghost" size="xs" icon="i-lucide-plus" label="Tilføj til tavle" @click="placementPickerOpen = true" />
                             <div v-else class="mt-2 flex flex-col gap-2">
                                 <USelectMenu v-model="placementBoardId" :items="placementBoardItems" value-key="value" placeholder="Vælg tavle…" size="sm" class="w-full" />
                                 <USelect v-if="placementColumns.length" v-model="placementColumnId" :items="placementColumnItems" size="sm" class="w-full" />
@@ -138,21 +197,26 @@
                                     <UButton size="xs" label="Tilføj til tavle" :disabled="!placementBoardId || !placementColumnId" :loading="saving" @click="addPlacement" />
                                 </div>
                             </div>
-                            <p class="mt-2 text-xs text-muted">Status og tavler gemmes med det samme.</p>
                         </template>
+                        <p v-if="canManage" class="mt-2 px-2 text-xs text-muted">Status og tavler gemmes med det samme.</p>
                     </section>
                 </aside>
             </div>
         </template>
 
         <template v-if="canManage" #footer>
-            <div class="flex w-full items-center justify-between gap-2">
+            <div class="flex w-full flex-wrap items-center justify-between gap-2">
                 <span v-if="isDirty" class="flex items-center gap-1.5 text-xs text-warning">
                     <span class="size-2 rounded-full bg-warning" aria-hidden="true" />
                     Ugemte ændringer
                 </span>
                 <span v-else />
-                <div class="flex gap-2">
+                <div class="flex items-center gap-2">
+                    <span class="hidden items-center gap-1 text-xs text-muted sm:flex">
+                        <UKbd :value="isMac ? 'meta' : 'ctrl'" size="sm" />
+                        <UKbd value="enter" size="sm" />
+                        gemmer
+                    </span>
                     <UButton color="neutral" variant="outline" label="Annuller" :disabled="saving" @click="open = false" />
                     <UButton :label="isNew ? 'Opret kort' : 'Gem ændringer'" :loading="saving" @click="save" />
                 </div>
@@ -185,11 +249,11 @@
 import { computed, reactive, ref, watch } from "vue";
 import type { DropdownMenuItem } from "@nuxt/ui";
 import BoardService from "@/Services/BoardService";
-import OrgService from "@/Services/OrgService";
 import { useBoardStore } from "@/Stores/BoardStore";
 import { htmlToPlainText } from "@/lib/util";
 import { useNotify } from "@/lib/notify";
 import { readableTextColor } from "@/lib/board/colorContrast";
+import { boardPriorityFilters } from "@/lib/board/boardFilters";
 import ConfirmModal from "@/Components/ConfirmModal.vue";
 import RichTextEditor from "@/Components/RichText/RichTextEditor.vue";
 import RichTextViewer from "@/Components/RichText/RichTextViewer.vue";
@@ -204,7 +268,6 @@ import {
     boardPriorityOptions,
     type BoardColumnDto,
     type BoardTagDto,
-    type OrgPositionDto,
     type UserSummaryDto,
     type WorkItemDto,
     type WorkItemPlacementDto
@@ -216,13 +279,11 @@ const emit = defineEmits<{ openCard: [card: WorkItemDto] }>();
 
 const store = useBoardStore();
 const boardService = new BoardService();
-const orgService = new OrgService();
 const notify = useNotify();
 
 const saving = ref(false);
 const selectedTags = ref<BoardTagDto[]>([]);
 const tagInput = ref<InstanceType<typeof BoardTagInput>>();
-const orgPositions = ref<OrgPositionDto[]>([]);
 const placementPickerOpen = ref(false);
 const placementBoardId = ref<string | undefined>();
 const placementColumnId = ref<string | undefined>();
@@ -233,6 +294,10 @@ const savedSnapshot = ref("");
 const deleteOpen = ref(false);
 const removePlacementOpen = ref(false);
 const placementToRemove = ref<WorkItemPlacementDto | null>(null);
+const relationTab = ref("dependencies");
+const isMac = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.userAgent);
+const propertyButton = "flex min-h-8 w-full flex-wrap items-center gap-1.5 rounded-md px-2.5 py-1 text-start text-sm text-highlighted hover:bg-default hover:ring hover:ring-default focus-visible:outline-2 focus-visible:outline-primary disabled:cursor-not-allowed";
+const propertyText = "flex min-h-8 flex-wrap items-center gap-1.5 px-2.5 py-1 text-sm text-highlighted";
 
 const form = reactive({
     title: "",
@@ -264,23 +329,29 @@ const pullRequestCard = computed(() => {
 
 const priorityItems = boardPriorityOptions.map((option) => ({ label: option.label, value: option.value }));
 
-const noPosition = "none";
-const positionItems = computed(() => [
-    { label: "Ingen stilling", value: noPosition },
-    ...orgPositions.value.map((position) => ({ label: position.title, value: String(position.id) }))
-]);
-const positionValue = computed({
-    get: () => form.ownerPositionId === null ? noPosition : String(form.ownerPositionId),
-    set: (value: string) => {
-        form.ownerPositionId = value === noPosition ? null : Number(value);
-    }
-});
-const positionTitle = computed(() => {
-    if (form.ownerPositionId === null) return null;
+const priorityIcon = computed(() => {
+    const priority = Number(form.priority);
+    const icon = boardPriorityFilters.find((option) => option.value === priority)?.icon ?? "i-lucide-minus";
+    if (priority > 0) return { icon, class: "text-error" };
 
-    return orgPositions.value.find((position) => position.id === form.ownerPositionId)?.title
-        ?? (form.ownerPositionId === props.card?.ownerPositionId ? props.card?.ownerPositionTitle : null)
-        ?? null;
+    return { icon, class: "text-muted" };
+});
+
+const assigneeList = computed(() => liveCard.value?.assignees ?? form.assignees.map((user) => ({ ...user, completedAt: null })));
+const completedAssigneeCount = computed(() => assigneeList.value.filter((user) => user.completedAt).length);
+
+const relationTabs = computed(() => {
+    const card = liveCard.value;
+    if (!card) return [];
+
+    const tabs = [{ label: "Afhængigheder", value: "dependencies", icon: "i-lucide-git-merge", badge: count((card.waitingOn?.length ?? 0) + (card.blocking?.length ?? 0)) }];
+    if (pullRequestCard.value) {
+        tabs.push({ label: "Pull requests", value: "pull-requests", icon: "i-lucide-git-pull-request", badge: count(pullRequestCard.value.pullRequests?.length ?? 0) });
+        tabs.push({ label: "Epic", value: "epic", icon: "i-lucide-layers", badge: count(pullRequestCard.value.epicProgress?.total ?? 0) });
+    }
+    if (card.links.length) tabs.push({ label: "Koblinger", value: "links", icon: "i-lucide-link", badge: count(card.links.length) });
+
+    return tabs;
 });
 
 const cardColorOptions = computed(() => {
@@ -318,7 +389,7 @@ const placements = computed<WorkItemPlacementDto[]>(() => {
     return live?.placements ?? props.card?.placements ?? [];
 });
 const currentPlacement = computed(() => placements.value.find((placement) => isCurrentBoard(placement)) ?? null);
-const otherPlacements = computed(() => placements.value.filter((placement) => !isCurrentBoard(placement)));
+const sortedPlacements = computed(() => [...placements.value].sort((a, b) => Number(isCurrentBoard(b)) - Number(isCurrentBoard(a))));
 const availableBoards = computed(() => store.Boards.filter((board) => !board.isArchived
     && !placements.value.some((placement) => String(placement.boardId) === String(board.id))));
 const placementBoardItems = computed(() => availableBoards.value.map((board) => ({ label: board.title, value: String(board.id) })));
@@ -357,8 +428,8 @@ watch(() => [open.value, props.card, props.boardId] as const, () => {
 
     closePlacementPicker();
     statusColumns.value = {};
+    relationTab.value = "dependencies";
 
-    void loadOrgPositions();
     void loadBoards();
 }, { immediate: true });
 
@@ -390,14 +461,30 @@ function openOtherCard(card: WorkItemDto) {
     emit("openCard", card);
 }
 
-function isCurrentBoard(placement: WorkItemPlacementDto) {
-    return String(placement.boardId) === String(props.boardId);
+function count(value: number) {
+    return value > 0 ? value : undefined;
 }
 
-async function loadOrgPositions() {
-    if (!props.canManage || orgPositions.value.length > 0) return;
+function initials(user: UserSummaryDto) {
+    return `${user.firstName?.[0] ?? ""}${user.lastName?.[0] ?? ""}`.toLocaleUpperCase("da-DK");
+}
 
-    orgPositions.value = await orgService.getPositions();
+function onShortcut(event: KeyboardEvent) {
+    if (event.key !== "Enter" || !(event.metaKey || event.ctrlKey) || !props.canManage) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+    void save();
+}
+
+function placementMenu(placement: WorkItemPlacementDto): DropdownMenuItem[] {
+    const label = isCurrentBoard(placement) ? "Fjern fra denne tavle" : `Fjern fra ${placement.boardTitle}`;
+
+    return [{ label, icon: "i-lucide-log-out", color: "error" as const, onSelect: () => confirmRemovePlacement(placement) }];
+}
+
+function isCurrentBoard(placement: WorkItemPlacementDto) {
+    return String(placement.boardId) === String(props.boardId);
 }
 
 async function loadBoards() {

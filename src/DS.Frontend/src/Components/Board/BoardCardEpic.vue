@@ -1,7 +1,7 @@
 <template>
     <section aria-labelledby="card-epic-heading">
         <div class="mb-2 flex items-center justify-between gap-2">
-            <h3 id="card-epic-heading" class="text-sm font-semibold text-highlighted">Epic</h3>
+            <h3 id="card-epic-heading" class="sr-only">Epic</h3>
             <USwitch
                 v-if="canManage && !card.epicCardId"
                 :model-value="card.isEpic"

@@ -1,7 +1,7 @@
 <template>
     <section aria-labelledby="card-pull-requests-heading">
-        <div class="mb-2 flex items-center justify-between gap-2">
-            <h3 id="card-pull-requests-heading" class="text-sm font-semibold text-highlighted">Pull requests</h3>
+        <div class="mb-2 flex items-center justify-end gap-2">
+            <h3 id="card-pull-requests-heading" class="sr-only">Pull requests</h3>
             <UButton v-if="canManage" color="neutral" variant="ghost" size="xs" :icon="formOpen ? 'i-lucide-x' : 'i-lucide-plus'" :label="formOpen ? 'Luk' : 'Tilføj'" :aria-expanded="formOpen" :disabled="saving" @click="formOpen = !formOpen" />
         </div>
 
