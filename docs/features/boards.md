@@ -18,8 +18,7 @@ arbejdsgangen for kort i udviklingen står i [AGENTS.md](../../AGENTS.md).
   flere tavler med én `board_card` pr. tavle. Titel, beskrivelse, farve og
   ansvarlige er fælles på tværs af placeringer.
 - Kort har ingen ansvarlig stilling. Kolonnen `work_item.owner_position_id`
-  findes stadig i databasen, men læses og skrives ikke af koden, API'et eller
-  MCP-værktøjerne. Den droppes i DS-122.
+  er droppet med `040_drop_work_item_owner_position.sql` (DS-122).
 - Status hører til placeringen: kortets kolonne på den tavle. En placering er
   færdig, når kolonnen er markeret som færdig-kolonne (`is_done_column`).
   Samme kort kan være i gang på én tavle og færdigt på en anden.
@@ -216,9 +215,9 @@ tavleindstillingerne. Deaktivering skjuler data uden at slette dem og afviser
   Afløser "ansvarlig bruger eller stilling" fra 2026-10-14. Feltet blev ikke
   brugt til filtre, overblik eller adgang, og den oprindelige begrundelse er
   ikke dokumenteret. DS-119 fjernede feltet fra kortdialogen, og DS-121 fra
-  domænemodel, API, MCP og frontendtyper. Kolonnen droppes først i DS-122
-  efter udgivelse (expand/contract), så den forrige udgivelse kan
-  redeployes.
+  domænemodel, API, MCP og frontendtyper. DS-122 dropper kolonnen i en
+  senere migration (expand/contract), som først må udgives efter DS-121, så
+  den forrige udgivelse kan redeployes.
 
 ## Åbne spørgsmål
 
