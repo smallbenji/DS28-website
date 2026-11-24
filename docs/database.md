@@ -1036,7 +1036,8 @@ erDiagram
 ```
 
 `org_position` refereres desuden af `user_invitation.org_position_id` og
-`work_item.owner_position_id`.
+`work_item.owner_position_id`. Den sidste bruges ikke af koden og droppes i
+DS-122.
 
 ### `org_position`
 
@@ -1316,7 +1317,7 @@ Et kort med indhold, der deles af alle kortets tavleplaceringer.
 | `id` | `INTEGER` identity | nej | | PK |
 | `title` | `VARCHAR(256)` | nej | | |
 | `description` | `TEXT` | ja | | |
-| `owner_position_id` | `INTEGER` | ja | | FK `org_position.id`, SET NULL |
+| `owner_position_id` | `INTEGER` | ja | | FK `org_position.id`, SET NULL. Ikke mappet i EF og bruges ikke; droppes i DS-122 |
 | `due_date` | `DATE` | ja | | |
 | `priority` | `INTEGER` | nej | `0` | |
 | `created_by_user_id` | `TEXT` | ja | | FK `asp_net_users.id`, SET NULL |

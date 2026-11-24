@@ -158,7 +158,6 @@ async function createCard() {
             description: null,
             color: null,
             assigneeUserIds: [],
-            ownerPositionId: null,
             dueDate: null,
             priority: 0,
             links: []

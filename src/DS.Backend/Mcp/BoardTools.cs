@@ -168,7 +168,6 @@ namespace DS.Backend.Mcp
                     Description = newDescription,
                     Color = newColor,
                     AssigneeUserIds = assignees == null ? null : assigneeIds,
-                    OwnerPositionId = card.OwnerPositionId,
                     DueDate = newDueDate,
                     Priority = newPriority,
                 };

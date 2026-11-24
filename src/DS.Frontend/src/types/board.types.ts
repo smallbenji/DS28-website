@@ -67,8 +67,6 @@ export interface WorkItemDto {
     columnId: number;
     position: number;
     assignees: WorkItemAssigneeDto[];
-    ownerPositionId: number | null;
-    ownerPositionTitle: string | null;
     dueDate: string | null;
     priority: number;
     links: WorkItemLinkDto[];
@@ -150,7 +148,6 @@ export interface WorkItemCreateDto {
     description: string | null;
     color: string | null;
     assigneeUserIds: string[];
-    ownerPositionId: number | null;
     dueDate: string | null;
     priority: number;
     links: WorkItemLinkDto[];
@@ -167,7 +164,6 @@ export interface WorkItemUpdateDto {
     description: string | null;
     color: string | null;
     assigneeUserIds?: string[];
-    ownerPositionId: number | null;
     dueDate: string | null;
     priority: number;
 }

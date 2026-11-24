@@ -14,10 +14,12 @@ arbejdsgangen for kort i udviklingen står i [AGENTS.md](../../AGENTS.md).
   `board`, `board_column`, `work_item` og `board_card`. Skemaet står i
   [database.md](../database.md).
 - Et arbejdskort (`work_item`) ejes ét sted: titel, beskrivelse (HTML),
-  ansvarlige brugere, deadline, prioritet og farve. Kolonnen for ansvarlig
-  stilling findes stadig i API og database, men vises og redigeres ikke i
-  kortdialogen (se beslutningen 2026-11-24). Kortet kan placeres på flere tavler med én `board_card` pr. tavle. Titel,
-  beskrivelse, farve og ansvarlige er fælles på tværs af placeringer.
+  ansvarlige brugere, deadline, prioritet og farve. Kortet kan placeres på
+  flere tavler med én `board_card` pr. tavle. Titel, beskrivelse, farve og
+  ansvarlige er fælles på tværs af placeringer.
+- Kort har ingen ansvarlig stilling. Kolonnen `work_item.owner_position_id`
+  findes stadig i databasen, men læses og skrives ikke af koden, API'et eller
+  MCP-værktøjerne. Den droppes i DS-122.
 - Status hører til placeringen: kortets kolonne på den tavle. En placering er
   færdig, når kolonnen er markeret som færdig-kolonne (`is_done_column`).
   Samme kort kan være i gang på én tavle og færdigt på en anden.
@@ -213,9 +215,10 @@ tavleindstillingerne. Deaktivering skjuler data uden at slette dem og afviser
 - 2026-11-24, DS-119 og DS-121: Kort har ikke længere en ansvarlig stilling.
   Afløser "ansvarlig bruger eller stilling" fra 2026-10-14. Feltet blev ikke
   brugt til filtre, overblik eller adgang, og den oprindelige begrundelse er
-  ikke dokumenteret. DS-119 fjerner feltet fra kortdialogen og bevarer en
-  eksisterende værdi ved gem. DS-121 fjerner det fra API, MCP og database med
-  expand/contract.
+  ikke dokumenteret. DS-119 fjernede feltet fra kortdialogen, og DS-121 fra
+  domænemodel, API, MCP og frontendtyper. Kolonnen droppes først i DS-122
+  efter udgivelse (expand/contract), så den forrige udgivelse kan
+  redeployes.
 
 ## Åbne spørgsmål
 

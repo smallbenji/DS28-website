@@ -76,8 +76,6 @@ namespace DS.Domain.DTOs
         public int ColumnId { get; set; }
         public int Position { get; set; }
         public List<WorkItemAssigneeDto> Assignees { get; set; } = [];
-        public int? OwnerPositionId { get; set; }
-        public string OwnerPositionTitle { get; set; }
         public DateOnly? DueDate { get; set; }
         public int Priority { get; set; }
         public List<WorkItemLinkDto> Links { get; set; } = [];
@@ -216,7 +214,6 @@ namespace DS.Domain.DTOs
         public string Description { get; set; }
         public string Color { get; set; }
         public List<string> AssigneeUserIds { get; set; } = [];
-        public int? OwnerPositionId { get; set; }
         public DateOnly? DueDate { get; set; }
         public int Priority { get; set; }
         public List<WorkItemLinkDto> Links { get; set; } = [];
@@ -230,7 +227,6 @@ namespace DS.Domain.DTOs
         public string Description { get; set; }
         public string Color { get; set; }
         public List<string> AssigneeUserIds { get; set; }
-        public int? OwnerPositionId { get; set; }
         public DateOnly? DueDate { get; set; }
         public int Priority { get; set; }
     }

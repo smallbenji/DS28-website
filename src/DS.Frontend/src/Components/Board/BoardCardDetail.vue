@@ -333,8 +333,7 @@ const form = reactive({
     color: null as string | null,
     dueDate: "",
     priority: "0",
-    assignees: [] as UserSummaryDto[],
-    ownerPositionId: null as number | null
+    assignees: [] as UserSummaryDto[]
 });
 
 const isNew = computed(() => props.card === null);
@@ -464,7 +463,6 @@ function resetForm() {
     form.dueDate = props.card?.dueDate ?? "";
     form.priority = String(props.card?.priority ?? 0);
     form.assignees = [...(props.card?.assignees ?? [])];
-    form.ownerPositionId = props.card?.ownerPositionId ?? null;
     savedSnapshot.value = snapshot();
 }
 
@@ -481,7 +479,6 @@ function snapshot() {
         dueDate: form.dueDate,
         priority: form.priority,
         assignees: form.assignees.map((user) => user.id),
-        ownerPositionId: form.ownerPositionId,
         tags: selectedTags.value.map((tag) => `${tag.id}:${tag.name}`)
     });
 }
@@ -671,7 +668,6 @@ async function save() {
             title: form.title.trim(),
             description: htmlToPlainText(form.description) ? form.description : null,
             color: form.color,
-            ownerPositionId: form.ownerPositionId,
             dueDate: form.dueDate ? form.dueDate : null,
             priority: Number(form.priority)
         };
