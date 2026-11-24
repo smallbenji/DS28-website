@@ -1035,9 +1035,7 @@ erDiagram
     asp_net_users ||--o{ org_position_holder : "CASCADE"
 ```
 
-`org_position` refereres desuden af `user_invitation.org_position_id` og
-`work_item.owner_position_id`. Den sidste bruges ikke af koden og droppes i
-DS-122.
+`org_position` refereres desuden af `user_invitation.org_position_id`.
 
 ### `org_position`
 
@@ -1139,7 +1137,6 @@ erDiagram
     }
     work_item {
         int id PK
-        int owner_position_id FK
         text created_by_user_id FK
     }
     work_item_assignee {
@@ -1317,7 +1314,6 @@ Et kort med indhold, der deles af alle kortets tavleplaceringer.
 | `id` | `INTEGER` identity | nej | | PK |
 | `title` | `VARCHAR(256)` | nej | | |
 | `description` | `TEXT` | ja | | |
-| `owner_position_id` | `INTEGER` | ja | | FK `org_position.id`, SET NULL. Ikke mappet i EF og bruges ikke; droppes i DS-122 |
 | `due_date` | `DATE` | ja | | |
 | `priority` | `INTEGER` | nej | `0` | |
 | `created_by_user_id` | `TEXT` | ja | | FK `asp_net_users.id`, SET NULL |
