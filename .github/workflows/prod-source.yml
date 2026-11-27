@@ -1,0 +1,17 @@
+name: Prod PR source
+
+on:
+  pull_request:
+    branches:
+      - prod
+
+jobs:
+  source:
+    name: Kilde er master
+    runs-on: ubuntu-latest
+    steps:
+      - name: Afvis andre kilder end master
+        if: github.head_ref != 'master' || github.event.pull_request.head.repo.full_name != github.repository
+        run: |
+          echo "Pull requests til prod skal komme fra master i dette repository." >&2
+          exit 1

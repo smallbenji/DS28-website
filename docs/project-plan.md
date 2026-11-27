@@ -179,4 +179,5 @@ Spørgsmålene er samlet her i kort form. Detaljerne står i den linkede fil.
 | Formularskabeloner | [features/forms.md](features/forms.md) | |
 | Frontend, navigation, søgning, PWA | [features/frontend.md](features/frontend.md) | DS-94 |
 | Databaseskema | [database.md](database.md) | DS-117 |
-| Kort, pull requests, udgivelse og deploy | [AGENTS.md](../AGENTS.md) | |
+| Kort, pull requests, udgivelse og deploy | [AGENTS.md](../AGENTS.md) | DS-24 |
+| Opsætning og drift af produktiondeploy | [deploy.md](deploy.md) | DS-24 |

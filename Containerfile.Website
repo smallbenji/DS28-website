@@ -7,12 +7,13 @@ COPY src/DS.Frontend/. .
 RUN npm run build
 
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+ARG DS_BUILD_VERSION=
 WORKDIR /src
 COPY src/ .
 COPY --from=node-build /src/DS.Backend/wwwroot/dist /src/DS.Backend/wwwroot/dist
 RUN dotnet restore DS.Backend/DS.Backend.csproj
-RUN dotnet publish DS.Backend/DS.Backend.csproj -c Release -o /app/publish
-RUN dotnet publish DS.RegistrationImporter/DS.RegistrationImporter.csproj -c Release -o /app/importer
+RUN dotnet publish DS.Backend/DS.Backend.csproj -c Release -p:DSBuildVersion=$DS_BUILD_VERSION -o /app/publish
+RUN dotnet publish DS.RegistrationImporter/DS.RegistrationImporter.csproj -c Release -p:DSBuildVersion=$DS_BUILD_VERSION -o /app/importer
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0
 WORKDIR /app

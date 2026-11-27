@@ -239,8 +239,8 @@ profile in HQ. Never print, commit, or paste the token.
   the card.
 - **Merged**: when the pull request is approved and merged, move the card to
   `Ikke udgivet`.
-- **Released**: when a version tag containing the change is deployed, move
-  the released cards to `Færdig`. `Færdig` means released, not merely merged.
+- **Released**: when the change is deployed through `prod`, move the released
+  cards to `Færdig`. `Færdig` means released, not merely merged.
 - Use `Blocked` for a card that cannot proceed, and `Planlægning` for cards
   that still need clarification before they are ready for `Backlog`.
 
@@ -283,29 +283,46 @@ keep it through merge and release.
 - Compose builds Worker using `Containerfile.Worker`. Both services share the
   database and file volume. Worker waits for Website's DbUp migration journal
   before starting Hangfire and uses the container hostname as its server name.
-- The release workflow builds and publishes both Website and Worker using a
+- The deploy workflow builds and publishes both Website and Worker using a
   matrix, with the same version tags. Worker uses the `-worker` image suffix.
 
 The project uses GitHub Actions for CI/CD (see `.github/workflows/deploy.yml`).
+Setup of secrets, the server and branch protection is described in
+[the deploy guide](docs/deploy.md).
 
-- **Trigger**: Runs only on semantic version git tags matching `v[0-9]+.[0-9]+.[0-9]+*` (e.g., `v0.1.21`, `v1.2.3-rc1`). Also supports manual runs via `workflow_dispatch`.
-- **Registry**: Images are published to GitHub Container Registry (`ghcr.io`) as `ghcr.io/smallbenji/ds28-website` and `ghcr.io/smallbenji/ds28-website-worker`.
-- **Build**: Uses Docker Buildx with Docker driver and a matrix for `Containerfile.Website` and `Containerfile.Worker` in the repo root (`context: .`), targeting `linux/amd64`.
-- **Tags**: Automatically generated from the SemVer tag - exact (`{{version}}`), minor (`{{major}}.{{minor}}`), major (`{{major}}`), and `latest` (for all semver tag pushes).
-- **Push**: Images are pushed on tag triggers (manual runs still build but the workflow pushes as configured; see workflow for details).
-
-To deploy a new version: bump the version in `src/DS.Domain/DSVersion.cs`, create a commit with message "Bump version", tag that commit with `vX.Y.Z`, and push the commit and the tag. The workflow triggers on tag pushes; pushes to master are allowed but the deploy only runs for semver tags. The current version is exposed via the API (`/api/version`) from `DSVersion`.
+- **Branches**: `master` is the integration branch and `prod` is what runs in
+  production. Feature work merges into `master`; a pull request from `master`
+  into `prod` is the deploy decision. `prod-source.yml` rejects pull requests
+  into `prod` from any other branch. Never commit directly to `prod`, and land
+  hotfixes on `master` first.
+- **Versions**: `DSVersion.Version` in `src/DS.Domain/DSVersion.cs` holds the
+  manually chosen `X.Y.Z`. Bump it on `master` when a release deserves a new
+  number. Every push to `prod` tags the merge commit automatically: `vX.Y.Z`
+  for the first deploy of a version, then `vX.Y.Z+1`, `vX.Y.Z+2` for deploys
+  without a bump. Do not create release tags by hand.
+- **Build version**: the workflow passes the full version as
+  `DS_BUILD_VERSION`, which becomes `DSVersion.BuildVersion` and is returned
+  by `/api/version`. Local builds fall back to `DSVersion.Version`.
+- **Images**: `ghcr.io/smallbenji/ds28-website` and
+  `ghcr.io/smallbenji/ds28-website-worker`, tagged with the version (with `+`
+  replaced by `_`, since Docker tags cannot contain `+`) and `latest`.
+- **Deploy**: the `deploy` job runs in the `production` GitHub Environment,
+  joins the tailnet with the Tailscale action and connects over SSH to
+  `main-server`, where `deploy/deploy.sh` dumps the database, pulls the pinned
+  images and restarts Website and Worker. The job then checks `/api/version`.
+- **Rollback**: run the Deploy workflow manually on `prod` with an existing
+  tag, for example `v0.3.1+1`. It redeploys that image without building. Do not
+  roll back by reverting the merge on `prod`; fix forward on `master`.
 
 - Production at `hq.distriktssommerlejr.dk` is the only environment. There is no
-  staging host. Keep `master` as the only long-lived branch; a tag is the
-  release, and there is no separate production or release branch.
-- Deploy the exact image built for a tag. Do not rebuild for production.
-- Deploying to production is a deliberate step, not a side effect of pushing a
-  tag, and is gated on approval of the `production` GitHub Environment.
+  staging host.
+- Deploy the image built for the tagged `prod` commit. Do not rebuild an
+  existing version tag.
 - Database migrations must stay backwards compatible for one release
   (expand/contract: add, use, then remove), so the previous tag can be
   redeployed if a release has to be rolled back.
-- Take a database dump before deploying a tag that contains a migration.
+- Every deploy takes a database dump on the server before it changes the
+  containers.
 
 ## Verification
 

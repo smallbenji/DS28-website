@@ -1,21 +1,53 @@
-# CI/CD: Build and publish to GHCR on semantic version tag push
 name: Deploy
 
 on:
-  # Trigger ONLY on SemVer git tags like v1.0.0, v2.1.3-rc1 (no other branches/PRs)
   push:
-    tags:
-      - "v[0-9]+.[0-9]+.[0-9]+*"
-  # Allow manual runs (e.g. to verify workflow changes without a new tag)
+    branches:
+      - prod
   workflow_dispatch:
+    inputs:
+      version:
+        description: Eksisterende versionstag, der skal deployes igen, fx v0.3.1+2
+        required: true
+        type: string
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
 
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
+  PRODUCTION_URL: https://hq.distriktssommerlejr.dk
 
 jobs:
-  build-and-deploy:
-    name: Build and publish ${{ matrix.target }}
+  prepare:
+    name: Fastlæg version
+    if: github.ref == 'refs/heads/prod'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      tag: ${{ steps.version.outputs.tag }}
+      version: ${{ steps.version.outputs.version }}
+      image_tag: ${{ steps.version.outputs.image_tag }}
+      build: ${{ steps.version.outputs.build }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Fastlæg og tag version
+        id: version
+        env:
+          REQUESTED_VERSION: ${{ inputs.version }}
+        run: .github/scripts/release-version.sh
+
+  build:
+    name: Byg ${{ matrix.target }}
+    needs: prepare
+    if: needs.prepare.outputs.build == 'true'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -27,24 +59,18 @@ jobs:
           - target: Worker
             containerfile: Containerfile.Worker
             image_suffix: "-worker"
-    # Grant the job permission to push packages to GHCR and read repo scope
     permissions:
       contents: read
       packages: write
-
     steps:
-      # 1) Check out the repository source
       - name: Checkout repository
         uses: actions/checkout@v7
 
-      # 2) Set up Docker Buildx with the built-in docker driver. This avoids
-      #    pulling moby/buildkit from Docker Hub, which hits anonymous rate limits.
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
         with:
           driver: docker
 
-      # 3) Authenticate with GHCR using the auto-provisioned GITHUB_TOKEN
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v4
         with:
@@ -52,26 +78,70 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # 4) Generate image tags/labels from the SemVer git tag
-      #    -> <image>:1.2.3 (exact), <image>:1.2 (minor), <image>:1 (major), <image>:latest
-      - name: Extract metadata (tags, labels) for Docker
-        id: meta
-        uses: docker/metadata-action@v6
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}${{ matrix.image_suffix }}
-          tags: |
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=semver,pattern={{major}}
-            type=raw,value=latest
-
-      # 5) Build the image from the custom Containerfile and push all tags
       - name: Build and push Docker image
         uses: docker/build-push-action@v7
         with:
-          context: .                  # build context is repo root
+          context: .
           file: ./${{ matrix.containerfile }}
           platforms: linux/amd64
-          push: true                  # publish to GHCR
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          push: true
+          build-args: |
+            DS_BUILD_VERSION=${{ needs.prepare.outputs.version }}
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}${{ matrix.image_suffix }}:${{ needs.prepare.outputs.image_tag }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}${{ matrix.image_suffix }}:latest
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.version=${{ needs.prepare.outputs.version }}
+
+  deploy:
+    name: Deploy ${{ needs.prepare.outputs.tag }}
+    needs: [prepare, build]
+    if: always() && needs.prepare.result == 'success' && (needs.build.result == 'success' || needs.build.result == 'skipped')
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: ${{ env.PRODUCTION_URL }}
+    permissions:
+      contents: read
+    steps:
+      - name: Join tailnet
+        uses: tailscale/github-action@v3
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
+
+      - name: Klargør SSH
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy
+          chmod 600 ~/.ssh/deploy
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
+
+      - name: Deploy til main-server
+        env:
+          DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ vars.DEPLOY_USER }}
+          IMAGE_TAG: ${{ needs.prepare.outputs.image_tag }}
+        run: ssh -i ~/.ssh/deploy -o BatchMode=yes -o StrictHostKeyChecking=yes "$DEPLOY_USER@$DEPLOY_HOST" "$IMAGE_TAG"
+
+      - name: Bekræft version i produktion
+        env:
+          EXPECTED_VERSION: ${{ needs.prepare.outputs.version }}
+        run: |
+          actual=""
+          for attempt in $(seq 1 30); do
+            actual=$(curl -fsS "$PRODUCTION_URL/api/version" | jq -r .version || true)
+            if [[ "$actual" == "$EXPECTED_VERSION" ]]; then
+              echo "Produktion kører $actual"
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "Forventede $EXPECTED_VERSION, men produktion svarer '$actual'" >&2
+          exit 1

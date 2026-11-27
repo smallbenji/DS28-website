@@ -1,8 +1,9 @@
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+ARG DS_BUILD_VERSION=
 WORKDIR /src
 COPY src/ .
 RUN dotnet restore DS.Worker/DS.Worker.csproj
-RUN dotnet publish DS.Worker/DS.Worker.csproj -c Release --no-restore -o /app/publish
+RUN dotnet publish DS.Worker/DS.Worker.csproj -c Release --no-restore -p:DSBuildVersion=$DS_BUILD_VERSION -o /app/publish
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0
 WORKDIR /app

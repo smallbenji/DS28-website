@@ -28,4 +28,11 @@
     <EmbeddedResource Include="Migrations/*.sql" LogicalName="DS.Migrations.%(Filename)%(Extension)" />
   </ItemGroup>
 
+  <ItemGroup Condition="'$(DSBuildVersion)' != ''">
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+      <_Parameter1>DSBuildVersion</_Parameter1>
+      <_Parameter2>$(DSBuildVersion)</_Parameter2>
+    </AssemblyAttribute>
+  </ItemGroup>
+
 </Project>
