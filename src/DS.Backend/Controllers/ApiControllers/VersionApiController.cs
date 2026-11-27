@@ -12,7 +12,7 @@ namespace DS.Backend.Controllers.ApiControllers
         {
             return Ok(new VersionDto
             {
-                Version = DSVersion.Version,
+                Version = DSVersion.BuildVersion,
                 Name = DSVersion.Name
             });
         }
